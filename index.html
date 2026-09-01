@@ -1,0 +1,447 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elite Baseball League — Genesis</title>
+<style>
+:root{
+--bg:#040b14;
+--panel:#08172a;
+--panel2:#102844;
+--line:#35506c;
+--txt:#f7f9fc;
+--mut:#a8b4c2;
+--gold:#d9e0e8;
+--green:#58c98b;
+--red:#d7262e;
+--red2:#9f151c;
+--blue:#5b86b5;
+--silver:#d9e0e8;
+--navy:#071a31;
+--navy2:#0b2543
+}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#102844 0,#07182a 34%,#040b14 72%);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,sans-serif}header{padding:12px 18px;background:linear-gradient(180deg,#0a1d34,#071421);border-bottom:2px solid var(--red);display:flex;justify-content:space-between;gap:12px;align-items:center;box-shadow:0 8px 24px #0007}.brand{font-weight:950;letter-spacing:.08em}.season{font-size:12px;color:var(--gold)}
+nav{display:flex;gap:6px;padding:9px 10px;overflow:auto;background:#071522e8;border-bottom:1px solid #2f465f;position:sticky;top:0;z-index:10;backdrop-filter:blur(10px)}button,input,select{font:inherit}.navbtn,.btn,.subtab{background:linear-gradient(180deg,#132e4e,#0d223b);color:white;border:1px solid #3b5874;padding:8px 10px;border-radius:9px;cursor:pointer}.navbtn.active,.subtab.active,.btn:hover{color:white;border-color:var(--red);box-shadow:inset 0 -2px 0 var(--red)}
+main{max-width:1180px;margin:auto;padding:13px}.page{display:none}.page.active{display:block}.card{background:linear-gradient(180deg,rgba(11,31,53,.98),rgba(7,22,39,.98));border:1px solid #35506c;border-radius:14px;padding:14px;margin-bottom:11px;box-shadow:0 10px 28px #0003}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:9px}.two{display:grid;grid-template-columns:1.15fr .85fr;gap:10px}.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.muted{color:var(--mut)}.gold{color:var(--gold)}.green{color:var(--green)}.red{color:var(--red)}.big{font-size:30px;font-weight:950}h1,h2,h3{margin:0 0 9px}.identity{display:flex;gap:12px;align-items:center}.avatar{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:#183650;border:1px solid #3b607e;font-weight:900;font-size:22px}
+.ticker{display:flex;gap:14px;overflow:hidden;white-space:nowrap;background:linear-gradient(90deg,#071522,#0d2744,#071522);border:1px solid #3b5874;border-left:4px solid var(--red);border-radius:10px;padding:9px}.tickerTrack{display:inline-flex;gap:24px;animation:scroll 35s linear infinite}.ticker:hover .tickerTrack{animation-play-state:paused}@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}.tick{cursor:pointer}.tick b{color:var(--red)}
+.statTabs,.subtabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.statPane,.subpane{display:none}.statPane.active,.subpane.active{display:block}.statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:7px}.statBox{background:linear-gradient(180deg,#102844,#0b2037);border:1px solid #35506c;border-radius:9px;padding:9px;text-align:center}.statBox b{font-size:19px}.label{display:block;color:var(--mut);font-size:12px}.attr{display:grid;grid-template-columns:1fr 45px 95px;gap:7px;align-items:center;padding:7px 0;border-bottom:1px solid #1d3850}.bar{height:6px;background:#081522;border-radius:99px;overflow:hidden;margin-top:4px}.bar span{display:block;height:100%;background:linear-gradient(90deg,#4b85ba,var(--gold))}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:7px;border-bottom:1px solid #1d3850;text-align:left}th{color:var(--mut);position:sticky;top:47px;background:#0d1d2d}.tablewrap{overflow:auto;max-height:560px}.meRow{background:#16334a}.game{padding:9px;border-bottom:1px solid #1d3850;cursor:pointer}.game:hover{background:#12283c}.gameLine{display:flex;justify-content:space-between;gap:8px}.division{margin:14px 0}.division h3{color:var(--silver);border-left:4px solid var(--red);padding-left:8px}
+.chatbox{height:230px;overflow:auto;background:#081522;border:1px solid #1d3850;border-radius:9px;padding:8px}.chatmsg{padding:5px 0;border-bottom:1px solid #13283b}.chatinput{display:flex;gap:6px;margin-top:7px}.chatinput input{flex:1;background:#081522;color:white;border:1px solid var(--line);padding:8px;border-radius:8px}.offer{padding:9px;border:1px solid var(--line);border-radius:9px;margin:7px 0}.race{padding:8px;border-bottom:1px solid #1d3850;display:grid;grid-template-columns:30px 1fr auto;gap:8px}.medal{color:var(--red);font-weight:900}
+dialog{background:var(--panel);color:white;border:1px solid var(--line);border-radius:14px;max-width:950px;width:95%;max-height:92vh;overflow:auto}dialog::backdrop{background:#000b}.field{position:relative;height:340px;background:linear-gradient(#1b5a40,#103527);border-radius:14px;overflow:hidden}.dirt{position:absolute;width:235px;height:235px;left:50%;top:60%;transform:translate(-50%,-50%) rotate(45deg);background:#ad8051;border:5px solid #e7d3ad}.grass{position:absolute;width:175px;height:175px;left:50%;top:60%;transform:translate(-50%,-50%) rotate(45deg);background:#216447}.ball{position:absolute;width:9px;height:9px;border-radius:50%;background:white;left:50%;top:80%;transition:all .5s ease}.gcgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:10px}.zone{width:120px;height:145px;border:2px solid white;position:relative;margin:10px auto}.dot{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--gold);transform:translate(-50%,-50%)}.feed{max-height:300px;overflow:auto}.play{padding:7px;border-bottom:1px solid #1d3850}.hidden{display:none}
+.brandWrap{display:flex;align-items:center;gap:12px}.siteLogo{width:92px;height:64px;object-fit:contain;filter:drop-shadow(0 4px 10px #0008)}.brandText{display:flex;flex-direction:column}.brand{font-size:18px}.season{letter-spacing:.08em}.heroLogo{display:block;max-width:340px;width:72%;margin:4px auto 14px;filter:drop-shadow(0 10px 22px #0009)}.redline{height:3px;background:linear-gradient(90deg,transparent,var(--red),transparent);border:0;margin:12px 0}
+.creatorSteps{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.creatorStep{flex:1;min-width:120px;padding:9px;border:1px solid var(--line);border-radius:9px;background:#091827;color:var(--mut);text-align:center}.creatorStep.active{border-color:var(--red);color:white;background:#122a46}.creatorStep.done{color:var(--silver)}
+.appearanceGrid{display:grid;grid-template-columns:1.25fr .75fr;gap:12px}.presetGrid{display:grid;grid-template-columns:repeat(5,minmax(78px,1fr));gap:8px}.preset{border:1px solid var(--line);border-radius:10px;padding:8px;background:#0b2037;cursor:pointer;text-align:center}.preset.selected{border-color:var(--red);box-shadow:inset 0 0 0 2px var(--red)}.presetLabel{font-size:12px;color:var(--mut);margin-top:5px}
+.avatarPreview{min-height:360px;display:flex;align-items:center;justify-content:center;position:relative;background:radial-gradient(circle,#173451,#071421 70%);border:1px solid var(--line);border-radius:14px}.playerBust{position:relative;width:190px;height:280px}.jersey{position:absolute;left:25px;right:25px;bottom:0;height:145px;background:#071a31;border:4px solid #d9e0e8;border-bottom:0;border-radius:60px 60px 12px 12px;box-shadow:inset 0 0 0 4px #d7262e}.jersey:after{content:'EBL';position:absolute;top:54px;left:0;right:0;text-align:center;font-weight:950;font-size:34px;color:white;text-shadow:2px 2px #9f151c}.neck{position:absolute;width:54px;height:60px;left:68px;top:118px;background:var(--skin);border-radius:20px;z-index:2}.head{position:absolute;width:116px;height:138px;left:37px;top:18px;background:var(--skin);border-radius:48% 48% 45% 45%;z-index:3;box-shadow:inset 0 -10px 0 #0001}.eye{position:absolute;top:67px;width:10px;height:6px;background:#14202b;border-radius:50%;z-index:5}.eye.l{left:66px}.eye.r{right:66px}.nose{position:absolute;top:74px;left:92px;width:6px;height:22px;background:#0002;border-radius:4px;z-index:5}.mouth{position:absolute;top:108px;left:78px;width:34px;height:5px;background:#7c3f3f;border-radius:50%;z-index:5}.hair{position:absolute;z-index:6;background:var(--hair);left:35px;top:10px;width:120px;height:55px;border-radius:55% 55% 25% 25%}.hair.h2{height:35px;top:20px;border-radius:45%}.hair.h3{height:65px;top:5px;border-radius:60% 60% 15% 15%;clip-path:polygon(0 20%,15% 0,30% 18%,45% 0,60% 18%,75% 0,90% 15%,100% 5%,100% 100%,0 100%)}.hair.h4{height:70px;top:0;border-radius:50%;clip-path:polygon(0 20%,20% 5%,38% 12%,55% 0,75% 15%,100% 5%,100% 100%,0 100%)}.hair.h5{height:48px;top:10px;border-radius:70% 20% 35% 20%}.hair.h6{height:28px;top:22px;border-radius:35%}.hair.h7{height:78px;top:0;border-radius:55% 55% 35% 35%}.hair.h8{height:32px;top:20px;border-radius:10% 70% 25% 60%}.hair.h9{height:12px;top:33px;border-radius:30%}.hair.h10{height:60px;top:6px;border-radius:45%;clip-path:circle(50%)}.faceThumb{--skin:#c68e68;--hair:#3b261e;position:relative;height:82px}.faceThumb .miniHead{position:absolute;width:48px;height:58px;left:50%;top:10px;transform:translateX(-50%);background:var(--skin);border-radius:45%}.faceThumb .miniHair{position:absolute;width:52px;height:22px;left:50%;top:6px;transform:translateX(-50%);background:var(--hair);border-radius:50% 50% 20% 20%}
+.coachGrid{display:grid;grid-template-columns:1.1fr .9fr;gap:10px}.roleRow{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;padding:6px 0}.lineupRow{display:grid;grid-template-columns:34px 90px 1fr;gap:8px;align-items:center;padding:5px 0}.coachSection{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.pill{display:inline-block;padding:3px 7px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--mut)}.newsStory{padding:14px 2px;border-bottom:1px solid var(--line)}.newsStory:last-child{border-bottom:0}.newsMeta{font-size:11px;letter-spacing:.08em;color:var(--red);font-weight:800}.newsHeadline{font-size:19px;font-weight:850;margin:4px 0}.newsBody{color:var(--mut);line-height:1.45}.newsBadge{display:inline-block;border:1px solid #3b5874;border-radius:999px;padding:2px 7px;margin-right:6px;font-size:10px}.headlineCompact{padding:8px 0;border-bottom:1px solid #243d55}.headlineCompact:last-child{border-bottom:0}
+.rivalry{padding:10px 0;border-bottom:1px solid var(--line)}.heat{height:6px;background:#142a40;border-radius:99px;overflow:hidden;margin-top:6px}.heat span{display:block;height:100%;background:var(--red)}.recordCard{padding:10px;border-left:3px solid var(--silver);margin:8px 0;background:#0a1d31;border-radius:7px}
+.dmContact{padding:9px;border-bottom:1px solid var(--line);cursor:pointer}.dmContact:hover{background:#102844}.dmContact.active{border-left:3px solid var(--red);background:#0d223b}.dmBubble{max-width:82%;padding:8px 10px;border-radius:10px;margin:6px 0;background:#102844}.dmBubble.mine{margin-left:auto;background:#173551}.dmMeta{font-size:11px;color:var(--mut)}
+@media(max-width:800px){.two,.three,.gcgrid{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}.big{font-size:25px}th{position:static}.tickerTrack{animation-duration:28s}}
+</style></head>
+<body>
+<header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
+<nav id="mainNav">
+<button class="navbtn active" data-page="home">HOME</button><button class="navbtn" data-page="news">NEWS</button><button class="navbtn" data-page="community">COMMUNITY</button><button class="navbtn" data-page="messages">MESSAGES</button><button class="navbtn" data-page="player">PLAYER</button><button id="coachNav" class="navbtn hidden" data-page="coach">COACH</button><button class="navbtn" data-page="league">LEAGUE</button><button class="navbtn" data-page="analytics">ANALYTICS</button><button class="navbtn" data-page="awards">AWARDS</button><button class="navbtn" data-page="gamecast">GAMECAST</button><button class="navbtn" data-page="rules">RULES</button><button id="adminNav" class="navbtn hidden" data-page="admin">ADMIN</button>
+</nav>
+<main>
+<section id="home" class="page active">
+<div id="loginCard" class="card"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><h2>Welcome to the EBL</h2><div class="grid"><div><h3>Create Player Account</h3><input id="ru" placeholder="username"><input id="rp" type="password" placeholder="8+ character password"><input id="re" type="email" placeholder="verified email"><button class="btn" onclick="register()">Register</button></div><div><h3>Login</h3><input id="lu" placeholder="username"><input id="lp" type="password" placeholder="password"><button class="btn" onclick="login()">Login</button></div></div><div class="card" style="margin-top:10px"><h3>Password Recovery</h3><div class="grid"><input id="resetEmail" type="email" placeholder="your verified email"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></div><div id="loginMsg" class="muted"></div></div>
+<div id="dashboard" class="hidden">
+<div id="ticker" class="ticker"><div id="tickerTrack" class="tickerTrack"></div></div>
+<div class="card" style="border-left:4px solid var(--red)"><div style="display:flex;justify-content:space-between;align-items:center"><h2>EBL Headlines</h2><button class="btn" onclick="goPage(\'news\')">Open Newsroom</button></div><div id="homeNews"></div></div><div class="two" style="margin-top:10px"><div id="homePlayer" class="card" style="border-top:3px solid var(--red)"></div><div id="homeTeam" class="card" style="border-top:3px solid var(--silver)"></div></div>
+<div class="two"><div id="nextGame" class="card"></div><div class="card"><h2>Recent Performance</h2><div id="recentPerf" class="muted">Genesis begins at zero. Your recent-game line will build here.</div></div></div>
+<div class="two"><div class="card"><h2>EBL Community Chat</h2><div id="eblChat" class="chatbox"></div><div class="chatinput"><input id="eblMsg" maxlength="300" placeholder="Message the EBL..."><button class="btn" onclick="sendChat('EBL')">Send</button></div></div>
+<div class="card"><h2>Team Chat</h2><div id="teamChat" class="chatbox"></div><div class="chatinput"><input id="teamMsg" maxlength="300" placeholder="Message your team..."><button class="btn" onclick="sendChat('TEAM')">Send</button></div></div></div>
+</div></section>
+
+<section id="news" class="page"><div class="card"><h1>EBL NEWSROOM</h1><p class="muted">The stories, results, rivalries, and moments shaping the Elite Baseball League.</p><div class="subtabs"><button class="subtab active" onclick="newsFilter('ALL',this)">ALL</button><button class="subtab" onclick="newsFilter('GAME',this)">GAMES</button><button class="subtab" onclick="newsFilter('MANAGER',this)">DUGOUT</button><button class="subtab" onclick="newsFilter('TRANSACTION',this)">TRANSACTIONS</button><button class="subtab" onclick="newsFilter('MILESTONE',this)">MILESTONES</button><button class="subtab" onclick="newsFilter('RIVALRY',this)">RIVALRIES</button><button class="subtab" onclick="newsFilter('RECORD',this)">RECORDS</button></div><div id="newsFeed"></div></div></section>
+<section id="community" class="page"><div class="card"><h1>EBL COMMUNITY</h1><p class="muted">The history the league creates together.</p><div class="two"><div class="card"><h2>Rivalry Board</h2><div id="rivalryBoard"></div></div><div class="card"><h2>EBL Record Book</h2><div id="recordBook"></div></div></div></div></section><section id="messages" class="page"><div class="card"><h1>PRIVATE MESSAGES</h1><p class="muted">Talk directly with coaches, teammates, and other EBL members.</p><div class="two"><div class="card"><h2>Contacts</h2><div id="dmContacts"></div></div><div class="card"><h2 id="dmTitle">Conversation</h2><div id="dmThread" class="chatbox"></div><div class="chatinput"><input id="dmMsg" maxlength="500" placeholder="Write a private message..."><button class="btn" onclick="sendDM()">Send</button></div></div></div></div></section><section id="player" class="page"><div id="playerMain" class="card"></div>
+<div id="createCard" class="card hidden"><h2>Create Your EBL Player</h2>
+<div class="creatorSteps"><div id="cs1" class="creatorStep active">1 • BASIC INFO</div><div id="cs2" class="creatorStep">2 • APPEARANCE</div><div id="cs3" class="creatorStep">3 • ATTRIBUTES</div><div id="cs4" class="creatorStep">4 • REVIEW</div></div>
+<div id="creatorStage"></div>
+</div></section>
+
+<section id="coach" class="page"><div class="card"><h1>Franchise Operations</h1><p class="muted">Manage contracts, batting order, field alignment, rotation, bullpen roles, and defensive tactics.</p><div id="coachHub"></div></div></section>
+<section id="league" class="page"><div class="card"><h1>League</h1><div class="subtabs"><button class="subtab active" onclick="leaguePane('standingsPane',this)">STANDINGS</button><button class="subtab" onclick="leaguePane('schedulePane',this)">SCHEDULE</button></div><div id="standingsPane" class="subpane active"></div><div id="schedulePane" class="subpane"></div></div></section>
+
+<section id="analytics" class="page"><div class="card"><h1>EBL Analytics</h1><div class="subtabs"><button class="subtab active" onclick="analyticsPane('aLeague',this)">LEAGUE</button><button class="subtab" onclick="analyticsPane('aBat',this)">BATTING</button><button class="subtab" onclick="analyticsPane('aPitch',this)">PITCHING</button></div><div id="aLeague" class="subpane active"></div><div id="aBat" class="subpane"></div><div id="aPitch" class="subpane"></div></div></section>
+
+<section id="awards" class="page"><div class="card"><h1>Award Races</h1><p class="muted">Genesis races update as the season develops. Statistical titles are earned on the field; major awards use performance-based rankings.</p><div class="subtabs"><button class="subtab active" onclick="awardPane('mvpPane',this)">MVP</button><button class="subtab" onclick="awardPane('batTitle',this)">BATTING TITLE</button><button class="subtab" onclick="awardPane('pitchTitle',this)">PITCHING</button><button class="subtab" onclick="awardPane('sbTitle',this)">STOLEN BASES</button><button class="subtab" onclick="awardPane('fieldTitle',this)">FIELDING</button></div><div id="mvpPane" class="subpane active"></div><div id="batTitle" class="subpane"></div><div id="pitchTitle" class="subpane"></div><div id="sbTitle" class="subpane"></div><div id="fieldTitle" class="subpane"></div></div></section>
+
+<section id="gamecast" class="page"><div class="card"><h1>GameCast Center</h1><p class="muted">Completed games become watchable pitch-by-pitch archives. Live reveal mode is the foundation for community game nights.</p><div id="gamecastList"></div></div></section>
+
+<section id="rules" class="page"><div class="card"><h1>EBL Rules & Policies</h1><div class="subtabs"><button class="subtab active" onclick="policyPane('communityRules',this)">COMMUNITY RULES</button><button class="subtab" onclick="policyPane('termsPolicy',this)">TERMS</button><button class="subtab" onclick="policyPane('privacyPolicy',this)">PRIVACY</button></div><div id="communityRules" class="subpane active"></div><div id="termsPolicy" class="subpane"></div><div id="privacyPolicy" class="subpane"></div></div></section><section id="admin" class="page"><div class="card"><h1>Commissioner / Admin</h1><button class="btn" onclick="simDay()">Sim Next League Day</button><button class="btn" onclick="loadLab()">Load Simulation Lab</button><div id="simout" class="muted"></div><button class="btn" onclick="backupNow()">Backup Now</button><h2 style="margin-top:14px">Moderation Queue</h2><button class="btn" onclick="loadReports()">Refresh Reports</button><div id="reportQueue"></div><div id="labBody"></div></div></section>
+</main>
+<dialog id="gc"><div id="gcontent"></div><br><button class="btn" onclick="gc.close()">Close</button></dialog>
+<script>
+async function api(url,opt={}){let r=await fetch(url,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...opt});let j=await r.json();if(!r.ok)throw j;return j}
+let ME=null,PLAYER=null,LEAGUE=null,SCHEDULE=[],GG=null,gi=0,timer=null,D=null;
+const HA=['CON','POW','VIS','DISC','TIM','SPD','FLD','ARM','ACC','REAC'], PA=['STA','H9','K9','BB9','HR9','PCLT','CTRL','VEL','BRK','FLD','ARM','ACC','REAC'];
+const cost=v=>v<25?1:v<50?2:v<70?3:v<85?5:v<95?8:12;
+document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>showPage(b.dataset.page,b));
+function showPage(id,b){document.querySelectorAll('.page,.navbtn').forEach(x=>x.classList.remove('active'));document.querySelector('#'+id).classList.add('active');b.classList.add('active')}
+function switchPane(sel,id,b){let root=b.closest('.card');root.querySelectorAll(sel+',.subtab').forEach(x=>x.classList.remove('active'));root.querySelector('#'+id).classList.add('active');b.classList.add('active')}
+function leaguePane(id,b){switchPane('.subpane',id,b)} function analyticsPane(id,b){switchPane('.subpane',id,b)} function awardPane(id,b){switchPane('.subpane',id,b)}
+
+async function recoverAccount(){
+ try{
+  let j=await api('/api/account/recover',{method:'POST',body:JSON.stringify({username:recUser.value,recovery_code:recCode.value,new_password:recPw.value})});
+  recMsg.innerHTML=`Password reset. Save your NEW recovery code somewhere safe: <b>${j.new_recovery_code}</b>`;
+ }catch(e){recMsg.textContent=e.error||'Recovery failed'}
+}
+
+async function requestReset(){
+ try{await api('/api/account/request-password-reset',{method:'POST',body:JSON.stringify({email:resetEmail.value})});recMsg.textContent='If that verified email exists, a reset link has been sent.'}catch(e){recMsg.textContent='Request could not be processed.'}
+}
+async function register(){try{let j=await api('/api/register',{method:'POST',body:JSON.stringify({username:ru.value,password:rp.value,email:re.value})});ME=j.user;if(j.recovery_code)alert('SAVE THIS RECOVERY CODE:\n'+j.recovery_code+'\n\nIt is required to reset your password in closed alpha.');await refresh()}catch(e){loginMsg.textContent=e.error||'Registration failed'}}
+async function login(){try{let j=await api('/api/login',{method:'POST',body:JSON.stringify({username:lu.value,password:lp.value})});ME=j.user;await refresh()}catch(e){loginMsg.textContent=e.error||'Login failed'}}
+async function logout(){await api('/api/logout',{method:'POST'});location.reload()}
+async function refresh(){
+ let me=await api('/api/me');ME=me.user;
+ if(!ME){accountTag.textContent='Not signed in';return}
+ accountTag.innerHTML=`${ME.username} • ${ME.role} &nbsp; <button class="btn" onclick="logout()">Logout</button>`;
+ loginCard.classList.add('hidden');dashboard.classList.remove('hidden');adminNav.classList.toggle('hidden',ME.role!=='COMMISSIONER');coachNav.classList.toggle('hidden',!['COACH','COMMISSIONER'].includes(ME.role));
+ await Promise.all([loadLeague(),loadSchedule(),loadAnalytics(),loadAwards(),loadPlayer(),loadNews(),loadReadiness(),loadCommunity(),loadDMContacts()]);if(['COACH','COMMISSIONER'].includes(ME.role))await loadCoachHub();
+ await Promise.all([loadChat('EBL'),loadChat('TEAM')]);
+ renderHome();
+}
+function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?t.name:fid}
+async function loadPlayer(){try{let j=await api('/api/my-player');PLAYER=j.player;renderPlayer()}catch{PLAYER=null}}
+function initials(n){return (n||'EB').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
+function fmt3(v){return Number(v||0).toFixed(3).replace(/^0/,'')}
+function statBox(k,v){return `<div class="statBox"><span class="label">${k}</span><b>${v}</b></div>`}
+function hitterStats(p){
+ let s=p.season||{},ab=s.AB||0,pa=s.PA||0,h=s.H||0,bb=s.BB||0,tb=(s['1B']||0)+2*(s['2B']||0)+3*(s['3B']||0)+4*(s.HR||0);
+ let avg=ab?h/ab:0,obp=pa?(h+bb)/pa:0,slg=ab?tb/ab:0;
+ return [{id:'bat',title:'BATTING',stats:[['G',s.G||0],['PA',pa],['AB',ab],['H',h],['AVG',fmt3(avg)],['OBP',fmt3(obp)],['SLG',fmt3(slg)],['HR',s.HR||0],['2B',s['2B']||0],['3B',s['3B']||0],['BB',bb],['SO',s.SO||0],['R',s.R||0],['RBI',s.RBI||0]]},
+ {id:'fld',title:'FIELDING',stats:[['G',s.FG||0],['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'1.000'],['OAA',s.OAA||0]]},
+ {id:'run',title:'BASERUNNING',stats:[['SB',s.SB||0],['CS',s.CS||0],['SB%',(s.SB||s.CS)?((s.SB||0)/((s.SB||0)+(s.CS||0))*100).toFixed(1)+'%':'0.0%'],['XBT',s.XBT||0],['OOB',s.OOB||0],['BsR',s.BSR||'0.0']]}]}
+function pitcherStats(p){let s=p.season||{},outs=s.OUTS||0,ip=(outs/3).toFixed(1),era=outs?(s.ER||0)*27/outs:0,whip=outs?((s.H||0)+(s.BB||0))/(outs/3):0;return [{id:'pit',title:'PITCHING',stats:[['G',s.G||0],['GS',s.GS||0],['IP',ip],['W',s.W||0],['L',s.L||0],['SV',s.SV||0],['H',s.H||0],['ER',s.ER||0],['BB',s.BB||0],['SO',s.SO||0],['ERA',era.toFixed(2)],['WHIP',whip.toFixed(2)]]},{id:'pfld',title:'FIELDING',stats:[['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'1.000']]}]}
+function statTabs(defs){return `<div class="statTabs">${defs.map((d,i)=>`<button class="subtab ${i?'':'active'}" onclick="playerStat('${d.id}',this)">${d.title}</button>`).join('')}</div>${defs.map((d,i)=>`<div id="${d.id}" class="statPane ${i?'':'active'}"><div class="statGrid">${d.stats.map(x=>statBox(x[0],x[1])).join('')}</div></div>`).join('')}`}
+function playerStat(id,b){let card=b.closest('.card');card.querySelectorAll('.statPane,.statTabs .subtab').forEach(x=>x.classList.remove('active'));card.querySelector('#'+id).classList.add('active');b.classList.add('active')}
+function renderPlayer(){
+ if(!PLAYER){playerMain.innerHTML='<h2>No EBL player yet</h2><p class="muted">Build your first Genesis player below.</p>';createCard.classList.remove('hidden');setCreatorStep(1);return}
+ createCard.classList.add('hidden');let p=PLAYER,team=p.team?.name||'Free Agent',defs=p.type==='P'?pitcherStats(p):hitterStats(p);
+ let f=FACE_PRESETS[(p.face_id||1)-1]||FACE_PRESETS[0];
+ let profileAvatar=`<div style="width:74px;height:74px;position:relative;--skin:${f.skin};--hair:${f.hair}"><div class="head" style="transform:scale(.45);transform-origin:top left;left:12px;top:5px"></div><div class="hair h${p.hair_id||1}" style="transform:scale(.45);transform-origin:top left;left:11px;top:3px"></div></div>`;
+ playerMain.innerHTML=`<div class="identity">${profileAvatar}<div><h1>${p.name}</h1><div class="muted">${p.primary_pos} • Bats ${p.bats} • Throws ${p.throws} • ${team}</div></div></div>
+ <div class="grid" style="margin-top:12px"><div class="statBox"><span class="label">AVAILABLE XP</span><b class="gold">${(+p.xp_wallet).toFixed(3)}</b></div><div class="statBox"><span class="label">STATUS</span><b>${p.status}</b></div><div class="statBox"><span class="label">CONTRACT</span><b>${p.contract?`${p.contract.salary}/G • ${p.contract.years_remaining} yr`:'—'}</b></div><div class="statBox"><span class="label">LEGACY</span><b>Genesis Career</b></div></div>
+ <h2 style="margin-top:16px">Statistics</h2>${statTabs(defs)}
+ <h2 style="margin-top:16px">Development</h2><div id="attrs">${Object.entries(p.attributes).map(([k,v])=>`<div class="attr"><div><b>${k}</b><div class="bar"><span style="width:${Math.min(100,v)}%"></span></div></div><span>${v}</span><button class="btn" onclick="spend('${k}')">+1 (${cost(v)} XP)</button></div>`).join('')}</div>
+ <h2 style="margin-top:16px">Legacy</h2><div class="grid"><div class="statBox"><span class="label">Career Seasons</span><b>1</b></div><div class="statBox"><span class="label">Awards</span><b>0</b></div><div class="statBox"><span class="label">Championships</span><b>0</b></div><div class="statBox"><span class="label">Milestones</span><b>Genesis Begins</b></div></div>
+ <h2 style="margin-top:16px">CPU Market</h2>${p.status==='FREE_AGENT'?`<button class="btn" onclick="market()">Request Offers</button>`:''}${(p.offers||[]).map(o=>`<div class="offer"><b>${teamName(o.franchise_id)}</b><br>${o.bonus} XP signing bonus • ${o.salary} XP/game • ${o.years} year(s)<br><button class="btn" onclick="respond(${o.id},'ACCEPT')">Accept</button> <button class="btn" onclick="respond(${o.id},'HOLD')">Hold</button> <button class="btn" onclick="respond(${o.id},'REJECT')">Reject</button></div>`).join('')}`;
+}
+
+let CREATOR={name:'',position:'SS',bats:'R',throws:'R',face_id:1,hair_id:1,pool:50,attributes:{}};
+const FACE_PRESETS=[
+ {skin:'#f0c4a6',hair:'#4a2d20',label:'Face 1'},{skin:'#dca37c',hair:'#2a1b16',label:'Face 2'},
+ {skin:'#c98d66',hair:'#4b3022',label:'Face 3'},{skin:'#b97855',hair:'#261b17',label:'Face 4'},
+ {skin:'#f1c7a4',hair:'#7a4a24',label:'Face 5'},{skin:'#8e5b43',hair:'#1e1714',label:'Face 6'},
+ {skin:'#6f4937',hair:'#161212',label:'Face 7'},{skin:'#d7a078',hair:'#3d281d',label:'Face 8'},
+ {skin:'#a86d4f',hair:'#231914',label:'Face 9'},{skin:'#e1b08b',hair:'#5b3622',label:'Face 10'}
+];
+const HAIR_NAMES=['Classic Crop','Short Fade','Textured Top','Loose Waves','Side Part','Buzz Cut','Medium Flow','Slick Back','Shaved','Curly/Afro'];
+function setCreatorStep(n){
+ document.querySelectorAll('.creatorStep').forEach((x,i)=>{x.classList.toggle('active',i===n-1);x.classList.toggle('done',i<n-1)});
+ if(n===1)creatorBasic(); if(n===2)creatorAppearance(); if(n===3)creatorAttributes(); if(n===4)creatorReview();
+}
+function creatorBasic(){
+ creatorStage.innerHTML=`<div class="grid"><div><label class="label">PLAYER NAME</label><input id="cname" value="${CREATOR.name||''}" placeholder="Player name"></div>
+ <div><label class="label">POSITION</label><select id="cpos">${['SS','CF','C','1B','2B','3B','LF','RF','SP','RP'].map(x=>`<option ${CREATOR.position===x?'selected':''}>${x}</option>`).join('')}</select></div>
+ <div><label class="label">BATS</label><select id="cbats">${['R','L','S'].map(x=>`<option ${CREATOR.bats===x?'selected':''}>${x}</option>`).join('')}</select></div>
+ <div><label class="label">THROWS</label><select id="cthrows">${['R','L'].map(x=>`<option ${CREATOR.throws===x?'selected':''}>${x}</option>`).join('')}</select></div></div>
+ <div style="margin-top:14px"><button class="btn" onclick="saveBasic()">NEXT: APPEARANCE</button></div>`;
+}
+function saveBasic(){CREATOR.name=cname.value.trim()||'My Rookie';CREATOR.position=cpos.value;CREATOR.bats=cbats.value;CREATOR.throws=cthrows.value;setCreatorStep(2)}
+function creatorAppearance(){
+ creatorStage.innerHTML=`<div class="appearanceGrid"><div>
+ <h3>FACE</h3><div class="presetGrid">${FACE_PRESETS.map((f,i)=>`<div class="preset ${CREATOR.face_id===i+1?'selected':''}" onclick="pickFace(${i+1})"><div class="faceThumb" style="--skin:${f.skin};--hair:${f.hair}"><div class="miniHead"></div><div class="miniHair"></div></div><div class="presetLabel">${f.label}</div></div>`).join('')}</div>
+ <h3 style="margin-top:14px">HAIR STYLE</h3><div class="presetGrid">${HAIR_NAMES.map((n,i)=>`<div class="preset ${CREATOR.hair_id===i+1?'selected':''}" onclick="pickHair(${i+1})"><div class="faceThumb" style="--skin:${FACE_PRESETS[CREATOR.face_id-1].skin};--hair:${FACE_PRESETS[CREATOR.face_id-1].hair}"><div class="miniHead"></div><div class="miniHair" style="${i===8?'height:5px;top:18px':''}"></div></div><div class="presetLabel">${n}</div></div>`).join('')}</div>
+ </div><div><h3>PREVIEW</h3><div class="avatarPreview">${avatarMarkup()}</div></div></div>
+ <div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(1)">BACK</button> <button class="btn" onclick="beginAttributes()">NEXT: ATTRIBUTES</button></div>`;
+}
+function avatarMarkup(){
+ let f=FACE_PRESETS[CREATOR.face_id-1];return `<div class="playerBust" style="--skin:${f.skin};--hair:${f.hair}"><div class="jersey"></div><div class="neck"></div><div class="head"></div><div class="hair h${CREATOR.hair_id}"></div><div class="eye l"></div><div class="eye r"></div><div class="nose"></div><div class="mouth"></div></div>`;
+}
+function pickFace(id){CREATOR.face_id=id;creatorAppearance()} function pickHair(id){CREATOR.hair_id=id;creatorAppearance()}
+function beginAttributes(){
+ let pitcher=['SP','RP'].includes(CREATOR.position),names=pitcher?PA:HA;
+ if(!CREATOR.attributes || Object.keys(CREATOR.attributes).join(',')!==names.join(',')){CREATOR.attributes=Object.fromEntries(names.map(x=>[x,0]));CREATOR.pool=50}
+ setCreatorStep(3);
+}
+function creatorAttributes(){
+ D={...CREATOR,pool:CREATOR.pool,attributes:CREATOR.attributes};
+ const pitcher=['SP','RP'].includes(CREATOR.position);
+ const groups=pitcher
+   ? [{id:'buildPitch',title:'PITCHING',attrs:['STA','H9','K9','BB9','HR9','PCLT','CTRL','VEL','BRK']},{id:'buildField',title:'FIELDING',attrs:['FLD','ARM','ACC','REAC']}]
+   : [{id:'buildHit',title:'HITTING',attrs:['CON','POW','VIS','DISC','TIM']},{id:'buildField',title:'FIELDING',attrs:['FLD','ARM','ACC','REAC']},{id:'buildRun',title:'BASERUNNING',attrs:['SPD']}];
+ creatorStage.innerHTML=`<div class="grid"><div class="statBox"><span class="label">STARTING POOL</span><b>50 XP</b></div><div class="statBox"><span class="label">REMAINING</span><b class="gold">${CREATOR.pool} XP</b></div><div class="statBox"><span class="label">SPENT</span><b>${50-CREATOR.pool} XP</b></div></div>
+ <div class="statTabs">${groups.map((g,i)=>`<button class="subtab ${i?'':'active'}" onclick="builderTab('${g.id}',this)">${g.title}</button>`).join('')}</div>
+ ${groups.map((g,i)=>`<div id="${g.id}" class="statPane ${i?'':'active'}">${g.attrs.filter(a=>a in CREATOR.attributes).map(a=>creatorAttr(a)).join('')}</div>`).join('')}
+ <div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(2)">BACK</button> <button class="btn" onclick="attributeReview()">NEXT: REVIEW</button></div>`;
+}
+function creatorAttr(k){let v=CREATOR.attributes[k];return `<div class="attr"><div><b>${k}</b><div class="bar"><span style="width:${Math.min(100,v*4)}%"></span></div></div><span>${v}</span><button class="btn" onclick="addCreatorAttr('${k}')">+1</button></div>`}
+function addCreatorAttr(k){if(CREATOR.pool>0){CREATOR.attributes[k]++;CREATOR.pool--;creatorAttributes()}}
+function builderTab(id,b){let card=b.closest('.card')||document;card.querySelectorAll('.statPane,.statTabs .subtab').forEach(x=>x.classList.remove('active'));document.querySelector('#'+id).classList.add('active');b.classList.add('active')}
+function attributeReview(){if(CREATOR.pool!==0)return alert('Spend all 50 XP first.');setCreatorStep(4)}
+function creatorReview(){
+ creatorStage.innerHTML=`<div class="two"><div class="card"><div class="identity"><div class="avatar">${initials(CREATOR.name)}</div><div><h2>${CREATOR.name}</h2><div class="muted">${CREATOR.position} • Bats ${CREATOR.bats} • Throws ${CREATOR.throws}</div></div></div>
+ <h3 style="margin-top:14px">50-XP Build</h3>${Object.entries(CREATOR.attributes).map(([k,v])=>`<div class="attr"><b>${k}</b><span>${v}</span><span></span></div>`).join('')}</div>
+ <div class="card"><h3>Appearance</h3><div class="avatarPreview">${avatarMarkup()}</div><p class="muted">Face ${CREATOR.face_id} • ${HAIR_NAMES[CREATOR.hair_id-1]}</p></div></div>
+ <button class="btn" onclick="setCreatorStep(3)">BACK</button> <button class="btn" onclick="finishCreator()">CREATE EBL PLAYER</button>`;
+}
+async function finishCreator(){
+ try{
+   let payload={name:CREATOR.name,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,hair_id:CREATOR.hair_id,attributes:CREATOR.attributes};
+   await api('/api/player/create',{method:'POST',body:JSON.stringify(payload)});
+   await loadPlayer();renderHome();
+ }catch(e){alert(e.error||'Could not create player')}
+}
+async function spend(a){if(!confirm(`Spend ${cost(PLAYER.attributes[a])} XP to increase ${a}?`))return;try{await api('/api/player/spend-xp',{method:'POST',body:JSON.stringify({attribute:a})});await loadPlayer();renderHome()}catch(e){alert(e.error)}}
+async function market(){try{await api('/api/player/request-cpu-market',{method:'POST'});await loadPlayer()}catch(e){alert(e.error)}}
+async function respond(id,action){try{await api('/api/player/respond-offer',{method:'POST',body:JSON.stringify({offer_id:id,action})});await loadPlayer();await loadLeague();renderHome()}catch(e){alert(e.error)}}
+async function loadLeague(){let j=await api('/api/league');LEAGUE=j;renderStandings()}
+function renderStandings(){if(!LEAGUE)return;let html=`<div class="gold">Season ${LEAGUE.season} • League Day ${LEAGUE.day}</div>`;for(let d of LEAGUE.divisions){let teams=LEAGUE.teams.filter(t=>t.division===d).sort((a,b)=>b.wins-a.wins||((b.runs_for-b.runs_against)-(a.runs_for-a.runs_against)));let lead=teams[0]?.wins||0;html+=`<div class="division"><h3>${d} Division</h3><div class="tablewrap"><table><tr><th>Team</th><th>W</th><th>L</th><th>PCT</th><th>GB</th><th>RS</th><th>RA</th><th>DIFF</th></tr>${teams.map(t=>{let g=t.wins+t.losses,pct=g?t.wins/g:0,gb=((lead-t.wins)+(t.losses-(teams[0]?.losses||0)))/2;return `<tr class="${PLAYER?.franchise_id===t.id?'meRow':''}"><td>${t.name}</td><td>${t.wins}</td><td>${t.losses}</td><td>${pct.toFixed(3).replace(/^0/,'')}</td><td>${gb<=0?'—':gb.toFixed(1)}</td><td>${t.runs_for}</td><td>${t.runs_against}</td><td>${t.runs_for-t.runs_against>=0?'+':''}${t.runs_for-t.runs_against}</td></tr>`}).join('')}</table></div></div>`}standingsPane.innerHTML=html}
+async function loadSchedule(){let j=await api('/api/schedule');SCHEDULE=j.games;renderSchedule();renderTicker();renderGamecastList()}
+function renderSchedule(){let day=LEAGUE?.day||0,filterTeam=PLAYER?.franchise_id;let upcoming=SCHEDULE.filter(g=>g.league_day>=Math.max(1,day) && g.league_day<=day+7);schedulePane.innerHTML=`<div class="subtabs"><button class="subtab active" onclick="scheduleFilter('ALL',this)">ALL EBL</button><button class="subtab" onclick="scheduleFilter('MINE',this)">MY TEAM</button></div><div id="scheduleRows">${scheduleRows(upcoming,'ALL')}</div>`}
+function scheduleRows(games,mode){let arr=mode==='MINE'&&PLAYER?.franchise_id?games.filter(g=>g.away_id===PLAYER.franchise_id||g.home_id===PLAYER.franchise_id):games;return arr.map(g=>`<div class="game" ${g.status==='FINAL'?`onclick="watch('${g.id}')"`:''}><div class="gameLine"><span><b>Day ${g.league_day}</b> • ${teamName(g.away_id)} @ ${teamName(g.home_id)}</span><span class="${g.status==='FINAL'?'green':'muted'}">${g.status==='FINAL'?`${g.away_runs}-${g.home_runs} • WATCH`:'UPCOMING'}</span></div></div>`).join('')||'<p class="muted">No games in this window.</p>'}
+function scheduleFilter(mode,b){b.parentElement.querySelectorAll('.subtab').forEach(x=>x.classList.remove('active'));b.classList.add('active');let day=LEAGUE?.day||0;document.querySelector('#scheduleRows').innerHTML=scheduleRows(SCHEDULE.filter(g=>g.league_day>=Math.max(1,day)&&g.league_day<=day+7),mode)}
+function renderTicker(){let day=LEAGUE?.day||0,arr=SCHEDULE.filter(g=>g.league_day===Math.max(1,day)||g.league_day===day+1).slice(0,15);let items=arr.map(g=>`<span class="tick" ${g.status==='FINAL'?`onclick="watch('${g.id}')"`:''}><b>${g.status==='FINAL'?'FINAL':'NEXT'}</b> ${teamName(g.away_id)} ${g.status==='FINAL'?g.away_runs:'@'} ${teamName(g.home_id)} ${g.status==='FINAL'?g.home_runs:''}</span>`).join('');tickerTrack.innerHTML=items+items}
+function renderGamecastList(){let finals=SCHEDULE.filter(g=>g.status==='FINAL').slice(-30).reverse();gamecastList.innerHTML=finals.length?finals.map(g=>`<div class="game" onclick="watch('${g.id}')"><b>${teamName(g.away_id)} ${g.away_runs} — ${g.home_runs} ${teamName(g.home_id)}</b><span class="gold"> • WATCH GAMECAST</span></div>`).join(''):'<p class="muted">No final games yet. Genesis Opening Day will populate GameCast.</p>'}
+async function loadAnalytics(){let j=await api('/api/analytics'),L=j.league;aLeague.innerHTML=`<div class="grid">${[['Games',L.games],['Runs/Game',L.runs_per_game.toFixed(2)],['AVG',fmt3(L.avg)],['K%',(L.k_pct*100).toFixed(1)+'%'],['BB%',(L.bb_pct*100).toFixed(1)+'%'],['HR%',(L.hr_pct*100).toFixed(1)+'%']].map(x=>statBox(x[0],x[1])).join('')}</div><h3>XP Economy</h3><table><tr><th>Source</th><th>Total XP</th><th>Events</th></tr>${Object.entries(j.xp).map(([k,v])=>`<tr><td>${k}</td><td>${v.total.toFixed(3)}</td><td>${v.events}</td></tr>`).join('')}</table>`;aBat.innerHTML=`<div class="tablewrap"><table><tr><th>#</th><th>Player</th><th>Team</th><th>Pos</th><th>OPS</th><th>HR</th><th>XP</th></tr>${j.leaders.ops.map((x,i)=>`<tr><td>${i+1}</td><td>${x.name}</td><td>${teamName(x.team)}</td><td>${x.pos}</td><td>${x.ops.toFixed(3)}</td><td>${x.hr}</td><td>${x.xp.toFixed(3)}</td></tr>`).join('')}</table></div>`;aPitch.innerHTML=`<div class="tablewrap"><table><tr><th>#</th><th>Pitcher</th><th>Team</th><th>ERA</th><th>WHIP</th><th>SO</th><th>XP</th></tr>${j.leaders.pitching.map((x,i)=>`<tr><td>${i+1}</td><td>${x.name}</td><td>${teamName(x.team)}</td><td>${x.era.toFixed(2)}</td><td>${x.whip.toFixed(2)}</td><td>${x.so}</td><td>${x.xp.toFixed(3)}</td></tr>`).join('')}</table></div>`}
+async function loadAwards(){let j=await api('/api/awards');mvpPane.innerHTML=raceList(j.mvp,x=>`${x.pos} • ${teamName(x.team)} • OPS ${x.ops.toFixed(3)} • ${x.hr} HR`);batTitle.innerHTML=raceList(j.batting,x=>`${teamName(x.team)} • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);pitchTitle.innerHTML=raceList(j.pitching,x=>`${teamName(x.team)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`);sbTitle.innerHTML=raceList(j.stolen_bases,x=>`${teamName(x.team)} • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);fieldTitle.innerHTML=Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`${teamName(x.team)} • Genesis fielding race`)}`).join('')}
+function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span><div><b>${x.name}</b><div class="muted">${detail(x)}</div></div><span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
+function renderHome(){
+ if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
+ let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="avatar">${initials(p.name)}</div><div><span class="muted">MY PLAYER</span><h2>${p.name}</h2><div>${p.primary_pos} • ${(+p.xp_wallet).toFixed(3)} XP available</div></div></div>`;
+ homeTeam.innerHTML=t?`<span class="muted">MY TEAM</span><h2>${t.name}</h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Enter the CPU market from the Player tab.</p>`;
+ let ng=p.franchise_id?SCHEDULE.find(g=>g.status==='SCHEDULED'&&(g.away_id===p.franchise_id||g.home_id===p.franchise_id)&&g.league_day>=(LEAGUE?.day||0)):null;
+ nextGame.innerHTML=ng?`<span class="muted">NEXT GAME • DAY ${ng.league_day}</span><h2>${teamName(ng.away_id)} @ ${teamName(ng.home_id)}</h2><p>${ng.away_id===p.franchise_id?'Road game':'Home game'}</p>`:`<h2>Next Game</h2><p class="muted">${p.franchise_id?'No upcoming game found.':'Sign a contract to join the schedule.'}</p>`;
+}
+async function loadChat(ch){try{let j=await api('/api/chat/'+ch);let box=ch==='EBL'?eblChat:teamChat;box.innerHTML=j.messages.map(m=>`<div class="chatmsg"><b>${m.username}</b> <span class="muted">${m.created_at}</span><br>${escapeHtml(m.message)}</div>`).join('');box.scrollTop=box.scrollHeight}catch{}}
+function escapeHtml(x){return x.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function sendChat(ch){let input=ch==='EBL'?eblMsg:teamMsg,msg=input.value.trim();if(!msg)return;try{await api('/api/chat/send',{method:'POST',body:JSON.stringify({channel:ch,message:msg})});input.value='';loadChat(ch)}catch(e){alert(e.error)}}
+
+
+let NEWS=[];
+
+
+let DM_CONTACTS=[],DM_ACTIVE=null;
+async function loadDMContacts(){
+ try{
+  let j=await api('/api/dm/contacts');DM_CONTACTS=j.contacts||[];
+  dmContacts.innerHTML=DM_CONTACTS.length?DM_CONTACTS.map(c=>`<div class="dmContact ${DM_ACTIVE===c.id?'active':''}" onclick="openDM(${c.id})"><b>${c.username}</b><div class="muted">${c.player_name||c.role}${c.team_name?' • '+c.team_name:''}</div></div>`).join(''):'<p class="muted">No other users yet.</p>';
+ }catch(e){}
+}
+async function openDM(id){
+ DM_ACTIVE=id;let c=DM_CONTACTS.find(x=>x.id===id);dmTitle.textContent=c?`Conversation with ${c.username}`:'Conversation';
+ await loadDMContacts();
+ let j=await api('/api/dm/thread/'+id);
+ dmThread.innerHTML=j.messages.map(m=>`<div class="dmBubble ${m.sender_user_id===ME.id?'mine':''}"><div class="dmMeta">${m.sender_name} • ${m.created_at}</div>${escapeHtml(m.message)}</div>`).join('');
+ dmThread.scrollTop=dmThread.scrollHeight;
+}
+async function sendDM(){
+ if(!DM_ACTIVE)return alert('Choose a contact first.');
+ let msg=dmMsg.value.trim();if(!msg)return;
+ try{await api('/api/dm/send',{method:'POST',body:JSON.stringify({recipient_user_id:DM_ACTIVE,message:msg})});dmMsg.value='';await openDM(DM_ACTIVE)}catch(e){alert(e.error)}
+}
+async function loadCommunity(){
+ try{
+  let [rv,rc]=await Promise.all([api('/api/rivalries'),api('/api/records')]);
+  rivalryBoard.innerHTML=rv.rivalries.length?rv.rivalries.map(r=>`<div class="rivalry"><b>${r.team_a_name} vs ${r.team_b_name}</b><div class="muted">${r.games} meetings • ${r.a_wins}-${r.b_wins} • ${r.one_run_games} one-run games</div><div class="heat"><span style="width:${Math.min(100,r.intensity)}%"></span></div><small>Intensity ${Math.round(r.intensity)}/100</small></div>`).join(''):'<p class="muted">No rivalries yet. They have to be earned.</p>';
+  recordBook.innerHTML=rc.records.length?rc.records.map(r=>`<div class="recordCard"><span class="newsMeta">${r.record_label}</span><br><b>${r.holder_name}</b> — ${r.record_value}<div class="muted">${r.detail||''} • Day ${r.league_day}</div></div>`).join(''):'<p class="muted">Genesis begins with a blank record book.</p>';
+ }catch(e){}
+}
+
+async function loadReadiness(){
+ try{
+  let r=await api('/api/league/readiness'),pct=r.total?Math.round(r.filled/r.total*100):0;
+  readinessBar.querySelector('span').style.width=pct+'%';
+  readinessText.innerHTML=`<b>${r.filled}/${r.total}</b> roster slots filled • ${r.human} human • ${r.cpu} CPU • Phase: <b>${r.phase}</b>`;
+  positionReadiness.innerHTML=r.positions.map(p=>`<div class="statBox"><b>${p.position_group}</b><span>${p.filled}/${p.total}</span><small>${p.human} human</small></div>`).join('');
+ }catch(e){}
+}
+async function loadNews(){
+ try{
+  let j=await api('/api/news');NEWS=j.news||[];renderNews('ALL');renderHomeNews();
+ }catch(e){
+  if(newsFeed)newsFeed.innerHTML='<p class="muted">The newsroom is waiting for the first EBL games to create history.</p>';
+ }
+}
+function renderNews(filter){
+ if(!window.newsFeed)return;
+ let rows=filter==='ALL'?NEWS:NEWS.filter(n=>n.category===filter);
+ newsFeed.innerHTML=rows.length?rows.map(n=>`<article class="newsStory"><div class="newsMeta"><span class="newsBadge">${n.category.replaceAll('_',' ')}</span>LEAGUE DAY ${n.league_day}</div><div class="newsHeadline">${n.headline}</div><div class="newsBody">${n.body}</div></article>`).join(''):'<p class="muted">No stories in this section yet. Genesis history is still being written.</p>';
+}
+function newsFilter(f,b){document.querySelectorAll('#news .subtab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderNews(f)}
+function renderHomeNews(){
+ if(!window.homeNews)return;
+ let rows=NEWS.slice(0,5);
+ homeNews.innerHTML=rows.length?rows.map(n=>`<div class="headlineCompact"><span class="newsMeta">${n.category.replaceAll('_',' ')} • DAY ${n.league_day}</span><br><b>${n.headline}</b></div>`).join(''):'<p class="muted">No headlines yet. The first pitch of Genesis will start the story.</p>';
+}
+function goPage(id){let b=document.querySelector(`.navbtn[data-page="${id}"]`);if(b)b.click()}
+
+function uniformOptions(selected){return ['WHITE','NAVY','RED','GRAY','BLACK','CREAM'].map(x=>`<option ${x===selected?'selected':''}>${x}</option>`).join('')}
+function teamLogoMarkup(style,p,s,a,name){
+ const shapes=['◆','⬟','★','⚾','A','E','EBL','▲','●','✦'];
+ return `<div style="width:220px;height:220px;border-radius:${style%2?'50%':'22%'};background:${p};border:12px solid ${s};box-shadow:inset 0 0 0 6px ${a},0 12px 30px #0007;display:flex;flex-direction:column;align-items:center;justify-content:center;color:${a};font-weight:950;text-align:center"><div style="font-size:72px">${shapes[(style-1)%shapes.length]}</div><div style="font-size:18px;padding:0 12px">${name}</div></div>`;
+}
+function updateBrandPreview(){
+ if(!window.brandPreview)return;
+ brandPreview.innerHTML=teamLogoMarkup(+brandLogo.value,brandPrimary.value,brandSecondary.value,brandAccent.value,brandName.value||'EBL TEAM');
+}
+async function saveBranding(){
+ try{
+  await api('/api/coach/branding',{method:'POST',body:JSON.stringify({display_name:brandName.value,logo_style:+brandLogo.value,primary_color:brandPrimary.value,secondary_color:brandSecondary.value,accent_color:brandAccent.value,uniform_home:brandHome.value,uniform_away:brandAway.value})});
+  alert('Team identity saved.');await loadLeague();await loadCoachHub();
+ }catch(e){alert(e.error)}
+}
+async function loadCoachHub(){
+ try{
+  let j=await api('/api/coach/team');
+  if(!j.team){coachHub.innerHTML='<p class="muted">No franchise assigned.</p>';return}
+  let H=j.roster.filter(x=>x.type==='H'),P=j.roster.filter(x=>x.type==='P'),SP=P.filter(x=>x.primary_pos==='SP');
+  let lineup=j.lineup||[],rot=j.rotation||[],bp=j.strategy?.bullpen||{},def=j.strategy?.defense||{};
+  coachHub.innerHTML=`<div class="grid">
+   <div class="statBox"><span class="label">FRANCHISE</span><b>${j.team.name}</b></div>
+   <div class="statBox"><span class="label">RECORD</span><b>${j.team.wins}-${j.team.losses}</b></div>
+   <div class="statBox"><span class="label">XP BUDGET</span><b>${(j.team.xp_budget-j.team.xp_spent).toFixed(1)}</b></div>
+   <div class="statBox"><span class="label">OPEN OFFERS</span><b>${j.offers.length}</b></div></div>
+   <div class="subtabs"><button class="subtab active" onclick="coachPane('cRoster',this)">ROSTER & LINEUP</button><button class="subtab" onclick="coachPane('cBrand',this)">TEAM BRANDING</button><button class="subtab" onclick="coachPane('cPitch',this)">PITCHING STAFF</button><button class="subtab" onclick="coachPane('cDepth',this)">DEPTH & SUBS</button><button class="subtab" onclick="coachPane('cDefense',this)">DEFENSE</button><button class="subtab" onclick="coachPane('cMarket',this)">CONTRACTS</button></div>
+
+   <div id="cBrand" class="subpane">
+    <div class="two">
+      <div>
+        <h2>Team Identity</h2>
+        <div class="roleRow"><b>Team Name</b><input id="brandName" maxlength="40" value="${j.branding?.display_name||j.team.name}"></div>
+        <div class="roleRow"><b>Logo Style</b><select id="brandLogo">${[1,2,3,4,5,6,7,8,9,10].map(x=>`<option value="${x}" ${x==(j.branding?.logo_style||1)?'selected':''}>Logo ${x}</option>`).join('')}</select></div>
+        <div class="roleRow"><b>Primary</b><input id="brandPrimary" type="color" value="${j.branding?.primary_color||'#071A31'}"></div>
+        <div class="roleRow"><b>Secondary</b><input id="brandSecondary" type="color" value="${j.branding?.secondary_color||'#D7262E'}"></div>
+        <div class="roleRow"><b>Accent</b><input id="brandAccent" type="color" value="${j.branding?.accent_color||'#D9E0E8'}"></div>
+        <div class="roleRow"><b>Home Uniform</b><select id="brandHome">${uniformOptions(j.branding?.uniform_home||'WHITE')}</select></div>
+        <div class="roleRow"><b>Away Uniform</b><select id="brandAway">${uniformOptions(j.branding?.uniform_away||'NAVY')}</select></div>
+        <button class="btn" onclick="saveBranding()">Save Team Identity</button>
+      </div>
+      <div><h2>Preview</h2><div id="brandPreview" class="avatarPreview" style="min-height:300px"></div></div>
+    </div>
+   </div>
+   <div id="cRoster" class="subpane active">
+    <h2>Batting Order & Fielding Positions</h2>
+    <div id="coachLineup">${[0,1,2,3,4,5,6,7,8].map(i=>lineupRowHTML(i,lineup[i],H)).join('')}</div>
+    <button class="btn" onclick="saveCoachLineup()">Save Batting Order</button>
+   </div>
+   <div id="cPitch" class="subpane">
+    <h2>Starting Rotation</h2>
+    ${[0,1,2,3,4].map(i=>`<div class="roleRow"><b>SP ${i+1}</b><select id="rot${i}">${playerOptions(SP,rot[i])}</select></div>`).join('')}
+    <h2 class="coachSection">Bullpen Roles</h2>
+    <div class="roleRow"><b>Closer</b><select id="bpCL"><option value="">—</option>${playerOptions(P,bp.CL)}</select></div>
+    <div class="roleRow"><b>Setup 1</b><select id="bpSU1"><option value="">—</option>${playerOptions(P,bp.SU1)}</select></div>
+    <div class="roleRow"><b>Setup 2</b><select id="bpSU2"><option value="">—</option>${playerOptions(P,bp.SU2)}</select></div>
+    <div class="roleRow"><b>Middle Relief</b><select id="bpMR" multiple size="5">${playerOptions(P,null,bp.MR||[])}</select></div>
+    <div class="roleRow"><b>Long Relief</b><select id="bpLR" multiple size="4">${playerOptions(P,null,bp.LR||[])}</select></div>
+    <div class="roleRow"><b>Emergency</b><select id="bpEmergency" multiple size="3">${playerOptions(P,null,bp.EMERGENCY||[])}</select></div>
+    <button class="btn" onclick="savePitchingStaff()">Save Pitching Staff</button>
+   </div>
+
+   <div id="cDepth" class="subpane">
+    <div class="coachGrid">
+      <div><h2>Position Depth Chart</h2><p class="muted">Rank backups for each position. The game engine can use these for substitutions and injuries later.</p>
+      ${['C','1B','2B','3B','SS','LF','CF','RF','DH'].map(pos=>depthRow(pos,H,j.strategy?.bench?.[pos]||[])).join('')}</div>
+      <div><h2>Substitution Preferences</h2>
+        <div class="roleRow"><b>Pinch Hit Order</b><select id="phOrder" multiple size="6">${playerOptions(H,null,j.strategy?.substitutions?.pinch_hit||[])}</select></div>
+        <div class="roleRow"><b>Pinch Run Order</b><select id="prOrder" multiple size="6">${playerOptions(H,null,j.strategy?.substitutions?.pinch_run||[])}</select></div>
+        <div class="roleRow"><b>Def. Replacements</b><select id="drOrder" multiple size="6">${playerOptions(H,null,j.strategy?.substitutions?.def_replacement||[])}</select></div>
+        <div class="roleRow"><b>Backup Catcher</b><select id="backupC"><option value="">—</option>${playerOptions(H,j.strategy?.substitutions?.catcher_backup)}</select></div>
+        <div class="roleRow"><b>Late Def. Inning</b><select id="lateDefInning">${[6,7,8,9].map(x=>`<option ${x==(j.strategy?.substitutions?.late_inning_defense_inning||8)?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div class="roleRow"><b>Pinch Hit Use</b><select id="phThresh">${['CONSERVATIVE','MEDIUM','AGGRESSIVE'].map(x=>`<option ${x===(j.strategy?.substitutions?.pinch_hit_threshold||'MEDIUM')?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div class="roleRow"><b>Steal Aggression</b><select id="stealAgg">${['LOW','NORMAL','HIGH'].map(x=>`<option ${x===(j.strategy?.substitutions?.steal_aggression||'NORMAL')?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div class="roleRow"><b>Bunt Aggression</b><select id="buntAgg">${['LOW','NORMAL','HIGH'].map(x=>`<option ${x===(j.strategy?.substitutions?.bunt_aggression||'NORMAL')?'selected':''}>${x}</option>`).join('')}</select></div>
+        <button class="btn" onclick="saveDepthSubs()">Save Depth & Substitutions</button>
+      </div>
+    </div>
+   </div>
+   <div id="cDefense" class="subpane">
+    <h2>Defensive Strategy</h2>
+    ${shiftRow('Default','defDefault',def.default_shift||'STANDARD')}
+    ${shiftRow('vs LHB','defL',def.vs_lhb||'STANDARD')}
+    ${shiftRow('vs RHB','defR',def.vs_rhb||'STANDARD')}
+    <div class="roleRow"><b>Corners In</b><input type="checkbox" id="cornersIn" ${def.corners_in?'checked':''}></div>
+    <div class="roleRow"><b>Infield In</b><input type="checkbox" id="infieldIn" ${def.infield_in?'checked':''}></div>
+    <button class="btn" onclick="saveDefense()">Save Defensive Plan</button>
+   </div>
+   <div id="cMarket" class="subpane">
+    <div class="coachGrid"><div><h2>Free Agents</h2><button class="btn" onclick="loadCoachFreeAgents()">Refresh Free Agents</button><div id="coachFAs"></div></div>
+    <div><h2>Open Offers</h2>${j.offers.length?j.offers.map(o=>`<div class="offer"><b>${o.name}</b> • ${o.primary_pos}<br>${o.bonus} XP bonus • ${o.salary}/G • ${o.years} yr<br><button class="btn" onclick="cancelOffer(${o.id})">Cancel Offer</button></div>`).join(''):'<p class="muted">No open offers.</p>'}</div></div>
+   </div>`;
+ if(window.brandPreview){updateBrandPreview();['brandName','brandLogo','brandPrimary','brandSecondary','brandAccent'].forEach(id=>document.querySelector('#'+id)?.addEventListener('input',updateBrandPreview));}
+ }catch(e){coachHub.innerHTML=`<p class="red">${e.error||'Could not load coach interface'}</p>`}
+}
+function coachPane(id,b){switchPane('.subpane',id,b)}
+function playerOptions(arr,selected,multi=[]){return arr.map(x=>`<option value="${x.id}" ${(x.id==selected||multi.includes(x.id))?'selected':''}>${x.name} — ${x.primary_pos}</option>`).join('')}
+function lineupRowHTML(i,id,H){
+ const posList=['C','1B','2B','3B','SS','LF','CF','RF','DH'];
+ return `<div class="lineupRow"><b>${i+1}</b><select id="fieldPos${i}">${posList.map(p=>`<option ${p===posList[i]?'selected':''}>${p}</option>`).join('')}</select><select id="bat${i}">${playerOptions(H,id)}</select></div>`;
+}
+function shiftRow(label,id,val){let opts=['STANDARD','PULL','OPPO','NO_DOUBLES','BUNT_DEFENSE','INFIELD_IN'];return `<div class="roleRow"><b>${label}</b><select id="${id}">${opts.map(x=>`<option ${x===val?'selected':''}>${x.replaceAll('_',' ')}</option>`).join('')}</select></div>`}
+async function saveCoachLineup(){let ids=[...Array(9)].map((_,i)=>+document.querySelector('#bat'+i).value);try{await api('/api/coach/set-lineup',{method:'POST',body:JSON.stringify({batting_order:ids})});alert('Batting order saved.')}catch(e){alert(e.error)}}
+function multiVals(id){return [...document.querySelector('#'+id).selectedOptions].map(x=>+x.value)}
+async function savePitchingStaff(){
+ let rotation=[...Array(5)].map((_,i)=>+document.querySelector('#rot'+i).value);
+ try{
+  await api('/api/coach/set-rotation',{method:'POST',body:JSON.stringify({rotation})});
+  let bullpen={CL:valOrNull('bpCL'),SU1:valOrNull('bpSU1'),SU2:valOrNull('bpSU2'),MR:multiVals('bpMR'),LR:multiVals('bpLR'),EMERGENCY:multiVals('bpEmergency')};
+  let j=await api('/api/coach/team');await api('/api/coach/set-strategy',{method:'POST',body:JSON.stringify({bullpen,defense:currentDefense(),bench:j.strategy.bench||{},substitutions:j.strategy.substitutions||{}})});
+  alert('Pitching staff saved.');
+ }catch(e){alert(e.error)}
+}
+function valOrNull(id){let v=document.querySelector('#'+id).value;return v?+v:null}
+function currentDefense(){return {default_shift:defDefault.value,vs_lhb:defL.value,vs_rhb:defR.value,corners_in:cornersIn.checked,infield_in:infieldIn.checked}}
+async function saveDefense(){try{let j=await api('/api/coach/team');await api('/api/coach/set-strategy',{method:'POST',body:JSON.stringify({bullpen:j.strategy.bullpen,defense:currentDefense(),bench:j.strategy.bench||{},substitutions:j.strategy.substitutions||{}})});alert('Defensive plan saved.')}catch(e){alert(e.error)}}
+
+function depthRow(pos,H,selected){
+ return `<div class="roleRow"><b>${pos}</b><select id="depth_${pos.replace('1','one').replace('2','two').replace('3','three')}" multiple size="3">${playerOptions(H,null,selected)}</select></div>`;
+}
+function depthId(pos){return 'depth_'+pos.replace('1','one').replace('2','two').replace('3','three')}
+async function saveDepthSubs(){
+ try{
+  let j=await api('/api/coach/team');
+  let bench={};
+  ['C','1B','2B','3B','SS','LF','CF','RF','DH'].forEach(pos=>bench[pos]=multiVals(depthId(pos)));
+  let substitutions={
+    pinch_hit:multiVals('phOrder'),
+    pinch_run:multiVals('prOrder'),
+    def_replacement:multiVals('drOrder'),
+    catcher_backup:valOrNull('backupC'),
+    late_inning_defense_inning:+lateDefInning.value,
+    pinch_hit_threshold:phThresh.value,
+    steal_aggression:stealAgg.value,
+    bunt_aggression:buntAgg.value
+  };
+  await api('/api/coach/set-strategy',{method:'POST',body:JSON.stringify({bullpen:j.strategy.bullpen,defense:j.strategy.defense,bench,substitutions})});
+  alert('Depth chart and substitution preferences saved.');
+ }catch(e){alert(e.error||'Could not save depth chart')}
+}
+async function loadCoachFreeAgents(){try{let j=await api('/api/coach/free-agents');coachFAs.innerHTML=j.players.slice(0,75).map(p=>`<div class="offer"><b>${p.name}</b> • ${p.primary_pos}<br><span class="muted">${Object.entries(p.attributes).slice(0,6).map(([k,v])=>`${k} ${v}`).join(' • ')}</span><br><button class="btn" onclick="coachOffer(${p.id})">Offer Contract</button></div>`).join('')||'<p class="muted">No free agents.</p>'}catch(e){alert(e.error)}}
+async function coachOffer(pid){let bonus=+prompt('Signing bonus XP (0-25)','10'),salary=+prompt('Salary XP/game (.25,.30,.35,.40,.45)','.35'),years=+prompt('Years (1-3)','2');try{await api('/api/coach/offer',{method:'POST',body:JSON.stringify({player_id:pid,bonus,salary,years})});await loadCoachHub();alert('Offer sent.')}catch(e){alert(e.error)}}
+async function cancelOffer(id){try{await api('/api/coach/cancel-offer',{method:'POST',body:JSON.stringify({offer_id:id})});await loadCoachHub()}catch(e){alert(e.error)}}
+async function simDay(){try{let j=await api('/api/commish/sim-day',{method:'POST'});simout.textContent=`League Day ${j.day} complete — ${j.results.length} games`;await refresh()}catch(e){simout.textContent=e.error}}
+
+function policyPane(id,b){switchPane('.subpane',id,b)}
+async function loadPolicies(){
+ communityRules.innerHTML=`<h2>Community Rules</h2><p>Keep EBL competitive, welcoming, and baseball-focused.</p><ol><li>No harassment, threats, hate speech, sexual content, or targeted abuse.</li><li>No spam, scams, impersonation, or attempts to manipulate other users.</li><li>No cheating, exploits, multi-account collusion, or intentionally corrupting league systems.</li><li>Respect team and league moderation decisions. Use reports instead of escalating conflicts.</li><li>Private messages are not a loophole around community rules.</li><li>Franchise names, logos, chat, and player names must be appropriate for a general audience.</li></ol><p class="muted">Violations may lead to warnings, mutes, suspensions, account removal, or competitive penalties.</p>`;
+ termsPolicy.innerHTML=`<h2>Beta Terms</h2><p>EBL is currently a beta service. Features, balance, league formats, virtual progression, and Genesis records may change or reset before the hard launch.</p><p>Users must provide accurate account information, protect their credentials, avoid exploiting the service, and follow community rules. EBL may suspend accounts or pause league activity to protect competitive integrity and service safety.</p><p>Virtual XP, awards, franchise rights, and other in-game items have no cash value unless a future published policy explicitly says otherwise.</p><p class="muted">These beta terms are a product draft and should receive legal review before commercial/public launch.</p>`;
+ privacyPolicy.innerHTML=`<h2>Privacy Summary</h2><p>EBL stores account credentials in hashed form, verified email addresses, login/session records, game activity, league statistics, chat/private messages, moderation reports, and technical security logs needed to operate the service.</p><p>Email addresses are used for account verification, password recovery, security notices, and service communications. EBL should not sell personal information.</p><p>Users can report abuse and block other users. Moderators may review reported community content and private messages when specifically reported or when required for safety/service integrity.</p><p class="muted">A jurisdiction-specific privacy policy and retention/deletion process should receive legal review before commercial/public launch.</p>`;
+}
+async function loadReports(){
+ try{let j=await api('/api/commish/reports');reportQueue.innerHTML=j.reports.length?j.reports.map(r=>`<div class="offer"><b>#${r.id} ${r.reason}</b> • ${r.status}<br><span class="muted">${r.reporter} reported ${r.reported||'content'} • ${r.created_at}</span><br>${escapeHtml(r.detail||'')} ${r.status==='OPEN'?`<br><button class="btn" onclick="moderateUser(${r.reported_user_id},'MUTE')">Mute 24h</button> <button class="btn" onclick="moderateUser(${r.reported_user_id},'SUSPEND')">Suspend 24h</button> <button class="btn" onclick="resolveReport(${r.id})">Resolve</button>`:''}</div>`).join(''):'<p class="muted">No reports.</p>'}catch(e){alert(e.error)}
+}
+async function moderateUser(uid,action){if(!uid)return;let reason=prompt('Reason:',action);if(reason===null)return;try{await api('/api/commish/moderate',{method:'POST',body:JSON.stringify({user_id:uid,action,minutes:1440,reason})});await loadReports()}catch(e){alert(e.error)}}
+async function resolveReport(id){let resolution=prompt('Resolution:','Reviewed');if(resolution===null)return;await api('/api/commish/resolve-report',{method:'POST',body:JSON.stringify({report_id:id,resolution})});loadReports()}
+async function backupNow(){try{let j=await api('/api/commish/backup-now',{method:'POST'});alert('Backup created: '+j.path)}catch(e){alert(e.error)}}
+async function loadLab(){let j=await api('/api/simulation-lab');labBody.innerHTML=`<h2>Developer Simulation Lab</h2><p class="muted">Seed ${j.seed}; ${j.pa_per_test.toLocaleString()} PA/test</p><div class="grid">${Object.entries(j.baseline).map(([k,v])=>statBox(k,typeof v==='number'?v.toFixed(3):v)).join('')}</div>`}
+async function watch(id){let j=await api('/api/game/'+id);GG=j.game;gi=0;clearInterval(timer);renderGameShell();gc.showModal();timer=setInterval(step,450)}
+function renderGameShell(){gcontent.innerHTML=`<div class="gold">${GG.id}</div><h2>${teamName(GG.away_id)} ${GG.away_runs} — ${GG.home_runs} ${teamName(GG.home_id)}</h2><div class="gcgrid"><div class="field"><div class="dirt"></div><div class="grass"></div><div id="ball" class="ball"></div></div><div><div class="card"><h3 id="match">GameCast</h3><div id="pt" class="muted"></div><div id="zone" class="zone"></div><div id="metric" class="gold"></div></div><button class="btn" onclick="speed(1600)">Live</button> <button class="btn" onclick="speed(300)">Fast</button> <button class="btn" onclick="instant()">Instant</button> <button class="btn" onclick="replay()">Replay</button></div></div><div class="card"><h3>Play-by-Play</h3><div id="feed" class="feed"></div></div>`}
+function speed(ms){clearInterval(timer);timer=setInterval(step,ms)}function replay(){gi=0;renderGameShell();speed(450)}function instant(){clearInterval(timer);while(gi<GG.events.length)step()}
+function step(){if(gi>=GG.events.length){clearInterval(timer);return}let e=GG.events[gi++],d=document.createElement('div');d.className='play';d.textContent=describe(e);feed.prepend(d);if(e.type==='PA_START')match.textContent=`${e.batter} vs ${e.pitcher}`;if(e.type==='PITCH'){pt.textContent=`${e.pitch_type} ${e.velocity} MPH — ${e.call}`;let q=document.createElement('div');q.className='dot';q.style.left=(e.px*100)+'%';q.style.top=((1-e.pz)*100)+'%';zone.appendChild(q)}if(e.type==='BALL_IN_PLAY'){metric.textContent=`EV ${e.exit_velocity} • LA ${e.launch_angle}° • ${e.contact_quality}`;ball.style.left=(50+e.spray_angle*.7)+'%';ball.style.top='20%'}}
+function describe(e){switch(e.type){case'GAME_START':return`${e.away_name} at ${e.home_name}`;case'PA_START':return`${e.half} ${e.inning}: ${e.batter} vs ${e.pitcher}`;case'PITCH':return`${e.pitch_type} ${e.velocity} MPH — ${e.call}`;case'BALL_IN_PLAY':return`${e.result}: ${e.exit_velocity} MPH, ${e.launch_angle}°`;case'PITCHING_CHANGE':return`Pitching change: ${teamName(e.team)} brings in ${e.role}`;case'PINCH_HITTER':return`Pinch hitter enters for player ${e.replaced_id}`;case'PINCH_RUNNER':return`Pinch runner enters for player ${e.replaced_id}`;case'DEFENSIVE_SHIFT':return`${teamName(e.team)} uses ${e.mode.replaceAll('_',' ')} alignment`;case'STEAL_ATTEMPT':return`Steal attempt — ${e.success?'SAFE':'OUT'}`;case'BUNT_ATTEMPT':return`Bunt attempt — ${e.success?'successful':'out recorded'}`;case'DEFENSIVE_REPLACEMENT_WINDOW':return`${teamName(e.team)} goes to late-inning defensive replacements`;case'OUT':return`${e.out_type} — ${e.outs} out(s)`;case'RUN':return`Run scores! ${e.score[0]}-${e.score[1]}`;case'PA_END':return`PA: ${e.result}`;case'INNING_END':return`End ${e.half} ${e.inning}`;case'GAME_END':return`FINAL ${e.final_score[0]}-${e.final_score[1]}`;default:return e.type}}
+loadPolicies();
+refresh();
+setInterval(()=>{if(ME){loadChat('EBL');loadChat('TEAM')}},15000);
+</script></body></html>
