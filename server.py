@@ -8,7 +8,7 @@ from email.message import EmailMessage
 
 ROOT=os.path.dirname(os.path.abspath(__file__))
 DB=os.environ.get("EBL_DB_PATH", os.path.join(ROOT,"ebl.db"))
-STATIC=ROOT
+STATIC=os.path.join(ROOT,"static")
 SESSIONS={}
 R=random.Random(7500831)
 
