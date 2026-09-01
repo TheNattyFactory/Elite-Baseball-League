@@ -1,0 +1,23 @@
+{
+  "version": "1.0.3",
+  "result": "PASS",
+  "checks": {
+    "games_final": 1215,
+    "wins": 1215,
+    "losses": 1215,
+    "rf": 11510,
+    "ra": 11510,
+    "dm_rows": 1,
+    "rivalry_pairs": 435,
+    "news_stories": 1317,
+    "negative_wallets": 0,
+    "xp_total": 20688.677,
+    "pass": true
+  },
+  "performance_fix": "Simulation now uses a lightweight player loader and no longer fetches offers/XP ledger on every plate appearance.",
+  "rivalry_xp": {
+    "base": "+2% performance XP",
+    "cap": "+8% performance XP",
+    "salary_boost": "none"
+  }
+}
