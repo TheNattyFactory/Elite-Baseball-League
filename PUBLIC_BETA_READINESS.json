@@ -1,0 +1,19 @@
+{
+  "candidate": "EBL Genesis Public Beta Candidate",
+  "checks": {
+    "user_security": true,
+    "persistent_sessions": true,
+    "rate_limits": true,
+    "moderation_actions": true,
+    "user_reports": true,
+    "backup_audit": true,
+    "franchises": 30,
+    "players": 750,
+    "roster_slots": 750,
+    "backup_created": true
+  },
+  "email_transport_code": "READY",
+  "smtp_provider": "REQUIRES_DEPLOYMENT_CREDENTIALS",
+  "legal_docs": "DRAFTS_REQUIRE_LEGAL_REVIEW",
+  "status": "CONDITIONAL_GREEN"
+}

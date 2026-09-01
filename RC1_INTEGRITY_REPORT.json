@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "checks": {
+    "roster_slots": 750,
+    "human_slots": 40,
+    "cpu_slots": 710,
+    "open_slots": 0,
+    "games_final": 210,
+    "wins": 210,
+    "losses": 210,
+    "runs_for": 1974,
+    "runs_against": 1974,
+    "negative_wallets": 0,
+    "news": 232,
+    "rivalries": 210,
+    "pass": true
+  }
+}

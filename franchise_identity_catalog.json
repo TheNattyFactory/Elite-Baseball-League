@@ -1,0 +1,272 @@
+[
+  {
+    "market": "New York",
+    "nickname": "Empire",
+    "abbr": "NYE",
+    "primary": "#102A43",
+    "secondary": "#D4AF37",
+    "accent": "#F5F7FA",
+    "mark": "\ud83d\uddfd"
+  },
+  {
+    "market": "Los Angeles",
+    "nickname": "Condors",
+    "abbr": "LAC",
+    "primary": "#1F2937",
+    "secondary": "#D97706",
+    "accent": "#F3F4F6",
+    "mark": "\ud83e\udd85"
+  },
+  {
+    "market": "Chicago",
+    "nickname": "Prairie Wolves",
+    "abbr": "CPW",
+    "primary": "#111827",
+    "secondary": "#9CA3AF",
+    "accent": "#F9FAFB",
+    "mark": "\ud83d\udc3a"
+  },
+  {
+    "market": "Houston",
+    "nickname": "Longhorns",
+    "abbr": "HLH",
+    "primary": "#7C2D12",
+    "secondary": "#F59E0B",
+    "accent": "#FFF7ED",
+    "mark": "\ud83d\udc02"
+  },
+  {
+    "market": "Phoenix",
+    "nickname": "Scorpions",
+    "abbr": "PHS",
+    "primary": "#4C1D95",
+    "secondary": "#F97316",
+    "accent": "#FDE68A",
+    "mark": "\ud83e\udd82"
+  },
+  {
+    "market": "Philadelphia",
+    "nickname": "Founders",
+    "abbr": "PHF",
+    "primary": "#1E3A8A",
+    "secondary": "#B91C1C",
+    "accent": "#F8FAFC",
+    "mark": "\ud83d\udd14"
+  },
+  {
+    "market": "San Antonio",
+    "nickname": "Rattlers",
+    "abbr": "SAR",
+    "primary": "#14532D",
+    "secondary": "#A16207",
+    "accent": "#FEF3C7",
+    "mark": "\ud83d\udc0d"
+  },
+  {
+    "market": "San Diego",
+    "nickname": "Tide",
+    "abbr": "SDT",
+    "primary": "#075985",
+    "secondary": "#06B6D4",
+    "accent": "#ECFEFF",
+    "mark": "\ud83c\udf0a"
+  },
+  {
+    "market": "Dallas",
+    "nickname": "Mustangs",
+    "abbr": "DAM",
+    "primary": "#172554",
+    "secondary": "#C2410C",
+    "accent": "#F8FAFC",
+    "mark": "\ud83d\udc0e"
+  },
+  {
+    "market": "Jacksonville",
+    "nickname": "Manatees",
+    "abbr": "JAM",
+    "primary": "#134E4A",
+    "secondary": "#2DD4BF",
+    "accent": "#F0FDFA",
+    "mark": "\u25c9"
+  },
+  {
+    "market": "Fort Worth",
+    "nickname": "Wranglers",
+    "abbr": "FWW",
+    "primary": "#451A03",
+    "secondary": "#CA8A04",
+    "accent": "#FFFBEB",
+    "mark": "\u2605"
+  },
+  {
+    "market": "Austin",
+    "nickname": "Hill Country Bats",
+    "abbr": "AHB",
+    "primary": "#312E81",
+    "secondary": "#7C3AED",
+    "accent": "#EDE9FE",
+    "mark": "\ud83e\udd87"
+  },
+  {
+    "market": "San Jose",
+    "nickname": "Redwoods",
+    "abbr": "SJR",
+    "primary": "#064E3B",
+    "secondary": "#B45309",
+    "accent": "#ECFDF5",
+    "mark": "\ud83c\udf32"
+  },
+  {
+    "market": "Columbus",
+    "nickname": "Buckeyes",
+    "abbr": "COB",
+    "primary": "#7F1D1D",
+    "secondary": "#9CA3AF",
+    "accent": "#FFF1F2",
+    "mark": "\u2b22"
+  },
+  {
+    "market": "Charlotte",
+    "nickname": "Copperheads",
+    "abbr": "CHC",
+    "primary": "#422006",
+    "secondary": "#B45309",
+    "accent": "#FEF3C7",
+    "mark": "\u25c6"
+  },
+  {
+    "market": "Indianapolis",
+    "nickname": "Racers",
+    "abbr": "INR",
+    "primary": "#172554",
+    "secondary": "#DC2626",
+    "accent": "#F8FAFC",
+    "mark": "\ud83c\udfc1"
+  },
+  {
+    "market": "San Francisco",
+    "nickname": "Seals",
+    "abbr": "SFS",
+    "primary": "#0C4A6E",
+    "secondary": "#38BDF8",
+    "accent": "#F0F9FF",
+    "mark": "\u25d2"
+  },
+  {
+    "market": "Seattle",
+    "nickname": "Orcas",
+    "abbr": "SEO",
+    "primary": "#082F49",
+    "secondary": "#22D3EE",
+    "accent": "#ECFEFF",
+    "mark": "\u25d3"
+  },
+  {
+    "market": "Denver",
+    "nickname": "Bighorns",
+    "abbr": "DEB",
+    "primary": "#3F3F46",
+    "secondary": "#A16207",
+    "accent": "#FAFAF9",
+    "mark": "\u2648"
+  },
+  {
+    "market": "Oklahoma City",
+    "nickname": "Bison",
+    "abbr": "OKB",
+    "primary": "#422006",
+    "secondary": "#92400E",
+    "accent": "#FEF3C7",
+    "mark": "\u2b1f"
+  },
+  {
+    "market": "Nashville",
+    "nickname": "Mockingbirds",
+    "abbr": "NAM",
+    "primary": "#1E3A8A",
+    "secondary": "#F59E0B",
+    "accent": "#FFFBEB",
+    "mark": "\u266a"
+  },
+  {
+    "market": "Washington",
+    "nickname": "Monuments",
+    "abbr": "WAM",
+    "primary": "#1E3A8A",
+    "secondary": "#B91C1C",
+    "accent": "#F8FAFC",
+    "mark": "\u25b2"
+  },
+  {
+    "market": "El Paso",
+    "nickname": "Roadrunners",
+    "abbr": "EPR",
+    "primary": "#78350F",
+    "secondary": "#F59E0B",
+    "accent": "#FFF7ED",
+    "mark": "\u27a4"
+  },
+  {
+    "market": "Las Vegas",
+    "nickname": "Silver",
+    "abbr": "LVS",
+    "primary": "#111827",
+    "secondary": "#A3A3A3",
+    "accent": "#F5F5F5",
+    "mark": "\u2666"
+  },
+  {
+    "market": "Boston",
+    "nickname": "Harbor",
+    "abbr": "BOH",
+    "primary": "#0F172A",
+    "secondary": "#B91C1C",
+    "accent": "#F8FAFC",
+    "mark": "\u2693"
+  },
+  {
+    "market": "Portland",
+    "nickname": "Beavers",
+    "abbr": "POB",
+    "primary": "#3F2D20",
+    "secondary": "#166534",
+    "accent": "#FEF3C7",
+    "mark": "\u2b23"
+  },
+  {
+    "market": "Detroit",
+    "nickname": "Motors",
+    "abbr": "DEM",
+    "primary": "#1F2937",
+    "secondary": "#DC2626",
+    "accent": "#E5E7EB",
+    "mark": "\u2699"
+  },
+  {
+    "market": "Louisville",
+    "nickname": "Thoroughbreds",
+    "abbr": "LOT",
+    "primary": "#312E81",
+    "secondary": "#D97706",
+    "accent": "#FFFBEB",
+    "mark": "\u265e"
+  },
+  {
+    "market": "Memphis",
+    "nickname": "Blues",
+    "abbr": "MEB",
+    "primary": "#172554",
+    "secondary": "#2563EB",
+    "accent": "#DBEAFE",
+    "mark": "\u266b"
+  },
+  {
+    "market": "Baltimore",
+    "nickname": "Terrapins",
+    "abbr": "BAT",
+    "primary": "#111827",
+    "secondary": "#D97706",
+    "accent": "#F3F4F6",
+    "mark": "\u2b21"
+  }
+]
