@@ -866,7 +866,8 @@ def new_session(c,user_id,handler,days=30):
                  VALUES(?,?,?,?,?)""",(h,user_id,exp,handler.headers.get("User-Agent","")[:250],get_client_ip(handler)))
     return raw,exp
 
-def session_user(c,raw):
+def session_user(c_or_headers, raw=None):
+    close_conn=False
     if not raw:return None
     r=c.execute("""SELECT s.*,u.id,u.username,u.role FROM persistent_sessions s JOIN users u ON u.id=s.user_id
                    WHERE s.token_hash=?""",(token_hash(raw),)).fetchone()
