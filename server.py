@@ -1022,8 +1022,8 @@ class H(BaseHTTPRequestHandler):
         if sec["suspended"]:self.out({"error":"ACCOUNT_SUSPENDED"},403);return None
         if roles and u["role"] not in roles:self.out({"error":"FORBIDDEN"},403);return None
         return u
-
-        def do_GET(self):
+        
+    def do_GET(self):
         p=urlparse(self.path).path
 
         if p.startswith("/api/"):
