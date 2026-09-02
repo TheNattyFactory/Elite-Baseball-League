@@ -44,8 +44,9 @@ def cpu_build(attr_names, role, rng):
     return vals
 
 def conn():
-    c=sqlite3.connect(DB)
-    c.row_factory=sqlite3.Row
+    c = sqlite3.connect(DB, timeout=30)
+    c.row_factory = sqlite3.Row
+    c.execute("PRAGMA busy_timeout=30000")
     return c
 
 def pwhash(password,salt=None):
