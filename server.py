@@ -4,6 +4,8 @@ from urllib.parse import urlparse
 from pathlib import Path
 import sqlite3, json, secrets, hashlib, os, mimetypes, hmac, random, math, smtplib, ssl, datetime, time, threading
 from email.message import EmailMessage
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 
 ROOT=os.path.dirname(os.path.abspath(__file__))
 DB=os.environ.get("EBL_DB_PATH", os.path.join(ROOT,"ebl.db"))
