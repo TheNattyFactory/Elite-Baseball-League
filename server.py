@@ -63,7 +63,7 @@ def pwok(password,stored):
 def init_db():
     c=conn()
     c.execute("PRAGMA journal_mode=WAL")
-c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA synchronous=NORMAL")
     c.executescript("""
     PRAGMA journal_mode=WAL;
     CREATE TABLE IF NOT EXISTS users(
