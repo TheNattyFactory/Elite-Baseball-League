@@ -10,6 +10,8 @@ DB=os.environ.get("EBL_DB_PATH", os.path.join(ROOT,"ebl.db"))
 STATIC=os.path.join(ROOT,"static")
 SESSIONS={}
 R=random.Random(7500831)
+RATE_STATE={}
+RATE_LOCK=threading.Lock()
 
 HITTER_ATTRS=["CON","POW","VIS","DISC","TIM","SPD","FLD","ARM","ACC","REAC"]
 PITCHER_ATTRS=["STA","H9","K9","BB9","HR9","PCLT","CTRL","VEL","BRK","FLD","ARM","ACC","REAC"]
