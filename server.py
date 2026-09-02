@@ -1023,27 +1023,34 @@ class H(BaseHTTPRequestHandler):
         if roles and u["role"] not in roles:self.out({"error":"FORBIDDEN"},403);return None
         return u
 
-    def do_GET(self):
-    p=urlparse(self.path).path
-    if p.startswith("/api/"):return self.api_get(p)
+        def do_GET(self):
+        p=urlparse(self.path).path
 
-    if p in ("/", "/verify-email", "/reset-password"):
-        p="/index.html"
+        if p.startswith("/api/"):
+            return self.api_get(p)
 
-    fp=os.path.normpath(os.path.join(STATIC,p.lstrip("/")))
-    if not fp.startswith(STATIC) or not os.path.isfile(fp):
-        self.send_error(404)
-        return
+        if p in ("/", "/verify-email", "/reset-password"):
+            p="/index.html"
 
-    b=open(fp,"rb").read()
-    self.send_response(200)
-    self.send_header("Content-Type",mimetypes.guess_type(fp)[0] or "application/octet-stream")
-    self.send_header("Content-Length",len(b))
-    self.end_headers()
-    self.wfile.write(b)
+        fp=os.path.normpath(os.path.join(STATIC,p.lstrip("/")))
 
-def do_POST(self):
-    self.api_post(urlparse(self.path).path)
+        if not fp.startswith(STATIC) or not os.path.isfile(fp):
+            self.send_error(404)
+            return
+
+        b=open(fp,"rb").read()
+        self.send_response(200)
+        self.send_header(
+            "Content-Type",
+            mimetypes.guess_type(fp)[0] or "application/octet-stream"
+        )
+        self.send_header("Content-Length",len(b))
+        self.end_headers()
+        self.wfile.write(b)
+
+    def do_POST(self):
+        self.api_post(urlparse(self.path).path)
+        
     def api_get(self,p):
         u=session_user(self.headers)
         if p=="/health":
