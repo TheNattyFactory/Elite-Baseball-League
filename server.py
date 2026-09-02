@@ -907,12 +907,6 @@ def session_user(c_or_headers, raw=None):
             c.commit()
             return None
 
-        c.execute(
-    "UPDATE persistent_sessions SET last_seen_at=CURRENT_TIMESTAMP WHERE token_hash=?",
-    (token_hash(raw),)
-)
-        c.commit()
-
         return {
             "id": r["id"],
             "username": r["username"],
