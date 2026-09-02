@@ -1024,14 +1024,26 @@ class H(BaseHTTPRequestHandler):
         return u
 
     def do_GET(self):
-        p=urlparse(self.path).path
-        if p.startswith("/api/"):return self.api_get(p)
-        if p=="/":p="/index.html"
-        fp=os.path.normpath(os.path.join(STATIC,p.lstrip("/")))
-        if not fp.startswith(STATIC) or not os.path.isfile(fp):self.send_error(404);return
-        b=open(fp,"rb").read();self.send_response(200);self.send_header("Content-Type",mimetypes.guess_type(fp)[0] or "application/octet-stream");self.send_header("Content-Length",len(b));self.end_headers();self.wfile.write(b)
-    def do_POST(self):self.api_post(urlparse(self.path).path)
+    p=urlparse(self.path).path
+    if p.startswith("/api/"):return self.api_get(p)
 
+    if p in ("/", "/verify-email", "/reset-password"):
+        p="/index.html"
+
+    fp=os.path.normpath(os.path.join(STATIC,p.lstrip("/")))
+    if not fp.startswith(STATIC) or not os.path.isfile(fp):
+        self.send_error(404)
+        return
+
+    b=open(fp,"rb").read()
+    self.send_response(200)
+    self.send_header("Content-Type",mimetypes.guess_type(fp)[0] or "application/octet-stream")
+    self.send_header("Content-Length",len(b))
+    self.end_headers()
+    self.wfile.write(b)
+
+def do_POST(self):
+    self.api_post(urlparse(self.path).path)
     def api_get(self,p):
         u=session_user(self.headers)
         if p=="/health":
