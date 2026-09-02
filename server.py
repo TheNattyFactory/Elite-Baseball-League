@@ -55,6 +55,19 @@ def pwhash(password,salt=None):
     dk=hashlib.pbkdf2_hmac("sha256",password.encode(),salt.encode(),200_000)
     return salt+"$"+dk.hex()
 
+def pwcheck(password, stored):
+    try:
+        salt, expected = stored.split("$", 1)
+        dk = hashlib.pbkdf2_hmac(
+            "sha256",
+            password.encode(),
+            salt.encode(),
+            200_000
+        )
+        return hmac.compare_digest(dk.hex(), expected)
+    except (ValueError, AttributeError, TypeError):
+        return False
+
 def pwok(password,stored):
     try:
         salt,hexd=stored.split("$",1)
