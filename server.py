@@ -871,60 +871,54 @@ def rate_limit(c,key,limit,window_seconds):
         return True
 
 def email_enabled():
-    return bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_FROM"))
+    return bool(
+        os.environ.get("RESEND_API_KEY")
+        and os.environ.get("EMAIL_FROM")
+    )
 
-def send_mail(to,subject,body):
-    print("EMAIL: send_mail called")
-    print("EMAIL: enabled =", email_enabled())
+def send_mail(to, subject, body):
+    print("EMAIL API: send_mail called")
+    print("EMAIL API: enabled =", email_enabled())
 
     if not email_enabled():
-        print("EMAIL: disabled by environment check")
+        print("EMAIL API: missing configuration")
         return False
 
     try:
-        msg=EmailMessage()
-        msg["From"]=os.environ["SMTP_FROM"]
-        msg["To"]=to
-        msg["Subject"]=subject
-        msg.set_content(body)
+        payload = json.dumps({
+            "from": os.environ["EMAIL_FROM"],
+            "to": [to],
+            "subject": subject,
+            "text": body
+        }).encode("utf-8")
 
-        host=os.environ["SMTP_HOST"]
-        port=int(os.environ.get("SMTP_PORT","587"))
-        user=os.environ.get("SMTP_USER")
-        pw=os.environ.get("SMTP_PASSWORD")
-        use_tls=os.environ.get("SMTP_TLS","1")!="0"
+        req = Request(
+            "https://api.resend.com/emails",
+            data=payload,
+            headers={
+                "Authorization": "Bearer " + os.environ["RESEND_API_KEY"],
+                "Content-Type": "application/json"
+            },
+            method="POST"
+        )
 
-        print("EMAIL: connecting to SMTP")
+        with urlopen(req, timeout=15) as response:
+            result = response.read().decode("utf-8")
+            print("EMAIL API: sent successfully", result)
+            return 200 <= response.status < 300
 
-        context=ssl.create_default_context()
-        with smtplib.SMTP(host,port,timeout=15) as smtp:
-            if use_tls:
-                smtp.starttls(context=context)
+    except HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        print("EMAIL API ERROR:", e.code, detail)
+        return False
 
-            if user:
-                smtp.login(user,pw or "")
-
-            print("EMAIL: authenticated")
-            smtp.send_message(msg)
-
-        print("EMAIL: sent successfully")
-        return True
+    except URLError as e:
+        print("EMAIL API NETWORK ERROR:", str(e.reason))
+        return False
 
     except Exception as e:
-        print("EMAIL ERROR:", type(e).__name__, str(e))
+        print("EMAIL API ERROR:", type(e).__name__, str(e))
         return False
-    if not email_enabled():
-        return False
-    msg=EmailMessage();msg["From"]=os.environ["SMTP_FROM"];msg["To"]=to;msg["Subject"]=subject;msg.set_content(body)
-    host=os.environ["SMTP_HOST"];port=int(os.environ.get("SMTP_PORT","587"))
-    user=os.environ.get("SMTP_USER");pw=os.environ.get("SMTP_PASSWORD")
-    use_tls=os.environ.get("SMTP_TLS","1")!="0"
-    context=ssl.create_default_context()
-    with smtplib.SMTP(host,port,timeout=15) as smtp:
-        if use_tls:smtp.starttls(context=context)
-        if user:smtp.login(user,pw or "")
-        smtp.send_message(msg)
-    return True
 
 def new_session(c,user_id,handler,days=30):
     raw=secrets.token_urlsafe(32);h=token_hash(raw)
