@@ -838,13 +838,22 @@ def get_client_ip(handler):
 
 def rate_limit(c,key,limit,window_seconds):
     now=int(time.time())
-    r=c.execute("SELECT * FROM rate_limits WHERE bucket_key=?",(key,)).fetchone()
-    if not r or now-r["window_start"]>=window_seconds:
-        c.execute("INSERT OR REPLACE INTO rate_limits(bucket_key,window_start,count) VALUES(?,?,1)",(key,now))
+
+    with RATE_LOCK:
+        r=RATE_STATE.get(key)
+
+        if not r or now-r["window_start"]>=window_seconds:
+            RATE_STATE[key]={
+                "window_start":now,
+                "count":1
+            }
+            return True
+
+        if r["count"]>=limit:
+            return False
+
+        r["count"]+=1
         return True
-    if r["count"]>=limit:return False
-    c.execute("UPDATE rate_limits SET count=count+1 WHERE bucket_key=?",(key,))
-    return True
 
 def email_enabled():
     return bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_FROM"))
