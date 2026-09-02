@@ -905,11 +905,9 @@ def session_user(c_or_headers, raw=None):
             return None
 
         c.execute(
-            "UPDATE persistent_sessions
-             SET last_seen_at=CURRENT_TIMESTAMP
-             WHERE token_hash=?",
-            (token_hash(raw),)
-        )
+    "UPDATE persistent_sessions SET last_seen_at=CURRENT_TIMESTAMP WHERE token_hash=?",
+    (token_hash(raw),)
+)
         c.commit()
 
         return {
