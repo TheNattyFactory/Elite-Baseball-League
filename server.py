@@ -849,6 +849,45 @@ def email_enabled():
     return bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_FROM"))
 
 def send_mail(to,subject,body):
+    print("EMAIL: send_mail called")
+    print("EMAIL: enabled =", email_enabled())
+
+    if not email_enabled():
+        print("EMAIL: disabled by environment check")
+        return False
+
+    try:
+        msg=EmailMessage()
+        msg["From"]=os.environ["SMTP_FROM"]
+        msg["To"]=to
+        msg["Subject"]=subject
+        msg.set_content(body)
+
+        host=os.environ["SMTP_HOST"]
+        port=int(os.environ.get("SMTP_PORT","587"))
+        user=os.environ.get("SMTP_USER")
+        pw=os.environ.get("SMTP_PASSWORD")
+        use_tls=os.environ.get("SMTP_TLS","1")!="0"
+
+        print("EMAIL: connecting to SMTP")
+
+        context=ssl.create_default_context()
+        with smtplib.SMTP(host,port,timeout=15) as smtp:
+            if use_tls:
+                smtp.starttls(context=context)
+
+            if user:
+                smtp.login(user,pw or "")
+
+            print("EMAIL: authenticated")
+            smtp.send_message(msg)
+
+        print("EMAIL: sent successfully")
+        return True
+
+    except Exception as e:
+        print("EMAIL ERROR:", type(e).__name__, str(e))
+        return False
     if not email_enabled():
         return False
     msg=EmailMessage();msg["From"]=os.environ["SMTP_FROM"];msg["To"]=to;msg["Subject"]=subject;msg.set_content(body)
