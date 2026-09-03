@@ -376,6 +376,10 @@ for i in range(1,31):
     c.execute("""INSERT OR IGNORE INTO franchises
     (id,name,owner_user_id,xp_budget,xp_spent,identity_locked,wins,losses,runs_for,runs_against)
     VALUES(?,?,?,?,0,1,0,0,0,0)""",(fid,name,owner,TEAM_BUDGET))
+    c.execute(
+    "UPDATE franchises SET name=? WHERE id=?",
+    (name,fid)
+    )
 
     c.execute(
         "INSERT OR IGNORE INTO lineups(franchise_id) VALUES(?)",
