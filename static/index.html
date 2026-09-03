@@ -353,7 +353,7 @@ async function refresh(){
 function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?t.name:fid}
 async function openTeam(fid){
     try{
-        const j=await api('/api/team/'+encodeURIComponent(fid));
+        const j=await api('/api/team/'+encodeURIComponent(fid));TEAM_ROSTER=j.roster;
 
         function season(p){
             if(p.season)return p.season;
