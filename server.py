@@ -1637,10 +1637,10 @@ class H(BaseHTTPRequestHandler):
                     bc=conn();bc.execute("INSERT INTO backup_audit(path,bytes) VALUES(?,?)",(str(dst),dst.stat().st_size));bc.commit();bc.close()
                 except Exception:
                     pass
-            return self.out({"ok":True,"day":day,"results":results})
-            return self.out({"error":"NOT_FOUND"},404)
-            if p=="/api/commish/reset-test-account":
-                u=self.auth(["COMMISSIONER"])
+                        return self.out({"ok":True,"day":day,"results":results})
+
+        if p=="/api/commish/reset-test-account":
+            u=self.auth(["COMMISSIONER"])
             if not u:return
 
             d=self.body()
