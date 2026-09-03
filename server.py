@@ -893,14 +893,15 @@ def send_mail(to, subject, body):
         }).encode("utf-8")
 
         req = Request(
-            "https://api.resend.com/emails",
-            data=payload,
-            headers={
-                "Authorization": "Bearer " + os.environ["RESEND_API_KEY"],
-                "Content-Type": "application/json"
-            },
-            method="POST"
-        )
+    "https://api.resend.com/emails",
+    data=payload,
+    headers={
+        "Authorization": "Bearer " + os.environ["RESEND_API_KEY"],
+        "Content-Type": "application/json",
+        "User-Agent": "EBL/1.0 (elite-baseball.com)"
+    },
+    method="POST"
+)
 
         with urlopen(req, timeout=15) as response:
             result = response.read().decode("utf-8")
