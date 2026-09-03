@@ -399,7 +399,7 @@ for i in range(1,31):
 
     c.execute(
         "INSERT OR IGNORE INTO team_strategy(franchise_id,bullpen_json,defense_json,bench_json,substitutions_json) VALUES(?,?,?,?,?)",
-        (
+        
             fid,
             json.dumps({"CL":None,"SU1":None,"SU2":None,"MR":[],"LR":[],"EMERGENCY":[]}),
             json.dumps({"default_shift":"STANDARD","vs_lhb":"STANDARD","vs_rhb":"STANDARD","corners_in":False,"infield_in":False}),
