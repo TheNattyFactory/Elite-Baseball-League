@@ -88,6 +88,7 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
     <div id="reportQueue"></div>
     <div id="labBody"></div>
   </div>
+</section>
 
 async function api(url,opt={}){let r=await fetch(url,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...opt});let j=await r.json();if(!r.ok)throw j;return j}
 let ME=null,PLAYER=null,LEAGUE=null,SCHEDULE=[],GG=null,gi=0,timer=null,D=null;
