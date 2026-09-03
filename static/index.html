@@ -858,7 +858,16 @@ function renderPlayer(){
                     <b>Genesis Career Begins</b>
                     <p class="muted">
                         ${
+function playerHQ(id,b){
+    document.querySelectorAll('#playerHQ .playerPane')
+        .forEach(x=>x.classList.add('hidden'));
 
+    document.querySelectorAll('#playerHQ .subtab')
+        .forEach(x=>x.classList.remove('active'));
+
+    document.getElementById(id).classList.remove('hidden');
+    b.classList.add('active');
+}
 let CREATOR={name:'',position:'SS',bats:'R',throws:'R',face_id:1,hair_id:1,pool:50,attributes:{}};
 const FACE_PRESETS=[
  {skin:'#f0c4a6',hair:'#4a2d20',label:'Face 1'},{skin:'#dca37c',hair:'#2a1b16',label:'Face 2'},
