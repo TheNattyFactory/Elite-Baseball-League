@@ -108,6 +108,18 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
 
 </main>
 
+  <style>
+.teamLink{
+    background:none;
+    border:0;
+    color:inherit;
+    font:inherit;
+    font-weight:700;
+    padding:0;
+    cursor:pointer;
+    text-decoration:underline;
+}
+  </style>
 <script>
 async function api(url,opt={}){
   let r=await fetch(url,{
