@@ -224,7 +224,7 @@ function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?t.name:
             </div>
         `;
 
-        gc.showModal();
+        document.getElementById('gc').showModal();
 
     }catch(e){
     alert(e?.error || e?.message || JSON.stringify(e) || 'Could not load roster');
