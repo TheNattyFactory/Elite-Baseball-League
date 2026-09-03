@@ -194,47 +194,145 @@ async function refresh(){
  renderHome();
 }
 function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?t.name:fid}
-  async function openTeam(fid){
+async function openTeam(fid){
     try{
         const j=await api('/api/team/'+encodeURIComponent(fid));
 
-        const rows=j.roster.map(p=>{
-            const pos=p.position_group || '';
-            const type=p.occupant_type || 'CPU';
+        function season(p){
+            if(p.season)return p.season;
+
+            try{
+                return JSON.parse(p.season_json || '{}');
+            }catch{
+                return {};
+            }
+        }
+
+        function avg(s){
+            const ab=Number(s.AB||0);
+            const h=Number(s.H||0);
+            return ab ? (h/ab).toFixed(3).replace(/^0/,'') : '.000';
+        }
+
+        function playerTag(p){
+            return p.user_id ? 'PLAYER' : 'CPU';
+        }
+
+        function hitterLine(p){
+            const s=season(p);
 
             return `
-                <tr>
-                    <td>${pos}</td>
-                    <td><b>${p.name || ('Player '+p.id)}</b></td>
-                    <td>${type}</td>
-                </tr>
+                <div class="depthPlayer">
+                    <div class="depthMain">
+                        <span class="depthPos">${p.primary_pos || 'UTIL'}</span>
+
+                        <div class="depthIdentity">
+                            <b>${p.name}</b>
+                            <span class="muted">
+                                ${playerTag(p)} • B/T ${p.bats || '?'} / ${p.throws || '?'}
+                            </span>
+                        </div>
+
+                        <span class="depthStatus">${p.status || ''}</span>
+                    </div>
+
+                    <div class="depthStats">
+                        <span><b>${avg(s)}</b> AVG</span>
+                        <span><b>${s.HR||0}</b> HR</span>
+                        <span><b>${s.RBI||0}</b> RBI</span>
+                        <span><b>${s.SB||0}</b> SB</span>
+                        <span><b>${Number(p.xp_wallet||0).toFixed(1)}</b> XP</span>
+                    </div>
+                </div>
             `;
-        }).join('');
+        }
+
+        function pitcherLine(p){
+            const s=season(p);
+
+            const outs=Number(s.OUTS||0);
+            const ip=outs ? `${Math.floor(outs/3)}.${outs%3}` : '0.0';
+
+            const er=Number(s.ER||0);
+            const era=outs ? ((er*27)/outs).toFixed(2) : '0.00';
+
+            return `
+                <div class="depthPlayer">
+                    <div class="depthMain">
+                        <span class="depthPos">${p.primary_pos || 'P'}</span>
+
+                        <div class="depthIdentity">
+                            <b>${p.name}</b>
+                            <span class="muted">
+                                ${playerTag(p)} • Throws ${p.throws || '?'}
+                            </span>
+                        </div>
+
+                        <span class="depthStatus">${p.status || ''}</span>
+                    </div>
+
+                    <div class="depthStats">
+                        <span><b>${s.W||0}-${s.L||0}</b> W-L</span>
+                        <span><b>${era}</b> ERA</span>
+                        <span><b>${ip}</b> IP</span>
+                        <span><b>${s.SO||0}</b> K</span>
+                        <span><b>${s.SV||0}</b> SV</span>
+                        <span><b>${Number(p.xp_wallet||0).toFixed(1)}</b> XP</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        const hitters=j.roster
+            .filter(p=>p.type==='H')
+            .sort((a,b)=>(a.slot_no||999)-(b.slot_no||999));
+
+        const pitchers=j.roster
+            .filter(p=>p.type!=='H')
+            .sort((a,b)=>(a.slot_no||999)-(b.slot_no||999));
+
+        const starters=hitters.filter(p=>
+            ['C','1B','2B','3B','SS','LF','CF','RF','OF','DH']
+                .includes(p.primary_pos)
+        );
+
+        const bench=hitters.filter(p=>!starters.includes(p));
+
+        const rotation=pitchers.filter(p=>p.primary_pos==='SP');
+
+        const bullpen=pitchers.filter(p=>p.primary_pos!=='SP');
 
         document.getElementById('gcontent').innerHTML=`
-            <h2>${j.team.name}</h2>
-            <p class="muted">
-                ${j.division} Division •
-                ${j.team.wins}-${j.team.losses}
-            </p>
+            <div class="gold">${j.division} Division</div>
 
-            <div class="tablewrap">
-                <table>
-                    <tr>
-                        <th>POS</th>
-                        <th>PLAYER</th>
-                        <th>TYPE</th>
-                    </tr>
-                    ${rows}
-                </table>
+            <h2>${j.team.name}</h2>
+
+            <div class="depthTeamHeader">
+                <span><b>${j.team.wins}-${j.team.losses}</b> Record</span>
+                <span><b>${j.roster.length}</b> Players</span>
+                <span><b>${j.team.runs_for-j.team.runs_against>=0?'+':''}${j.team.runs_for-j.team.runs_against}</b> Run Diff</span>
             </div>
+
+            <h3 class="depthHeading">Position Players</h3>
+            ${starters.map(hitterLine).join('') || '<p class="muted">No position players.</p>'}
+
+            ${bench.length ? `
+                <h3 class="depthHeading">Bench</h3>
+                ${bench.map(hitterLine).join('')}
+            ` : ''}
+
+            <h3 class="depthHeading">Starting Rotation</h3>
+            ${rotation.map(pitcherLine).join('') || '<p class="muted">No starters assigned.</p>'}
+
+            <h3 class="depthHeading">Bullpen</h3>
+            ${bullpen.map(pitcherLine).join('') || '<p class="muted">No relievers assigned.</p>'}
         `;
 
         document.getElementById('gc').showModal();
 
     }catch(e){
-    alert(e?.error || e?.message || JSON.stringify(e) || 'Could not load roster');
-}
+        alert(e?.error || e?.message || 'Could not load roster');
+    }
 }
 async function loadPlayer(){try{let j=await api('/api/my-player');PLAYER=j.player;renderPlayer()}catch{PLAYER=null}}
 function initials(n){return (n||'EB').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
