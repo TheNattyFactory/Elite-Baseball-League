@@ -1062,7 +1062,7 @@ class H(BaseHTTPRequestHandler):
             teams=[dict(x) for x in c.execute("SELECT id,name,wins,losses,runs_for,runs_against FROM franchises ORDER BY wins DESC,(runs_for-runs_against) DESC")]
             for t in teams:t["division"]=division_for(t["id"])
             c.close();return self.out({"season":2,"day":day,"teams":teams,"divisions":DIVISIONS})
-                    if p.startswith("/api/team/"):
+        if p.startswith("/api/team/"):
             fid=p.split("/")[-1].strip()
 
             c=conn()
