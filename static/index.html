@@ -227,8 +227,8 @@ function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?t.name:
         gc.showModal();
 
     }catch(e){
-        alert(e.error || 'Could not load roster');
-    }
+    alert(e?.error || e?.message || JSON.stringify(e) || 'Could not load roster');
+}
 }
 async function loadPlayer(){try{let j=await api('/api/my-player');PLAYER=j.player;renderPlayer()}catch{PLAYER=null}}
 function initials(n){return (n||'EB').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
