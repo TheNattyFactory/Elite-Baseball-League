@@ -205,7 +205,7 @@ function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?t.name:
             `;
         }).join('');
 
-        gcontent.innerHTML=`
+        document.getElementById('gcontent').innerHTML=`
             <h2>${j.team.name}</h2>
             <p class="muted">
                 ${j.division} Division •
