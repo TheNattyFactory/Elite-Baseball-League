@@ -593,17 +593,271 @@ function pitcherStats(p){let s=p.season||{},outs=s.OUTS||0,ip=(outs/3).toFixed(1
 function statTabs(defs){return `<div class="statTabs">${defs.map((d,i)=>`<button class="subtab ${i?'':'active'}" onclick="playerStat('${d.id}',this)">${d.title}</button>`).join('')}</div>${defs.map((d,i)=>`<div id="${d.id}" class="statPane ${i?'':'active'}"><div class="statGrid">${d.stats.map(x=>statBox(x[0],x[1])).join('')}</div></div>`).join('')}`}
 function playerStat(id,b){let card=b.closest('.card');card.querySelectorAll('.statPane,.statTabs .subtab').forEach(x=>x.classList.remove('active'));card.querySelector('#'+id).classList.add('active');b.classList.add('active')}
 function renderPlayer(){
- if(!PLAYER){playerMain.innerHTML='<h2>No EBL player yet</h2><p class="muted">Build your first Genesis player below.</p>';createCard.classList.remove('hidden');setCreatorStep(1);return}
- createCard.classList.add('hidden');let p=PLAYER,team=p.team?.name||'Free Agent',defs=p.type==='P'?pitcherStats(p):hitterStats(p);
- let f=FACE_PRESETS[(p.face_id||1)-1]||FACE_PRESETS[0];
- let profileAvatar=`<div style="width:74px;height:74px;position:relative;--skin:${f.skin};--hair:${f.hair}"><div class="head" style="transform:scale(.45);transform-origin:top left;left:12px;top:5px"></div><div class="hair h${p.hair_id||1}" style="transform:scale(.45);transform-origin:top left;left:11px;top:3px"></div></div>`;
- playerMain.innerHTML=`<div class="identity">${profileAvatar}<div><h1>${p.name}</h1><div class="muted">${p.primary_pos} • Bats ${p.bats} • Throws ${p.throws} • ${team}</div></div></div>
- <div class="grid" style="margin-top:12px"><div class="statBox"><span class="label">AVAILABLE XP</span><b class="gold">${(+p.xp_wallet).toFixed(3)}</b></div><div class="statBox"><span class="label">STATUS</span><b>${p.status}</b></div><div class="statBox"><span class="label">CONTRACT</span><b>${p.contract?`${p.contract.salary}/G • ${p.contract.years_remaining} yr`:'—'}</b></div><div class="statBox"><span class="label">LEGACY</span><b>Genesis Career</b></div></div>
- <h2 style="margin-top:16px">Statistics</h2>${statTabs(defs)}
- <h2 style="margin-top:16px">Development</h2><div id="attrs">${Object.entries(p.attributes).map(([k,v])=>`<div class="attr"><div><b>${k}</b><div class="bar"><span style="width:${Math.min(100,v)}%"></span></div></div><span>${v}</span><button class="btn" onclick="spend('${k}')">+1 (${cost(v)} XP)</button></div>`).join('')}</div>
- <h2 style="margin-top:16px">Legacy</h2><div class="grid"><div class="statBox"><span class="label">Career Seasons</span><b>1</b></div><div class="statBox"><span class="label">Awards</span><b>0</b></div><div class="statBox"><span class="label">Championships</span><b>0</b></div><div class="statBox"><span class="label">Milestones</span><b>Genesis Begins</b></div></div>
- <h2 style="margin-top:16px">CPU Market</h2>${p.status==='FREE_AGENT'?`<button class="btn" onclick="market()">Request Offers</button>`:''}${(p.offers||[]).map(o=>`<div class="offer"><b>${teamName(o.franchise_id)}</b><br>${o.bonus} XP signing bonus • ${o.salary} XP/game • ${o.years} year(s)<br><button class="btn" onclick="respond(${o.id},'ACCEPT')">Accept</button> <button class="btn" onclick="respond(${o.id},'HOLD')">Hold</button> <button class="btn" onclick="respond(${o.id},'REJECT')">Reject</button></div>`).join('')}`;
-}
+    if(!PLAYER){
+        playerMain.innerHTML=`
+            <h2>No EBL player yet</h2>
+            <p class="muted">Build your first Genesis player below.</p>
+        `;
+        createCard.classList.remove('hidden');
+        setCreatorStep(1);
+        return;
+    }
+
+    createCard.classList.add('hidden');
+
+    const p=PLAYER;
+    const team=p.team?.name || 'Free Agent';
+    const defs=p.type==='P' ? pitcherStats(p) : hitterStats(p);
+
+    const f=FACE_PRESETS[(p.face_id||1)-1] || FACE_PRESETS[0];
+
+    const profileAvatar=`
+        <div style="width:74px;height:74px;position:relative;--skin:${f.skin};--hair:${f.hair}">
+            <div class="head"
+                 style="transform:scale(.45);transform-origin:top left;left:12px;top:5px">
+            </div>
+            <div class="hair h${p.hair_id||1}"
+                 style="transform:scale(.45);transform-origin:top left;left:11px;top:3px">
+            </div>
+        </div>
+    `;
+
+    const teamLink=p.franchise_id
+        ? `<button class="playerLink" onclick="openTeam('${p.franchise_id}')">${team}</button>`
+        : team;
+
+    const contract=p.contract
+        ? `${p.contract.salary}/G • ${p.contract.years_remaining} yr`
+        : '—';
+
+    const attrHtml=Object.entries(p.attributes||{}).map(([k,v])=>`
+        <div class="attr">
+            <div>
+                <b>${k}</b>
+                <div class="bar">
+                    <span style="width:${Math.min(100,v)}%"></span>
+                </div>
+            </div>
+
+            <span>${v}</span>
+
+            <button class="btn" onclick="spend('${k}')">
+                +1 (${cost(v)} XP)
+            </button>
+        </div>
+    `).join('');
+
+    const offers=(p.offers||[]).map(o=>`
+        <div class="offer">
+            <b>${teamName(o.franchise_id)}</b><br>
+            ${o.bonus} XP signing bonus •
+            ${o.salary} XP/game •
+            ${o.years} year(s)<br>
+
+            <button class="btn" onclick="respond(${o.id},'ACCEPT')">Accept</button>
+            <button class="btn" onclick="respond(${o.id},'HOLD')">Hold</button>
+            <button class="btn" onclick="respond(${o.id},'REJECT')">Reject</button>
+        </div>
+    `).join('');
+
+    playerMain.innerHTML=`
+        <div id="playerHQ">
+
+            <div class="identity">
+                ${profileAvatar}
+
+                <div>
+                    <div class="gold">${p.primary_pos} • ${p.type==='P'?'PITCHER':'POSITION PLAYER'}</div>
+                    <h1>${p.name}</h1>
+
+                    <div class="muted">
+                        Bats ${p.bats} • Throws ${p.throws} • ${teamLink}
+                    </div>
+                </div>
+            </div>
+
+            <div class="subtabs" style="margin-top:16px">
+                <button class="subtab active"
+                        onclick="playerHQ('playerOverview',this)">
+                    OVERVIEW
+                </button>
+
+                <button class="subtab"
+                        onclick="playerHQ('playerStats',this)">
+                    SEASON STATS
+                </button>
+
+                <button class="subtab"
+                        onclick="playerHQ('playerDevelopment',this)">
+                    ATTRIBUTES & XP
+                </button>
+
+                <button class="subtab"
+                        onclick="playerHQ('playerCareer',this)">
+                    CAREER
+                </button>
+            </div>
+
+
+            <div id="playerOverview" class="playerPane">
+
+                <div class="grid" style="margin-top:14px">
+
+                    <div class="statBox">
+                        <span class="label">AVAILABLE XP</span>
+                        <b class="gold">${Number(p.xp_wallet||0).toFixed(3)}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">STATUS</span>
+                        <b>${p.status}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">CONTRACT</span>
+                        <b>${contract}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">TEAM</span>
+                        <b>${team}</b>
+                    </div>
+
+                </div>
+
+                <h2 style="margin-top:18px">Current Season</h2>
+                ${statTabs(defs)}
+
+                <h2 style="margin-top:18px">Player Information</h2>
+
+                <div class="grid">
+
+                    <div class="statBox">
+                        <span class="label">POSITION</span>
+                        <b>${p.primary_pos}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">BATS</span>
+                        <b>${p.bats}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">THROWS</span>
+                        <b>${p.throws}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">PLAYER TYPE</span>
+                        <b>${p.user_id ? 'HUMAN' : 'CPU'}</b>
+                    </div>
+
+                </div>
+
+                ${p.status==='FREE_AGENT' ? `
+                    <h2 style="margin-top:18px">Free Agency</h2>
+                    <button class="btn" onclick="market()">Request Offers</button>
+                ` : ''}
+
+                ${offers ? `
+                    <div style="margin-top:12px">${offers}</div>
+                ` : ''}
+
+            </div>
+
+
+            <div id="playerStats" class="playerPane hidden">
+
+                <h2 style="margin-top:16px">Season Statistics</h2>
+
+                ${statTabs(defs)}
+
+                <div class="grid" style="margin-top:16px">
+
+                    <div class="statBox">
+                        <span class="label">TEAM</span>
+                        <b>${team}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">POSITION</span>
+                        <b>${p.primary_pos}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">STATUS</span>
+                        <b>${p.status}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">XP</span>
+                        <b>${Number(p.xp_wallet||0).toFixed(3)}</b>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div id="playerDevelopment" class="playerPane hidden">
+
+                <h2 style="margin-top:16px">Development</h2>
+
+                <p class="muted">
+                    Spend earned XP to develop your player.
+                    Higher attributes cost more XP to improve.
+                </p>
+
+                <div class="statBox" style="margin:12px 0">
+                    <span class="label">AVAILABLE XP</span>
+                    <b class="gold">${Number(p.xp_wallet||0).toFixed(3)}</b>
+                </div>
+
+                <div id="attrs">
+                    ${attrHtml}
+                </div>
+
+            </div>
+
+
+            <div id="playerCareer" class="playerPane hidden">
+
+                <h2 style="margin-top:16px">Legacy</h2>
+
+                <p class="muted">
+                    Your EBL career history will grow season by season.
+                </p>
+
+                <div class="grid">
+
+                    <div class="statBox">
+                        <span class="label">ERA</span>
+                        <b>Genesis</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">CURRENT TEAM</span>
+                        <b>${team}</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">AWARDS</span>
+                        <b>0</b>
+                    </div>
+
+                    <div class="statBox">
+                        <span class="label">CHAMPIONSHIPS</span>
+                        <b>0</b>
+                    </div>
+
+                </div>
+
+                <h2 style="margin-top:18px">Career Timeline</h2>
+
+                <div class="card">
+                    <b>Genesis Career Begins</b>
+                    <p class="muted">
+                        ${
 
 let CREATOR={name:'',position:'SS',bats:'R',throws:'R',face_id:1,hair_id:1,pool:50,attributes:{}};
 const FACE_PRESETS=[
