@@ -1062,6 +1062,56 @@ class H(BaseHTTPRequestHandler):
             teams=[dict(x) for x in c.execute("SELECT id,name,wins,losses,runs_for,runs_against FROM franchises ORDER BY wins DESC,(runs_for-runs_against) DESC")]
             for t in teams:t["division"]=division_for(t["id"])
             c.close();return self.out({"season":2,"day":day,"teams":teams,"divisions":DIVISIONS})
+                    if p.startswith("/api/team/"):
+            fid=p.split("/")[-1].strip()
+
+            c=conn()
+
+            team=c.execute(
+                "SELECT id,name,wins,losses,runs_for,runs_against FROM franchises WHERE id=?",
+                (fid,)
+            ).fetchone()
+
+            if not team:
+                c.close()
+                return self.out({"error":"TEAM_NOT_FOUND"},404)
+
+            roster=[dict(x) for x in c.execute(
+                "SELECT * FROM players WHERE franchise_id=? ORDER BY id",
+                (fid,)
+            )]
+
+            for player in roster:
+                # Decode JSON fields if this build contains them.
+                for field in ("attributes_json","stats_json","appearance_json","contract_json"):
+                    if field in player and player[field]:
+                        try:
+                            player[field.replace("_json","")]=json.loads(player[field])
+                        except Exception:
+                            pass
+
+                slot=c.execute(
+                    "SELECT slot_no,position_group,occupant_type FROM roster_slots WHERE player_id=?",
+                    (player["id"],)
+                ).fetchone()
+
+                if slot:
+                    player["slot_no"]=slot["slot_no"]
+                    player["position_group"]=slot["position_group"]
+                    player["occupant_type"]=slot["occupant_type"]
+                else:
+                    player["slot_no"]=None
+                    player["position_group"]=None
+                    player["occupant_type"]="UNASSIGNED"
+
+            result={
+                "team":dict(team),
+                "division":division_for(team["id"]),
+                "roster":roster
+            }
+
+            c.close()
+            return self.out(result)
         if p=="/api/rivalries":
             c=conn();rows=[dict(x) for x in c.execute("""SELECT r.*,a.name team_a_name,b.name team_b_name FROM rivalries r
                 JOIN franchises a ON a.id=r.team_a JOIN franchises b ON b.id=r.team_b ORDER BY r.intensity DESC,r.games DESC LIMIT 25""")]
