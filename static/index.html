@@ -88,17 +88,7 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
     <div id="reportQueue"></div>
     <div id="labBody"></div>
   </div>
-</section> class="page"><div class="card"><h1>Commissioner / Admin</h1><button class="btn" onclick="simDay()">Sim Next League Day</button><button class="btn" onclick="loadLab()">Load Simulation Lab</button><div id="simout" class="muted"></div><button class="btn" onclick="backupNow()">Backup Now</button><h2 style="margin-top:14px">Moderation Queue</h2><button class="btn" onclick="loadReports()">Refresh Reports</button><div id="reportQueue"></div><div id="labBody"></div></div></section>
-</main>
-<dialog id="gc"><div id="gcontent"><button class="btn" onclick="backupNow()">Backup Now</button>
 
-<h3 style="margin-top:14px">Reset Test Account</h3>
-<input id="resetTestTarget" placeholder="username or email">
-<button class="btn" onclick="resetTestAccount()">Reset Test Account</button>
-<div id="resetTestOut" class="muted"></div>
-
-<h2 style="margin-top:14px">Moderation Queue</h2>
-<script>
 async function api(url,opt={}){let r=await fetch(url,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...opt});let j=await r.json();if(!r.ok)throw j;return j}
 let ME=null,PLAYER=null,LEAGUE=null,SCHEDULE=[],GG=null,gi=0,timer=null,D=null;
 const HA=['CON','POW','VIS','DISC','TIM','SPD','FLD','ARM','ACC','REAC'], PA=['STA','H9','K9','BB9','HR9','PCLT','CTRL','VEL','BRK','FLD','ARM','ACC','REAC'];
