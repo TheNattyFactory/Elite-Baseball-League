@@ -597,9 +597,259 @@ async function moderateUser(uid,action){if(!uid)return;let reason=prompt('Reason
 async function resolveReport(id){let resolution=prompt('Resolution:','Reviewed');if(resolution===null)return;await api('/api/commish/resolve-report',{method:'POST',body:JSON.stringify({report_id:id,resolution})});loadReports()}
 async function backupNow(){try{let j=await api('/api/commish/backup-now',{method:'POST'});alert('Backup created: '+j.path)}catch(e){alert(e.error)}}
 async function loadLab(){let j=await api('/api/simulation-lab');labBody.innerHTML=`<h2>Developer Simulation Lab</h2><p class="muted">Seed ${j.seed}; ${j.pa_per_test.toLocaleString()} PA/test</p><div class="grid">${Object.entries(j.baseline).map(([k,v])=>statBox(k,typeof v==='number'?v.toFixed(3):v)).join('')}</div>`}
-async function watch(id){let j=await api('/api/game/'+id);GG=j.game;gi=0;clearInterval(timer);renderGameShell();gc.showModal();timer=setInterval(step,450)}
-function renderGameShell(){gcontent.innerHTML=`<div class="gold">${GG.id}</div><h2>${teamName(GG.away_id)} ${GG.away_runs} — ${GG.home_runs} ${teamName(GG.home_id)}</h2><div class="gcgrid"><div class="field"><div class="dirt"></div><div class="grass"></div><div id="ball" class="ball"></div></div><div><div class="card"><h3 id="match">GameCast</h3><div id="pt" class="muted"></div><div id="zone" class="zone"></div><div id="metric" class="gold"></div></div><button class="btn" onclick="speed(1600)">Live</button> <button class="btn" onclick="speed(300)">Fast</button> <button class="btn" onclick="instant()">Instant</button> <button class="btn" onclick="replay()">Replay</button></div></div><div class="card"><h3>Play-by-Play</h3><div id="feed" class="feed"></div></div>`}
-function speed(ms){clearInterval(timer);timer=setInterval(step,ms)}function replay(){gi=0;renderGameShell();speed(450)}function instant(){clearInterval(timer);while(gi<GG.events.length)step()}
+async function watch(id){
+    let j=await api('/api/game/'+id);
+    GG=j.game;
+    gi=0;
+    clearInterval(timer);
+    renderGameShell();
+    document.getElementById('gc').showModal();
+}
+
+function renderGameShell(){
+    document.getElementById('gcontent').innerHTML=`
+        <div class="gold">Day ${GG.league_day} • FINAL</div>
+        <h2>${GG.away_name || teamName(GG.away_id)} ${GG.away_runs} — ${GG.home_runs} ${GG.home_name || teamName(GG.home_id)}</h2>
+
+        <div class="subtabs">
+            <button class="subtab active" onclick="gameTab('BOX',this)">BOX SCORE</button>
+            <button class="subtab" onclick="gameTab('CAST',this)">GAMECAST</button>
+            <button class="subtab" onclick="gameTab('PBP',this)">PLAY-BY-PLAY</button>
+        </div>
+
+        <div id="gameView"></div>
+    `;
+
+    renderBoxScore();
+}
+
+function gameTab(mode,b){
+    clearInterval(timer);
+
+    b.parentElement.querySelectorAll('.subtab')
+        .forEach(x=>x.classList.remove('active'));
+
+    b.classList.add('active');
+
+    if(mode==='BOX')renderBoxScore();
+    if(mode==='CAST')renderGamecast();
+    if(mode==='PBP')renderFullPlayByPlay();
+}
+
+function ipFmt(outs){
+    outs=Number(outs||0);
+    return `${Math.floor(outs/3)}.${outs%3}`;
+}
+
+function renderBoxScore(){
+    const away=GG.away_name || teamName(GG.away_id);
+    const home=GG.home_name || teamName(GG.home_id);
+
+    const aLine=GG.line_score?.away || {};
+    const hLine=GG.line_score?.home || {};
+
+    const at=GG.totals?.away || {R:GG.away_runs,H:0,E:0};
+    const ht=GG.totals?.home || {R:GG.home_runs,H:0,E:0};
+
+    let innings='';
+    for(let i=1;i<=9;i++){
+        innings+=`<th>${i}</th>`;
+    }
+
+    let awayInn='';
+    let homeInn='';
+
+    for(let i=1;i<=9;i++){
+        awayInn+=`<td>${aLine[String(i)] ?? 0}</td>`;
+        homeInn+=`<td>${hLine[String(i)] ?? 0}</td>`;
+    }
+
+    const hitters=GG.box?.hitter_rows || [];
+    const pitchers=GG.box?.pitcher_rows || [];
+
+    function batting(teamId){
+        const rows=hitters.filter(x=>x.team_id===teamId);
+
+        return `
+            <div class="tablewrap">
+                <table>
+                    <tr>
+                        <th>PLAYER</th>
+                        <th>AB</th>
+                        <th>R</th>
+                        <th>H</th>
+                        <th>2B</th>
+                        <th>HR</th>
+                        <th>RBI</th>
+                        <th>BB</th>
+                        <th>SO</th>
+                        <th>SB</th>
+                    </tr>
+                    ${rows.map(p=>`
+                        <tr>
+                            <td><b>${p.name}</b></td>
+                            <td>${p.AB||0}</td>
+                            <td>${p.R||0}</td>
+                            <td>${p.H||0}</td>
+                            <td>${p["2B"]||0}</td>
+                            <td>${p.HR||0}</td>
+                            <td>${p.RBI||0}</td>
+                            <td>${p.BB||0}</td>
+                            <td>${p.SO||0}</td>
+                            <td>${p.SB||0}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>
+        `;
+    }
+
+    function pitching(teamId){
+        const rows=pitchers.filter(x=>x.team_id===teamId);
+
+        return `
+            <div class="tablewrap">
+                <table>
+                    <tr>
+                        <th>PITCHER</th>
+                        <th>IP</th>
+                        <th>H</th>
+                        <th>ER</th>
+                        <th>BB</th>
+                        <th>SO</th>
+                        <th>W</th>
+                        <th>L</th>
+                        <th>SV</th>
+                    </tr>
+                    ${rows.map(p=>`
+                        <tr>
+                            <td><b>${p.name}</b></td>
+                            <td>${ipFmt(p.OUTS)}</td>
+                            <td>${p.H||0}</td>
+                            <td>${p.ER||0}</td>
+                            <td>${p.BB||0}</td>
+                            <td>${p.SO||0}</td>
+                            <td>${p.W||0}</td>
+                            <td>${p.L||0}</td>
+                            <td>${p.SV||0}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>
+        `;
+    }
+
+    document.getElementById('gameView').innerHTML=`
+        <h3>Line Score</h3>
+
+        <div class="tablewrap">
+            <table>
+                <tr>
+                    <th>TEAM</th>
+                    ${innings}
+                    <th>R</th>
+                    <th>H</th>
+                    <th>E</th>
+                </tr>
+
+                <tr>
+                    <td><b>${away}</b></td>
+                    ${awayInn}
+                    <td><b>${at.R}</b></td>
+                    <td>${at.H}</td>
+                    <td>${at.E}</td>
+                </tr>
+
+                <tr>
+                    <td><b>${home}</b></td>
+                    ${homeInn}
+                    <td><b>${ht.R}</b></td>
+                    <td>${ht.H}</td>
+                    <td>${ht.E}</td>
+                </tr>
+            </table>
+        </div>
+
+        <h3 style="margin-top:18px">${away} Batting</h3>
+        ${batting(GG.away_id)}
+
+        <h3 style="margin-top:18px">${home} Batting</h3>
+        ${batting(GG.home_id)}
+
+        <h3 style="margin-top:18px">${away} Pitching</h3>
+        ${pitching(GG.away_id)}
+
+        <h3 style="margin-top:18px">${home} Pitching</h3>
+        ${pitching(GG.home_id)}
+    `;
+}
+
+function renderGamecast(){
+    gi=0;
+
+    document.getElementById('gameView').innerHTML=`
+        <div class="gcgrid">
+
+            <div class="field">
+                <div class="dirt"></div>
+                <div class="grass"></div>
+                <div id="ball" class="ball"></div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <h3 id="match">GameCast</h3>
+                    <div id="pt" class="muted"></div>
+                    <div id="zone" class="zone"></div>
+                    <div id="metric" class="gold"></div>
+                </div>
+
+                <button class="btn" onclick="speed(1600)">Live</button>
+                <button class="btn" onclick="speed(300)">Fast</button>
+                <button class="btn" onclick="instant()">Instant</button>
+                <button class="btn" onclick="replay()">Replay</button>
+            </div>
+
+        </div>
+
+        <div class="card">
+            <h3>Play-by-Play</h3>
+            <div id="feed" class="feed"></div>
+        </div>
+    `;
+
+    clearInterval(timer);
+    timer=setInterval(step,450);
+}
+
+function renderFullPlayByPlay(){
+    const plays=(GG.events || [])
+        .map(e=>`<div class="play">${describe(e)}</div>`)
+        .reverse()
+        .join('');
+
+    document.getElementById('gameView').innerHTML=`
+        <div class="card">
+            <h3>Complete Play-by-Play</h3>
+            <div class="feed">${plays}</div>
+        </div>
+    `;
+}
+
+function speed(ms){
+    clearInterval(timer);
+    timer=setInterval(step,ms);
+}
+
+function replay(){
+    clearInterval(timer);
+    renderGamecast();
+}
+
+function instant(){
+    clearInterval(timer);
+    while(gi<GG.events.length)step();
+}
 function step(){if(gi>=GG.events.length){clearInterval(timer);return}let e=GG.events[gi++],d=document.createElement('div');d.className='play';d.textContent=describe(e);feed.prepend(d);if(e.type==='PA_START')match.textContent=`${e.batter} vs ${e.pitcher}`;if(e.type==='PITCH'){pt.textContent=`${e.pitch_type} ${e.velocity} MPH — ${e.call}`;let q=document.createElement('div');q.className='dot';q.style.left=(e.px*100)+'%';q.style.top=((1-e.pz)*100)+'%';zone.appendChild(q)}if(e.type==='BALL_IN_PLAY'){metric.textContent=`EV ${e.exit_velocity} • LA ${e.launch_angle}° • ${e.contact_quality}`;ball.style.left=(50+e.spray_angle*.7)+'%';ball.style.top='20%'}}
 function describe(e){switch(e.type){case'GAME_START':return`${e.away_name} at ${e.home_name}`;case'PA_START':return`${e.half} ${e.inning}: ${e.batter} vs ${e.pitcher}`;case'PITCH':return`${e.pitch_type} ${e.velocity} MPH — ${e.call}`;case'BALL_IN_PLAY':return`${e.result}: ${e.exit_velocity} MPH, ${e.launch_angle}°`;case'PITCHING_CHANGE':return`Pitching change: ${teamName(e.team)} brings in ${e.role}`;case'PINCH_HITTER':return`Pinch hitter enters for player ${e.replaced_id}`;case'PINCH_RUNNER':return`Pinch runner enters for player ${e.replaced_id}`;case'DEFENSIVE_SHIFT':return`${teamName(e.team)} uses ${e.mode.replaceAll('_',' ')} alignment`;case'STEAL_ATTEMPT':return`Steal attempt — ${e.success?'SAFE':'OUT'}`;case'BUNT_ATTEMPT':return`Bunt attempt — ${e.success?'successful':'out recorded'}`;case'DEFENSIVE_REPLACEMENT_WINDOW':return`${teamName(e.team)} goes to late-inning defensive replacements`;case'OUT':return`${e.out_type} — ${e.outs} out(s)`;case'RUN':return`Run scores! ${e.score[0]}-${e.score[1]}`;case'PA_END':return`PA: ${e.result}`;case'INNING_END':return`End ${e.half} ${e.inning}`;case'GAME_END':return`FINAL ${e.final_score[0]}-${e.final_score[1]}`;default:return e.type}}
 loadPolicies();
