@@ -91,12 +91,7 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
     <button class="btn" onclick="loadLab()">Load Simulation Lab</button>
 
     <div id="simout" class="muted"></div>
-</section>
 
-</main>
-
-<script>
-async function api(url,opt={}){
     <button class="btn" onclick="backupNow()">Backup Now</button>
 
     <h3 style="margin-top:14px">Reset Test Account</h3>
@@ -111,15 +106,53 @@ async function api(url,opt={}){
   </div>
 </section>
 
-async function api(url,opt={}){let r=await fetch(url,{credentials:'same-origin',headers:{'Content-Type':'application/json'},...opt});let j=await r.json();if(!r.ok)throw j;return j}
-let ME=null,PLAYER=null,LEAGUE=null,SCHEDULE=[],GG=null,gi=0,timer=null,D=null;
-const HA=['CON','POW','VIS','DISC','TIM','SPD','FLD','ARM','ACC','REAC'], PA=['STA','H9','K9','BB9','HR9','PCLT','CTRL','VEL','BRK','FLD','ARM','ACC','REAC'];
-const cost=v=>v<25?1:v<50?2:v<70?3:v<85?5:v<95?8:12;
-document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>showPage(b.dataset.page,b));
-function showPage(id,b){document.querySelectorAll('.page,.navbtn').forEach(x=>x.classList.remove('active'));document.querySelector('#'+id).classList.add('active');b.classList.add('active')}
-function switchPane(sel,id,b){let root=b.closest('.card');root.querySelectorAll(sel+',.subtab').forEach(x=>x.classList.remove('active'));root.querySelector('#'+id).classList.add('active');b.classList.add('active')}
-function leaguePane(id,b){switchPane('.subpane',id,b)} function analyticsPane(id,b){switchPane('.subpane',id,b)} function awardPane(id,b){switchPane('.subpane',id,b)}
+</main>
 
+<script>
+async function api(url,opt={}){
+  let r=await fetch(url,{
+    credentials:'same-origin',
+    headers:{'Content-Type':'application/json'},
+    ...opt
+  });
+
+  let j=await r.json();
+
+  if(!r.ok)throw j;
+
+  return j;
+}
+
+let ME=null,PLAYER=null,LEAGUE=null,SCHEDULE=[],GG=null,gi=0,timer=null,D=null;
+const HA=['CON','POW','VIS','DISC','TIM','SPD','FLD','ARM','ACC','REAC'],
+      PA=['STA','H9','K9','BB9','HR9','PCLT','CTRL','VEL','BRK','FLD','ARM','ACC','REAC'];
+
+const cost=v=>v<25?1:v<50?2:v<70?3:v<85?5:v<95?8:12;
+
+document.querySelectorAll('.navbtn').forEach(
+  b=>b.onclick=()=>showPage(b.dataset.page,b)
+);
+
+function showPage(id,b){
+  document.querySelectorAll('.page,.navbtn').forEach(
+    x=>x.classList.remove('active')
+  );
+  document.querySelector('#'+id).classList.add('active');
+  b.classList.add('active');
+}
+
+function switchPane(sel,id,b){
+  let root=b.closest('.card');
+  root.querySelectorAll(sel+',.subtab').forEach(
+    x=>x.classList.remove('active')
+  );
+  root.querySelector('#'+id).classList.add('active');
+  b.classList.add('active');
+}
+
+function leaguePane(id,b){switchPane('.subpane',id,b)}
+function analyticsPane(id,b){switchPane('.subpane',id,b)}
+function awardPane(id,b){switchPane('.subpane',id,b)}
 async function recoverAccount(){
  try{
   let j=await api('/api/account/recover',{method:'POST',body:JSON.stringify({username:recUser.value,recovery_code:recCode.value,new_password:recPw.value})});
