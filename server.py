@@ -1640,7 +1640,7 @@ class H(BaseHTTPRequestHandler):
             return self.out({"ok":True,"day":day,"results":results})
             return self.out({"error":"NOT_FOUND"},404)
             if p=="/api/commish/reset-test-account":
-            u=self.auth(["COMMISSIONER"])
+                u=self.auth(["COMMISSIONER"])
             if not u:return
 
             d=self.body()
