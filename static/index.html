@@ -67,7 +67,28 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
 
 <section id="gamecast" class="page"><div class="card"><h1>GameCast Center</h1><p class="muted">Completed games become watchable pitch-by-pitch archives. Live reveal mode is the foundation for community game nights.</p><div id="gamecastList"></div></div></section>
 
-<section id="rules" class="page"><div class="card"><h1>EBL Rules & Policies</h1><div class="subtabs"><button class="subtab active" onclick="policyPane('communityRules',this)">COMMUNITY RULES</button><button class="subtab" onclick="policyPane('termsPolicy',this)">TERMS</button><button class="subtab" onclick="policyPane('privacyPolicy',this)">PRIVACY</button></div><div id="communityRules" class="subpane active"></div><div id="termsPolicy" class="subpane"></div><div id="privacyPolicy" class="subpane"></div></div></section><section id="admin" class="page"><div class="card"><h1>Commissioner / Admin</h1><button class="btn" onclick="simDay()">Sim Next League Day</button><button class="btn" onclick="loadLab()">Load Simulation Lab</button><div id="simout" class="muted"></div><button class="btn" onclick="backupNow()">Backup Now</button><h2 style="margin-top:14px">Moderation Queue</h2><button class="btn" onclick="loadReports()">Refresh Reports</button><div id="reportQueue"></div><div id="labBody"></div></div></section>
+<section id="rules" class="page"><div class="card"><h1>EBL Rules & Policies</h1><div class="subtabs"><button class="subtab active" onclick="policyPane('communityRules',this)">COMMUNITY RULES</button><button class="subtab" onclick="policyPane('termsPolicy',this)">TERMS</button><button class="subtab" onclick="policyPane('privacyPolicy',this)">PRIVACY</button></div><div id="communityRules" class="subpane active"></div><div id="termsPolicy" class="subpane"></div><div id="privacyPolicy" class="subpane"></div></div></section><section id="admin" class="page">
+  <div class="card">
+    <h1>Commissioner / Admin</h1>
+
+    <button class="btn" onclick="simDay()">Sim Next League Day</button>
+    <button class="btn" onclick="loadLab()">Load Simulation Lab</button>
+
+    <div id="simout" class="muted"></div>
+
+    <button class="btn" onclick="backupNow()">Backup Now</button>
+
+    <h3 style="margin-top:14px">Reset Test Account</h3>
+    <input id="resetTestTarget" placeholder="username or email">
+    <button class="btn" onclick="resetTestAccount()">Reset Test Account</button>
+    <div id="resetTestOut" class="muted"></div>
+
+    <h2 style="margin-top:14px">Moderation Queue</h2>
+    <button class="btn" onclick="loadReports()">Refresh Reports</button>
+    <div id="reportQueue"></div>
+    <div id="labBody"></div>
+  </div>
+</section> class="page"><div class="card"><h1>Commissioner / Admin</h1><button class="btn" onclick="simDay()">Sim Next League Day</button><button class="btn" onclick="loadLab()">Load Simulation Lab</button><div id="simout" class="muted"></div><button class="btn" onclick="backupNow()">Backup Now</button><h2 style="margin-top:14px">Moderation Queue</h2><button class="btn" onclick="loadReports()">Refresh Reports</button><div id="reportQueue"></div><div id="labBody"></div></div></section>
 </main>
 <dialog id="gc"><div id="gcontent"><button class="btn" onclick="backupNow()">Backup Now</button>
 
