@@ -422,7 +422,35 @@ async function loadCoachFreeAgents(){try{let j=await api('/api/coach/free-agents
 async function coachOffer(pid){let bonus=+prompt('Signing bonus XP (0-25)','10'),salary=+prompt('Salary XP/game (.25,.30,.35,.40,.45)','.35'),years=+prompt('Years (1-3)','2');try{await api('/api/coach/offer',{method:'POST',body:JSON.stringify({player_id:pid,bonus,salary,years})});await loadCoachHub();alert('Offer sent.')}catch(e){alert(e.error)}}
 async function cancelOffer(id){try{await api('/api/coach/cancel-offer',{method:'POST',body:JSON.stringify({offer_id:id})});await loadCoachHub()}catch(e){alert(e.error)}}
 async function simDay(){try{let j=await api('/api/commish/sim-day',{method:'POST'});simout.textContent=`League Day ${j.day} complete — ${j.results.length} games`;await refresh()}catch(e){simout.textContent=e.error}}
+async function resetTestAccount(){
+    const target=document.getElementById('resetTestTarget').value.trim();
+    const out=document.getElementById('resetTestOut');
 
+    if(!target){
+        out.textContent='Enter a username or email.';
+        return;
+    }
+
+    if(!confirm(`Reset test account "${target}"? This will delete that test account and its player.`)){
+        return;
+    }
+
+    out.textContent='Resetting account...';
+
+    try{
+        const j=await api('/api/commish/reset-test-account',{
+            method:'POST',
+            body:JSON.stringify({target})
+        });
+
+        out.textContent=`Reset complete: ${j.username}. Removed ${j.removed_players || 0} player(s) and restored ${j.restored_slots || 0} roster slot(s).`;
+        document.getElementById('resetTestTarget').value='';
+        await refresh();
+    }catch(e){
+        out.textContent='Reset failed: '+(e.error || e.message || 'Unknown error');
+    }
+}
+ 
 function policyPane(id,b){switchPane('.subpane',id,b)}
 async function loadPolicies(){
  communityRules.innerHTML=`<h2>Community Rules</h2><p>Keep EBL competitive, welcoming, and baseball-focused.</p><ol><li>No harassment, threats, hate speech, sexual content, or targeted abuse.</li><li>No spam, scams, impersonation, or attempts to manipulate other users.</li><li>No cheating, exploits, multi-account collusion, or intentionally corrupting league systems.</li><li>Respect team and league moderation decisions. Use reports instead of escalating conflicts.</li><li>Private messages are not a loophole around community rules.</li><li>Franchise names, logos, chat, and player names must be appropriate for a general audience.</li></ol><p class="muted">Violations may lead to warnings, mutes, suspensions, account removal, or competitive penalties.</p>`;
