@@ -176,6 +176,48 @@ async function refresh(){
  renderHome();
 }
 function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?t.name:fid}
+  async function openTeam(fid){
+    try{
+        const j=await api('/api/team/'+encodeURIComponent(fid));
+
+        const rows=j.roster.map(p=>{
+            const pos=p.position_group || '';
+            const type=p.occupant_type || 'CPU';
+
+            return `
+                <tr>
+                    <td>${pos}</td>
+                    <td><b>${p.name || ('Player '+p.id)}</b></td>
+                    <td>${type}</td>
+                </tr>
+            `;
+        }).join('');
+
+        gcontent.innerHTML=`
+            <h2>${j.team.name}</h2>
+            <p class="muted">
+                ${j.division} Division •
+                ${j.team.wins}-${j.team.losses}
+            </p>
+
+            <div class="tablewrap">
+                <table>
+                    <tr>
+                        <th>POS</th>
+                        <th>PLAYER</th>
+                        <th>TYPE</th>
+                    </tr>
+                    ${rows}
+                </table>
+            </div>
+        `;
+
+        gc.showModal();
+
+    }catch(e){
+        alert(e.error || 'Could not load roster');
+    }
+}
 async function loadPlayer(){try{let j=await api('/api/my-player');PLAYER=j.player;renderPlayer()}catch{PLAYER=null}}
 function initials(n){return (n||'EB').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
 function fmt3(v){return Number(v||0).toFixed(3).replace(/^0/,'')}
