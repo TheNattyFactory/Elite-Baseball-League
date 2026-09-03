@@ -1174,9 +1174,142 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/schedule":
             c=conn();rows=[dict(x) for x in c.execute("SELECT id,league_day,away_id,home_id,away_runs,home_runs,status FROM games ORDER BY league_day,id")];c.close();return self.out({"games":rows})
         if p.startswith("/api/game/"):
-            gid=p.split("/")[-1];c=conn();g=c.execute("SELECT * FROM games WHERE id=?",(gid,)).fetchone()
-            if not g:c.close();return self.out({"error":"GAME_NOT_FOUND"},404)
-            d=dict(g);d["box"]=json.loads(d.pop("box_json"));d["events"]=json.loads(d.pop("events_json"));c.close();return self.out({"game":d})
+            gid=p.split("/")[-1]
+            c=conn()
+
+            g=c.execute(
+                "SELECT * FROM games WHERE id=?",
+                (gid,)
+            ).fetchone()
+
+            if not g:
+                c.close()
+                return self.out({"error":"GAME_NOT_FOUND"},404)
+
+            d=dict(g)
+            d["box"]=json.loads(d.pop("box_json") or "{}")
+            d["events"]=json.loads(d.pop("events_json") or "[]")
+
+            # Team names
+            away_team=c.execute(
+                "SELECT id,name FROM franchises WHERE id=?",
+                (d["away_id"],)
+            ).fetchone()
+
+            home_team=c.execute(
+                "SELECT id,name FROM franchises WHERE id=?",
+                (d["home_id"],)
+            ).fetchone()
+
+            d["away_name"]=away_team["name"] if away_team else d["away_id"]
+            d["home_name"]=home_team["name"] if home_team else d["home_id"]
+
+            # Inning-by-inning line score from GameCast events
+            inning_runs={
+                d["away_id"]:{str(i):0 for i in range(1,10)},
+                d["home_id"]:{str(i):0 for i in range(1,10)}
+            }
+
+            previous={
+                d["away_id"]:0,
+                d["home_id"]:0
+            }
+
+            for ev in d["events"]:
+                if ev.get("type")=="INNING_END":
+                    inning=int(ev.get("inning",0))
+                    half=ev.get("half")
+                    score=ev.get("score",[0,0])
+
+                    if 1<=inning<=9 and len(score)>=2:
+                        if half=="TOP":
+                            total=int(score[0])
+                            inning_runs[d["away_id"]][str(inning)]=max(
+                                0,
+                                total-previous[d["away_id"]]
+                            )
+                            previous[d["away_id"]]=total
+
+                        elif half=="BOT":
+                            total=int(score[1])
+                            inning_runs[d["home_id"]][str(inning)]=max(
+                                0,
+                                total-previous[d["home_id"]]
+                            )
+                            previous[d["home_id"]]=total
+
+            d["line_score"]={
+                "away":inning_runs[d["away_id"]],
+                "home":inning_runs[d["home_id"]]
+            }
+
+            # Enrich hitters with names/team
+            hitter_rows=[]
+
+            for pid,line in d["box"].get("hitters",{}).items():
+                pl=c.execute(
+                    "SELECT id,name,franchise_id FROM players WHERE id=?",
+                    (int(pid),)
+                ).fetchone()
+
+                hitter_rows.append({
+                    "player_id":int(pid),
+                    "name":pl["name"] if pl else "Unknown Player",
+                    "team_id":pl["franchise_id"] if pl else None,
+                    **line
+                })
+
+            d["box"]["hitter_rows"]=hitter_rows
+
+            # Enrich pitchers with names
+            pitcher_rows=[]
+
+            for fid,rows in d["box"].get("pitchers",{}).items():
+                for line in rows:
+                    pid=int(line["player_id"])
+
+                    pl=c.execute(
+                        "SELECT id,name FROM players WHERE id=?",
+                        (pid,)
+                    ).fetchone()
+
+                    pitcher_rows.append({
+                        "player_id":pid,
+                        "name":pl["name"] if pl else "Unknown Pitcher",
+                        "team_id":fid,
+                        **line
+                    })
+
+            d["box"]["pitcher_rows"]=pitcher_rows
+
+            # Simple R/H/E totals
+            away_hits=sum(
+                x.get("H",0)
+                for x in hitter_rows
+                if x.get("team_id")==d["away_id"]
+            )
+
+            home_hits=sum(
+                x.get("H",0)
+                for x in hitter_rows
+                if x.get("team_id")==d["home_id"]
+            )
+
+            d["totals"]={
+                "away":{
+                    "R":d.get("away_runs",0),
+                    "H":away_hits,
+                    "E":0
+                },
+                "home":{
+                    "R":d.get("home_runs",0),
+                    "H":home_hits,
+                    "E":0
+                }
+            }
+
+            c.close()
+            return self.out({"game":d})
         if p=="/api/my-player":
             u=self.auth()
             if not u:return
