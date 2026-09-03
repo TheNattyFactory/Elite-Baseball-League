@@ -572,6 +572,94 @@ async function openTeam(fid){
         alert(e?.error || e?.message || 'Could not load roster');
     }
 }
+  function openPlayerCard(playerId){
+    const p=TEAM_ROSTER.find(x=>Number(x.id)===Number(playerId));
+
+    if(!p){
+        alert('Player data could not be found.');
+        return;
+    }
+
+    function season(player){
+        if(player.season)return player.season;
+
+        try{
+            return JSON.parse(player.season_json || '{}');
+        }catch{
+            return {};
+        }
+    }
+
+    const s=season(p);
+    const attrs=p.attributes || {};
+
+    let statHtml='';
+
+    if(p.type==='H'){
+        const ab=Number(s.AB||0);
+        const h=Number(s.H||0);
+        const avg=ab ? (h/ab).toFixed(3).replace(/^0/,'') : '.000';
+
+        statHtml=`
+            <div class="playerCardStats">
+                <div><b>${avg}</b><span>AVG</span></div>
+                <div><b>${s.HR||0}</b><span>HR</span></div>
+                <div><b>${s.RBI||0}</b><span>RBI</span></div>
+                <div><b>${s.SB||0}</b><span>SB</span></div>
+                <div><b>${s.SO||0}</b><span>SO</span></div>
+            </div>
+        `;
+    }else{
+        const outs=Number(s.OUTS||0);
+        const ip=outs ? `${Math.floor(outs/3)}.${outs%3}` : '0.0';
+        const er=Number(s.ER||0);
+        const era=outs ? ((er*27)/outs).toFixed(2) : '0.00';
+
+        statHtml=`
+            <div class="playerCardStats">
+                <div><b>${s.W||0}-${s.L||0}</b><span>W-L</span></div>
+                <div><b>${era}</b><span>ERA</span></div>
+                <div><b>${ip}</b><span>IP</span></div>
+                <div><b>${s.SO||0}</b><span>K</span></div>
+                <div><b>${s.SV||0}</b><span>SV</span></div>
+            </div>
+        `;
+    }
+
+    const attrHtml=Object.entries(attrs).map(([k,v])=>`
+        <div class="attrBox">
+            <span>${k}</span>
+            <b>${v}</b>
+        </div>
+    `).join('');
+
+    document.getElementById('gcontent').innerHTML=`
+        <div class="gold">
+            ${p.primary_pos || ''} • ${p.user_id ? 'PLAYER' : 'CPU'}
+        </div>
+
+        <h2>${p.name}</h2>
+
+        <p class="muted">
+            B/T ${p.bats || '?'} / ${p.throws || '?'} •
+            ${Number(p.xp_wallet||0).toFixed(1)} XP
+        </p>
+
+        ${statHtml}
+
+        <h3 style="margin-top:18px">Attributes</h3>
+
+        <div class="attrGrid">
+            ${attrHtml}
+        </div>
+
+        <button class="btn"
+                style="margin-top:18px"
+                onclick="openTeam('${p.franchise_id}')">
+            Back to Team
+        </button>
+    `;
+  }
 async function loadPlayer(){try{let j=await api('/api/my-player');PLAYER=j.player;renderPlayer()}catch{PLAYER=null}}
 function initials(n){return (n||'EB').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
 function fmt3(v){return Number(v||0).toFixed(3).replace(/^0/,'')}
