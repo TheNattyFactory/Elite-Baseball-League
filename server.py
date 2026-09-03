@@ -376,9 +376,10 @@ for i in range(1,31):
     c.execute("""INSERT OR IGNORE INTO franchises
     (id,name,owner_user_id,xp_budget,xp_spent,identity_locked,wins,losses,runs_for,runs_against)
     VALUES(?,?,?,?,0,1,0,0,0,0)""",(fid,name,owner,TEAM_BUDGET))
+
     c.execute(
-    "UPDATE franchises SET name=? WHERE id=?",
-    (name,fid)
+        "UPDATE franchises SET name=? WHERE id=?",
+        (name,fid)
     )
 
     c.execute(
@@ -386,8 +387,29 @@ for i in range(1,31):
         (fid,)
     )
 
-    c.execute("INSERT OR IGNORE INTO lineups(franchise_id) VALUES(?)",(fid,))
-    c.execute("INSERT OR IGNORE INTO franchise_branding(franchise_id,display_name) VALUES(?,?)",(fid,name))
+    c.execute(
+        "INSERT OR IGNORE INTO franchise_branding(franchise_id,display_name) VALUES(?,?)",
+        (fid,name)
+    )
+
+    c.execute(
+        "UPDATE franchise_branding SET display_name=? WHERE franchise_id=?",
+        (name,fid)
+    )
+
+    c.execute(
+        "INSERT OR IGNORE INTO team_strategy(franchise_id,bullpen_json,defense_json,bench_json,substitutions_json) VALUES(?,?,?,?,?)",
+        (
+            fid,
+            json.dumps({"CL":None,"SU1":None,"SU2":None,"MR":[],"LR":[],"EMERGENCY":[]}),
+            json.dumps({"default_shift":"STANDARD","vs_lhb":"STANDARD","vs_rhb":"STANDARD","corners_in":False,"infield_in":False}),
+            json.dumps({"C":[],"1B":[],"2B":[],"3B":[],"SS":[],"LF":[],"CF":[],"RF":[],"DH":[]}),
+            json.dumps({
+                "pinch_hit":[],
+                "pinch_run":[],
+                "def_replacement":[],
+                "catcher_backup":None,
+                "late_inning_defense_inning":8,
     c.execute("INSERT OR IGNORE INTO team_strategy(franchise_id,bullpen_json,defense_json,bench_json,substitutions_json) VALUES(?,?,?,?,?)",
                   (fid,json.dumps({"CL":None,"SU1":None,"SU2":None,"MR":[],"LR":[],"EMERGENCY":[]}),
                    json.dumps({"default_shift":"STANDARD","vs_lhb":"STANDARD","vs_rhb":"STANDARD","corners_in":False,"infield_in":False}),
