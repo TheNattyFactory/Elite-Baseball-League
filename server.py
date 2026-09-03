@@ -398,9 +398,7 @@ for i in range(1,31):
     )
 
     c.execute(
-        "INSERT OR IGNORE INTO team_strategy(franchise_id,bullpen_json,defense_json,bench_json,substitutions_json) VALUES(?,?,?,?,?)",)
-        
-         fid,
+        "INSERT OR IGNORE INTO team_strategy(franchise_id,bullpen_json,defense_json,bench_json,substitutions_json) VALUES(?,?,?,?,?)",
          json.dumps({"CL":None,"SU1":None,"SU2":None,"MR":[],"LR":[],"EMERGENCY":[]}),
          json.dumps({"default_shift":"STANDARD","vs_lhb":"STANDARD","vs_rhb":"STANDARD","corners_in":False,"infield_in":False}),
          json.dumps({"C":[],"1B":[],"2B":[],"3B":[],"SS":[],"LF":[],"CF":[],"RF":[],"DH":[]}),
@@ -409,7 +407,7 @@ for i in range(1,31):
                 "pinch_run":[],
                 "def_replacement":[],
                 "catcher_backup":None,
-                "late_inning_defense_inning":8,})
+                "late_inning_defense_inning":8,}))
     c.execute("INSERT OR IGNORE INTO team_strategy(franchise_id,bullpen_json,defense_json,bench_json,substitutions_json) VALUES(?,?,?,?,?)",
                   (fid,json.dumps({"CL":None,"SU1":None,"SU2":None,"MR":[],"LR":[],"EMERGENCY":[]}),
                    json.dumps({"default_shift":"STANDARD","vs_lhb":"STANDARD","vs_rhb":"STANDARD","corners_in":False,"infield_in":False}),
