@@ -1639,7 +1639,7 @@ class H(BaseHTTPRequestHandler):
                     pass
             return self.out({"ok":True,"day":day,"results":results})
             return self.out({"error":"NOT_FOUND"},404)
-            if p=="/api/commish/reset-test-account":
+         if p=="/api/commish/reset-test-account":
             u=self.auth(["COMMISSIONER"])
             if not u:return
 
@@ -1650,89 +1650,81 @@ class H(BaseHTTPRequestHandler):
 
             c=conn()
 
-    row=c.execute("""
-        SELECT u.id,u.username,u.role,s.email
-        FROM users u
-        LEFT JOIN user_security s ON s.user_id=u.id
-        WHERE lower(u.username)=? OR lower(s.email)=?
-    """,(target,target)).fetchone()
+            row=c.execute("""
+                SELECT u.id,u.username,u.role,s.email
+                FROM users u
+                LEFT JOIN user_security s ON s.user_id=u.id
+                WHERE lower(u.username)=? OR lower(s.email)=?
+            """,(target,target)).fetchone()
 
-    if not row:
-        c.close()
-        return self.out({"error":"ACCOUNT_NOT_FOUND"},404)
+            if not row:
+                c.close()
+                return self.out({"error":"ACCOUNT_NOT_FOUND"},404)
 
-    if row["role"] in ("COMMISSIONER","COACH"):
-        c.close()
-        return self.out({"error":"PROTECTED_ACCOUNT"},403)
+            if row["role"] in ("COMMISSIONER","COACH"):
+                c.close()
+                return self.out({"error":"PROTECTED_ACCOUNT"},403)
 
-    uid=row["id"]
+            uid=row["id"]
 
-    # Remove/restore any human player tied to this account.
-    players=c.execute(
-        "SELECT id,franchise_id FROM players WHERE user_id=?",
-        (uid,)
-    ).fetchall()
+            players=c.execute(
+                "SELECT id,franchise_id FROM players WHERE user_id=?",
+                (uid,)
+            ).fetchall()
 
-    removed_players=0
-    restored_slots=0
+            removed_players=0
+            restored_slots=0
 
-    for p_row in players:
-        pid=p_row["id"]
+            for p_row in players:
+                pid=p_row["id"]
 
-        slots=c.execute(
-            "SELECT franchise_id,slot_no FROM roster_slots WHERE player_id=?",
-            (pid,)
-        ).fetchall()
+                slots=c.execute(
+                    "SELECT franchise_id,slot_no FROM roster_slots WHERE player_id=?",
+                    (pid,)
+                ).fetchall()
 
-        for slot in slots:
-            c.execute("""
-                UPDATE roster_slots
-                SET player_id=NULL,occupant_type='OPEN'
-                WHERE franchise_id=? AND slot_no=?
-            """,(slot["franchise_id"],slot["slot_no"]))
-            restored_slots+=1
+                for slot in slots:
+                    c.execute("""
+                        UPDATE roster_slots
+                        SET player_id=NULL,occupant_type='OPEN'
+                        WHERE franchise_id=? AND slot_no=?
+                    """,(slot["franchise_id"],slot["slot_no"]))
+                    restored_slots+=1
 
-        c.execute("DELETE FROM players WHERE id=?",(pid,))
-        removed_players+=1
+                c.execute("DELETE FROM players WHERE id=?",(pid,))
+                removed_players+=1
 
-    # Account/security cleanup.
-    c.execute("DELETE FROM persistent_sessions WHERE user_id=?",(uid,))
-    c.execute("DELETE FROM account_recovery WHERE user_id=?",(uid,))
-    c.execute("DELETE FROM user_security WHERE user_id=?",(uid,))
+            c.execute("DELETE FROM persistent_sessions WHERE user_id=?",(uid,))
+            c.execute("DELETE FROM account_recovery WHERE user_id=?",(uid,))
+            c.execute("DELETE FROM user_security WHERE user_id=?",(uid,))
+            c.execute(
+                "DELETE FROM direct_messages WHERE sender_user_id=? OR recipient_user_id=?",
+                (uid,uid)
+            )
+            c.execute(
+                "DELETE FROM user_blocks WHERE blocker_user_id=? OR blocked_user_id=?",
+                (uid,uid)
+            )
+            c.execute(
+                "DELETE FROM user_reports WHERE reporter_user_id=? OR reported_user_id=?",
+                (uid,uid)
+            )
+            c.execute(
+                "DELETE FROM moderation_actions WHERE target_user_id=? OR moderator_user_id=?",
+                (uid,uid)
+            )
+            c.execute("DELETE FROM users WHERE id=?",(uid,))
 
-    # Messaging/moderation cleanup.
-    c.execute("""
-        DELETE FROM direct_messages
-        WHERE sender_user_id=? OR recipient_user_id=?
-    """,(uid,uid))
+            c.commit()
+            c.close()
 
-    c.execute("""
-        DELETE FROM user_blocks
-        WHERE blocker_user_id=? OR blocked_user_id=?
-    """,(uid,uid))
-
-    c.execute("""
-        DELETE FROM user_reports
-        WHERE reporter_user_id=? OR reported_user_id=?
-    """,(uid,uid))
-
-    c.execute("""
-        DELETE FROM moderation_actions
-        WHERE target_user_id=? OR moderator_user_id=?
-    """,(uid,uid))
-
-    c.execute("DELETE FROM users WHERE id=?",(uid,))
-
-    c.commit()
-    c.close()
-
-    return self.out({
-        "ok":True,
-        "username":row["username"],
-        "email":row["email"],
-        "removed_players":removed_players,
-        "restored_slots":restored_slots
-    })
+            return self.out({
+                "ok":True,
+                "username":row["username"],
+                "email":row["email"],
+                "removed_players":removed_players,
+                "restored_slots":restored_slots
+            })
 
 if __name__=="__main__":
     init_db()
