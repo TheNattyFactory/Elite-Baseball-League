@@ -219,6 +219,69 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
   }
 }
 </style>
+  <style>.playerLink{
+    background:none;
+    border:0;
+    color:inherit;
+    font:inherit;
+    font-weight:800;
+    padding:0;
+    cursor:pointer;
+    text-align:left;
+}
+
+.playerCardStats{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:8px;
+    margin-top:14px;
+}
+
+.playerCardStats div{
+    text-align:center;
+    padding:10px 4px;
+    background:#10253a;
+    border-radius:8px;
+}
+
+.playerCardStats b{
+    display:block;
+    font-size:1.1rem;
+}
+
+.playerCardStats span{
+    display:block;
+    font-size:.72rem;
+    opacity:.75;
+    margin-top:3px;
+}
+
+.attrGrid{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:8px;
+}
+
+.attrBox{
+    text-align:center;
+    padding:9px 4px;
+    background:#10253a;
+    border-radius:8px;
+}
+
+.attrBox span{
+    display:block;
+    font-size:.7rem;
+    opacity:.7;
+}
+
+.attrBox b{
+    display:block;
+    font-size:1rem;
+    margin-top:3px;
+}
+    </style>
+  
 <script>
 async function api(url,opt={}){
   let r=await fetch(url,{
