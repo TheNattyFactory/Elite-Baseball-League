@@ -126,6 +126,99 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
     text-decoration:underline;
 }
   </style>
+  
+  <style>
+  .depthTeamHeader{
+  display:flex;
+  gap:8px 16px;
+  flex-wrap:wrap;
+  padding:8px 0 14px;
+  border-bottom:1px solid #29415a;
+  font-size:.9rem;
+}
+
+.depthHeading{
+  margin:18px 0 8px;
+  padding-left:9px;
+  border-left:4px solid #e62b3a;
+}
+
+.depthPlayer{
+  padding:10px 6px;
+  border-bottom:1px solid #29415a;
+}
+
+.depthMain{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+}
+
+.depthPos{
+  font-weight:800;
+  font-size:.9rem;
+  text-align:center;
+  padding:4px;
+  border-radius:5px;
+  background:#142b43;
+}
+
+.depthIdentity{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.depthIdentity b{
+  font-size:1rem;
+  line-height:1.15;
+}
+
+.depthIdentity .muted{
+  font-size:.76rem;
+  margin-top:2px;
+}
+
+.depthStatus{
+  font-size:.68rem;
+  opacity:.7;
+}
+
+.depthStats{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:4px;
+  margin:7px 0 0 50px;
+  font-size:.72rem;
+}
+
+.depthStats span{
+  white-space:nowrap;
+  text-align:center;
+}
+
+.depthStats b{
+  display:block;
+  font-size:.88rem;
+}
+
+@media(max-width:600px){
+  .depthStats{
+    margin-left:50px;
+    grid-template-columns:repeat(5,auto);
+    justify-content:space-between;
+  }
+
+  .depthStatus{
+    display:none;
+  }
+
+  .depthMain{
+    grid-template-columns:38px minmax(0,1fr);
+  }
+}
+</style>
 <script>
 async function api(url,opt={}){
   let r=await fetch(url,{
