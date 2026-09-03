@@ -320,7 +320,7 @@ async function openTeam(fid){
                         <span class="depthPos">${p.primary_pos || 'UTIL'}</span>
 
                         <div class="depthIdentity">
-                            <b>${p.name}</b>
+                            <button class="playerLink" onclick='openPlayerCard(${JSON.stringify(p)})'>${p.name}</button>
                             <span class="muted">
                                 ${playerTag(p)} • B/T ${p.bats || '?'} / ${p.throws || '?'}
                             </span>
@@ -355,7 +355,7 @@ async function openTeam(fid){
                         <span class="depthPos">${p.primary_pos || 'P'}</span>
 
                         <div class="depthIdentity">
-                            <b>${p.name}</b>
+                            <button class="playerLink" onclick='openPlayerCard(${JSON.stringify(p)})'>${p.name}</button>
                             <span class="muted">
                                 ${playerTag(p)} • Throws ${p.throws || '?'}
                             </span>
