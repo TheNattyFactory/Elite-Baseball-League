@@ -364,7 +364,13 @@ async function openTeam(fid){
                 return {};
             }
         }
-        function openPlayerCard(p){
+        function openPlayerCard(playerId){
+    const p=TEAM_ROSTER.find(x=>Number(x.id)===Number(playerId));
+
+    if(!p){
+        alert('Player data could not be found.');
+        return;
+    }
         function season(player){
         if(player.season)return player.season;
         try{
