@@ -2259,7 +2259,7 @@ class H(BaseHTTPRequestHandler):
                         skipped.append(pl["name"])
                         continue
 
-                displaced_id=slot["player_id"]
+                    displaced_id=slot["player_id"]
 
                 # Move displaced CPU hitter to an open UTIL bench slot.
                 bench=None
