@@ -450,8 +450,8 @@ def init_db():
             hseason={k:0 for k in ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"]}
             pseason={k:0 for k in ["G","GS","OUTS","H","ER","BB","SO","W","L","SV"]}
             for ti in range(1,31):
-            fid=f"EBL-F{ti:02d}";hids=[];pids=[]
-            positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL","UTIL","UTIL"]
+                fid=f"EBL-F{ti:02d}";hids=[];pids=[]
+                positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL","UTIL","UTIL"]
             for idx,pos in enumerate(positions,1):
                 attrs=cpu_build(HITTER_ATTRS,pos,R)
                 cur=c.execute("""INSERT INTO players(user_id,franchise_id,name,type,primary_pos,bats,throws,xp_wallet,attributes_json,season_json,status,active)
@@ -466,8 +466,8 @@ def init_db():
                 pids.append(cur.lastrowid)
             c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(hids[:9]),json.dumps(pids[:5]),fid))
 
-            fids=[f"EBL-F{i:02d}" for i in range(1,31)]
-            arr=list(range(30)); rounds=[]
+                fids=[f"EBL-F{i:02d}" for i in range(1,31)]
+                arr=list(range(30)); rounds=[]
             for _ in range(29):
                 rounds.append([(arr[i],arr[-1-i]) for i in range(15)])
                 arr=[arr[0]]+[arr[-1]]+arr[1:-1]
