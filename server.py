@@ -332,85 +332,116 @@ def init_db():
         if not c.execute("SELECT 1 FROM users WHERE username=?",(username,)).fetchone():
             c.execute("INSERT INTO users(username,password_hash,role) VALUES(?,?,?)",(username,pwhash(password),role))
     coach_id=c.execute("SELECT id FROM users WHERE username='coach'").fetchone()["id"]
-TEAM_NAMES = [
-    "Atlanta Scouts",
-    "New York Empires",
-    "Los Angeles Stars",
-    "Chicago Wind",
-    "Houston Apollos",
-    "Phoenix Firebirds",
-    "Philadelphia Founders",
-    "San Antonio Defenders",
-    "San Diego Armada",
-    "Dallas Wranglers",
-    "Jacksonville Breakers",
-    "Fort Worth Longhorns",
-    "Austin Outlaws",
-    "San Jose Circuit",
-    "Columbus Aviators",
-    "Charlotte Crowns",
-    "Indianapolis Racers",
-    "San Francisco Gold",
-    "Seattle Evergreens",
-    "Denver Summit",
-    "Oklahoma City Twisters",
-    "Nashville Sound",
-    "Washington Eagles",
-    "Las Vegas High Rollers",
-    "Boston Minutemen",
-    "Portland Pioneers",
-    "Detroit Motors",
-    "Louisville Thoroughbreds",
-    "Memphis Kings",
-    "Baltimore Clippers"
-]
 
-for i in range(1,31):
-    fid=f"EBL-F{i:02d}"
-    name=TEAM_NAMES[i-1]
-    owner=None
+    TEAM_NAMES = [
+        "Atlanta Scouts",
+        "New York Empires",
+        "Los Angeles Stars",
+        "Chicago Wind",
+        "Houston Apollos",
+        "Phoenix Firebirds",
+        "Philadelphia Founders",
+        "San Antonio Defenders",
+        "San Diego Armada",
+        "Dallas Wranglers",
+        "Jacksonville Breakers",
+        "Fort Worth Longhorns",
+        "Austin Outlaws",
+        "San Jose Circuit",
+        "Columbus Aviators",
+        "Charlotte Crowns",
+        "Indianapolis Racers",
+        "San Francisco Gold",
+        "Seattle Evergreens",
+        "Denver Summit",
+        "Oklahoma City Twisters",
+        "Nashville Sound",
+        "Washington Eagles",
+        "Las Vegas High Rollers",
+        "Boston Minutemen",
+        "Portland Pioneers",
+        "Detroit Motors",
+        "Louisville Thoroughbreds",
+        "Memphis Kings",
+        "Baltimore Clippers"
+    ]
 
-    c.execute("""INSERT OR IGNORE INTO franchises
-    (id,name,owner_user_id,xp_budget,xp_spent,identity_locked,wins,losses,runs_for,runs_against)
-    VALUES(?,?,?,?,0,1,0,0,0,0)""",(fid,name,owner,TEAM_BUDGET))
+    for i in range(1,31):
+        fid=f"EBL-F{i:02d}"
+        name=TEAM_NAMES[i-1]
+        owner=None
 
-    c.execute(
-        "UPDATE franchises SET name=? WHERE id=?",
-        (name,fid)
-    )
+        c.execute("""INSERT OR IGNORE INTO franchises
+        (id,name,owner_user_id,xp_budget,xp_spent,identity_locked,wins,losses,runs_for,runs_against)
+        VALUES(?,?,?,?,0,1,0,0,0,0)""",(fid,name,owner,TEAM_BUDGET))
 
-    c.execute(
-        "INSERT OR IGNORE INTO lineups(franchise_id) VALUES(?)",
-        (fid,)
-    )
+        # Rename franchises that already exist
+        c.execute(
+            "UPDATE franchises SET name=? WHERE id=?",
+            (name,fid)
+        )
 
-    c.execute(
-        "INSERT OR IGNORE INTO franchise_branding(franchise_id,display_name) VALUES(?,?)",
-        (fid,name)
-    )
+        c.execute(
+            "INSERT OR IGNORE INTO lineups(franchise_id) VALUES(?)",
+            (fid,)
+        )
 
-    c.execute(
-        "UPDATE franchise_branding SET display_name=? WHERE franchise_id=?",
-        (name,fid)
-    )
+        c.execute(
+            "INSERT OR IGNORE INTO franchise_branding(franchise_id,display_name) VALUES(?,?)",
+            (fid,name)
+        )
 
-    c.execute(
-        "INSERT OR IGNORE INTO team_strategy(franchise_id,bullpen_json,defense_json,bench_json,substitutions_json) VALUES(?,?,?,?,?)",
-         json.dumps({"CL":None,"SU1":None,"SU2":None,"MR":[],"LR":[],"EMERGENCY":[]}),
-         json.dumps({"default_shift":"STANDARD","vs_lhb":"STANDARD","vs_rhb":"STANDARD","corners_in":False,"infield_in":False}),
-         json.dumps({"C":[],"1B":[],"2B":[],"3B":[],"SS":[],"LF":[],"CF":[],"RF":[],"DH":[]}),
-         json.dumps({
-                "pinch_hit":[],
-                "pinch_run":[],
-                "def_replacement":[],
-                "catcher_backup":None,
-                "late_inning_defense_inning":8,}))
-    c.execute("INSERT OR IGNORE INTO team_strategy(franchise_id,bullpen_json,defense_json,bench_json,substitutions_json) VALUES(?,?,?,?,?)",
-                  (fid,json.dumps({"CL":None,"SU1":None,"SU2":None,"MR":[],"LR":[],"EMERGENCY":[]}),
-                   json.dumps({"default_shift":"STANDARD","vs_lhb":"STANDARD","vs_rhb":"STANDARD","corners_in":False,"infield_in":False}),
-                   json.dumps({"C":[],"1B":[],"2B":[],"3B":[],"SS":[],"LF":[],"CF":[],"RF":[],"DH":[]}),
-                   json.dumps({"pinch_hit":[],"pinch_run":[],"def_replacement":[],"catcher_backup":None,"late_inning_defense_inning":8,
-                               "pinch_hit_threshold":"MEDIUM","steal_aggression":"NORMAL","bunt_aggression":"NORMAL"})))
+        # Update display name for existing branding rows
+        c.execute(
+            "UPDATE franchise_branding SET display_name=? WHERE franchise_id=?",
+            (name,fid)
+        )
+
+        c.execute(
+            """INSERT OR IGNORE INTO team_strategy
+            (franchise_id,bullpen_json,defense_json,bench_json,substitutions_json)
+            VALUES(?,?,?,?,?)""",
+            (
+                fid,
+                json.dumps({
+                    "CL":None,
+                    "SU1":None,
+                    "SU2":None,
+                    "MR":[],
+                    "LR":[],
+                    "EMERGENCY":[]
+                }),
+                json.dumps({
+                    "default_shift":"STANDARD",
+                    "vs_lhb":"STANDARD",
+                    "vs_rhb":"STANDARD",
+                    "corners_in":False,
+                    "infield_in":False
+                }),
+                json.dumps({
+                    "C":[],
+                    "1B":[],
+                    "2B":[],
+                    "3B":[],
+                    "SS":[],
+                    "LF":[],
+                    "CF":[],
+                    "RF":[],
+                    "DH":[]
+                }),
+                json.dumps({
+                    "pinch_hit":[],
+                    "pinch_run":[],
+                    "def_replacement":[],
+                    "catcher_backup":None,
+                    "late_inning_defense_inning":8,
+                    "pinch_hit_threshold":"MEDIUM",
+                    "steal_aggression":"NORMAL",
+                    "bunt_aggression":"NORMAL"
+                })
+            )
+        )
+
     c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('season','2')")
     c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('league_day','0')")
 
