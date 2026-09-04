@@ -2242,7 +2242,7 @@ class H(BaseHTTPRequestHandler):
                         existing["slot_no"]
                     ))
 
-                                # Find the proper positional slot.
+             # Find the proper positional slot.
                 slot=c.execute("""
                     SELECT slot_no,player_id,occupant_type
                     FROM roster_slots
