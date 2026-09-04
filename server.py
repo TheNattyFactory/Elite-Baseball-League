@@ -2327,8 +2327,8 @@ class H(BaseHTTPRequestHandler):
 
                 repaired.append(pl["name"])
 
-            c.commit()
-            c.close()
+                c.commit()
+                c.close()
 
             return self.out({
                 "ok":True,
