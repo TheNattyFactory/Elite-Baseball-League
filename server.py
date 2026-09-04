@@ -2195,66 +2195,8 @@ class H(BaseHTTPRequestHandler):
             finally:
                 c.close()
 
-    if p=="/api/commish/repair-human-rosters":
-        u=self.auth(["COMMISSIONER"])
-        if not u:return
-
-        c=conn()
-        repaired=[]
-        skipped=[]
-
-        humans=c.execute("""
-                SELECT id,name,franchise_id,primary_pos,type
-                FROM players
-                WHERE user_id IS NOT NULL
-                  AND active=1
-                  AND status='SIGNED'
-                  AND franchise_id IS NOT NULL
-                ORDER BY id
-            """).fetchall()
-
-        for pl in humans:
-                # Already owns a HUMAN roster slot.
-                existing=c.execute("""
-                    SELECT slot_no
-                    FROM roster_slots
-                    WHERE player_id=?
-                      AND occupant_type='HUMAN'
-                """,(pl["id"],)).fetchone()
-
-                if existing:
-                    skipped.append(pl["name"])
-                    continue
-
-                # Find the proper positional slot.
-                slot=c.execute("""
-                    SELECT slot_no,player_id,occupant_type
-                    FROM roster_slots
-                    WHERE franchise_id=?
-                      AND position_group=?
-                      AND occupant_type IN ('CPU','OPEN')
-                    ORDER BY
-                        CASE occupant_type WHEN 'CPU' THEN 0 ELSE 1 END,
-                        slot_no
-                    LIMIT 1
-                """,(pl["franchise_id"],pl["primary_pos"])).fetchone()
-
-                if not slot:
-                    skipped.append(pl["name"])
-                    continue
-
-                displaced_id=slot["player_id"]
-
-                # Move displaced CPU hitter to an open UTIL bench slot.
-                bench=None
-                if displaced_id and pl["type"]=="H":
-                    bench=c.execute("""
-                        SELECT slot_no
-                        FROM roster_slots
-                        WHERE franchise_id=?
-                          AND position_group='UTIL'
-                          AND player_id IS NULL
-                   if p=="/api/commish/repair-human-rosters":
+     
+                if p=="/api/commish/repair-human-rosters":
             u=self.auth(["COMMISSIONER"])
             if not u:return
 
@@ -2401,8 +2343,8 @@ class H(BaseHTTPRequestHandler):
                 "repaired":repaired,
                 "skipped":skipped
             })
-
-    if p=="/api/commish/reset-test-account":
+            
+        if p=="/api/commish/reset-test-account":
             u=self.auth(["COMMISSIONER"])
             if not u:return
 
