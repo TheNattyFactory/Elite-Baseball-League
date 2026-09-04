@@ -2447,11 +2447,11 @@ class H(BaseHTTPRequestHandler):
                 ).fetchall()
 
              for slot in slots:
-                c.execute("""
+                c.execute(
                         UPDATE roster_slots
                         SET player_id=NULL,occupant_type='OPEN'
                         WHERE franchise_id=? AND slot_no=?
-                        """,(slot["franchise_id"],slot["slot_no"]))
+                        ,(slot["franchise_id"],slot["slot_no"]))
                         restored_slots+=1
 
                 c.execute("DELETE FROM players WHERE id=?",(pid,))
