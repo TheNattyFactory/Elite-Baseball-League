@@ -2216,16 +2216,31 @@ class H(BaseHTTPRequestHandler):
 
             for pl in humans:
                 # Already owns a HUMAN roster slot.
-                existing=c.execute("""
-                    SELECT slot_no
+                                existing=c.execute("""
+                    SELECT slot_no,position_group
                     FROM roster_slots
                     WHERE player_id=?
                       AND occupant_type='HUMAN'
+                    LIMIT 1
                 """,(pl["id"],)).fetchone()
 
-                if existing:
+                # Only skip if the human already owns the correct position.
+                if existing and existing["position_group"]==pl["primary_pos"]:
                     skipped.append(pl["name"])
                     continue
+
+                # If human is sitting in the wrong slot, free that slot first.
+                if existing:
+                    c.execute("""
+                        UPDATE roster_slots
+                        SET player_id=NULL,
+                            occupant_type='OPEN'
+                        WHERE franchise_id=?
+                          AND slot_no=?
+                    """,(
+                        pl["franchise_id"],
+                        existing["slot_no"]
+                    ))
 
                 # Find the proper positional slot.
                 slot=c.execute("""
