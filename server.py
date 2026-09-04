@@ -1775,7 +1775,10 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             d=self.body();oid=int(d.get("offer_id",0));action=d.get("action")
             if action not in ["ACCEPT","HOLD","REJECT"]:return self.out({"error":"INVALID_ACTION"},400)
-            c=conn();pl=c.execute("SELECT id FROM players WHERE user_id=? AND active=1",(u["id"],)).fetchone()
+            c=conn();pl=c.execute(
+            "SELECT id,primary_pos,type FROM players WHERE user_id=? AND active=1",
+            (u["id"],)
+             ).fetchone()
             if not pl:c.close();return self.out({"error":"PLAYER_NOT_FOUND"},404)
             off=c.execute("SELECT * FROM offers WHERE id=? AND player_id=?",(oid,pl["id"])).fetchone()
             if not off or off["status"] not in ["OPEN","HELD"]:c.close();return self.out({"error":"OFFER_NOT_AVAILABLE"},400)
