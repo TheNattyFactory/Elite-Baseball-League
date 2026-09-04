@@ -2242,8 +2242,8 @@ class H(BaseHTTPRequestHandler):
                         existing["slot_no"]
                     ))
 
-                # Find the proper positional slot.
-                    slot=c.execute("""
+                                # Find the proper positional slot.
+                slot=c.execute("""
                     SELECT slot_no,player_id,occupant_type
                     FROM roster_slots
                     WHERE franchise_id=?
@@ -2255,27 +2255,27 @@ class H(BaseHTTPRequestHandler):
                     LIMIT 1
                 """,(pl["franchise_id"],pl["primary_pos"])).fetchone()
 
-                    if not slot:
-                        skipped.append(pl["name"])
-                        continue
+                if not slot:
+                    skipped.append(pl["name"])
+                    continue
 
-                    displaced_id=slot["player_id"]
+                displaced_id=slot["player_id"]
 
                 # Move displaced CPU hitter to an open UTIL bench slot.
-                    bench=None
+                bench=None
 
-                 if displaced_id and pl["type"]=="H":
-                        bench=c.execute("""
-                            SELECT slot_no
-                            FROM roster_slots
-                            WHERE franchise_id=?
-                              AND position_group='UTIL'
-                              AND player_id IS NULL
-                            ORDER BY slot_no
-                            LIMIT 1
-                        """,(pl["franchise_id"],)).fetchone()
+                if displaced_id and pl["type"]=="H":
+                    bench=c.execute("""
+                        SELECT slot_no
+                        FROM roster_slots
+                        WHERE franchise_id=?
+                          AND position_group='UTIL'
+                          AND player_id IS NULL
+                        ORDER BY slot_no
+                        LIMIT 1
+                    """,(pl["franchise_id"],)).fetchone()
 
-             if displaced_id:
+                if displaced_id:
                     if bench:
                         c.execute("""
                             UPDATE roster_slots
