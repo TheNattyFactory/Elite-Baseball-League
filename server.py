@@ -2196,7 +2196,7 @@ class H(BaseHTTPRequestHandler):
                 c.close()
 
     if p=="/api/commish/repair-human-rosters":
-            u=self.auth(["COMMISSIONER"])
+       u=self.auth(["COMMISSIONER"])
             if not u:return
 
             c=conn()
