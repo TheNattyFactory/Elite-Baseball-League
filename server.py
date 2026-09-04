@@ -2264,10 +2264,10 @@ class H(BaseHTTPRequestHandler):
 
             displaced_id=slot["player_id"]
 
-                # Move displaced CPU hitter to an open UTIL bench slot.
-                bench=None
+            # Move displaced CPU hitter to an open UTIL bench slot.
+            bench=None
 
-                if displaced_id and pl["type"]=="H":
+            if displaced_id and pl["type"]=="H":
                     bench=c.execute("""
                         SELECT slot_no
                         FROM roster_slots
@@ -2278,8 +2278,8 @@ class H(BaseHTTPRequestHandler):
                         LIMIT 1
                     """,(pl["franchise_id"],)).fetchone()
 
-                if displaced_id:
-                    if bench:
+            if displaced_id:
+                if bench:
                         c.execute("""
                             UPDATE roster_slots
                             SET player_id=?,occupant_type='CPU'
@@ -2316,7 +2316,7 @@ class H(BaseHTTPRequestHandler):
                     WHERE franchise_id=?
                 """,(pl["franchise_id"],)).fetchone()
 
-                if lr and displaced_id:
+            if lr and displaced_id:
                     if pl["type"]=="H":
                         order=json.loads(lr["batting_order_json"])
 
