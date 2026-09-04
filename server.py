@@ -2255,9 +2255,9 @@ class H(BaseHTTPRequestHandler):
                     LIMIT 1
                 """,(pl["franchise_id"],pl["primary_pos"])).fetchone()
 
-                if not slot:
-                    skipped.append(pl["name"])
-                    continue
+                    if not slot:
+                        skipped.append(pl["name"])
+                        continue
 
                 displaced_id=slot["player_id"]
 
