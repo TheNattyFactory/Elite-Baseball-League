@@ -1214,6 +1214,22 @@ async function resetTestAccount(){
         out.textContent='Reset failed: '+(e.error || e.message || 'Unknown error');
     }
 }
+
+ async function resetLeague(){
+    if(!confirm('Reset the current league back to Day 0? Season stats, standings and game results will be erased. Players, rosters and accounts will remain.')) return;
+    if(!confirm('Are you sure? This cannot be undone from the website.')) return;
+
+    const out=document.getElementById('simout');
+
+    try{
+        out.textContent='Resetting league...';
+        const j=await api('/api/commish/reset-league',{method:'POST'});
+        out.textContent='League reset complete — Day '+j.day;
+        await refresh();
+    }catch(e){
+        out.textContent='Reset failed: '+(e?.error || e?.message || 'Unknown error');
+    }
+} 
  
 function policyPane(id,b){switchPane('.subpane',id,b)}
 async function loadPolicies(){
