@@ -1927,6 +1927,10 @@ class H(BaseHTTPRequestHandler):
                     SET xp_spent=xp_spent+?
                     WHERE id=?
                 """,(off["bonus"],off["franchise_id"]))
+                c.commit()
+                c.close()
+                return self.out({"ok":True})
+            
         if p=="/api/coach/set-strategy":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
