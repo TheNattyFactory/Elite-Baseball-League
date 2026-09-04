@@ -2213,7 +2213,7 @@ class H(BaseHTTPRequestHandler):
                 ORDER BY id
             """).fetchall()
 
-            for pl in humans:
+        for pl in humans:
                 # Already owns a HUMAN roster slot.
                 existing=c.execute("""
                     SELECT slot_no
