@@ -1216,6 +1216,33 @@ async function resetTestAccount(){
     }
 }
 
+  async function repairHumanRosters(){
+    if(!confirm('Repair roster slots for currently signed human players?')) return;
+
+    const out=document.getElementById('simout');
+
+    try{
+        out.textContent='Repairing human rosters...';
+
+        const j=await api('/api/commish/repair-human-rosters',{
+            method:'POST'
+        });
+
+        out.textContent=
+            'Roster repair complete — '+
+            j.repaired.length+
+            ' repaired, '+
+            j.skipped.length+
+            ' already correct/skipped';
+
+        await refresh();
+
+    }catch(e){
+        out.textContent=
+            'Repair failed: '+
+            (e?.error || e?.message || 'Unknown error');
+    }
+  }
  async function resetLeague(){
     if(!confirm('Reset the current league back to Day 0? Season stats, standings and game results will be erased. Players, rosters and accounts will remain.')) return;
     if(!confirm('Are you sure? This cannot be undone from the website.')) return;
