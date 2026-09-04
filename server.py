@@ -2230,7 +2230,7 @@ class H(BaseHTTPRequestHandler):
                     continue
 
                 # If human is sitting in the wrong slot, free that slot first.
-                if existing:
+            if existing:
                     c.execute("""
                         UPDATE roster_slots
                         SET player_id=NULL,
