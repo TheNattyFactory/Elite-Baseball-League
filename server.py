@@ -1909,10 +1909,11 @@ class H(BaseHTTPRequestHandler):
             c.execute("UPDATE league_state SET v=? WHERE k='league_day'",(str(day),))
             c.commit();c.close()
             if day%7==0:
-                try:
-                    dst=perform_backup(
+               try:
+                  dst=perform_backup(
                     DB,
-                    os.environ.get("EBL_BACKUP_DIR",os.path.join(ROOT,"backups"))
+                    
+            os.environ.get("EBL_BACKUP_DIR",os.path.join(ROOT,"backups"))
                     )
                     bc=conn()
                     bc.execute(
@@ -1923,7 +1924,8 @@ class H(BaseHTTPRequestHandler):
                     bc.close()
                 except Exception:
                     pass 
-                    return self.out({"ok":True,"day":day,"results":results})
+            return self.out({"ok":True,"day":day,"results":results})
+            
         if p=="/api/commish/reset-test-account":
             u=self.auth(["COMMISSIONER"])
             if not u:return
