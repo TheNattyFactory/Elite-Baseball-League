@@ -447,9 +447,9 @@ def init_db():
 
     # Seed CPU roster filler so every team can play while human free agents join over time.
         if c.execute("SELECT COUNT(*) n FROM players").fetchone()["n"]==0:
-        hseason={k:0 for k in ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"]}
-        pseason={k:0 for k in ["G","GS","OUTS","H","ER","BB","SO","W","L","SV"]}
-        for ti in range(1,31):
+            hseason={k:0 for k in ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"]}
+            pseason={k:0 for k in ["G","GS","OUTS","H","ER","BB","SO","W","L","SV"]}
+            for ti in range(1,31):
             fid=f"EBL-F{ti:02d}";hids=[];pids=[]
             positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL","UTIL","UTIL"]
             for idx,pos in enumerate(positions,1):
@@ -466,28 +466,28 @@ def init_db():
                 pids.append(cur.lastrowid)
             c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(hids[:9]),json.dumps(pids[:5]),fid))
 
-        fids=[f"EBL-F{i:02d}" for i in range(1,31)]
-        arr=list(range(30)); rounds=[]
-        for _ in range(29):
-            rounds.append([(arr[i],arr[-1-i]) for i in range(15)])
-            arr=[arr[0]]+[arr[-1]]+arr[1:-1]
-        gid=1
-        for day in range(1,82):
-            pairs=rounds[(day-1)%29]
+            fids=[f"EBL-F{i:02d}" for i in range(1,31)]
+            arr=list(range(30)); rounds=[]
+            for _ in range(29):
+                rounds.append([(arr[i],arr[-1-i]) for i in range(15)])
+                arr=[arr[0]]+[arr[-1]]+arr[1:-1]
+            gid=1
+            for day in range(1,82):
+                pairs=rounds[(day-1)%29]
             if ((day-1)//29)%2:pairs=[(b,a) for a,b in pairs]
             for ai,bi in pairs:
                 c.execute("INSERT OR IGNORE INTO games(id,season,league_day,away_id,home_id,status) VALUES(?,?,?,?,?,'SCHEDULED')",
                           (f"S02-G{gid:04d}",2,day,fids[ai],fids[bi]))
                 gid+=1
 
-    c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('phase','RECRUITING')")
-    c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('alpha_cpu_fill','1')")
-    c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('auto_advance','0')")
-    c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('season_number','1')")
-    # RC1 roster template: 25 players/team = 750 total.
-    slot_template=(["C"]*2+["1B"]*2+["2B"]*2+["3B"]*2+["SS"]*2+
+        c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('phase','RECRUITING')")
+        c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('alpha_cpu_fill','1')")
+        c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('auto_advance','0')")
+        c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('season_number','1')")
+        # RC1 roster template: 25 players/team = 750 total.
+        slot_template=(["C"]*2+["1B"]*2+["2B"]*2+["3B"]*2+["SS"]*2+
                    ["OF"]*5+["SP"]*5+["RP"]*5)
-    for fr in c.execute("SELECT id FROM franchises ORDER BY id").fetchall():
+        for fr in c.execute("SELECT id FROM franchises ORDER BY id").fetchall():
         fid=fr["id"]
         players=c.execute("SELECT id FROM players WHERE franchise_id=? ORDER BY id",(fid,)).fetchall()
         for i,posgrp in enumerate(slot_template,1):
