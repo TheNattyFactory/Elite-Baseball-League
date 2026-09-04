@@ -2243,7 +2243,7 @@ class H(BaseHTTPRequestHandler):
                     ))
 
                 # Find the proper positional slot.
-                slot=c.execute("""
+               slot=c.execute("""
                     SELECT slot_no,player_id,occupant_type
                     FROM roster_slots
                     WHERE franchise_id=?
