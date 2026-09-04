@@ -734,6 +734,77 @@ def simulate_game(c,g):
     team_names={r["id"]:r["name"] for r in c.execute("SELECT id,name FROM franchises")}
     lrows={fid:c.execute("SELECT * FROM lineups WHERE franchise_id=?",(fid,)).fetchone() for fid in [away,home]}
     lineups={fid:json.loads(lrows[fid]["batting_order_json"]) for fid in [away,home]}
+        # Keep batting orders synced with active rosters.
+    # Human position players who are signed and active should not be stranded
+    # outside an old CPU-generated lineup.
+    for fid in [away,home]:
+        roster=list(c.execute("""
+            SELECT id,user_id,primary_pos
+            FROM players
+            WHERE franchise_id=?
+              AND active=1
+              AND status='SIGNED'
+              AND type='H'
+            ORDER BY id
+        """,(fid,)))
+
+        by_id={int(r["id"]):r for r in roster}
+        valid_ids=set(by_id.keys())
+
+        # Remove invalid/duplicate players from an old saved lineup.
+        clean=[]
+        for pid in lineups[fid]:
+            pid=int(pid)
+            if pid in valid_ids and pid not in clean:
+                clean.append(pid)
+
+        human_ids=[
+            int(r["id"])
+            for r in roster
+            if r["user_id"] is not None
+        ]
+
+        # Put active human players into the lineup if an old CPU lineup omitted them.
+        for human_id in human_ids:
+            if human_id in clean:
+                continue
+
+            human_pos=by_id[human_id]["primary_pos"]
+            replace_idx=None
+
+            # First preference: replace a CPU player at the same position.
+            for i,pid in enumerate(clean):
+                r=by_id.get(pid)
+                if (
+                    r
+                    and r["user_id"] is None
+                    and r["primary_pos"]==human_pos
+                ):
+                    replace_idx=i
+                    break
+
+            # Otherwise replace the last CPU player in the order.
+            if replace_idx is None:
+                for i in range(len(clean)-1,-1,-1):
+                    r=by_id.get(clean[i])
+                    if r and r["user_id"] is None:
+                        replace_idx=i
+                        break
+
+            if replace_idx is not None:
+                clean[replace_idx]=human_id
+            elif len(clean)<9:
+                clean.append(human_id)
+
+        # Fill any holes in the batting order.
+        for r in roster:
+            pid=int(r["id"])
+            if len(clean)>=9:
+                break
+            if pid not in clean:
+                clean.append(pid)
+
+        lineups[fid]=clean[:9]
     rotations={fid:json.loads(lrows[fid]["rotation_json"]) for fid in [away,home]}
     strategies={fid:team_strategy_for(c,fid) for fid in [away,home]}
     score={away:0,home:0};events=[];box={"hitters":{},"pitchers":{},"xp":[],"strategy_events":[]}
