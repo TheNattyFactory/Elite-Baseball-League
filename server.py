@@ -1910,8 +1910,8 @@ class H(BaseHTTPRequestHandler):
             c.commit();c.close()
             if day%7==0:
                try:
-               dst=perform_backup(
-               DB,
+                 dst=perform_backup(
+                   DB,
             os.environ.get("EBL_BACKUP_DIR",os.path.join(ROOT,"backups"))
         )
                 bc=conn()
