@@ -2258,7 +2258,7 @@ class H(BaseHTTPRequestHandler):
                 """,
         (pl["franchise_id"],pl["primary_pos"])).fetchone()
 
-                if not slot:
+            if not slot:
                     skipped.append(pl["name"])
                     continue
 
