@@ -2199,9 +2199,9 @@ class H(BaseHTTPRequestHandler):
         u=self.auth(["COMMISSIONER"])
         if not u:return
 
-            c=conn()
-            repaired=[]
-            skipped=[]
+        c=conn()
+        repaired=[]
+        skipped=[]
 
             humans=c.execute("""
                 SELECT id,name,franchise_id,primary_pos,type
