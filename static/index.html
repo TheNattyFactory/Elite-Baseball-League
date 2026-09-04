@@ -1169,7 +1169,23 @@ async function saveDepthSubs(){
 async function loadCoachFreeAgents(){try{let j=await api('/api/coach/free-agents');coachFAs.innerHTML=j.players.slice(0,75).map(p=>`<div class="offer"><b>${p.name}</b> • ${p.primary_pos}<br><span class="muted">${Object.entries(p.attributes).slice(0,6).map(([k,v])=>`${k} ${v}`).join(' • ')}</span><br><button class="btn" onclick="coachOffer(${p.id})">Offer Contract</button></div>`).join('')||'<p class="muted">No free agents.</p>'}catch(e){alert(e.error)}}
 async function coachOffer(pid){let bonus=+prompt('Signing bonus XP (0-25)','10'),salary=+prompt('Salary XP/game (.25,.30,.35,.40,.45)','.35'),years=+prompt('Years (1-3)','2');try{await api('/api/coach/offer',{method:'POST',body:JSON.stringify({player_id:pid,bonus,salary,years})});await loadCoachHub();alert('Offer sent.')}catch(e){alert(e.error)}}
 async function cancelOffer(id){try{await api('/api/coach/cancel-offer',{method:'POST',body:JSON.stringify({offer_id:id})});await loadCoachHub()}catch(e){alert(e.error)}}
-async function simDay(){try{let j=await api('/api/commish/sim-day',{method:'POST'});simout.textContent=`League Day ${j.day} complete — ${j.results.length} games`;await refresh()}catch(e){simout.textContent=e.error}}
+async function simDay(){
+    const out=document.getElementById('simout');
+
+    try{
+        out.textContent='Simulating league day...';
+
+        const j=await api('/api/commish/sim-day',{
+            method:'POST'
+        });
+
+        out.textContent=`League Day ${j.day} complete — ${j.results.length} games`;
+
+        await refresh();
+    }catch(e){
+        out.textContent='Simulation failed: '+(e?.error || e?.message || 'Unknown error');
+    }
+}
 async function resetTestAccount(){
     const target=document.getElementById('resetTestTarget').value.trim();
     const out=document.getElementById('resetTestOut');
