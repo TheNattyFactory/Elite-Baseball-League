@@ -2262,7 +2262,7 @@ class H(BaseHTTPRequestHandler):
                     displaced_id=slot["player_id"]
 
                 # Move displaced CPU hitter to an open UTIL bench slot.
-                bench=None
+                    bench=None
 
                 if displaced_id and pl["type"]=="H":
                     bench=c.execute("""
