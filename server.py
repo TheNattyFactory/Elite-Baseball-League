@@ -1785,13 +1785,148 @@ class H(BaseHTTPRequestHandler):
             if action=="HOLD":c.execute("UPDATE offers SET status='HELD' WHERE id=?",(oid,))
             elif action=="REJECT":c.execute("UPDATE offers SET status='REJECTED' WHERE id=?",(oid,))
             else:
-                f=c.execute("SELECT * FROM franchises WHERE id=?",(off["franchise_id"],)).fetchone()
-                if f["xp_spent"]+off["bonus"]>f["xp_budget"]:c.close();return self.out({"error":"TEAM_BUDGET_CHANGED"},400)
-                c.execute("UPDATE offers SET status='ACCEPTED' WHERE id=?",(oid,));c.execute("UPDATE offers SET status='CANCELLED_PLAYER_SIGNED' WHERE player_id=? AND id<>? AND status IN ('OPEN','HELD')",(pl["id"],oid))
-                c.execute("INSERT INTO contracts(player_id,franchise_id,bonus,salary,years_remaining) VALUES(?,?,?,?,?)",(pl["id"],off["franchise_id"],off["bonus"],off["salary"],off["years"]))
-                c.execute("UPDATE players SET franchise_id=?,status='SIGNED',xp_wallet=xp_wallet+? WHERE id=?",(off["franchise_id"],off["bonus"],pl["id"]))
-                c.execute("UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",(off["bonus"],off["franchise_id"]))
-            c.commit();c.close();return self.out({"ok":True})
+                f=c.execute(
+                    "SELECT * FROM franchises WHERE id=?",
+                    (off["franchise_id"],)
+                ).fetchone()
+
+                if f["xp_spent"]+off["bonus"]>f["xp_budget"]:
+                    c.close()
+                    return self.out({"error":"TEAM_BUDGET_CHANGED"},400)
+
+                # Human players must take an actual roster slot.
+                slot=c.execute("""
+                    SELECT slot_no,player_id,occupant_type
+                    FROM roster_slots
+                    WHERE franchise_id=?
+                      AND position_group=?
+                      AND occupant_type IN ('OPEN','CPU')
+                    ORDER BY
+                        CASE occupant_type WHEN 'OPEN' THEN 0 ELSE 1 END,
+                        slot_no
+                    LIMIT 1
+                """,(off["franchise_id"],pl["primary_pos"])).fetchone()
+
+                if not slot:
+                    c.close()
+                    return self.out({"error":"ROSTER_POSITION_FULL"},400)
+
+                displaced_id=slot["player_id"]
+
+                # If a CPU currently owns this starting position,
+                # move him to an open UTIL bench slot when possible.
+                # Otherwise release him from the franchise.
+                if displaced_id:
+                    bench=None
+
+                    if pl["type"]=="H":
+                        bench=c.execute("""
+                            SELECT slot_no
+                            FROM roster_slots
+                            WHERE franchise_id=?
+                              AND position_group='UTIL'
+                              AND player_id IS NULL
+                            ORDER BY slot_no
+                            LIMIT 1
+                        """,(off["franchise_id"],)).fetchone()
+
+                    if bench:
+                        c.execute("""
+                            UPDATE roster_slots
+                            SET player_id=?,occupant_type='CPU'
+                            WHERE franchise_id=? AND slot_no=?
+                        """,(displaced_id,off["franchise_id"],bench["slot_no"]))
+                    else:
+                        c.execute("""
+                            UPDATE players
+                            SET franchise_id=NULL,status='FREE_AGENT'
+                            WHERE id=?
+                        """,(displaced_id,))
+
+                # Human now owns the proper roster position.
+                c.execute("""
+                    UPDATE roster_slots
+                    SET player_id=?,occupant_type='HUMAN'
+                    WHERE franchise_id=? AND slot_no=?
+                """,(pl["id"],off["franchise_id"],slot["slot_no"]))
+
+                # Keep saved batting order / rotation synchronized.
+                lr=c.execute(
+                    "SELECT batting_order_json,rotation_json FROM lineups WHERE franchise_id=?",
+                    (off["franchise_id"],)
+                ).fetchone()
+
+                if lr and displaced_id:
+                    if pl["type"]=="H":
+                        order=json.loads(lr["batting_order_json"])
+
+                        if displaced_id in order:
+                            order=[
+                                pl["id"] if pid==displaced_id else pid
+                                for pid in order
+                            ]
+
+                        c.execute(
+                            "UPDATE lineups SET batting_order_json=? WHERE franchise_id=?",
+                            (json.dumps(order),off["franchise_id"])
+                        )
+
+                    elif pl["primary_pos"]=="SP":
+                        rotation=json.loads(lr["rotation_json"])
+
+                        if displaced_id in rotation:
+                            rotation=[
+                                pl["id"] if pid==displaced_id else pid
+                                for pid in rotation
+                            ]
+
+                        c.execute(
+                            "UPDATE lineups SET rotation_json=? WHERE franchise_id=?",
+                            (json.dumps(rotation),off["franchise_id"])
+                        )
+
+                c.execute(
+                    "UPDATE offers SET status='ACCEPTED' WHERE id=?",
+                    (oid,)
+                )
+
+                c.execute("""
+                    UPDATE offers
+                    SET status='CANCELLED_PLAYER_SIGNED'
+                    WHERE player_id=? AND id<>?
+                      AND status IN ('OPEN','HELD')
+                """,(pl["id"],oid))
+
+                c.execute("""
+                    INSERT INTO contracts(
+                        player_id,franchise_id,bonus,salary,years_remaining
+                    )
+                    VALUES(?,?,?,?,?)
+                """,(
+                    pl["id"],
+                    off["franchise_id"],
+                    off["bonus"],
+                    off["salary"],
+                    off["years"]
+                ))
+
+                c.execute("""
+                    UPDATE players
+                    SET franchise_id=?,
+                        status='SIGNED',
+                        xp_wallet=xp_wallet+?
+                    WHERE id=?
+                """,(
+                    off["franchise_id"],
+                    off["bonus"],
+                    pl["id"]
+                ))
+
+                c.execute("""
+                    UPDATE franchises
+                    SET xp_spent=xp_spent+?
+                    WHERE id=?
+                """,(off["bonus"],off["franchise_id"]))
         if p=="/api/coach/set-strategy":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
