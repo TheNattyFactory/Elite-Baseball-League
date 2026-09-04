@@ -2242,18 +2242,21 @@ class H(BaseHTTPRequestHandler):
                         existing["slot_no"]
                     ))
 
-             # Find the proper positional slot.
+                # Find the proper positional slot.
                 slot=c.execute("""
-                    SELECT slot_no,player_id,occupant_type
+                    SELECT 
+      slot_no,player_id,occupant_type
                     FROM roster_slots
                     WHERE franchise_id=?
                       AND position_group=?
                       AND occupant_type IN ('CPU','OPEN')
                     ORDER BY
-                        CASE occupant_type WHEN 'CPU' THEN 0 ELSE 1 END,
+                        CASE occupant_type WHEN 'CPU' 
+        THEN 0 ELSE 1 END,
                         slot_no
                     LIMIT 1
-                """,(pl["franchise_id"],pl["primary_pos"])).fetchone()
+                """,
+        (pl["franchise_id"],pl["primary_pos"])).fetchone()
 
                 if not slot:
                     skipped.append(pl["name"])
