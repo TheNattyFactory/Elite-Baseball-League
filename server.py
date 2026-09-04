@@ -1922,9 +1922,8 @@ class H(BaseHTTPRequestHandler):
                     bc.commit()
                     bc.close()
                 except Exception:
-                    pass
-
-return self.out({"ok":True,"day":day,"results":results})
+                    pass 
+                    return self.out({"ok":True,"day":day,"results":results})
         if p=="/api/commish/reset-test-account":
             u=self.auth(["COMMISSIONER"])
             if not u:return
