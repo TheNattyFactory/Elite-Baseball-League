@@ -2203,7 +2203,7 @@ class H(BaseHTTPRequestHandler):
         repaired=[]
         skipped=[]
 
-            humans=c.execute("""
+        humans=c.execute("""
                 SELECT id,name,franchise_id,primary_pos,type
                 FROM players
                 WHERE user_id IS NOT NULL
