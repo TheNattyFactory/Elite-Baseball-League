@@ -2330,7 +2330,7 @@ class H(BaseHTTPRequestHandler):
                 c.commit()
                 c.close()
 
-            return self.out({
+                return self.out({
                 "ok":True,
                 "repaired":repaired,
                 "skipped":skipped
