@@ -2397,7 +2397,7 @@ class H(BaseHTTPRequestHandler):
                     restored_slots+=1
 
             c.execute("DELETE FROM players WHERE id=?",(pid,))
-               removed_players+=1
+            removed_players+=1
             c.execute("DELETE FROM persistent_sessions WHERE user_id=?",(uid,))
             c.execute("DELETE FROM account_recovery WHERE user_id=?",(uid,))
             c.execute("DELETE FROM user_security WHERE user_id=?",(uid,))
