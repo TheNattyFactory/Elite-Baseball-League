@@ -2001,7 +2001,58 @@ class H(BaseHTTPRequestHandler):
                     pass
 
             return self.out({"ok":True,"day":day,"results":results})
-            
+
+ 
+        if p=="/api/commish/reset-league":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+
+            c=conn()
+            try:
+                c.execute("UPDATE league_state SET v='0' WHERE k='league_day'")
+
+                c.execute("""
+                    UPDATE games
+                    SET status='SCHEDULED',
+                        away_runs=NULL,
+                        home_runs=NULL,
+                        box_json='{}',
+                        events_json='[]'
+                """)
+
+                c.execute("""
+                    UPDATE franchises
+                    SET wins=0,
+                        losses=0,
+                        runs_for=0,
+                        runs_against=0
+                """)
+
+                rows=c.execute("SELECT id,type FROM players").fetchall()
+
+                for r in rows:
+                    if r["type"]=="H":
+                        season={
+                            "G":0,"PA":0,"AB":0,"H":0,"1B":0,"2B":0,"3B":0,
+                            "HR":0,"BB":0,"SO":0,"R":0,"RBI":0,"SB":0,"CS":0
+                        }
+                    else:
+                        season={
+                            "G":0,"GS":0,"OUTS":0,"H":0,"ER":0,
+                            "BB":0,"SO":0,"W":0,"L":0,"SV":0
+                        }
+
+                    c.execute(
+                        "UPDATE players SET season_json=? WHERE id=?",
+                        (json.dumps(season),r["id"])
+                    )
+
+                c.commit()
+                return self.out({"ok":True,"day":0})
+
+            finally:
+                c.close()
+                
         if p=="/api/commish/reset-test-account":
             u=self.auth(["COMMISSIONER"])
             if not u:return
