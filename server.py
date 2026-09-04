@@ -488,7 +488,7 @@ def init_db():
         slot_template=(["C"]*2+["1B"]*2+["2B"]*2+["3B"]*2+["SS"]*2+
                    ["OF"]*5+["SP"]*5+["RP"]*5)
         for fr in c.execute("SELECT id FROM franchises ORDER BY id").fetchall():
-        fid=fr["id"]
+            fid=fr["id"]
         players=c.execute("SELECT id FROM players WHERE franchise_id=? ORDER BY id",(fid,)).fetchall()
         for i,posgrp in enumerate(slot_template,1):
             pid=players[i-1]["id"] if i-1<len(players) else None
