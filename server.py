@@ -1159,14 +1159,25 @@ def user_restricted(c,user_id):
 
 def perform_backup(db_path,backup_dir):
     src=Path(db_path);out=Path(backup_dir);out.mkdir(parents=True,exist_ok=True)
-    stamp=utcnow().strftime("%Y%m%d_%H%M%S")
-    dst=out/f"ebl_{stamp}.db"
-    c=sqlite3.connect(src);b=sqlite3.connect(dst);c.backup(b);b.close();c.close()
-    # Retain newest 30 automatic backups.
-    files=sorted(out.glob("ebl_*.db"),reverse=True)
-    for f in files[30:]:
+
+    # Free space before making the next backup.
+    old=sorted(out.glob("ebl_*.db"),reverse=True)
+    for f in old[2:]:
         try:f.unlink()
         except:pass
+
+    stamp=utcnow().strftime("%Y%m%d_%H%M%S")
+    dst=out/f"ebl_{stamp}.db"
+    c=sqlite3.connect(src);b=sqlite3.connect(dst)
+    c.backup(b)
+    b.close();c.close()
+
+    # Keep newest 3 total.
+    files=sorted(out.glob("ebl_*.db"),reverse=True)
+    for f in files[3:]:
+        try:f.unlink()
+        except:pass
+
     return dst
 
 class H(BaseHTTPRequestHandler):
