@@ -442,11 +442,11 @@ def init_db():
             )
         )
 
-    c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('season','2')")
-    c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('league_day','0')")
+        c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('season','2')")
+        c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('league_day','0')")
 
     # Seed CPU roster filler so every team can play while human free agents join over time.
-    if c.execute("SELECT COUNT(*) n FROM players").fetchone()["n"]==0:
+        if c.execute("SELECT COUNT(*) n FROM players").fetchone()["n"]==0:
         hseason={k:0 for k in ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"]}
         pseason={k:0 for k in ["G","GS","OUTS","H","ER","BB","SO","W","L","SV"]}
         for ti in range(1,31):
