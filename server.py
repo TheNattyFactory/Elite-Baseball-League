@@ -2264,16 +2264,16 @@ class H(BaseHTTPRequestHandler):
                 # Move displaced CPU hitter to an open UTIL bench slot.
                     bench=None
 
-             if displaced_id and pl["type"]=="H":
-                    bench=c.execute("""
-                        SELECT slot_no
-                        FROM roster_slots
-                        WHERE franchise_id=?
-                          AND position_group='UTIL'
-                          AND player_id IS NULL
-                        ORDER BY slot_no
-                        LIMIT 1
-                    """,(pl["franchise_id"],)).fetchone()
+                 if displaced_id and pl["type"]=="H":
+                        bench=c.execute("""
+                            SELECT slot_no
+                            FROM roster_slots
+                            WHERE franchise_id=?
+                              AND position_group='UTIL'
+                              AND player_id IS NULL
+                            ORDER BY slot_no
+                            LIMIT 1
+                        """,(pl["franchise_id"],)).fetchone()
 
              if displaced_id:
                     if bench:
