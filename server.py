@@ -466,7 +466,7 @@ def init_db():
                 pids.append(cur.lastrowid)
             c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(hids[:9]),json.dumps(pids[:5]),fid))
 
-                fids=[f"EBL-F{i:02d}" for i in range(1,31)]
+            fids=[f"EBL-F{i:02d}" for i in range(1,31)]
                 arr=list(range(30)); rounds=[]
             for _ in range(29):
                 rounds.append([(arr[i],arr[-1-i]) for i in range(15)])
