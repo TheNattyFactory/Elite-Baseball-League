@@ -2225,7 +2225,7 @@ class H(BaseHTTPRequestHandler):
                 """,(pl["id"],)).fetchone()
 
                 # Only skip if the human already owns the correct position.
-                if existing and existing["position_group"]==pl["primary_pos"]:
+            if existing and existing["position_group"]==pl["primary_pos"]:
                     skipped.append(pl["name"])
                     continue
 
