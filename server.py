@@ -2383,7 +2383,7 @@ class H(BaseHTTPRequestHandler):
             for p_row in players:
                 pid=p_row["id"]
 
-                slots=c.execute(
+                    slots=c.execute(
                     "SELECT franchise_id,slot_no FROM roster_slots WHERE player_id=?",
                     (pid,)
                 ).fetchall()
