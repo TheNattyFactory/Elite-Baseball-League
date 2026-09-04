@@ -333,41 +333,6 @@ def init_db():
             c.execute("INSERT INTO users(username,password_hash,role) VALUES(?,?,?)",(username,pwhash(password),role))
     coach_id=c.execute("SELECT id FROM users WHERE username='coach'").fetchone()["id"]
 
-    TEAM_NAMES = [
-       "Atlanta Scouts",
-       "New York Empires",
-       "Los Angeles Stars",
-       "Chicago Wind",
-       "Houston Apollos",
-       "Phoenix Firebirds",
-       "Philadelphia Founders",
-       "San Antonio Defenders",
-       "San Diego Armada",
-       "Dallas Wranglers",
-       "Jacksonville Breakers",
-       "Fort Worth Longhorns",
-       "Austin Outlaws",
-       "San Jose Circuit",
-       "Columbus Aviators",
-       "Charlotte Crowns",
-       "Indianapolis Racers",
-       "San Francisco Gold",
-       "Seattle Evergreens",
-       "Denver Summit",
-       "Oklahoma City Twisters",
-       "Nashville Sound",
-       "Washington Eagles",
-       "Las Vegas High Rollers",
-       "Boston Minutemen",
-       "Portland Pioneers",
-       "Detroit Motors",
-       "Louisville Thoroughbreds",
-       "Memphis Kings",
-       "Baltimore Clippers"
-]
-    for i in range(1,31):
-        fid=f"EBL-F{i:02d}"
-        TEAM_NAMES = [
     "Atlanta Scouts",
     "New York Empires",
     "Los Angeles Stars",
