@@ -332,7 +332,7 @@ def init_db():
         if not c.execute("SELECT 1 FROM users WHERE username=?",(username,)).fetchone():
             c.execute("INSERT INTO users(username,password_hash,role) VALUES(?,?,?)",(username,pwhash(password),role))
     coach_id=c.execute("SELECT id FROM users WHERE username='coach'").fetchone()["id"]
-
+[
     "Atlanta Scouts",
     "New York Empires",
     "Los Angeles Stars",
