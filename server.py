@@ -2336,7 +2336,7 @@ class H(BaseHTTPRequestHandler):
                 "skipped":skipped
             })
 
-        if p=="/api/commish/reset-test-account":
+    if p=="/api/commish/reset-test-account":
             u=self.auth(["COMMISSIONER"])
             if not u:return
 
