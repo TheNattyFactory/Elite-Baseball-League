@@ -2261,108 +2261,84 @@ class H(BaseHTTPRequestHandler):
 
                 displaced_id=slot["player_id"]
 
-        if p=="/api/commish/repair-human-rosters":
+                if p=="/api/commish/repair-human-rosters":
             u=self.auth(["COMMISSIONER"])
             if not u:return
 
             c=conn()
             repaired=[]
+            skipped=[]
 
-            humans=c.execute("""
-                SELECT id,name,franchise_id,primary_pos,type
-                FROM players
-                WHERE user_id IS NOT NULL
-                  AND active=1
-                  AND status='SIGNED'
-                  AND franchise_id IS NOT NULL
-                ORDER BY id
-            """).fetchall()
+            humans=c.execute(
+                "SELECT id,name,franchise_id,primary_pos,type FROM players WHERE user_id IS NOT NULL AND active=1 AND status='SIGNED' AND franchise_id IS NOT NULL ORDER BY id"
+            ).fetchall()
 
             for pl in humans:
-                current=c.execute("""
-                    SELECT slot_no,position_group
-                    FROM roster_slots
-                    WHERE player_id=?
-                    LIMIT 1
-                """,(pl["id"],)).fetchone()
+                current=c.execute(
+                    "SELECT slot_no,position_group FROM roster_slots WHERE player_id=? LIMIT 1",
+                    (pl["id"],)
+                ).fetchone()
 
-                correct=current and current["position_group"]==pl["primary_pos"]
-
-                if not correct:
-                    target=c.execute("""
-                        SELECT slot_no,player_id
-                        FROM roster_slots
-                        WHERE franchise_id=?
-                          AND position_group=?
-                          AND occupant_type IN ('CPU','OPEN')
-                        ORDER BY
-                            CASE occupant_type WHEN 'CPU' THEN 0 ELSE 1 END,
-                            slot_no
-                        LIMIT 1
-                    """,(pl["franchise_id"],pl["primary_pos"])).fetchone()
+                if current and current["position_group"]==pl["primary_pos"]:
+                    skipped.append(pl["name"])
+                else:
+                    target=c.execute(
+                        "SELECT slot_no,player_id FROM roster_slots WHERE franchise_id=? AND position_group=? AND occupant_type IN ('CPU','OPEN') ORDER BY CASE occupant_type WHEN 'CPU' THEN 0 ELSE 1 END,slot_no LIMIT 1",
+                        (pl["franchise_id"],pl["primary_pos"])
+                    ).fetchone()
 
                     if target:
                         displaced_id=target["player_id"]
 
                         if current:
-                            c.execute("""
-                                UPDATE roster_slots
-                                SET player_id=NULL,occupant_type='OPEN'
-                                WHERE franchise_id=? AND slot_no=?
-                            """,(pl["franchise_id"],current["slot_no"]))
+                            c.execute(
+                                "UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE franchise_id=? AND slot_no=?",
+                                (pl["franchise_id"],current["slot_no"])
+                            )
 
                         if displaced_id:
-                            c.execute("""
-                                UPDATE players
-                                SET franchise_id=NULL,status='FREE_AGENT'
-                                WHERE id=? AND user_id IS NULL
-                            """,(displaced_id,))
+                            c.execute(
+                                "UPDATE players SET franchise_id=NULL,status='FREE_AGENT' WHERE id=? AND user_id IS NULL",
+                                (displaced_id,)
+                            )
 
-                        c.execute("""
-                            UPDATE roster_slots
-                            SET player_id=?,occupant_type='HUMAN'
-                            WHERE franchise_id=? AND slot_no=?
-                        """,(pl["id"],pl["franchise_id"],target["slot_no"]))
+                        c.execute(
+                            "UPDATE roster_slots SET player_id=?,occupant_type='HUMAN' WHERE franchise_id=? AND slot_no=?",
+                            (pl["id"],pl["franchise_id"],target["slot_no"])
+                        )
 
-                        lr=c.execute("""
-                            SELECT batting_order_json,rotation_json
-                            FROM lineups
-                            WHERE franchise_id=?
-                        """,(pl["franchise_id"],)).fetchone()
+                        lr=c.execute(
+                            "SELECT batting_order_json,rotation_json FROM lineups WHERE franchise_id=?",
+                            (pl["franchise_id"],)
+                        ).fetchone()
 
-                        if lr and displaced_id:
-                            if pl["type"]=="H":
-                                order=json.loads(lr["batting_order_json"])
-                                order=[
-                                    pl["id"] if int(pid)==int(displaced_id) else pid
-                                    for pid in order
-                                ]
-                                c.execute("""
-                                    UPDATE lineups
-                                    SET batting_order_json=?
-                                    WHERE franchise_id=?
-                                """,(json.dumps(order),pl["franchise_id"]))
+                        if lr and displaced_id and pl["type"]=="H":
+                            order=json.loads(lr["batting_order_json"])
+                            order=[pl["id"] if int(pid)==int(displaced_id) else pid for pid in order]
+                            c.execute(
+                                "UPDATE lineups SET batting_order_json=? WHERE franchise_id=?",
+                                (json.dumps(order),pl["franchise_id"])
+                            )
 
-                            if pl["primary_pos"]=="SP":
-                                rotation=json.loads(lr["rotation_json"])
-                                rotation=[
-                                    pl["id"] if int(pid)==int(displaced_id) else pid
-                                    for pid in rotation
-                                ]
-                                c.execute("""
-                                    UPDATE lineups
-                                    SET rotation_json=?
-                                    WHERE franchise_id=?
-                                """,(json.dumps(rotation),pl["franchise_id"]))
+                        if lr and displaced_id and pl["primary_pos"]=="SP":
+                            rotation=json.loads(lr["rotation_json"])
+                            rotation=[pl["id"] if int(pid)==int(displaced_id) else pid for pid in rotation]
+                            c.execute(
+                                "UPDATE lineups SET rotation_json=? WHERE franchise_id=?",
+                                (json.dumps(rotation),pl["franchise_id"])
+                            )
 
                         repaired.append(pl["name"])
+                    else:
+                        skipped.append(pl["name"])
 
             c.commit()
             c.close()
 
             return self.out({
                 "ok":True,
-                "repaired":repaired
+                "repaired":repaired,
+                "skipped":skipped
             })
             
         if p=="/api/commish/reset-test-account":
