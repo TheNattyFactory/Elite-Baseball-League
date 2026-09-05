@@ -699,6 +699,22 @@ function renderPlayer(){
     `).join('');
 
     playerMain.innerHTML=`
+
+        if(PLAYER_HQ_TAB!=='playerOverview'){
+        const buttons=[...document.querySelectorAll('#playerHQ .subtab')];
+
+        const index={
+            playerOverview:0,
+            playerStats:1,
+            playerDevelopment:2,
+            playerCareer:3
+        }[PLAYER_HQ_TAB];
+
+        if(index!==undefined){
+            playerHQ(PLAYER_HQ_TAB,buttons[index]);
+        }
+    }
+    
         <div id="playerHQ">
 
             <div class="identity">
