@@ -2279,8 +2279,8 @@ class H(BaseHTTPRequestHandler):
         (pl["franchise_id"],pl["primary_pos"])).fetchone()
 
             if not slot:
-                    skipped.append(pl["name"])
-                    continue
+                skipped.append(pl["name"])
+                continue
 
             displaced_id=slot["player_id"]
 
