@@ -972,20 +972,124 @@ function beginAttributes(){
  if(!CREATOR.attributes || Object.keys(CREATOR.attributes).join(',')!==names.join(',')){CREATOR.attributes=Object.fromEntries(names.map(x=>[x,0]));CREATOR.pool=50}
  setCreatorStep(3);
 }
+  
+let CREATOR_ATTR_TAB=null;
+
 function creatorAttributes(){
- D={...CREATOR,pool:CREATOR.pool,attributes:CREATOR.attributes};
- const pitcher=['SP','RP'].includes(CREATOR.position);
- const groups=pitcher
-   ? [{id:'buildPitch',title:'PITCHING',attrs:['STA','H9','K9','BB9','HR9','PCLT','CTRL','VEL','BRK']},{id:'buildField',title:'FIELDING',attrs:['FLD','ARM','ACC','REAC']}]
-   : [{id:'buildHit',title:'HITTING',attrs:['CON','POW','VIS','DISC','TIM']},{id:'buildField',title:'FIELDING',attrs:['FLD','ARM','ACC','REAC']},{id:'buildRun',title:'BASERUNNING',attrs:['SPD']}];
- creatorStage.innerHTML=`<div class="grid"><div class="statBox"><span class="label">STARTING POOL</span><b>50 XP</b></div><div class="statBox"><span class="label">REMAINING</span><b class="gold">${CREATOR.pool} XP</b></div><div class="statBox"><span class="label">SPENT</span><b>${50-CREATOR.pool} XP</b></div></div>
- <div class="statTabs">${groups.map((g,i)=>`<button class="subtab ${i?'':'active'}" onclick="builderTab('${g.id}',this)">${g.title}</button>`).join('')}</div>
- ${groups.map((g,i)=>`<div id="${g.id}" class="statPane ${i?'':'active'}">${g.attrs.filter(a=>a in CREATOR.attributes).map(a=>creatorAttr(a)).join('')}</div>`).join('')}
- <div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(2)">BACK</button> <button class="btn" onclick="attributeReview()">NEXT: REVIEW</button></div>`;
+    D={...CREATOR,pool:CREATOR.pool,attributes:CREATOR.attributes};
+
+    const pitcher=['SP','RP'].includes(CREATOR.position);
+
+    const groups=pitcher
+        ? [
+            {id:'buildPitch',title:'PITCHING',attrs:['STA','H9','K9','BB9','HR9','PCLT','CTRL','VEL','BRK']},
+            {id:'buildField',title:'FIELDING',attrs:['FLD','ARM','ACC','REAC']}
+          ]
+        : [
+            {id:'buildHit',title:'HITTING',attrs:['CON','POW','VIS','DISC','TIM']},
+            {id:'buildField',title:'FIELDING',attrs:['FLD','ARM','ACC','REAC']},
+            {id:'buildRun',title:'BASERUNNING',attrs:['SPD']}
+          ];
+
+    if(!CREATOR_ATTR_TAB || !groups.some(g=>g.id===CREATOR_ATTR_TAB)){
+        CREATOR_ATTR_TAB=groups[0].id;
+    }
+
+    creatorStage.innerHTML=`
+        <div class="grid">
+            <div class="statBox">
+                <span class="label">STARTING POOL</span>
+                <b>50 XP</b>
+            </div>
+
+            <div class="statBox">
+                <span class="label">REMAINING</span>
+                <b class="gold">${CREATOR.pool} XP</b>
+            </div>
+
+            <div class="statBox">
+                <span class="label">SPENT</span>
+                <b>${50-CREATOR.pool} XP</b>
+            </div>
+        </div>
+
+        <div class="statTabs">
+            ${groups.map(g=>`
+                <button
+                    class="subtab ${g.id===CREATOR_ATTR_TAB?'active':''}"
+                    onclick="builderTab('${g.id}',this)">
+                    ${g.title}
+                </button>
+            `).join('')}
+        </div>
+
+        ${groups.map(g=>`
+            <div
+                id="${g.id}"
+                class="statPane ${g.id===CREATOR_ATTR_TAB?'active':''}">
+                ${g.attrs
+                    .filter(a=>a in CREATOR.attributes)
+                    .map(a=>creatorAttr(a))
+                    .join('')}
+            </div>
+        `).join('')}
+
+        <div style="margin-top:14px">
+            <button class="btn" onclick="setCreatorStep(2)">BACK</button>
+            <button class="btn" onclick="attributeReview()">NEXT: REVIEW</button>
+        </div>
+    `;
 }
-function creatorAttr(k){let v=CREATOR.attributes[k];return `<div class="attr"><div><b>${k}</b><div class="bar"><span style="width:${Math.min(100,v*4)}%"></span></div></div><span>${v}</span><button class="btn" onclick="addCreatorAttr('${k}')">+1</button></div>`}
-function addCreatorAttr(k){if(CREATOR.pool>0){CREATOR.attributes[k]++;CREATOR.pool--;creatorAttributes()}}
-function builderTab(id,b){let card=b.closest('.card')||document;card.querySelectorAll('.statPane,.statTabs .subtab').forEach(x=>x.classList.remove('active'));document.querySelector('#'+id).classList.add('active');b.classList.add('active')}
+
+function creatorAttr(k){
+    let v=CREATOR.attributes[k];
+
+    return `
+        <div class="attr">
+            <div>
+                <b>${k}</b>
+                <div class="bar">
+                    <span style="width:${Math.min(100,v*4)}%"></span>
+                </div>
+            </div>
+
+            <span>${v}</span>
+
+            <button
+                class="btn"
+                onclick="addCreatorAttr('${k}')"
+                ${CREATOR.pool<=0?'disabled':''}>
+                +1
+            </button>
+        </div>
+    `;
+}
+
+function addCreatorAttr(k){
+    if(CREATOR.pool<=0)return;
+
+    CREATOR.attributes[k]++;
+    CREATOR.pool--;
+
+    creatorAttributes();
+}
+
+function builderTab(id,b){
+    CREATOR_ATTR_TAB=id;
+
+    const card=b.closest('.card')||document;
+
+    card.querySelectorAll('.statPane')
+        .forEach(x=>x.classList.remove('active'));
+
+    card.querySelectorAll('.statTabs .subtab')
+        .forEach(x=>x.classList.remove('active'));
+
+    const pane=document.getElementById(id);
+
+    if(pane)pane.classList.add('active');
+    b.classList.add('active');
+}
 function attributeReview(){if(CREATOR.pool!==0)return alert('Spend all 50 XP first.');setCreatorStep(4)}
 function creatorReview(){
  creatorStage.innerHTML=`<div class="two"><div class="card"><div class="identity"><div class="avatar">${initials(CREATOR.name)}</div><div><h2>${CREATOR.name}</h2><div class="muted">${CREATOR.position} • Bats ${CREATOR.bats} • Throws ${CREATOR.throws}</div></div></div>
