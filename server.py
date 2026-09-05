@@ -2261,7 +2261,7 @@ class H(BaseHTTPRequestHandler):
 
                 displaced_id=slot["player_id"]
 
-                if p=="/api/commish/repair-human-rosters":
+        if p=="/api/commish/repair-human-rosters":
             u=self.auth(["COMMISSIONER"])
             if not u:return
 
