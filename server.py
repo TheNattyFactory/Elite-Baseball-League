@@ -2282,56 +2282,6 @@ class H(BaseHTTPRequestHandler):
                 skipped.append(pl["name"])
                 continue
 
-            displaced_id=slot["player_id"]
-
-            # Move displaced CPU hitter to an open UTIL bench slot.
-            bench=None
-
-            if displaced_id and pl["type"]=="H":
-                    bench=c.execute("""
-                        SELECT slot_no
-                        FROM roster_slots
-                        WHERE franchise_id=?
-                          AND position_group='UTIL'
-                          AND player_id IS NULL
-                        ORDER BY slot_no
-                        LIMIT 1
-                    """,(pl["franchise_id"],)).fetchone()
-
-            if displaced_id:
-                if bench:
-                        c.execute("""
-                            UPDATE roster_slots
-                            SET player_id=?,occupant_type='CPU'
-                            WHERE franchise_id=? AND slot_no=?
-                        """,(
-                            displaced_id,
-                            pl["franchise_id"],
-                            bench["slot_no"]
-                        ))
-                else:
-                        c.execute("""
-                            UPDATE players
-                            SET franchise_id=NULL,
-                                status='FREE_AGENT'
-                            WHERE id=?
-                              AND user_id IS NULL
-                        """,(displaced_id,))
-
-                # Human claims the correct roster slot.
-                c.execute("""
-                    UPDATE roster_slots
-                    SET player_id=?,occupant_type='HUMAN'
-                    WHERE franchise_id=? AND slot_no=?
-                """,(
-                    pl["id"],
-                    pl["franchise_id"],
-                    slot["slot_no"]
-                ))
-
-                # Repair saved batting order / rotation too.
-                lr=c.execute("""
-                    SELECT batting_order_json,rotation_json
                     
         if p=="/api/commish/repair-human-rosters":
             u=self.auth(["COMMISSIONER"])
