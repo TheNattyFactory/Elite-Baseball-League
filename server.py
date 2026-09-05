@@ -2481,7 +2481,7 @@ class H(BaseHTTPRequestHandler):
                     (pid,)
                 ).fetchall()
 
-            for slot in slots:
+                for slot in slots:
                     c.execute("""
                         UPDATE roster_slots
                         SET player_id=NULL,occupant_type='OPEN'
