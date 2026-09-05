@@ -979,7 +979,20 @@ async function finishCreator(){
    await loadPlayer();renderHome();
  }catch(e){alert(e.error||'Could not create player')}
 }
-async function spend(a){if(!confirm(`Spend ${cost(PLAYER.attributes[a])} XP to increase ${a}?`))return;try{await api('/api/player/spend-xp',{method:'POST',body:JSON.stringify({attribute:a})});await loadPlayer();renderHome()}catch(e){alert(e.error)}}
+async function spend(a){
+  try{
+    await api('/api/player/spend-xp',{
+      method:'POST',
+      body:JSON.stringify({attribute:a})
+    });
+
+    await loadPlayer();
+    renderPlayer();
+
+  }catch(e){
+    alert(e.error||'Upgrade failed');
+  }
+}
 async function market(){try{await api('/api/player/request-cpu-market',{method:'POST'});await loadPlayer()}catch(e){alert(e.error)}}
 async function respond(id,action){try{await api('/api/player/respond-offer',{method:'POST',body:JSON.stringify({offer_id:id,action})});await loadPlayer();await loadLeague();renderHome()}catch(e){alert(e.error)}}
 async function loadLeague(){let j=await api('/api/league');LEAGUE=j;renderStandings()}
