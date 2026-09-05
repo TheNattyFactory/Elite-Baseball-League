@@ -285,6 +285,23 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
     margin-top:3px;
 }
     </style>
+
+  .standingsTable{
+    width:100%;
+    max-width:900px;
+    table-layout:fixed;
+}
+
+.standingsTable th:first-child,
+.standingsTable td:first-child{
+    width:38%;
+    text-align:left;
+}
+
+.standingsTable th:not(:first-child),
+.standingsTable td:not(:first-child){
+    text-align:center;
+}
   
 <script>
 async function api(url,opt={}){
