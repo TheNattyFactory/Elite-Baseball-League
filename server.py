@@ -567,27 +567,50 @@ def team_strategy_for(c,fid):
 
 def choose_reliever(c,fid,strategy,inning,lead_margin,used):
     bp=strategy["bullpen"]
+
     def valid(pid):
-        return pid and pid not in used and c.execute("SELECT 1 FROM players WHERE id=? AND franchise_id=? AND type='P' AND active=1",(pid,fid)).fetchone()
+        if not pid or pid in used:
+            return False
+
+        return c.execute(
+            "SELECT 1 FROM players WHERE id=? AND franchise_id=? AND type='P' AND active=1 AND primary_pos<>'SP'",
+            (pid,fid)
+        ).fetchone()
+
     # High leverage late innings
-    if inning>=9 and 0<lead_margin<=3 and valid(bp.get("CL")): return int(bp["CL"]),"CL"
+    if inning>=9 and 0<lead_margin<=3 and valid(bp.get("CL")):
+        return int(bp["CL"]),"CL"
+
     if inning>=8 and abs(lead_margin)<=3:
         for k in ["SU1","SU2"]:
-            if valid(bp.get(k)): return int(bp[k]),k
-    # Long relief when trailing badly / starter exits early
+            if valid(bp.get(k)):
+                return int(bp[k]),k
+
+    # Long relief
     if inning<=6 or lead_margin<=-4:
         for pid in bp.get("LR",[]):
-            if valid(pid): return int(pid),"LR"
-    for pid in bp.get("MR",[]):
-        if valid(pid): return int(pid),"MR"
-    for pid in bp.get("EMERGENCY",[]):
-        if valid(pid): return int(pid),"EMERGENCY"
-    # fallback to any roster pitcher not used
-    r=c.execute("SELECT id FROM players WHERE franchise_id=? AND type='P' AND active=1 ORDER BY id",(fid,)).fetchall()
-    for x in r:
-        if x["id"] not in used:return x["id"],"RP"
-    return None,None
+            if valid(pid):
+                return int(pid),"LR"
 
+    for pid in bp.get("MR",[]):
+        if valid(pid):
+            return int(pid),"MR"
+
+    for pid in bp.get("EMERGENCY",[]):
+        if valid(pid):
+            return int(pid),"EMERGENCY"
+
+    # Fallback: any unused NON-SP pitcher
+    r=c.execute(
+        "SELECT id FROM players WHERE franchise_id=? AND type='P' AND active=1 AND primary_pos<>'SP' ORDER BY id",
+        (fid,)
+    ).fetchall()
+
+    for x in r:
+        if x["id"] not in used:
+            return x["id"],"RP"
+
+    return None,None
 def maybe_pinch_hit(c,fid,strategy,current_batter_id,inning,score_diff,used_bench):
     subs=strategy["substitutions"];th=subs.get("pinch_hit_threshold","MEDIUM")
     if inning<7:return current_batter_id,None
