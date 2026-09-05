@@ -905,14 +905,18 @@ function renderPlayer(){
 }
 
 function playerHQ(id,b){
+    PLAYER_HQ_TAB=id;
+
     document.querySelectorAll('#playerHQ .playerPane')
         .forEach(x=>x.classList.add('hidden'));
 
     document.querySelectorAll('#playerHQ .subtab')
         .forEach(x=>x.classList.remove('active'));
 
-    document.getElementById(id).classList.remove('hidden');
-    b.classList.add('active');
+    const pane=document.getElementById(id);
+
+    if(pane) pane.classList.remove('hidden');
+    if(b) b.classList.add('active');
 }
                 
 let CREATOR={name:'',position:'SS',bats:'R',throws:'R',face_id:1,hair_id:1,pool:50,attributes:{}};
