@@ -2216,7 +2216,7 @@ class H(BaseHTTPRequestHandler):
 
             for pl in humans:
                 # Already owns a HUMAN roster slot.
-                                existing=c.execute("""
+                existing=c.execute("""
                     SELECT slot_no,position_group
                     FROM roster_slots
                     WHERE player_id=?
@@ -2225,12 +2225,12 @@ class H(BaseHTTPRequestHandler):
                 """,(pl["id"],)).fetchone()
 
                 # Only skip if the human already owns the correct position.
-            if existing and existing["position_group"]==pl["primary_pos"]:
+                if existing and existing["position_group"]==pl["primary_pos"]:
                     skipped.append(pl["name"])
                     continue
 
                 # If human is sitting in the wrong slot, free that slot first.
-            if existing:
+                if existing:
                     c.execute("""
                         UPDATE roster_slots
                         SET player_id=NULL,
@@ -2241,6 +2241,26 @@ class H(BaseHTTPRequestHandler):
                         pl["franchise_id"],
                         existing["slot_no"]
                     ))
+
+                # Find the proper positional slot.
+                slot=c.execute("""
+                    SELECT slot_no,player_id,occupant_type
+                    FROM roster_slots
+                    WHERE franchise_id=?
+                      AND position_group=?
+                      AND occupant_type IN ('CPU','OPEN')
+                    ORDER BY
+                        CASE occupant_type WHEN 'CPU' THEN 0 ELSE 1 END,
+                        slot_no
+                    LIMIT 1
+                """,(pl["franchise_id"],pl["primary_pos"])).fetchone()
+
+                if not slot:
+                    skipped.append(pl["name"])
+                    continue
+
+                displaced_id=slot["player_id"]
+                bench=None
 
             # Find the proper positional slot.
             slot=c.execute("""
