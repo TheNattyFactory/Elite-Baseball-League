@@ -1260,10 +1260,38 @@ class H(BaseHTTPRequestHandler):
             return self.out({"ok":True,"service":"EBL","version":"1.0.5"})
         if p=="/api/me":return self.out({"user":u})
         if p=="/api/league":
-            c=conn();day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])
-            teams=[dict(x) for x in c.execute("SELECT id,name,wins,losses,runs_for,runs_against FROM franchises ORDER BY wins DESC,(runs_for-runs_against) DESC")]
-            for t in teams:t["division"]=division_for(t["id"])
-            c.close();return self.out({"season":2,"day":day,"teams":teams,"divisions":DIVISIONS})
+            c=conn()
+
+            season=int(c.execute(
+        "SELECT v FROM league_state WHERE k='season'"
+            ).fetchone()["v"])
+
+            day=int(c.execute(
+        "SELECT v FROM league_state WHERE k='league_day'"
+    ).fetchone()["v"])
+
+    phase_row=c.execute(
+        "SELECT v FROM league_state WHERE k='phase'"
+    ).fetchone()
+
+    phase=phase_row["v"] if phase_row else "REGULAR"
+
+    teams=[dict(x) for x in c.execute(
+        "SELECT id,name,wins,losses,runs_for,runs_against FROM franchises ORDER BY wins DESC,(runs_for-runs_against) DESC"
+    )]
+
+    for t in teams:
+        t["division"]=division_for(t["id"])
+
+    c.close()
+
+    return self.out({
+        "season":season,
+        "day":day,
+        "phase":phase,
+        "teams":teams,
+        "divisions":DIVISIONS
+    })
         if p.startswith("/api/team/"):
             fid=p.split("/")[-1].strip()
 
