@@ -2289,7 +2289,7 @@ class H(BaseHTTPRequestHandler):
                             pl["franchise_id"],
                             bench["slot_no"]
                         ))
-                    else:
+                else:
                         c.execute("""
                             UPDATE players
                             SET franchise_id=NULL,
