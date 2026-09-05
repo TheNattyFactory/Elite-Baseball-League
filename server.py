@@ -2351,7 +2351,7 @@ class H(BaseHTTPRequestHandler):
                             pl["franchise_id"]
                         ))
 
-                repaired.append(pl["name"])
+            repaired.append(pl["name"])
 
             c.commit()
             c.close()
