@@ -444,6 +444,9 @@ def init_db():
 
         c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('season','2')")
         c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('league_day','0')")
+        c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('phase','REGULAR')")
+        c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('playoff_round','')")
+        c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('champion','')")
 
     # Seed CPU roster filler so every team can play while human free agents join over time.
         if c.execute("SELECT COUNT(*) n FROM players").fetchone()["n"]==0:
