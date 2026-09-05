@@ -703,6 +703,22 @@ function renderPlayer(){
         if(PLAYER_HQ_TAB!=='playerOverview'){
         const buttons=[...document.querySelectorAll('#playerHQ .subtab')];
 
+            const tabMap={
+        playerOverview:0,
+        playerStats:1,
+        playerDevelopment:2,
+        playerCareer:3
+    };
+
+    const buttons=document.querySelectorAll('#playerHQ .subtab');
+    const tabIndex=tabMap[PLAYER_HQ_TAB] ?? 0;
+    const activeButton=buttons[tabIndex];
+
+    playerHQ(
+        PLAYER_HQ_TAB || 'playerOverview',
+        activeButton
+    );
+
         const index={
             playerOverview:0,
             playerStats:1,
