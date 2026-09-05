@@ -2448,13 +2448,10 @@ class H(BaseHTTPRequestHandler):
 
             c=conn()
 
-            row=c.execute("""
-                SELECT u.id,u.username,u.role,s.email
-                FROM users u
-                LEFT JOIN user_security s ON s.user_id=u.id
-                WHERE lower(u.username)=? OR lower(s.email)=?
-            """,(target,target)).fetchone()
-
+            row=c.execute(
+                "SELECT u.id,u.username,u.role,s.email FROM users u LEFT JOIN user_security s ON s.user_id=u.id WHERE lower(u.username)=? OR lower(s.email)=?",
+                (target,target)
+            ).fetchone()
             if not row:
                 c.close()
                 return self.out({"error":"ACCOUNT_NOT_FOUND"},404)
