@@ -2280,6 +2280,42 @@ class H(BaseHTTPRequestHandler):
             dst=perform_backup(DB,os.environ.get("EBL_BACKUP_DIR",os.path.join(ROOT,"backups")))
             c=conn();c.execute("INSERT INTO backup_audit(path,bytes) VALUES(?,?)",(str(dst),dst.stat().st_size));c.commit();c.close()
             return self.out({"ok":True,"path":str(dst)})
+                if p=="/api/commish/playoff-debug":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+
+            c=conn()
+
+            season=int(c.execute(
+                "SELECT v FROM league_state WHERE k='season'"
+            ).fetchone()["v"])
+
+            state={
+                x["k"]:x["v"]
+                for x in c.execute(
+                    "SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase','playoff_round','champion')"
+                )
+            }
+
+            games=[dict(x) for x in c.execute(
+                """
+                SELECT id,season,league_day,away_id,home_id,
+                       away_runs,home_runs,status
+                FROM games
+                WHERE season=?
+                  AND league_day>81
+                ORDER BY league_day,id
+                """,
+                (season,)
+            )]
+
+            c.close()
+
+            return self.out({
+                "ok":True,
+                "state":state,
+                "games":games
+            })
         if p=="/api/commish/sim-day":
             u=self.auth(["COMMISSIONER"])
             if not u:return
