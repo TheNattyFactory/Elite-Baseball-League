@@ -1402,8 +1402,19 @@ class H(BaseHTTPRequestHandler):
                 ORDER BY n.league_day DESC,n.importance DESC,n.id DESC LIMIT 60""")]
             c.close();return self.out({"news":rows})
         if p=="/api/schedule":
-            c=conn();rows=[dict(x) for x in c.execute("SELECT id,league_day,away_id,home_id,away_runs,home_runs,status FROM games ORDER BY league_day,id")];c.close();return self.out({"games":rows})
-        if p.startswith("/api/game/"):
+            c=conn()
+
+            season=int(c.execute(
+                "SELECT v FROM league_state WHERE k='season'"
+            ).fetchone()["v"])
+
+            rows=[dict(x) for x in c.execute(
+                "SELECT id,season,league_day,away_id,home_id,away_runs,home_runs,status FROM games WHERE season=? ORDER BY league_day,id",
+                (season,)
+            )]
+
+            c.close()
+    return self.out({"season":season,"games":rows})
             gid=p.split("/")[-1]
             c=conn()
 
