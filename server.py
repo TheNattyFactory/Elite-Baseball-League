@@ -1694,9 +1694,55 @@ class H(BaseHTTPRequestHandler):
                 game["events"]=[]
 
             try:
-                game["box"]=json.loads(game.get("box_json") or "{}")
+                raw_box=json.loads(game.get("box_json") or "{}")
             except Exception:
-                game["box"]={}
+                raw_box={}
+
+            # -------------------------------------------------
+            # BUILD GAMECAST-FRIENDLY BOX SCORE
+            # -------------------------------------------------
+
+            hitter_rows=[]
+
+            for pid,line in raw_box.get("hitters",{}).items():
+                player=c.execute(
+                    "SELECT id,name,franchise_id FROM players WHERE id=?",
+                    (int(pid),)
+                ).fetchone()
+
+                if not player:
+                    continue
+
+                hitter_rows.append({
+                    "player_id":int(pid),
+                    "name":player["name"],
+                    "team_id":player["franchise_id"],
+                    **line
+                })
+
+            pitcher_rows=[]
+
+            for team_id,rows in raw_box.get("pitchers",{}).items():
+                for line in rows:
+                    pid=line.get("player_id")
+
+                    player=c.execute(
+                        "SELECT name FROM players WHERE id=?",
+                        (pid,)
+                    ).fetchone()
+
+                    pitcher_rows.append({
+                        "player_id":pid,
+                        "name":player["name"] if player else f"Player {pid}",
+                        "team_id":team_id,
+                        **line
+                    })
+
+            game["box"]={
+                **raw_box,
+                "hitter_rows":hitter_rows,
+                "pitcher_rows":pitcher_rows
+            }
 
             c.close()
 
