@@ -1,4 +1,5 @@
 
+
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 from pathlib import Path
@@ -1060,27 +1061,54 @@ def simulate_game(c,g):
             c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(spid,"PERFORMANCE",perf,json.dumps({"game":g["id"],"gps":round(gps,1)})))
             save_player(c,p);box["pitchers"].setdefault(fid,[]).append({"player_id":spid,**pline});box["xp"].append({"player_id":spid,"salary":salary,"performance":perf})
 
-        postseason=int(g["league_day"])>81
+            postseason=int(g["league_day"])>81
 
-    if not postseason:
-        c.execute(
-            "UPDATE franchises SET wins=wins+1,runs_for=runs_for+?,runs_against=runs_against+? WHERE id=?",
-            (score[winner],score[loser],winner)
-        )
-        c.execute(
-            "UPDATE franchises SET losses=losses+1,runs_for=runs_for+?,runs_against=runs_against+? WHERE id=?",
-            (score[loser],score[winner],loser)
-        )
-        c.execute("UPDATE games SET away_runs=?,home_runs=?,status='FINAL',box_json=?,events_json=? WHERE id=?",
-              (score[away],score[home],json.dumps(box),json.dumps(events),g["id"]))
-        margin=abs(score[away]-score[home])
-        heat=update_rivalry(c,away,home,winner,margin)
-        update_team_game_records(c,g,score)
-        maybe_rivalry_news(c,g,winner,loser,margin,heat)
-        generate_game_news(c,g,score,winner,loser,box)
-        return {"game_id":g["id"],"events":len(events),"winner":winner,"away_runs":score[away],"home_runs":score[home],
-            "strategy_events":len(box["strategy_events"])}
+            # Only regular-season games change the standings.
+            if not postseason:
+                c.execute(
+                    "UPDATE franchises SET wins=wins+1,runs_for=runs_for+?,runs_against=runs_against+? WHERE id=?",
+                    (score[winner],score[loser],winner)
+                 )
 
+                c.execute(
+                    "UPDATE franchises SET losses=losses+1,runs_for=runs_for+?,runs_against=runs_against+? WHERE id=?",
+                    (score[loser],score[winner],loser)
+                )
+
+            # EVERY game, including playoffs, must be finalized.
+            c.execute(
+                """
+                UPDATE games
+                SET away_runs=?,
+                    home_runs=?,
+                    status='FINAL',
+                    box_json=?,
+                    events_json=?
+                WHERE id=?
+                """,
+                (
+                    score[away],
+                    score[home],
+                    json.dumps(box),
+                    json.dumps(events),
+                    g["id"]
+                )
+            )
+
+            margin=abs(score[away]-score[home])
+            heat=update_rivalry(c,away,home,winner,margin)
+            update_team_game_records(c,g,score)
+            maybe_rivalry_news(c,g,winner,loser,margin,heat)
+            generate_game_news(c,g,score,winner,loser,box)
+
+            return {
+                "game_id":g["id"],
+                "events":len(events),
+                "winner":winner,
+                "away_runs":score[away],
+                "home_runs":score[home],
+                "strategy_events":len(box["strategy_events"])
+            }
 
 def recovery_hash(code):
     return hashlib.sha256(code.encode()).hexdigest()
