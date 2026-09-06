@@ -2414,26 +2414,28 @@ class H(BaseHTTPRequestHandler):
                     results=[]
 
                     for g in games:
-                       result=simulate_game(c,g)
-                       results.append(result)
+                        result=simulate_game(c,g)
+                        results.append(result)
 
-                       # Explicitly persist playoff result.
-                       c.execute(
+                        # Persist each playoff game immediately.
+                        c.commit()
+
+                        # Verify the game actually saved as FINAL.
+                        saved=c.execute(
                             """
-                            UPDATE games
-                            SET away_runs=?,
-                            home_runs=?,
-                            status='FINAL'
+                            SELECT status,away_runs,home_runs
+                            FROM games
                             WHERE id=?
                             """,
-                            (
-                            result["away_runs"],
-                            result["home_runs"],
-                            result["game_id"]
-                            )
-                            )
+                            (g["id"],)
+                        ).fetchone()
 
-                    c.commit()
+                        if not saved or saved["status"]!="FINAL":
+                            c.close()
+                            return self.out({
+                                "error":"PLAYOFF_GAME_NOT_SAVED",
+                                "game_id":g["id"]
+                            },500)
 
                     round_row=c.execute(
                         "SELECT v FROM league_state WHERE k='playoff_round'"
