@@ -561,6 +561,44 @@ def playoff_teams(c):
     )
 
     return qualifiers
+
+def playoff_series_games(c,season,code):
+    return [dict(x) for x in c.execute(
+        "SELECT * FROM games WHERE season=? AND id LIKE ? ORDER BY league_day,id",
+        (season,f"S{season:02d}-{code}-G%")
+    )]
+
+
+def playoff_series_winner(c,season,code,wins_needed):
+    games=playoff_series_games(c,season,code)
+    wins={}
+
+    for g in games:
+        if g["status"]!="FINAL":
+            continue
+
+        winner=g["away_id"] if g["away_runs"]>g["home_runs"] else g["home_id"]
+        wins[winner]=wins.get(winner,0)+1
+
+        if wins[winner]>=wins_needed:
+            return winner
+
+    return None
+
+
+def schedule_series_game(c,season,code,game_no,day,team_a,team_b):
+    # team_a owns home-field advantage
+    if game_no in (1,2,5,7):
+        away,home=team_b,team_a
+    else:
+        away,home=team_a,team_b
+
+    gid=f"S{season:02d}-{code}-G{game_no}"
+
+    c.execute(
+        "INSERT OR IGNORE INTO games(id,season,league_day,away_id,home_id,status) VALUES(?,?,?,?,?,'SCHEDULED')",
+        (gid,season,day,away,home)
+    )
     
 def player_obj(c,pid):
     r=c.execute("SELECT * FROM players WHERE id=?",(pid,)).fetchone()
