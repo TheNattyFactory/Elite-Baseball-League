@@ -1671,7 +1671,38 @@ class H(BaseHTTPRequestHandler):
             }
 
             c.close()
-            return self.out({"game":d})
+            return self.out({"game":d}) 
+        if p.startswith("/api/game/"):
+            gid=p.split("/")[-1].strip()
+
+            c=conn()
+
+            g=c.execute(
+                "SELECT * FROM games WHERE id=?",
+                (gid,)
+            ).fetchone()
+
+            if not g:
+                c.close()
+                return self.out({"error":"GAME_NOT_FOUND"},404)
+
+            game=dict(g)
+
+            try:
+                game["events"]=json.loads(game.get("events_json") or "[]")
+            except Exception:
+                game["events"]=[]
+
+            try:
+                game["box"]=json.loads(game.get("box_json") or "{}")
+            except Exception:
+                game["box"]={}
+
+            c.close()
+
+            return self.out({
+                "game":game
+            })
         if p=="/api/my-player":
             u=self.auth()
             if not u:return
