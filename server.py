@@ -2344,8 +2344,34 @@ class H(BaseHTTPRequestHandler):
                 # -------------------------------------------------
 
                 if phase=="PLAYOFFS":
+                    next_row=c.execute(
+                       """
+                        SELECT MIN(league_day) AS next_day
+                        FROM games
+                        WHERE season=?
+                         AND league_day>81
+                          AND status='SCHEDULED'
+                        """,
+                        (season,)
+                    ).fetchone()
+
+                    if not next_row or next_row["next_day"] is None:
+                        c.close()
+                        return self.out({"error":"NO_PLAYOFF_GAMES_SCHEDULED"},400)
+
+                    # Always simulate the earliest unfinished playoff day.
+                    # This also repairs a league_day counter that got ahead.
+                    day=int(next_row["next_day"])
+
                     games=[dict(x) for x in c.execute(
-                        "SELECT * FROM games WHERE season=? AND league_day=? AND status='SCHEDULED' ORDER BY id",
+                        """
+                        SELECT *
+                        FROM games
+                        WHERE season=?
+                          AND league_day=?
+                          AND status='SCHEDULED'
+                        ORDER BY id
+                        """,
                         (season,day)
                     )]
 
