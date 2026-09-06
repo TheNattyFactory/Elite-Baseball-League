@@ -1354,9 +1354,14 @@ async function simDay(){
             method:'POST'
         });
 
-        out.textContent=`League Day ${j.day} complete — ${j.results.length} games`;
+        if(j.message==='PLAYOFFS_CREATED'){
+            out.textContent='Regular season complete — Quarterfinals created!';
+        }else{
+            out.textContent=`League Day ${j.day} complete — ${j.results?.length||0} games`;
+        }
 
         await refresh();
+
     }catch(e){
         out.textContent='Simulation failed: '+(e?.error || e?.message || 'Unknown error');
     }
