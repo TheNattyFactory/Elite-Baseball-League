@@ -516,6 +516,52 @@ def division_for(fid):
     except: return "Unknown"
     return DIVISIONS[min(5,(n-1)//5)]
 
+def playoff_teams(c):
+    teams=[dict(x) for x in c.execute(
+        "SELECT id,name,wins,losses,runs_for,runs_against FROM franchises"
+    )]
+
+    for t in teams:
+        t["division"]=division_for(t["id"])
+        t["diff"]=t["runs_for"]-t["runs_against"]
+
+    qualifiers=[]
+
+    # Six division champions
+    for div in DIVISIONS:
+        div_teams=[t for t in teams if t["division"]==div]
+
+        div_teams.sort(
+            key=lambda t:(t["wins"],t["diff"],t["runs_for"]),
+            reverse=True
+        )
+
+        if div_teams:
+            qualifiers.append(div_teams[0])
+
+    qualified_ids={t["id"] for t in qualifiers}
+
+    # Two wild cards
+    remaining=[
+        t for t in teams
+        if t["id"] not in qualified_ids
+    ]
+
+    remaining.sort(
+        key=lambda t:(t["wins"],t["diff"],t["runs_for"]),
+        reverse=True
+    )
+
+    qualifiers.extend(remaining[:2])
+
+    # Seed all eight
+    qualifiers.sort(
+        key=lambda t:(t["wins"],t["diff"],t["runs_for"]),
+        reverse=True
+    )
+
+    return qualifiers
+    
 def player_obj(c,pid):
     r=c.execute("SELECT * FROM players WHERE id=?",(pid,)).fetchone()
     if not r:return None
