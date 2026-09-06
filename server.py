@@ -1744,7 +1744,7 @@ class H(BaseHTTPRequestHandler):
                         "pitcher_rows":pitcher_rows
                     }
 
-                        away_line={str(i):0 for i in range(1,10)}
+                    away_line={str(i):0 for i in range(1,10)}
                     home_line={str(i):0 for i in range(1,10)}
 
             for ev in game["events"]:
