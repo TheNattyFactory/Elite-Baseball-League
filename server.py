@@ -1802,7 +1802,7 @@ class H(BaseHTTPRequestHandler):
 
     c.close()
 
-     return self.out({
+return self.out({
      "game":game
         })
 
