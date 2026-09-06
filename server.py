@@ -1414,7 +1414,7 @@ class H(BaseHTTPRequestHandler):
             )]
 
             c.close()
-    return self.out({"season":season,"games":rows})
+            return self.out({"season":season,"games":rows})
             gid=p.split("/")[-1]
             c=conn()
 
