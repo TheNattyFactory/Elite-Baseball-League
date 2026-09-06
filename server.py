@@ -2237,8 +2237,60 @@ class H(BaseHTTPRequestHandler):
             u=self.auth(["COMMISSIONER"])
             if not u:return
             c=conn();day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])+1
-            if day>81:
-                c.close();return self.out({"error":"REGULAR_SEASON_COMPLETE"},400)
+                if day>81:
+                phase_row=c.execute(
+                    "SELECT v FROM league_state WHERE k='phase'"
+                ).fetchone()
+
+                phase=phase_row["v"] if phase_row else "REGULAR"
+
+                if phase=="REGULAR":
+                    season=int(c.execute(
+                        "SELECT v FROM league_state WHERE k='season'"
+                    ).fetchone()["v"])
+
+                    seeds=playoff_teams(c)
+
+                    if len(seeds)!=8:
+                        c.close()
+                        return self.out({"error":"PLAYOFF_SEEDING_FAILED"},500)
+
+                    matchups=[
+                        (seeds[0],seeds[7]),
+                        (seeds[3],seeds[4]),
+                        (seeds[1],seeds[6]),
+                        (seeds[2],seeds[5])
+                    ]
+
+                    for i,(high,low) in enumerate(matchups,1):
+                        gid=f"S{season:02d}-QF{i}-G1"
+
+                        c.execute(
+                            "INSERT OR IGNORE INTO games(id,season,league_day,away_id,home_id,status) VALUES(?,?,?,?,?,'SCHEDULED')",
+                            (gid,season,82,low["id"],high["id"])
+                        )
+
+                    c.execute(
+                        "UPDATE league_state SET v='PLAYOFFS' WHERE k='phase'"
+                    )
+
+                    c.execute(
+                        "UPDATE league_state SET v='QUARTERFINALS' WHERE k='playoff_round'"
+                    )
+
+                    c.commit()
+                    c.close()
+
+                    return self.out({
+                        "ok":True,
+                        "day":81,
+                        "phase":"PLAYOFFS",
+                        "round":"QUARTERFINALS",
+                        "message":"PLAYOFFS_CREATED"
+                    })
+
+                c.close()
+                return self.out({"error":"PLAYOFFS_ACTIVE"},400)
             games=[dict(x) for x in c.execute("SELECT * FROM games WHERE league_day=? AND status='SCHEDULED' ORDER BY id",(day,))]
             results=[simulate_game(c,g) for g in games]
             c.execute("UPDATE league_state SET v=? WHERE k='league_day'",(str(day),))
