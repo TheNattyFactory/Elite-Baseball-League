@@ -2284,7 +2284,7 @@ class H(BaseHTTPRequestHandler):
             u=self.auth(["COMMISSIONER"])
             if not u:return
             c=conn();day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])+1
-                if day>81:
+            if day>81:
                 season=int(c.execute(
                     "SELECT v FROM league_state WHERE k='season'"
                 ).fetchone()["v"])
