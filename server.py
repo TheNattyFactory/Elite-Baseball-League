@@ -2375,7 +2375,29 @@ class H(BaseHTTPRequestHandler):
                         (season,day)
                     )]
 
-                    results=[simulate_game(c,g) for g in games]
+                    results=[]
+
+                    for g in games:
+                       result=simulate_game(c,g)
+                       results.append(result)
+
+                       # Explicitly persist playoff result.
+                       c.execute(
+                            """
+                            UPDATE games
+                            SET away_runs=?,
+                            home_runs=?,
+                            status='FINAL'
+                            WHERE id=?
+                            """,
+                            (
+                            result["away_runs"],
+                            result["home_runs"],
+                            result["game_id"]
+                            )
+                            )
+
+                    c.commit()
 
                     round_row=c.execute(
                         "SELECT v FROM league_state WHERE k='playoff_round'"
