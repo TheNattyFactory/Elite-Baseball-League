@@ -1690,9 +1690,9 @@ class H(BaseHTTPRequestHandler):
             game=dict(g)
 
             try:
-            game["events"]=json.loads(game.get("events_json") or "[]")
+                game["events"]=json.loads(game.get("events_json") or "[]")
             except Exception:
-            game["events"]=[]
+                game["events"]=[]
 
             try:
                 raw_box=json.loads(game.get("box_json") or "{}")
