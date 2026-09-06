@@ -2280,7 +2280,7 @@ class H(BaseHTTPRequestHandler):
             dst=perform_backup(DB,os.environ.get("EBL_BACKUP_DIR",os.path.join(ROOT,"backups")))
             c=conn();c.execute("INSERT INTO backup_audit(path,bytes) VALUES(?,?)",(str(dst),dst.stat().st_size));c.commit();c.close()
             return self.out({"ok":True,"path":str(dst)})
-                if p=="/api/commish/playoff-debug":
+        if p=="/api/commish/playoff-debug":
             u=self.auth(["COMMISSIONER"])
             if not u:return
 
