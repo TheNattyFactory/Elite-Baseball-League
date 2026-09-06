@@ -2284,18 +2284,22 @@ class H(BaseHTTPRequestHandler):
             u=self.auth(["COMMISSIONER"])
             if not u:return
             c=conn();day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])+1
-            if day>81:
+                if day>81:
+                season=int(c.execute(
+                    "SELECT v FROM league_state WHERE k='season'"
+                ).fetchone()["v"])
+
                 phase_row=c.execute(
                     "SELECT v FROM league_state WHERE k='phase'"
                 ).fetchone()
 
                 phase=phase_row["v"] if phase_row else "REGULAR"
 
-                if phase=="REGULAR":
-                    season=int(c.execute(
-                        "SELECT v FROM league_state WHERE k='season'"
-                    ).fetchone()["v"])
+                # -------------------------------------------------
+                # CREATE PLAYOFF FIELD
+                # -------------------------------------------------
 
+                if phase=="REGULAR":
                     seeds=playoff_teams(c)
 
                     if len(seeds)!=8:
@@ -2303,18 +2307,16 @@ class H(BaseHTTPRequestHandler):
                         return self.out({"error":"PLAYOFF_SEEDING_FAILED"},500)
 
                     matchups=[
-                        (seeds[0],seeds[7]),
-                        (seeds[3],seeds[4]),
-                        (seeds[1],seeds[6]),
-                        (seeds[2],seeds[5])
+                        ("QF1",seeds[0],seeds[7]),
+                        ("QF2",seeds[3],seeds[4]),
+                        ("QF3",seeds[1],seeds[6]),
+                        ("QF4",seeds[2],seeds[5])
                     ]
 
-                    for i,(high,low) in enumerate(matchups,1):
-                        gid=f"S{season:02d}-QF{i}-G1"
-
-                        c.execute(
-                            "INSERT OR IGNORE INTO games(id,season,league_day,away_id,home_id,status) VALUES(?,?,?,?,?,'SCHEDULED')",
-                            (gid,season,82,low["id"],high["id"])
+                    for code,high,low in matchups:
+                        schedule_series_game(
+                            c,season,code,1,82,
+                            high["id"],low["id"]
                         )
 
                     c.execute(
@@ -2331,13 +2333,185 @@ class H(BaseHTTPRequestHandler):
                     return self.out({
                         "ok":True,
                         "day":81,
+                        "results":[],
                         "phase":"PLAYOFFS",
                         "round":"QUARTERFINALS",
                         "message":"PLAYOFFS_CREATED"
                     })
 
-                c.close()
-                return self.out({"error":"PLAYOFFS_ACTIVE"},400)
+                # -------------------------------------------------
+                # SIMULATE PLAYOFF DAY
+                # -------------------------------------------------
+
+                if phase=="PLAYOFFS":
+                    games=[dict(x) for x in c.execute(
+                        "SELECT * FROM games WHERE season=? AND league_day=? AND status='SCHEDULED' ORDER BY id",
+                        (season,day)
+                    )]
+
+                    results=[simulate_game(c,g) for g in games]
+
+                    round_row=c.execute(
+                        "SELECT v FROM league_state WHERE k='playoff_round'"
+                    ).fetchone()
+
+                    playoff_round=round_row["v"] if round_row else "QUARTERFINALS"
+
+                    # ---------------------------------------------
+                    # QUARTERFINALS - BEST OF 3
+                    # ---------------------------------------------
+
+                    if playoff_round=="QUARTERFINALS":
+                        codes=["QF1","QF2","QF3","QF4"]
+                        winners=[]
+                        unfinished=[]
+
+                        for code in codes:
+                            winner=playoff_series_winner(c,season,code,2)
+
+                            if winner:
+                                winners.append(winner)
+                            else:
+                                unfinished.append(code)
+
+                        if len(winners)==4:
+                            schedule_series_game(
+                                c,season,"SF1",1,day+1,
+                                winners[0],winners[1]
+                            )
+
+                            schedule_series_game(
+                                c,season,"SF2",1,day+1,
+                                winners[2],winners[3]
+                            )
+
+                            c.execute(
+                                "UPDATE league_state SET v='SEMIFINALS' WHERE k='playoff_round'"
+                            )
+
+                        else:
+                            for code in unfinished:
+                                sg=playoff_series_games(c,season,code)
+
+                                finals=[x for x in sg if x["status"]=="FINAL"]
+                                scheduled=[x for x in sg if x["status"]=="SCHEDULED"]
+
+                                if not scheduled and len(finals)<3:
+                                    first=sg[0]
+                                    game_no=len(finals)+1
+
+                                    high=first["home_id"]
+                                    low=first["away_id"]
+
+                                    schedule_series_game(
+                                        c,season,code,game_no,day+1,
+                                        high,low
+                                    )
+
+                    # ---------------------------------------------
+                    # SEMIFINALS - BEST OF 5
+                    # ---------------------------------------------
+
+                    elif playoff_round=="SEMIFINALS":
+                        codes=["SF1","SF2"]
+                        winners=[]
+                        unfinished=[]
+
+                        for code in codes:
+                            winner=playoff_series_winner(c,season,code,3)
+
+                            if winner:
+                                winners.append(winner)
+                            else:
+                                unfinished.append(code)
+
+                        if len(winners)==2:
+                            schedule_series_game(
+                                c,season,"CH",1,day+1,
+                                winners[0],winners[1]
+                            )
+
+                            c.execute(
+                                "UPDATE league_state SET v='CHAMPIONSHIP' WHERE k='playoff_round'"
+                            )
+
+                        else:
+                            for code in unfinished:
+                                sg=playoff_series_games(c,season,code)
+
+                                finals=[x for x in sg if x["status"]=="FINAL"]
+                                scheduled=[x for x in sg if x["status"]=="SCHEDULED"]
+
+                                if not scheduled and len(finals)<5:
+                                    first=sg[0]
+                                    game_no=len(finals)+1
+
+                                    high=first["home_id"]
+                                    low=first["away_id"]
+
+                                    schedule_series_game(
+                                        c,season,code,game_no,day+1,
+                                        high,low
+                                    )
+
+                    # ---------------------------------------------
+                    # EBL CHAMPIONSHIP - BEST OF 7
+                    # ---------------------------------------------
+
+                    elif playoff_round=="CHAMPIONSHIP":
+                        winner=playoff_series_winner(c,season,"CH",4)
+
+                        if winner:
+                            c.execute(
+                                "UPDATE league_state SET v='OFFSEASON' WHERE k='phase'"
+                            )
+
+                            c.execute(
+                                "UPDATE league_state SET v=? WHERE k='champion'",
+                                (winner,)
+                            )
+
+                            c.execute(
+                                "UPDATE league_state SET v='COMPLETE' WHERE k='playoff_round'"
+                            )
+
+                        else:
+                            sg=playoff_series_games(c,season,"CH")
+                            finals=[x for x in sg if x["status"]=="FINAL"]
+                            scheduled=[x for x in sg if x["status"]=="SCHEDULED"]
+
+                            if not scheduled and len(finals)<7:
+                                first=sg[0]
+                                game_no=len(finals)+1
+
+                                high=first["home_id"]
+                                low=first["away_id"]
+
+                                schedule_series_game(
+                                    c,season,"CH",game_no,day+1,
+                                    high,low
+                                )
+
+                    c.execute(
+                        "UPDATE league_state SET v=? WHERE k='league_day'",
+                        (str(day),)
+                    )
+
+                    c.commit()
+                    c.close()
+
+                    return self.out({
+                        "ok":True,
+                        "day":day,
+                        "results":results,
+                        "phase":"PLAYOFFS"
+                    })
+
+                if phase=="OFFSEASON":
+                    c.close()
+                    return self.out({
+                        "error":"SEASON_COMPLETE"
+                    },400)
             games=[dict(x) for x in c.execute("SELECT * FROM games WHERE league_day=? AND status='SCHEDULED' ORDER BY id",(day,))]
             results=[simulate_game(c,g) for g in games]
             c.execute("UPDATE league_state SET v=? WHERE k='league_day'",(str(day),))
