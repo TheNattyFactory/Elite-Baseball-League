@@ -3197,8 +3197,242 @@ class H(BaseHTTPRequestHandler):
                     pass
 
             return self.out({"ok":True,"day":day,"results":results})
+          
+    if p=="/api/commish/next-season":
+        u=self.auth(["COMMISSIONER"])
+        if not u:return
 
- 
+        c=conn()
+
+        try:
+        # ---------------------------------------------
+        # CURRENT LEAGUE STATE
+        # ---------------------------------------------
+
+        season_row=c.execute(
+            "SELECT v FROM league_state WHERE k='season'"
+        ).fetchone()
+
+        phase_row=c.execute(
+            "SELECT v FROM league_state WHERE k='phase'"
+        ).fetchone()
+
+        champion_row=c.execute(
+            "SELECT v FROM league_state WHERE k='champion'"
+        ).fetchone()
+
+        current_season=int(season_row["v"]) if season_row else 2
+        phase=phase_row["v"] if phase_row else "REGULAR"
+        champion=champion_row["v"] if champion_row else ""
+
+        if phase!="OFFSEASON":
+            return self.out({
+                "error":"SEASON_NOT_COMPLETE",
+                "phase":phase
+            },400)
+
+        next_season=current_season+1
+
+        # ---------------------------------------------
+        # ARCHIVE PLAYER SEASON STATS
+        # ---------------------------------------------
+
+        players=c.execute(
+            """
+            SELECT
+                id,
+                franchise_id,
+                type,
+                season_json
+            FROM players
+            """
+        ).fetchall()
+
+        for pl in players:
+            c.execute(
+                """
+                INSERT OR IGNORE INTO season_history(
+                    season,
+                    player_id,
+                    franchise_id,
+                    player_type,
+                    stats_json
+                )
+                VALUES(?,?,?,?,?)
+                """,
+                (
+                    current_season,
+                    pl["id"],
+                    pl["franchise_id"],
+                    pl["type"],
+                    pl["season_json"] or "{}"
+                )
+            )
+
+        # ---------------------------------------------
+        # ARCHIVE CHAMPION
+        # ---------------------------------------------
+
+        if champion:
+            c.execute(
+                """
+                INSERT OR REPLACE INTO season_champions(
+                    season,
+                    franchise_id
+                )
+                VALUES(?,?)
+                """,
+                (
+                    current_season,
+                    champion
+                )
+            )
+
+        # ---------------------------------------------
+        # RESET TEAM REGULAR-SEASON STANDINGS
+        # ---------------------------------------------
+
+        c.execute(
+            """
+            UPDATE franchises
+            SET wins=0,
+                losses=0,
+                runs_for=0,
+                runs_against=0
+            """
+        )
+
+        # ---------------------------------------------
+        # RESET CURRENT PLAYER SEASON STATS
+        # ---------------------------------------------
+
+        for pl in players:
+
+            if pl["type"]=="H":
+                new_stats={
+                    "G":0,
+                    "PA":0,
+                    "AB":0,
+                    "H":0,
+                    "1B":0,
+                    "2B":0,
+                    "3B":0,
+                    "HR":0,
+                    "BB":0,
+                    "SO":0,
+                    "R":0,
+                    "RBI":0,
+                    "SB":0,
+                    "CS":0
+                }
+
+            else:
+                new_stats={
+                    "G":0,
+                    "GS":0,
+                    "OUTS":0,
+                    "H":0,
+                    "ER":0,
+                    "BB":0,
+                    "SO":0,
+                    "W":0,
+                    "L":0,
+                    "SV":0
+                }
+
+            c.execute(
+                """
+                UPDATE players
+                SET season_json=?
+                WHERE id=?
+                """,
+                (
+                    json.dumps(new_stats),
+                    pl["id"]
+                )
+            )
+
+        # ---------------------------------------------
+        # CREATE NEXT SEASON SCHEDULE
+        # ---------------------------------------------
+
+        generate_season_schedule(
+            c,
+            next_season
+        )
+
+        # ---------------------------------------------
+        # UPDATE LEAGUE STATE
+        # ---------------------------------------------
+
+        c.execute(
+            """
+            INSERT INTO league_state(k,v)
+            VALUES('season',?)
+            ON CONFLICT(k)
+            DO UPDATE SET v=excluded.v
+            """,
+            (str(next_season),)
+        )
+
+        c.execute(
+            """
+            INSERT INTO league_state(k,v)
+            VALUES('league_day','0')
+            ON CONFLICT(k)
+            DO UPDATE SET v='0'
+            """
+        )
+
+        c.execute(
+            """
+            INSERT INTO league_state(k,v)
+            VALUES('phase','REGULAR')
+            ON CONFLICT(k)
+            DO UPDATE SET v='REGULAR'
+            """
+        )
+
+        c.execute(
+            """
+            INSERT INTO league_state(k,v)
+            VALUES('playoff_round','')
+            ON CONFLICT(k)
+            DO UPDATE SET v=''
+            """
+        )
+
+        c.execute(
+            """
+            INSERT INTO league_state(k,v)
+            VALUES('champion','')
+            ON CONFLICT(k)
+            DO UPDATE SET v=''
+            """
+        )
+
+        c.execute(
+            """
+            INSERT INTO league_config(k,v)
+            VALUES('season_number',?)
+            ON CONFLICT(k)
+            DO UPDATE SET v=excluded.v
+            """,
+            (str(next_season),)
+        )
+
+        c.commit()
+
+        return self.out({
+            "ok":True,
+            "previous_season":current_season,
+            "season":next_season,
+            "day":0,
+            "phase":"REGULAR"
+        })
+
+    finally:
+        c.close()
         if p=="/api/commish/reset-league":
             u=self.auth(["COMMISSIONER"])
             if not u:return
