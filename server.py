@@ -987,6 +987,7 @@ def simulate_game(c,g):
                         outs+=1
                     events.append({"type":"PA_END","result":"SAC" if success else "BUNT_OUT","outs":outs,"score":[score[away],score[home]]})
                     continue
+                batline["PA"]+=1
                 events.append({"type":"PA_START","inning":inning,"half":half,"batter_id":batter["id"],"batter":batter["name"],
                                "pitcher_id":pitcher["id"],"pitcher":pitcher["name"],"outs":outs,"score":[score[away],score[home]]})
                 balls=strikes=0;pitch_no=0
