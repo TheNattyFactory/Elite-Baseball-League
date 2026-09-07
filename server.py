@@ -3198,7 +3198,7 @@ class H(BaseHTTPRequestHandler):
 
             return self.out({"ok":True,"day":day,"results":results})
           
-      if p=="/api/commish/next-season":
+    if p=="/api/commish/next-season":
        u=self.auth(["COMMISSIONER"])
        if not u:
         return
