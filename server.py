@@ -3341,7 +3341,7 @@ class H(BaseHTTPRequestHandler):
         # UPDATE LEAGUE STATE
         # ---------------------------------------------
 
-        c.execute(
+            c.execute(
             """
             INSERT INTO league_state(k,v)
             VALUES('season',?)
@@ -3351,7 +3351,7 @@ class H(BaseHTTPRequestHandler):
             (str(next_season),)
         )
 
-        c.execute(
+            c.execute(
             """
             INSERT INTO league_state(k,v)
             VALUES('league_day','0')
@@ -3360,7 +3360,7 @@ class H(BaseHTTPRequestHandler):
             """
         )
 
-        c.execute(
+            c.execute(
             """
             INSERT INTO league_state(k,v)
             VALUES('phase','REGULAR')
@@ -3369,7 +3369,7 @@ class H(BaseHTTPRequestHandler):
             """
         )
 
-        c.execute(
+            c.execute(
             """
             INSERT INTO league_state(k,v)
             VALUES('playoff_round','')
@@ -3378,7 +3378,7 @@ class H(BaseHTTPRequestHandler):
             """
         )
 
-        c.execute(
+            c.execute(
             """
             INSERT INTO league_state(k,v)
             VALUES('champion','')
@@ -3387,7 +3387,7 @@ class H(BaseHTTPRequestHandler):
             """
         )
 
-        c.execute(
+            c.execute(
             """
             INSERT INTO league_config(k,v)
             VALUES('season_number',?)
@@ -3397,9 +3397,9 @@ class H(BaseHTTPRequestHandler):
             (str(next_season),)
         )
 
-        c.commit()
+            c.commit()
 
-        return self.out({
+            return self.out({
             "ok":True,
             "previous_season":current_season,
             "season":next_season,
@@ -3407,8 +3407,8 @@ class H(BaseHTTPRequestHandler):
             "phase":"REGULAR"
         })
 
-    finally:
-        c.close() 
+        finally:
+            c.close() 
 
         if p=="/api/commish/repair-human-rosters":
             u=self.auth(["COMMISSIONER"])
