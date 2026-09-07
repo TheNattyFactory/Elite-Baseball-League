@@ -1799,7 +1799,7 @@ class H(BaseHTTPRequestHandler):
                     "E":0
                 }
             }
-         c.close()
+        c.close()
 
             return self.out({
              "game":game
