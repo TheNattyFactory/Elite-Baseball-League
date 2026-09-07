@@ -3408,7 +3408,7 @@ class H(BaseHTTPRequestHandler):
         })
 
             finally:
-            c.close() 
+             c.close() 
 
         if p=="/api/commish/repair-human-rosters":
             u=self.auth(["COMMISSIONER"])
