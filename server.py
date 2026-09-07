@@ -1153,8 +1153,62 @@ def simulate_game(c,g):
         participant_ids=set(lineups[fid])|used_bench[fid]
         for pid in participant_ids:
             p=sim_player_obj(c,pid)
-            if not p or p["type"]!="H":continue
-            line={"G":1,"PA":4,"AB":R.choice([3,4]),"H":R.choice([0,1,1,1,2]),"1B":0,"2B":0,"3B":0,"HR":0,"BB":0,"SO":R.randint(0,2),"R":0,"RBI":0,"SB":0,"CS":0}
+
+            if not p or p["type"]!="H":
+                continue
+
+            line=box["hitters"].get(str(pid))
+
+            if not line:
+                continue
+
+            for k,v in line.items():
+                p["season"][k]=p["season"].get(k,0)+v
+
+            gps=hitter_gps(line)
+            perf=round(
+                gps_xp(gps)*rivalry_xp_multiplier(c,away,home),
+                3
+            )
+
+            con=contract_for(c,pid)
+            salary=float(con["salary"]) if con else .25
+
+            p["xp_wallet"]=round(
+                p["xp_wallet"]+salary+perf,
+                3
+            )
+
+            c.execute(
+                "INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                (
+                    pid,
+                    "SALARY",
+                    salary,
+                    json.dumps({"game":g["id"]})
+                )
+            )
+
+            c.execute(
+                "INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                (
+                    pid,
+                    "PERFORMANCE",
+                    perf,
+                    json.dumps({
+                        "game":g["id"],
+                        "gps":round(gps,1)
+                    })
+                )
+            )
+
+            save_player(c,p)
+
+            box["xp"].append({
+                "player_id":pid,
+                "salary":salary,
+                "performance":perf
+            }) ,"1B":0,"2B":0,"3B":0,"HR":0,"BB":0,"SO":R.randint(0,2),"R":0,"RBI":0,"SB":0,"CS":0}
             line["1B"]=line["H"]
             if line["H"] and R.random()<.12:line["HR"]=1;line["1B"]-=1
             if R.random()<.12:line["BB"]=1;line["PA"]+=1
