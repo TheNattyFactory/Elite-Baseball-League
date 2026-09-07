@@ -3210,21 +3210,21 @@ class H(BaseHTTPRequestHandler):
         # CURRENT LEAGUE STATE
         # ---------------------------------------------
 
-        season_row=c.execute(
+            season_row=c.execute(
             "SELECT v FROM league_state WHERE k='season'"
         ).fetchone()
 
-        phase_row=c.execute(
+            phase_row=c.execute(
             "SELECT v FROM league_state WHERE k='phase'"
         ).fetchone()
 
-        champion_row=c.execute(
+            champion_row=c.execute(
             "SELECT v FROM league_state WHERE k='champion'"
         ).fetchone()
 
-        current_season=int(season_row["v"]) if season_row else 2
-        phase=phase_row["v"] if phase_row else "REGULAR"
-        champion=champion_row["v"] if champion_row else ""
+            current_season=int(season_row["v"]) if season_row else 2
+            phase=phase_row["v"] if phase_row else "REGULAR"
+            champion=champion_row["v"] if champion_row else ""
 
             if phase!="OFFSEASON":
                 return self.out({
@@ -3232,7 +3232,7 @@ class H(BaseHTTPRequestHandler):
                     "phase":phase
                 },400)
 
-        next_season=current_season+1
+            next_season=current_season+1
 
         # ---------------------------------------------
         # ARCHIVE PLAYER SEASON STATS
