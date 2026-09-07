@@ -3270,76 +3270,76 @@ class H(BaseHTTPRequestHandler):
                 )
             )
 
-        # ---------------------------------------------
-        # ARCHIVE CHAMPION
-        # ---------------------------------------------
+            # ---------------------------------------------
+            # ARCHIVE CHAMPION
+            # ---------------------------------------------
 
-        if champion:
-            c.execute(
-                """
-                INSERT OR REPLACE INTO season_champions(
+            if champion:
+                c.execute(
+                    """
+                    INSERT OR REPLACE INTO season_champions(
                     season,
                     franchise_id
+                    )
+                    VALUES(?,?)
+                    """,
+                    (
+                        current_season,
+                        champion
+                    )
                 )
-                VALUES(?,?)
-                """,
-                (
-                    current_season,
-                    champion
-                )
+
+            # ---------------------------------------------
+            # RESET TEAM REGULAR-SEASON STANDINGS
+            # ---------------------------------------------
+
+            c.execute(
+                """
+                UPDATE franchises
+                SET wins=0,
+                    losses=0,
+                    runs_for=0,
+                    runs_against=0
+                """
             )
 
-        # ---------------------------------------------
-        # RESET TEAM REGULAR-SEASON STANDINGS
-        # ---------------------------------------------
+            # ---------------------------------------------
+            # RESET CURRENT PLAYER SEASON STATS
+            # ---------------------------------------------
 
-        c.execute(
-            """
-            UPDATE franchises
-            SET wins=0,
-                losses=0,
-                runs_for=0,
-                runs_against=0
-            """
-        )
+            for pl in players:
 
-        # ---------------------------------------------
-        # RESET CURRENT PLAYER SEASON STATS
-        # ---------------------------------------------
+                if pl["type"]=="H":
+                    new_stats={
+                        "G":0,
+                        "PA":0,
+                        "AB":0,
+                        "H":0,
+                        "1B":0,
+                        "2B":0,
+                        "3B":0,
+                        "HR":0,
+                        "BB":0,
+                        "SO":0,
+                        "R":0,
+                        "RBI":0,
+                        "SB":0,
+                        "CS":0
+                    }
 
-        for pl in players:
-
-            if pl["type"]=="H":
-                new_stats={
-                    "G":0,
-                    "PA":0,
-                    "AB":0,
-                    "H":0,
-                    "1B":0,
-                    "2B":0,
-                    "3B":0,
-                    "HR":0,
-                    "BB":0,
-                    "SO":0,
-                    "R":0,
-                    "RBI":0,
-                    "SB":0,
-                    "CS":0
-                }
-
-            else:
-                new_stats={
-                    "G":0,
-                    "GS":0,
-                    "OUTS":0,
-                    "H":0,
-                    "ER":0,
-                    "BB":0,
-                    "SO":0,
-                    "W":0,
-                    "L":0,
-                    "SV":0
-                }
+                else:
+                    new_stats={
+                        "G":0,
+                        "GS":0,
+                        "OUTS":0,
+                        "H":0,
+                        "ER":0,
+                        "BB":0,
+                        "SO":0,
+                        "W":0,
+                        "L":0,
+                        "SV":0
+                    }
 
             c.execute(
                 """
