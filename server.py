@@ -1721,10 +1721,10 @@ class H(BaseHTTPRequestHandler):
                     **line
                 })
 
-    pitcher_rows=[]
+            pitcher_rows=[]
 
-    for team_id,rows in raw_box.get("pitchers",{}).items():
-        for line in rows:
+            for team_id,rows in raw_box.get("pitchers",{}).items():
+            for line in rows:
             pid=line.get("player_id")
 
             player=c.execute(
@@ -1743,55 +1743,55 @@ class H(BaseHTTPRequestHandler):
     # COMPLETE BOX SCORE
     # -------------------------------------------------
 
-    game["box"]={
-        **raw_box,
-        "hitter_rows":hitter_rows,
-        "pitcher_rows":pitcher_rows
-    }
+            game["box"]={
+                **raw_box,
+                "hitter_rows":hitter_rows,
+                "pitcher_rows":pitcher_rows
+            }
 
     # -------------------------------------------------
     # BUILD LINE SCORE
     # -------------------------------------------------
 
-    away_line={str(i):0 for i in range(1,10)}
-    home_line={str(i):0 for i in range(1,10)}
+            away_line={str(i):0 for i in range(1,10)}
+            home_line={str(i):0 for i in range(1,10)}
 
-    for ev in game["events"]:
-        if ev.get("type")!="RUN":
+            for ev in game["events"]:
+            if ev.get("type")!="RUN":
             continue
 
-        inning=str(ev.get("inning",9))
-        runs=int(ev.get("runs",0) or 0)
-        team=ev.get("team")
+            inning=str(ev.get("inning",9))
+            runs=int(ev.get("runs",0) or 0)
+            team=ev.get("team")
 
-        if team==game["away_id"]:
+            if team==game["away_id"]:
             away_line[inning]=away_line.get(inning,0)+runs
 
-        elif team==game["home_id"]:
+            elif team==game["home_id"]:
             home_line[inning]=home_line.get(inning,0)+runs
 
-    game["line_score"]={
-        "away":away_line,
-        "home":home_line
-    }
+            game["line_score"]={
+               "away":away_line,
+               "home":home_line
+            }
 
     # -------------------------------------------------
     # GAME TOTALS
     # -------------------------------------------------
 
-    game["totals"]={
-        "away":{
-            "R":game["away_runs"] or 0,
-            "H":sum(
+            game["totals"]={
+                "away":{
+                "R":game["away_runs"] or 0,
+                "H":sum(
                 int(x.get("H",0) or 0)
                 for x in hitter_rows
                 if x["team_id"]==game["away_id"]
-            ),
-            "E":0
-        },
-        "home":{
-            "R":game["home_runs"] or 0,
-            "H":sum(
+                ),
+                "E":0
+                },
+                "home":{
+                "R":game["home_runs"] or 0,
+                "H":sum(
                 int(x.get("H",0) or 0)
                 for x in hitter_rows
                 if x["team_id"]==game["home_id"]
@@ -1799,9 +1799,9 @@ class H(BaseHTTPRequestHandler):
                     "E":0
                 }
             }
-           c.close()
+            c.close()
 
-           return self.out({
+            return self.out({
              "game":game})
         if p=="/api/my-player":
             u=self.auth()
