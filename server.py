@@ -965,6 +965,7 @@ def simulate_game(c,g):
                 starter_batter_id=lineups[fid][idx%9];idx+=1
                 ph_id,replaced=maybe_pinch_hit(c,fid,strategies[fid],starter_batter_id,inning,score[fid]-score[opp],used_bench[fid])
                 batter=sim_player_obj(c,ph_id)
+                batline=hitter_line(batter["id"])
                 if replaced:
                     ev={"type":"PINCH_HITTER","team":fid,"player_id":ph_id,"replaced_id":replaced,"inning":inning,"half":half}
                     events.append(ev);box["strategy_events"].append(ev)
