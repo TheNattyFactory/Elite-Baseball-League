@@ -1146,10 +1146,19 @@ def simulate_game(c,g):
     winner=away if score[away]>score[home] else home;loser=home if winner==away else away
     events.append({"type":"GAME_END","winner":winner,"final_score":[score[away],score[home]]})
 
-    # Participation/stat/XP layer (keeps existing accounting model intact)
+    # -------------------------------------------------
+    # PARTICIPATION / STAT / XP LAYER
+    # -------------------------------------------------
+
     for fid in [away,home]:
         opp=home if fid==away else away
-        participant_ids=set(lineups[fid])|used_bench[fid]
+
+        participant_ids=set(lineups[fid]) | used_bench[fid]
+
+        # ---------------------------------------------
+        # HITTERS
+        # ---------------------------------------------
+
         for pid in participant_ids:
             p=sim_player_obj(c,pid)
 
@@ -1161,12 +1170,15 @@ def simulate_game(c,g):
             if not line:
                 continue
 
+            # Add this game's actual hitter line to season stats.
             for k,v in line.items():
                 p["season"][k]=p["season"].get(k,0)+v
 
             gps=hitter_gps(line)
+
             perf=round(
-                gps_xp(gps)*rivalry_xp_multiplier(c,away,home),
+                gps_xp(gps) *
+                rivalry_xp_multiplier(c,away,home),
                 3
             )
 
@@ -1179,17 +1191,35 @@ def simulate_game(c,g):
             )
 
             c.execute(
-                "INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                """
+                INSERT INTO xp_ledger(
+                    player_id,
+                    event_type,
+                    xp,
+                    detail_json
+                )
+                VALUES(?,?,?,?)
+                """,
                 (
                     pid,
                     "SALARY",
                     salary,
-                    json.dumps({"game":g["id"]})
+                    json.dumps({
+                        "game":g["id"]
+                    })
                 )
             )
 
             c.execute(
-                "INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                """
+                INSERT INTO xp_ledger(
+                    player_id,
+                    event_type,
+                    xp,
+                    detail_json
+                )
+                VALUES(?,?,?,?)
+                """,
                 (
                     pid,
                     "PERFORMANCE",
@@ -1204,18 +1234,15 @@ def simulate_game(c,g):
             save_player(c,p)
 
             box["xp"].append({
-            "player_id": pid,
-            "salary": salary,
-            "performance": perf})
-            line["1B"]=line["H"]
-            if line["H"] and R.random()<.12:line["HR"]=1;line["1B"]-=1
-            if R.random()<.12:line["BB"]=1;line["PA"]+=1
-            for k,v in line.items():p["season"][k]=p["season"].get(k,0)+v
-            gps=hitter_gps(line);perf=round(gps_xp(gps)*rivalry_xp_multiplier(c,away,home),3);con=contract_for(c,pid);salary=float(con["salary"]) if con else .25
-            p["xp_wallet"]=round(p["xp_wallet"]+salary+perf,3)
-            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(pid,"SALARY",salary,json.dumps({"game":g["id"]})))
-            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(pid,"PERFORMANCE",perf,json.dumps({"game":g["id"],"gps":round(gps,1)})))
-            save_player(c,p);box["hitters"][str(pid)]=line;box["xp"].append({"player_id":pid,"salary":salary,"performance":perf})
+                "player_id":pid,
+                "salary":salary,
+                "performance":perf
+            })
+
+        # ---------------------------------------------
+        # PITCHERS
+        # ---------------------------------------------
+
         for spid in used_pitchers[fid]:
             p=sim_player_obj(c,spid)
 
@@ -1246,10 +1273,14 @@ def simulate_game(c,g):
             for k,v in pline.items():
                 p["season"][k]=p["season"].get(k,0)+v
 
-            gps=pitcher_gps(pline,is_starter)
+            gps=pitcher_gps(
+                pline,
+                is_starter
+            )
 
             perf=round(
-                gps_xp(gps)*rivalry_xp_multiplier(c,away,home),
+                gps_xp(gps) *
+                rivalry_xp_multiplier(c,away,home),
                 3
             )
 
@@ -1262,17 +1293,35 @@ def simulate_game(c,g):
             )
 
             c.execute(
-                "INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                """
+                INSERT INTO xp_ledger(
+                    player_id,
+                    event_type,
+                    xp,
+                    detail_json
+                )
+                VALUES(?,?,?,?)
+                """,
                 (
                     spid,
                     "SALARY",
                     salary,
-                    json.dumps({"game":g["id"]})
+                    json.dumps({
+                        "game":g["id"]
+                    })
                 )
             )
 
             c.execute(
-                "INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                """
+                INSERT INTO xp_ledger(
+                    player_id,
+                    event_type,
+                    xp,
+                    detail_json
+                )
+                VALUES(?,?,?,?)
+                """,
                 (
                     spid,
                     "PERFORMANCE",
@@ -1296,7 +1345,7 @@ def simulate_game(c,g):
                 "salary":salary,
                 "performance":perf
             })
-
+    
     # -------------------------------------------------
     # FINALIZE GAME
     # -------------------------------------------------
