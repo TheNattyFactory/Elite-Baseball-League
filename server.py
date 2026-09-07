@@ -1058,7 +1058,23 @@ def simulate_game(c,g):
                             else:
                                 # score previous runner sometimes
                                 if base_runner[fid] is not None and R.random()<(.18 if result=="1B" else .48):
-                                    score[fid]+=1;events.append({"type":"RUN","team":fid,"runs":1,"score":[score[away],score[home]]});base_runner[fid]=None
+                                    runner_id=base_runner[fid]
+
+                                    hitter_line(runner_id)["R"]+=1
+                                    batline["RBI"]+=1
+
+                                    score[fid]+=1
+
+                                    events.append({
+                                        "type":"RUN",
+                                        "team":fid,
+                                        "runs":1,
+                                        "score":[score[away],score[home]],
+                                        "runner_id":runner_id,
+                                        "batter_id":batter["id"]
+                                    })
+
+                                    base_runner[fid]=None
                                 # batter becomes runner, potentially pinch-run
                                 runner_id,_old=maybe_pinch_run(c,fid,strategies[fid],batter["id"],inning,score[fid]-score[opp],used_bench[fid])
                                 if _old:
