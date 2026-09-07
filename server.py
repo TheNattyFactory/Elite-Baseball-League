@@ -1086,7 +1086,7 @@ def simulate_game(c,g):
                                     safe=R.random()<steal_success_probability(runner)
                                     ev3={"type":"STEAL_ATTEMPT","team":fid,"runner_id":runner_id,"success":safe,"inning":inning,"half":half}
                                     events.append(ev3);box["strategy_events"].append(ev3)
-                                                                        runner_line=hitter_line(runner_id)
+                                    runner_line=hitter_line(runner_id)
                                     if safe:
                                         runner_line["SB"]+=1
                                     else:
