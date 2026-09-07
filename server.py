@@ -1218,68 +1218,185 @@ def simulate_game(c,g):
             save_player(c,p);box["hitters"][str(pid)]=line;box["xp"].append({"player_id":pid,"salary":salary,"performance":perf})
         for spid in used_pitchers[fid]:
             p=sim_player_obj(c,spid)
-            if not p:continue
-            is_starter=(spid==rotations[fid][(g["league_day"]-1)%5])
-            pline={"G":1,"GS":1 if is_starter else 0,"OUTS":18 if is_starter else 3,"H":R.randint(4,8) if is_starter else R.randint(0,2),
-                   "ER":score[opp] if is_starter else R.randint(0,1),"BB":R.randint(1,3) if is_starter else R.randint(0,1),
-                   "SO":R.randint(4,9) if is_starter else R.randint(0,3),"W":1 if fid==winner and is_starter else 0,
-                   "L":1 if fid==loser and is_starter else 0,"SV":1 if (not is_starter and fid==winner and spid==strategies[fid]["bullpen"].get("CL")) else 0}
-            for k,v in pline.items():p["season"][k]=p["season"].get(k,0)+v
-            gps=pitcher_gps(pline,is_starter);perf=round(gps_xp(gps)*rivalry_xp_multiplier(c,away,home),3);con=contract_for(c,spid);salary=float(con["salary"]) if con else .25
-            p["xp_wallet"]=round(p["xp_wallet"]+salary+perf,3)
-            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(spid,"SALARY",salary,json.dumps({"game":g["id"]})))
-            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(spid,"PERFORMANCE",perf,json.dumps({"game":g["id"],"gps":round(gps,1)})))
-            save_player(c,p);box["pitchers"].setdefault(fid,[]).append({"player_id":spid,**pline});box["xp"].append({"player_id":spid,"salary":salary,"performance":perf})
 
-            postseason=int(g["league_day"])>81
+            if not p:
+                continue
 
-            # Only regular-season games change the standings.
-            if not postseason:
-                c.execute(
-                    "UPDATE franchises SET wins=wins+1,runs_for=runs_for+?,runs_against=runs_against+? WHERE id=?",
-                    (score[winner],score[loser],winner)
-                 )
+            is_starter=(
+                spid==rotations[fid][(g["league_day"]-1)%5]
+            )
 
-                c.execute(
-                    "UPDATE franchises SET losses=losses+1,runs_for=runs_for+?,runs_against=runs_against+? WHERE id=?",
-                    (score[loser],score[winner],loser)
-                )
+            pline={
+                "G":1,
+                "GS":1 if is_starter else 0,
+                "OUTS":18 if is_starter else 3,
+                "H":R.randint(4,8) if is_starter else R.randint(0,2),
+                "ER":score[opp] if is_starter else R.randint(0,1),
+                "BB":R.randint(1,3) if is_starter else R.randint(0,1),
+                "SO":R.randint(4,9) if is_starter else R.randint(0,3),
+                "W":1 if fid==winner and is_starter else 0,
+                "L":1 if fid==loser and is_starter else 0,
+                "SV":1 if (
+                    not is_starter
+                    and fid==winner
+                    and spid==strategies[fid]["bullpen"].get("CL")
+                ) else 0
+            }
 
-            # EVERY game, including playoffs, must be finalized.
+            for k,v in pline.items():
+                p["season"][k]=p["season"].get(k,0)+v
+
+            gps=pitcher_gps(pline,is_starter)
+
+            perf=round(
+                gps_xp(gps)*rivalry_xp_multiplier(c,away,home),
+                3
+            )
+
+            con=contract_for(c,spid)
+            salary=float(con["salary"]) if con else .25
+
+            p["xp_wallet"]=round(
+                p["xp_wallet"]+salary+perf,
+                3
+            )
+
             c.execute(
-                """
-                UPDATE games
-                SET away_runs=?,
-                    home_runs=?,
-                    status='FINAL',
-                    box_json=?,
-                    events_json=?
-                WHERE id=?
-                """,
+                "INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
                 (
-                    score[away],
-                    score[home],
-                    json.dumps(box),
-                    json.dumps(events),
-                    g["id"]
+                    spid,
+                    "SALARY",
+                    salary,
+                    json.dumps({"game":g["id"]})
                 )
             )
 
-            margin=abs(score[away]-score[home])
-            heat=update_rivalry(c,away,home,winner,margin)
-            update_team_game_records(c,g,score)
-            maybe_rivalry_news(c,g,winner,loser,margin,heat)
-            generate_game_news(c,g,score,winner,loser,box)
+            c.execute(
+                "INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                (
+                    spid,
+                    "PERFORMANCE",
+                    perf,
+                    json.dumps({
+                        "game":g["id"],
+                        "gps":round(gps,1)
+                    })
+                )
+            )
 
-            return {
-                "game_id":g["id"],
-                "events":len(events),
-                "winner":winner,
-                "away_runs":score[away],
-                "home_runs":score[home],
-                "strategy_events":len(box["strategy_events"])
-            }
+            save_player(c,p)
 
+            box["pitchers"].setdefault(fid,[]).append({
+                "player_id":spid,
+                **pline
+            })
+
+            box["xp"].append({
+                "player_id":spid,
+                "salary":salary,
+                "performance":perf
+            })
+
+    # -------------------------------------------------
+    # FINALIZE GAME
+    # -------------------------------------------------
+
+    postseason=int(g["league_day"])>81
+
+    # Only regular-season games change standings.
+    if not postseason:
+        c.execute(
+            """
+            UPDATE franchises
+            SET wins=wins+1,
+                runs_for=runs_for+?,
+                runs_against=runs_against+?
+            WHERE id=?
+            """,
+            (
+                score[winner],
+                score[loser],
+                winner
+            )
+        )
+
+        c.execute(
+            """
+            UPDATE franchises
+            SET losses=losses+1,
+                runs_for=runs_for+?,
+                runs_against=runs_against+?
+            WHERE id=?
+            """,
+            (
+                score[loser],
+                score[winner],
+                loser
+            )
+        )
+
+    # Every game, including playoffs, becomes FINAL.
+    c.execute(
+        """
+        UPDATE games
+        SET away_runs=?,
+            home_runs=?,
+            status='FINAL',
+            box_json=?,
+            events_json=?
+        WHERE id=?
+        """,
+        (
+            score[away],
+            score[home],
+            json.dumps(box),
+            json.dumps(events),
+            g["id"]
+        )
+    )
+
+    margin=abs(score[away]-score[home])
+
+    heat=update_rivalry(
+        c,
+        away,
+        home,
+        winner,
+        margin
+    )
+
+    update_team_game_records(
+        c,
+        g,
+        score
+    )
+
+    maybe_rivalry_news(
+        c,
+        g,
+        winner,
+        loser,
+        margin,
+        heat
+    )
+
+    generate_game_news(
+        c,
+        g,
+        score,
+        winner,
+        loser,
+        box
+    )
+
+    return {
+        "game_id":g["id"],
+        "events":len(events),
+        "winner":winner,
+        "away_runs":score[away],
+        "home_runs":score[home],
+        "strategy_events":len(box["strategy_events"])
+}
 def recovery_hash(code):
     return hashlib.sha256(code.encode()).hexdigest()
 
