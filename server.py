@@ -1034,8 +1034,27 @@ def simulate_game(c,g):
                             elif result=="HR":
                                 batline["HR"]+=1
                             if result=="HR":
-                                runs=1+(1 if base_runner[fid] is not None else 0);score[fid]+=runs;base_runner[fid]=None
-                                events.append({"type":"RUN","team":fid,"runs":runs,"score":[score[away],score[home]]})
+                                runs=1
+
+                                batline["R"]+=1
+                                batline["RBI"]+=1
+
+                                if base_runner[fid] is not None:
+                                    runner_line=hitter_line(base_runner[fid])
+                                    runner_line["R"]+=1
+                                    batline["RBI"]+=1
+                                    runs+=1
+
+                                score[fid]+=runs
+                                base_runner[fid]=None
+
+                                events.append({
+                                    "type":"RUN",
+                                    "team":fid,
+                                    "runs":runs,
+                                    "score":[score[away],score[home]],
+                                    "batter_id":batter["id"]
+                                })
                             else:
                                 # score previous runner sometimes
                                 if base_runner[fid] is not None and R.random()<(.18 if result=="1B" else .48):
