@@ -3198,9 +3198,10 @@ class H(BaseHTTPRequestHandler):
 
             return self.out({"ok":True,"day":day,"results":results})
           
-    if p=="/api/commish/next-season":
-        u=self.auth(["COMMISSIONER"])
-        if not u:return
+      if p=="/api/commish/next-season":
+       u=self.auth(["COMMISSIONER"])
+       if not u:
+        return
 
         c=conn()
 
@@ -3209,27 +3210,27 @@ class H(BaseHTTPRequestHandler):
         # CURRENT LEAGUE STATE
         # ---------------------------------------------
 
-            season_row=c.execute(
-              "SELECT v FROM league_state WHERE k='season'"
-            ).fetchone()
+        season_row=c.execute(
+            "SELECT v FROM league_state WHERE k='season'"
+        ).fetchone()
 
-            phase_row=c.execute(
-              "SELECT v FROM league_state WHERE k='phase'"
-            ).fetchone()
+        phase_row=c.execute(
+            "SELECT v FROM league_state WHERE k='phase'"
+        ).fetchone()
 
-            champion_row=c.execute(
-              "SELECT v FROM league_state WHERE k='champion'"
-            ).fetchone()
+        champion_row=c.execute(
+            "SELECT v FROM league_state WHERE k='champion'"
+        ).fetchone()
 
-            current_season=int(season_row["v"]) if season_row else 2
-            phase=phase_row["v"] if phase_row else "REGULAR"
-            champion=champion_row["v"] if champion_row else ""
+        current_season=int(season_row["v"]) if season_row else 2
+        phase=phase_row["v"] if phase_row else "REGULAR"
+        champion=champion_row["v"] if champion_row else ""
 
-        if phase!="OFFSEASON":
+            if phase!="OFFSEASON":
                 return self.out({
-                "error":"SEASON_NOT_COMPLETE",
-                "phase":phase
-            },400)
+                  "error":"SEASON_NOT_COMPLETE",
+                    "phase":phase
+                },400)
 
         next_season=current_season+1
 
