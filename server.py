@@ -1671,8 +1671,7 @@ class H(BaseHTTPRequestHandler):
                     }
 
                     c.close()
-                    return self.out({"game":d}) 
-
+                    return self.out({"game":d})         
         if p.startswith("/api/game/"):
             gid=p.split("/")[-1].strip()
 
@@ -1689,30 +1688,46 @@ class H(BaseHTTPRequestHandler):
 
             game=dict(g)
 
+            # ---------------------------------------------
+            # EVENTS
+            # ---------------------------------------------
+
             try:
-                game["events"]=json.loads(game.get("events_json") or "[]")
+                game["events"]=json.loads(
+                    game.get("events_json") or "[]"
+                )
             except Exception:
                 game["events"]=[]
 
+            # ---------------------------------------------
+            # RAW BOX SCORE
+            # ---------------------------------------------
+
             try:
-                raw_box=json.loads(game.get("box_json") or "{}")
+                raw_box=json.loads(
+                    game.get("box_json") or "{}"
+                )
             except Exception:
                 raw_box={}
 
-    # -------------------------------------------------
-    # BUILD GAMECAST-FRIENDLY BOX SCORE
-    # -------------------------------------------------
+            # ---------------------------------------------
+            # BUILD GAMECAST-FRIENDLY HITTER ROWS
+            # ---------------------------------------------
 
             hitter_rows=[]
 
             for pid,line in raw_box.get("hitters",{}).items():
                 player=c.execute(
-                    "SELECT id,name,franchise_id FROM players WHERE id=?",
+                    """
+                    SELECT id,name,franchise_id
+                    FROM players
+                    WHERE id=?
+                    """,
                     (int(pid),)
                 ).fetchone()
 
-            if not player:
-                continue
+                if not player:
+                    continue
 
                 hitter_rows.append({
                     "player_id":int(pid),
@@ -1721,27 +1736,35 @@ class H(BaseHTTPRequestHandler):
                     **line
                 })
 
+            # ---------------------------------------------
+            # BUILD GAMECAST-FRIENDLY PITCHER ROWS
+            # ---------------------------------------------
+
             pitcher_rows=[]
 
             for team_id,rows in raw_box.get("pitchers",{}).items():
-            for line in rows:
-            pid=line.get("player_id")
+                for line in rows:
+                    pid=line.get("player_id")
 
-            player=c.execute(
-                "SELECT name FROM players WHERE id=?",
-                (pid,)
-            ).fetchone()
+                    player=c.execute(
+                        """
+                        SELECT name
+                        FROM players
+                        WHERE id=?
+                        """,
+                        (pid,)
+                    ).fetchone()
 
-            pitcher_rows.append({
-                "player_id":pid,
-                "name":player["name"] if player else f"Player {pid}",
-                "team_id":team_id,
-                **line
-            })
+                    pitcher_rows.append({
+                        "player_id":pid,
+                        "name":player["name"] if player else f"Player {pid}",
+                        "team_id":team_id,
+                        **line
+                    })
 
-    # -------------------------------------------------
-    # COMPLETE BOX SCORE
-    # -------------------------------------------------
+            # ---------------------------------------------
+            # COMPLETE BOX SCORE
+            # ---------------------------------------------
 
             game["box"]={
                 **raw_box,
@@ -1749,60 +1772,62 @@ class H(BaseHTTPRequestHandler):
                 "pitcher_rows":pitcher_rows
             }
 
-    # -------------------------------------------------
-    # BUILD LINE SCORE
-    # -------------------------------------------------
+            # ---------------------------------------------
+            # BUILD LINE SCORE FROM RUN EVENTS
+            # ---------------------------------------------
 
             away_line={str(i):0 for i in range(1,10)}
             home_line={str(i):0 for i in range(1,10)}
 
             for ev in game["events"]:
-            if ev.get("type")!="RUN":
-            continue
+                if ev.get("type")!="RUN":
+                    continue
 
-            inning=str(ev.get("inning",9))
-            runs=int(ev.get("runs",0) or 0)
-            team=ev.get("team")
+                inning=str(ev.get("inning",9))
+                runs=int(ev.get("runs",0) or 0)
+                team=ev.get("team")
 
-            if team==game["away_id"]:
-            away_line[inning]=away_line.get(inning,0)+runs
+                if team==game["away_id"]:
+                    away_line[inning]=away_line.get(inning,0)+runs
 
-            elif team==game["home_id"]:
-            home_line[inning]=home_line.get(inning,0)+runs
+                elif team==game["home_id"]:
+                    home_line[inning]=home_line.get(inning,0)+runs
 
             game["line_score"]={
-               "away":away_line,
-               "home":home_line
+                "away":away_line,
+                "home":home_line
             }
 
-    # -------------------------------------------------
-    # GAME TOTALS
-    # -------------------------------------------------
+            # ---------------------------------------------
+            # GAME TOTALS
+            # ---------------------------------------------
 
             game["totals"]={
                 "away":{
-                "R":game["away_runs"] or 0,
-                "H":sum(
-                int(x.get("H",0) or 0)
-                for x in hitter_rows
-                if x["team_id"]==game["away_id"]
-                ),
-                "E":0
+                    "R":game["away_runs"] or 0,
+                    "H":sum(
+                        int(x.get("H",0) or 0)
+                        for x in hitter_rows
+                        if x["team_id"]==game["away_id"]
+                    ),
+                    "E":0
                 },
                 "home":{
-                "R":game["home_runs"] or 0,
-                "H":sum(
-                int(x.get("H",0) or 0)
-                for x in hitter_rows
-                if x["team_id"]==game["home_id"]
+                    "R":game["home_runs"] or 0,
+                    "H":sum(
+                        int(x.get("H",0) or 0)
+                        for x in hitter_rows
+                        if x["team_id"]==game["home_id"]
                     ),
                     "E":0
                 }
             }
+
             c.close()
 
             return self.out({
-             "game":game})
+                "game":game
+            })  
         if p=="/api/my-player":
             u=self.auth()
             if not u:return
