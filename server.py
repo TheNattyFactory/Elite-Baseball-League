@@ -919,7 +919,7 @@ def simulate_game(c,g):
     rotations={fid:json.loads(lrows[fid]["rotation_json"]) for fid in [away,home]}
     strategies={fid:team_strategy_for(c,fid) for fid in [away,home]}
     score={away:0,home:0};events=[];box={"hitters":{},"pitchers":{},"xp":[],"strategy_events":[]}
-        def hitter_line(pid):
+    def hitter_line(pid):
         key=str(pid)
 
         if key not in box["hitters"]:
