@@ -3201,9 +3201,9 @@ class H(BaseHTTPRequestHandler):
     if p=="/api/commish/next-season":
        u=self.auth(["COMMISSIONER"])
        if not u:
-        return
+       return
 
-        c=conn()
+       c=conn()
 
         try:
         # ---------------------------------------------
