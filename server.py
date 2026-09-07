@@ -3234,34 +3234,34 @@ class H(BaseHTTPRequestHandler):
 
             next_season=current_season+1
 
-        # ---------------------------------------------
-        # ARCHIVE PLAYER SEASON STATS
-        # ---------------------------------------------
+            # ---------------------------------------------
+            # ARCHIVE PLAYER SEASON STATS
+            # ---------------------------------------------
 
-        players=c.execute(
-            """
-            SELECT
-                id,
-                franchise_id,
-                type,
-                season_json
-            FROM players
-            """
-        ).fetchall()
-
-        for pl in players:
-            c.execute(
+            players=c.execute(
                 """
-                INSERT OR IGNORE INTO season_history(
-                    season,
-                    player_id,
+                SELECT
+                    id,
                     franchise_id,
-                    player_type,
-                    stats_json
-                )
-                VALUES(?,?,?,?,?)
-                """,
-                (
+                    type,
+                    season_json
+                FROM players
+                """
+            ).fetchall()
+
+            for pl in players:
+                c.execute(
+                    """
+                    INSERT OR IGNORE INTO season_history(
+                        season,
+                        player_id,
+                        franchise_id,
+                        player_type,
+                        stats_json
+                    )
+                    VALUES(?,?,?,?,?)
+                    """,
+                    (
                     current_season,
                     pl["id"],
                     pl["franchise_id"],
