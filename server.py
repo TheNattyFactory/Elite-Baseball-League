@@ -1007,8 +1007,19 @@ def simulate_game(c,g):
                         ev=round(R.uniform(78,111),1);la=round(R.uniform(-8,34),1);spray=round(R.uniform(-42,42),1)
                         events.append({"type":"BALL_IN_PLAY","result":result,"exit_velocity":ev,"launch_angle":la,"spray_angle":spray,
                                        "contact_quality":"Barrel" if ev>103 and 18<=la<=32 else "Hard" if ev>95 else "Normal","shift":shift_mode})
-                        if result=="OUT":
-                            outs+=1;events.append({"type":"OUT","outs":outs,"out_type":R.choice(["Groundout","Flyout","Lineout"])})
+                                                if result=="OUT":
+                            batline["AB"]+=1
+
+                            outs+=1
+                            events.append({
+                                "type":"OUT",
+                                "outs":outs,
+                                "out_type":R.choice([
+                                    "Groundout",
+                                    "Flyout",
+                                    "Lineout"
+                                ])
+                            })
                         else:
                                                     else:
                             batline["AB"]+=1
