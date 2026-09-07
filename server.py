@@ -3407,7 +3407,7 @@ class H(BaseHTTPRequestHandler):
             "phase":"REGULAR"
         })
 
-        finally:
+            finally:
             c.close() 
 
         if p=="/api/commish/repair-human-rosters":
