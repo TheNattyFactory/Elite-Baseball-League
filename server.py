@@ -525,7 +525,55 @@ def session_user(headers):
 
 def attr_cost(v): return 1 if v<25 else 2 if v<50 else 3 if v<70 else 5 if v<85 else 8 if v<95 else 12
 def gps_xp(g): return round(max(.25,min(.75,.25+.5*g/100)),3)
+def generate_season_schedule(c,season):
+    fids=[f"EBL-F{i:02d}" for i in range(1,31)]
 
+    # Round-robin rotation for 30 teams.
+    arr=list(range(30))
+    rounds=[]
+
+    for _ in range(29):
+        rounds.append([
+            (arr[i],arr[-1-i])
+            for i in range(15)
+        ])
+
+        arr=[arr[0]]+[arr[-1]]+arr[1:-1]
+
+    gid=1
+
+    for day in range(1,82):
+        pairs=list(rounds[(day-1)%29])
+
+        # Reverse home/away every 29-game cycle.
+        if ((day-1)//29)%2:
+            pairs=[(b,a) for a,b in pairs]
+
+        for ai,bi in pairs:
+            game_id=f"S{season:02d}-G{gid:04d}"
+
+            c.execute(
+                """
+                INSERT INTO games(
+                    id,
+                    season,
+                    league_day,
+                    away_id,
+                    home_id,
+                    status
+                )
+                VALUES(?,?,?,?,?,'SCHEDULED')
+                """,
+                (
+                    game_id,
+                    season,
+                    day,
+                    fids[ai],
+                    fids[bi]
+                )
+            )
+
+            gid+=1
 DIVISIONS=["Atlantic","North","Central","South","West","Pacific"]
 def division_for(fid):
     try:
