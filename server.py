@@ -919,6 +919,28 @@ def simulate_game(c,g):
     rotations={fid:json.loads(lrows[fid]["rotation_json"]) for fid in [away,home]}
     strategies={fid:team_strategy_for(c,fid) for fid in [away,home]}
     score={away:0,home:0};events=[];box={"hitters":{},"pitchers":{},"xp":[],"strategy_events":[]}
+        def hitter_line(pid):
+        key=str(pid)
+
+        if key not in box["hitters"]:
+            box["hitters"][key]={
+                "G":1,
+                "PA":0,
+                "AB":0,
+                "H":0,
+                "1B":0,
+                "2B":0,
+                "3B":0,
+                "HR":0,
+                "BB":0,
+                "SO":0,
+                "R":0,
+                "RBI":0,
+                "SB":0,
+                "CS":0
+            }
+
+        return box["hitters"][key]
     used_pitchers={away:set(),home:set()};used_bench={away:set(),home:set()}
     base_runner={away:None,home:None}
     current_pitcher={}
