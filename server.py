@@ -1204,10 +1204,9 @@ def simulate_game(c,g):
             save_player(c,p)
 
             box["xp"].append({
-                "player_id":pid,
-                "salary":salary,
-                "performance":perf
-            }) ,"1B":0,"2B":0,"3B":0,"HR":0,"BB":0,"SO":R.randint(0,2),"R":0,"RBI":0,"SB":0,"CS":0}
+            "player_id": pid,
+            "salary": salary,
+            "performance": perf})
             line["1B"]=line["H"]
             if line["H"] and R.random()<.12:line["HR"]=1;line["1B"]-=1
             if R.random()<.12:line["BB"]=1;line["PA"]+=1
