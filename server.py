@@ -3215,7 +3215,7 @@ class H(BaseHTTPRequestHandler):
             # ARCHIVE PLAYER SEASON STATS
             # ---------------------------------------------
 
-        players=c.execute(
+            players=c.execute(
             """
             SELECT
                 id,
@@ -3226,8 +3226,8 @@ class H(BaseHTTPRequestHandler):
             """
         ).fetchall()
 
-        for pl in players:
-            c.execute(
+            for pl in players:
+                c.execute(
                 """
                 INSERT OR IGNORE INTO season_history(
                     season,
@@ -3251,8 +3251,8 @@ class H(BaseHTTPRequestHandler):
         # ARCHIVE CHAMPION
         # ---------------------------------------------
 
-        if champion:
-            c.execute(
+            if champion:
+                c.execute(
                 """
                 INSERT OR REPLACE INTO season_champions(
                     season,
@@ -3270,7 +3270,7 @@ class H(BaseHTTPRequestHandler):
         # RESET TEAM REGULAR-SEASON STANDINGS
         # ---------------------------------------------
 
-        c.execute(
+            c.execute(
             """
             UPDATE franchises
             SET wins=0,
@@ -3284,9 +3284,9 @@ class H(BaseHTTPRequestHandler):
         # RESET CURRENT PLAYER SEASON STATS
         # ---------------------------------------------
 
-        for pl in players:
-            if pl["type"]=="H":
-                new_stats={
+            for pl in players:
+                if pl["type"]=="H":
+                    new_stats={
                     "G":0,
                     "PA":0,
                     "AB":0,
@@ -3302,7 +3302,7 @@ class H(BaseHTTPRequestHandler):
                     "SB":0,
                     "CS":0
                 }
-            else:
+                else:
                 new_stats={
                     "G":0,
                     "GS":0,
@@ -3316,7 +3316,7 @@ class H(BaseHTTPRequestHandler):
                     "SV":0
                 }
 
-            c.execute(
+                c.execute(
                 """
                 UPDATE players
                 SET season_json=?
