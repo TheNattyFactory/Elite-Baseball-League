@@ -1091,6 +1091,18 @@ def simulate_game(c,g):
                                         outs+=1;base_runner[fid]=None;events.append({"type":"OUT","outs":outs,"out_type":"Caught Stealing"})
                         events.append({"type":"PA_END","result":result,"outs":outs,"score":[score[away],score[home]]});break
                     if balls>=4:
+                        batline["BB"]+=1
+
+                        if base_runner[fid] is None:
+                            base_runner[fid]=batter["id"]
+
+                        events.append({
+                            "type":"PA_END",
+                            "result":"BB",
+                            "outs":outs,
+                            "score":[score[away],score[home]]
+                        })
+                        break
                         # walk creates/keeps runner
                         if base_runner[fid] is None: base_runner[fid]=batter["id"]
                         events.append({"type":"PA_END","result":"BB","outs":outs,"score":[score[away],score[home]]});break
