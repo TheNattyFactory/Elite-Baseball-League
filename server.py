@@ -3341,99 +3341,99 @@ class H(BaseHTTPRequestHandler):
                         "SV":0
                     }
 
-            c.execute(
-                """
-                UPDATE players
-                SET season_json=?
-                WHERE id=?
-                """,
-                (
-                    json.dumps(new_stats),
-                    pl["id"]
+                c.execute(
+                    """
+                    UPDATE players
+                    SET season_json=?
+                    WHERE id=?
+                    """,
+                    (
+                        json.dumps(new_stats),
+                        pl["id"]
+                    )
                 )
+
+            # ---------------------------------------------
+            # CREATE NEXT SEASON SCHEDULE
+            # ---------------------------------------------
+
+            generate_season_schedule(
+                c,
+                next_season
             )
 
-        # ---------------------------------------------
-        # CREATE NEXT SEASON SCHEDULE
-        # ---------------------------------------------
+            # ---------------------------------------------
+            # UPDATE LEAGUE STATE
+            # ---------------------------------------------
 
-        generate_season_schedule(
-            c,
-            next_season
-        )
+            c.execute(
+                """
+                INSERT INTO league_state(k,v)
+                VALUES('season',?)
+                ON CONFLICT(k)
+                DO UPDATE SET v=excluded.v
+                """,
+                (str(next_season),)
+            )
 
-        # ---------------------------------------------
-        # UPDATE LEAGUE STATE
-        # ---------------------------------------------
+            c.execute(
+                """
+                INSERT INTO league_state(k,v)
+                VALUES('league_day','0')
+                ON CONFLICT(k)
+                DO UPDATE SET v='0'
+                """
+            )
 
-        c.execute(
-            """
-            INSERT INTO league_state(k,v)
-            VALUES('season',?)
-            ON CONFLICT(k)
-            DO UPDATE SET v=excluded.v
-            """,
-            (str(next_season),)
-        )
+            c.execute(
+                """
+                INSERT INTO league_state(k,v)
+                VALUES('phase','REGULAR')
+                ON CONFLICT(k)      
+                DO UPDATE SET v='REGULAR'
+                """
+            )
 
-        c.execute(
-            """
-            INSERT INTO league_state(k,v)
-            VALUES('league_day','0')
-            ON CONFLICT(k)
-            DO UPDATE SET v='0'
-            """
-        )
+            c.execute(
+                """
+                INSERT INTO league_state(k,v)
+                VALUES('playoff_round','')
+                ON CONFLICT(k)
+                DO UPDATE SET v=''
+                """
+            )
 
-        c.execute(
-            """
-            INSERT INTO league_state(k,v)
-            VALUES('phase','REGULAR')
-            ON CONFLICT(k)
-            DO UPDATE SET v='REGULAR'
-            """
-        )
+            c.execute(
+                """
+                INSERT INTO league_state(k,v)
+                VALUES('champion','')
+                ON CONFLICT(k)
+                DO UPDATE SET v=''
+                """
+            )
 
-        c.execute(
-            """
-            INSERT INTO league_state(k,v)
-            VALUES('playoff_round','')
-            ON CONFLICT(k)
-            DO UPDATE SET v=''
-            """
-        )
+            c.execute(
+                """
+                INSERT INTO league_config(k,v)
+                VALUES('season_number',?)
+                ON CONFLICT(k)
+                DO UPDATE SET v=excluded.v
+                """,
+                (str(next_season),)
+            )
 
-        c.execute(
-            """
-            INSERT INTO league_state(k,v)
-            VALUES('champion','')
-            ON CONFLICT(k)
-            DO UPDATE SET v=''
-            """
-        )
+            c.commit()
 
-        c.execute(
-            """
-            INSERT INTO league_config(k,v)
-            VALUES('season_number',?)
-            ON CONFLICT(k)
-            DO UPDATE SET v=excluded.v
-            """,
-            (str(next_season),)
-        )
+            return self.out({
+                "ok":True,
+                "previous_season":current_season,
+                "season":next_season,
+                "day":0,
+                "phase":"REGULAR"
+            })
 
-        c.commit()
-
-        return self.out({
-            "ok":True,
-            "previous_season":current_season,
-            "season":next_season,
-            "day":0,
-            "phase":"REGULAR"
-        })
-
-    finally:
-        c.close()
+        finally:
+            c.close()
         if p=="/api/commish/reset-league":
             u=self.auth(["COMMISSIONER"])
             if not u:return
