@@ -1800,10 +1800,10 @@ class H(BaseHTTPRequestHandler):
                 }
             }
 
-                c.close()
+            c.close()
 
             return self.out({
-         "game":game
+             "game":game
             })
 
         if p=="/api/my-player":
