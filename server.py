@@ -3303,7 +3303,7 @@ class H(BaseHTTPRequestHandler):
                     "CS":0
                 }
                 else:
-                new_stats={
+                    new_stats={
                     "G":0,
                     "GS":0,
                     "OUTS":0,
