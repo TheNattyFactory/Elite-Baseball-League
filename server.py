@@ -1641,29 +1641,39 @@ def new_session(c,user_id,handler,days=30):
     return raw,exp
 
 def session_user(c_or_headers, raw=None):
-    close_conn = False
+    close_conn=False
 
-    if raw is None and hasattr(c_or_headers, "get"):
-        headers = c_or_headers
-        for part in headers.get("Cookie", "").split(";"):
+    # Called with HTTP headers.
+    if raw is None and hasattr(c_or_headers,"get"):
+        headers=c_or_headers
+
+        for part in headers.get("Cookie","").split(";"):
             if part.strip().startswith("sid="):
-                raw = part.strip()[4:]
+                raw=part.strip()[4:]
                 break
 
-        c = conn()
-        close_conn = True
+        c=conn()
+        close_conn=True
+
+    # Called with an existing DB connection.
     else:
-        c = c_or_headers
+        c=c_or_headers
 
     try:
         if not raw:
             return None
 
-        r = c.execute(
-            """SELECT s.*,u.id,u.username,u.role
-               FROM persistent_sessions s
-               JOIN users u ON u.id=s.user_id
-               WHERE s.token_hash=?""",
+        r=c.execute(
+            """
+            SELECT
+                s.*,
+                u.id,
+                u.username,
+                u.role
+            FROM persistent_sessions s
+            JOIN users u ON u.id=s.user_id
+            WHERE s.token_hash=?
+            """,
             (token_hash(raw),)
         ).fetchone()
 
@@ -1671,32 +1681,17 @@ def session_user(c_or_headers, raw=None):
             return None
 
         if parse_iso(r["expires_at"]) < utcnow():
-            c.execute(
-                "DELETE FROM persistent_sessions WHERE token_hash=?",
-                (token_hash(raw),)
-            )
-            c.commit()
             return None
 
         return {
-            "id": r["id"],
-            "username": r["username"],
-            "role": r["role"]
+            "id":r["id"],
+            "username":r["username"],
+            "role":r["role"]
         }
 
     finally:
         if close_conn:
             c.close()
-    close_conn=False
-    if not raw:return None
-    r=c.execute("""SELECT s.*,u.id,u.username,u.role FROM persistent_sessions s JOIN users u ON u.id=s.user_id
-                   WHERE s.token_hash=?""",(token_hash(raw),)).fetchone()
-    if not r:return None
-    if parse_iso(r["expires_at"])<utcnow():
-        c.execute("DELETE FROM persistent_sessions WHERE token_hash=?",(token_hash(raw),));c.commit();return None
-    c.execute("UPDATE persistent_sessions SET last_seen_at=CURRENT_TIMESTAMP WHERE token_hash=?",(token_hash(raw),));c.commit()
-    return {"id":r["id"],"username":r["username"],"role":r["role"]}
-
 def user_restricted(c,user_id):
     r=c.execute("SELECT muted_until,suspended_until FROM user_security WHERE user_id=?",(user_id,)).fetchone()
     if not r:return {"muted":False,"suspended":False}
