@@ -1800,11 +1800,11 @@ class H(BaseHTTPRequestHandler):
                 }
             }
 
-    c.close()
+            c.close()
 
-return self.out({
-     "game":game
-        })
+            return self.out({
+         "game":game
+            })
 
         if p=="/api/my-player":
             u=self.auth()
