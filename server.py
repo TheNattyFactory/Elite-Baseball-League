@@ -20,7 +20,7 @@ HITTER_ATTRS=["CON","POW","VIS","DISC","TIM","SPD","FLD","ARM","ACC","REAC"]
 PITCHER_ATTRS=["STA","H9","K9","BB9","HR9","PCLT","CTRL","VEL","BRK","FLD","ARM","ACC","REAC"]
 SALARY_TIERS=[.25,.30,.35,.40,.45]
 BONUS_CAP=25.0
-TEAM_BUDGET=225.0
+TEAM_BUDGET=550.0
 
 
 FIRST_NAMES=["Marcus","Eli","Jordan","Dominic","Andre","Caleb","Noah","Isaiah","Lucas","Mateo","Julian","Miles","Cameron","Darius","Adrian","Nolan","Gavin","Roman","Jalen","Malik","Evan","Cole","Wesley","Bryce","Theo","Grant","Micah","Jonah","Emmett","Xavier","Leo","Mason","Owen","Silas","Aaron","Damian","Trevor","Derek","Logan","Rafael","Victor","Diego","Luis","Marco","Tomas","Javier","Nico","Santiago","Gabriel","Felix","Henry","Jack","Sam","Ben","Tyler","Connor","Dylan","Austin","Zachary","Nathan","Peter","Alex","Eric","Ryan","Sean","Ian","Blake","Chase","Troy","Reid","Dean","Clay","Jesse","Colin","Spencer","Garrett","Max","Milo","Asher","Ezra","Kai","Jace","Rory","Finn","Dante","Desmond","Terrence","Quincy","Leon","Curtis","Maurice","Devin","Kendrick","Avery","Tristan","Cody","Mitchell","Preston","Walker","Brody"]
@@ -101,8 +101,14 @@ def init_db():
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       owner_user_id INTEGER,
-      xp_budget REAL NOT NULL DEFAULT 225,
+      xp_budget REAL NOT NULL DEFAULT 550,
       xp_spent REAL NOT NULL DEFAULT 0,
+      xp_reserve REAL NOT NULL DEFAULT 0,
+      training_level INTEGER NOT NULL DEFAULT 0,
+      stadium_level INTEGER NOT NULL DEFAULT 0,
+      scouting_level INTEGER NOT NULL DEFAULT 0,
+      performance_level INTEGER NOT NULL DEFAULT 0,
+      hq_level INTEGER NOT NULL DEFAULT 0,
       identity_locked INTEGER NOT NULL DEFAULT 1,
       wins INTEGER NOT NULL DEFAULT 0,
       losses INTEGER NOT NULL DEFAULT 0,
@@ -124,7 +130,8 @@ def init_db():
       status TEXT NOT NULL DEFAULT 'FREE_AGENT',
       active INTEGER NOT NULL DEFAULT 1,
       face_id INTEGER NOT NULL DEFAULT 1,
-      hair_id INTEGER NOT NULL DEFAULT 1
+      hair_id INTEGER NOT NULL DEFAULT 1,
+      age INTEGER NOT NULL DEFAULT 18
     );
     CREATE TABLE IF NOT EXISTS offers(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -395,7 +402,50 @@ def init_db():
       CHECK(requester_user_id<>addressee_user_id)
     );
     CREATE INDEX IF NOT EXISTS idx_friendships_addressee ON friendships(addressee_user_id,status);
+
+    CREATE TABLE IF NOT EXISTS notifications(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL DEFAULT '',
+      ref_id TEXT,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id,is_read,id DESC);
+
+    CREATE TABLE IF NOT EXISTS award_history(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      season INTEGER NOT NULL,
+      period TEXT NOT NULL,
+      award_code TEXT NOT NULL,
+      award_name TEXT NOT NULL,
+      player_id INTEGER NOT NULL,
+      franchise_id TEXT,
+      xp_awarded REAL NOT NULL DEFAULT 0,
+      detail_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(season,period,award_code,player_id)
+    );
 """)
+
+    # Safe in-place schema migrations for existing Railway databases.
+    player_cols={r["name"] for r in c.execute("PRAGMA table_info(players)")}
+    if "age" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN age INTEGER NOT NULL DEFAULT 18")
+
+    franchise_cols={r["name"] for r in c.execute("PRAGMA table_info(franchises)")}
+    for col,ddl in [
+        ("xp_reserve","REAL NOT NULL DEFAULT 0"),
+        ("training_level","INTEGER NOT NULL DEFAULT 0"),
+        ("stadium_level","INTEGER NOT NULL DEFAULT 0"),
+        ("scouting_level","INTEGER NOT NULL DEFAULT 0"),
+        ("performance_level","INTEGER NOT NULL DEFAULT 0"),
+        ("hq_level","INTEGER NOT NULL DEFAULT 0")
+    ]:
+        if col not in franchise_cols:
+            c.execute(f"ALTER TABLE franchises ADD COLUMN {col} {ddl}")
 
 
     for username,password,role in [("coach","coach123","COACH"),("commish","commish123","COMMISSIONER")]:
@@ -536,20 +586,20 @@ def init_db():
             fid=f"EBL-F{ti:02d}"
             hids=[]
             pids=[]
-            positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL","UTIL","UTIL"]
+            positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL"]
             for idx,pos in enumerate(positions,1):
                 attrs=cpu_build(HITTER_ATTRS,pos,R)
                 cur=c.execute("""INSERT INTO players(user_id,franchise_id,name,type,primary_pos,bats,throws,xp_wallet,attributes_json,season_json,status,active)
                                  VALUES(NULL,?,?,?,?,?,?,0,?,?,'SIGNED',1)""",
                               (fid,f"{FIRST_NAMES[((ti-1)*25+idx-1)%len(FIRST_NAMES)]} {LAST_NAMES[((ti-1)*25+idx*3)%len(LAST_NAMES)]}","H",pos,"R","R",json.dumps(attrs),json.dumps(hseason)))
                 hids.append(cur.lastrowid)
-            for idx,role in enumerate(["SP","SP","SP","SP","SP","LR","MR","MR","MR","SU","CL","RP"],1):
+            for idx,role in enumerate(["SP","SP","SP","SP","MR","SU","CL"],1):
                 attrs=cpu_build(PITCHER_ATTRS,role,R)
                 cur=c.execute("""INSERT INTO players(user_id,franchise_id,name,type,primary_pos,bats,throws,xp_wallet,attributes_json,season_json,status,active)
                                  VALUES(NULL,?,?,?,?,?,?,0,?,?,'SIGNED',1)""",
                               (fid,f"{FIRST_NAMES[((ti-1)*25+13+idx-1)%len(FIRST_NAMES)]} {LAST_NAMES[((ti-1)*25+39+idx*5)%len(LAST_NAMES)]}","P",role,"R","R",json.dumps(attrs),json.dumps(pseason)))
                 pids.append(cur.lastrowid)
-            c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(hids[:9]),json.dumps(pids[:5]),fid))
+            c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(hids[:9]),json.dumps(pids[:4]),fid))
 
 
         # Genesis schedule. Later seasons use generate_season_schedule().
@@ -574,9 +624,8 @@ def init_db():
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('alpha_cpu_fill','1')")
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('auto_advance','0')")
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('season_number','2')")
-        # RC1 roster template: 25 players/team = 750 total.
-        slot_template=(["C"]*2+["1B"]*2+["2B"]*2+["3B"]*2+["SS"]*2+
-                   ["OF"]*5+["SP"]*5+["RP"]*5)
+        # EBL active roster: 18 players/team = 540 total.
+        slot_template=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL","SP","SP","SP","SP","RP","RP","RP"]
         for fr in c.execute("SELECT id FROM franchises ORDER BY id").fetchall():
             fid=fr["id"]
             players=c.execute("SELECT id FROM players WHERE franchise_id=? ORDER BY id",(fid,)).fetchall()
@@ -596,6 +645,182 @@ def session_user(headers):
 
 
 def attr_cost(v): return 1 if v<25 else 2 if v<50 else 3 if v<70 else 5 if v<85 else 8 if v<95 else 12
+
+def age_xp_surcharge(age):
+    age=int(age or 18)
+    if age<25:return 0
+    if age<30:return 2
+    if age<35:return 4
+    if age==35:return 6
+    return 6+(age-35)
+
+def development_cost(value,age):
+    return attr_cost(value)+age_xp_surcharge(age)
+
+def annual_team_budget(fr):
+    return round(TEAM_BUDGET
+        +10*int(fr.get("training_level",0) or 0)
+        +8*int(fr.get("stadium_level",0) or 0)
+        +6*int(fr.get("scouting_level",0) or 0)
+        +6*int(fr.get("performance_level",0) or 0)
+        +5*int(fr.get("hq_level",0) or 0),3)
+
+def reserve_cap(fr):
+    return 150+50*int(fr.get("hq_level",0) or 0)
+
+def upgrade_cost(level):
+    return [40,75,125,200][min(3,max(0,int(level)))]
+
+def notify_user(c,user_id,kind,title,body="",ref_id=None):
+    if not user_id:return
+    c.execute("INSERT INTO notifications(user_id,type,title,body,ref_id) VALUES(?,?,?,?,?)",
+              (int(user_id),str(kind),str(title),str(body),None if ref_id is None else str(ref_id)))
+
+def award_player(c,season,period,code,name,pid,xp,detail=None):
+    pl=c.execute("SELECT id,user_id,franchise_id,name FROM players WHERE id=?",(pid,)).fetchone()
+    if not pl:return False
+    try:
+        cur=c.execute("""INSERT INTO award_history(season,period,award_code,award_name,player_id,franchise_id,xp_awarded,detail_json)
+                         VALUES(?,?,?,?,?,?,?,?)""",
+                      (season,period,code,name,pid,pl["franchise_id"],xp,json.dumps(detail or {})))
+    except sqlite3.IntegrityError:
+        return False
+    c.execute("UPDATE players SET xp_wallet=xp_wallet+? WHERE id=?",(xp,pid))
+    c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+              (pid,"AWARD",xp,json.dumps({"season":season,"period":period,"award":name,**(detail or {})})))
+    notify_user(c,pl["user_id"],"AWARD",f"{name}: +{xp:g} XP",f"{pl['name']} earned {name}.",str(pid))
+    return True
+
+def process_quarter_awards(c,season,end_day):
+    if end_day not in (20,40,60,81):return []
+    start_day={20:1,40:21,60:41,81:61}[end_day]
+    period=f"DAYS_{start_day}_{end_day}"
+    if c.execute("SELECT 1 FROM award_history WHERE season=? AND period=? LIMIT 1",(season,period)).fetchone():
+        return []
+    hit={} ; pit={}
+    games=c.execute("SELECT box_json FROM games WHERE season=? AND league_day BETWEEN ? AND ? AND status='FINAL'",(season,start_day,end_day)).fetchall()
+    for gr in games:
+        try:b=json.loads(gr["box_json"] or "{}")
+        except Exception:continue
+        for k,line in (b.get("hitters") or {}).items():
+            d=hit.setdefault(int(k),{x:0 for x in ["PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"]})
+            for x in d:d[x]+=int(line.get(x,0) or 0)
+        rawp=b.get("pitchers") or {}
+        if isinstance(rawp,dict):
+            for _team,rows in rawp.items():
+                if isinstance(rows,list):
+                    for line in rows:
+                        pid=int(line.get("player_id",0) or 0)
+                        if not pid:continue
+                        d=pit.setdefault(pid,{x:0 for x in ["G","GS","OUTS","H","ER","BB","SO","W","L","SV"]})
+                        for x in d:d[x]+=int(line.get(x,0) or 0)
+    winners=[]
+    if hit:
+        def hscore(item):
+            pid,line=item; ab=line["AB"]; pa=line["PA"]; h=line["H"]; bb=line["BB"]
+            tb=line["1B"]+2*line["2B"]+3*line["3B"]+4*line["HR"]
+            obp=(h+bb)/pa if pa else 0; slg=tb/ab if ab else 0
+            return (obp+slg)*100+line["HR"]*1.2+line["RBI"]*.15+line["SB"]*.25
+        pid,line=max(hit.items(),key=hscore)
+        if award_player(c,season,period,"QUARTER_BATTER","Quarter-Season Batter",pid,5,{"days":[start_day,end_day]}):winners.append(pid)
+    if pit:
+        def pscore(item):
+            pid,line=item; outs=line["OUTS"]
+            return line["SO"]*1.2-line["ER"]*2.2-line["BB"]*.7+(outs/3)*.3
+        pid,line=max(pit.items(),key=pscore)
+        if award_player(c,season,period,"QUARTER_PITCHER","Quarter-Season Pitcher",pid,5,{"days":[start_day,end_day]}):winners.append(pid)
+    return winners
+
+def process_season_awards(c,season):
+    period="REGULAR_SEASON"
+    if c.execute("SELECT 1 FROM award_history WHERE season=? AND period=? LIMIT 1",(season,period)).fetchone():return []
+    hitters=[];pitchers=[]
+    for r in c.execute("SELECT id,primary_pos,attributes_json,season_json FROM players WHERE active=1"):
+        st=json.loads(r["season_json"] or "{}")
+        if "PA" in st:
+            ab=st.get("AB",0);h=st.get("H",0);bb=st.get("BB",0);pa=st.get("PA",0);tb=st.get("1B",0)+2*st.get("2B",0)+3*st.get("3B",0)+4*st.get("HR",0)
+            avg=h/ab if ab else 0;obp=(h+bb)/pa if pa else 0;slg=tb/ab if ab else 0
+            hitters.append({"id":r["id"],"pos":r["primary_pos"],"avg":avg,"ops":obp+slg,"pa":pa,"hr":st.get("HR",0),"rbi":st.get("RBI",0),"sb":st.get("SB",0),"attrs":json.loads(r["attributes_json"] or "{}")})
+        else:
+            outs=st.get("OUTS",0);er=st.get("ER",0);bb=st.get("BB",0);hh=st.get("H",0);so=st.get("SO",0)
+            score=so*1.2-er*2.2-bb*.7+(outs/3)*.3
+            pitchers.append({"id":r["id"],"pos":r["primary_pos"],"outs":outs,"score":score,"sv":st.get("SV",0)})
+    made=[]
+    qualified=[x for x in hitters if x["pa"]>=162] or hitters
+    if hitters:
+        m=max(hitters,key=lambda x:(x["ops"]*100+x["hr"]*1.1+x["rbi"]*.12+x["sb"]*.35,x["pa"]))
+        if award_player(c,season,period,"MVP","Most Valuable Player",m["id"],15):made.append("MVP")
+    if qualified:
+        b=max(qualified,key=lambda x:(x["avg"],x["pa"]))
+        if award_player(c,season,period,"BATTING_TITLE","Batting Title",b["id"],10):made.append("BATTING_TITLE")
+        sb=max(hitters,key=lambda x:(x["sb"],x["ops"]))
+        if award_player(c,season,period,"SB_TITLE","Stolen Base Title",sb["id"],10):made.append("SB_TITLE")
+        for pos in ["C","1B","2B","3B","SS","LF","CF","RF"]:
+            pool=[x for x in hitters if x["pos"]==pos]
+            if pool:
+                f=max(pool,key=lambda x:(x["attrs"].get("FLD",0)*.45+x["attrs"].get("REAC",0)*.25+x["attrs"].get("ARM",0)*.15+x["attrs"].get("ACC",0)*.15,x["pa"]))
+                if award_player(c,season,period,f"FIELD_{pos}",f"{pos} Fielding Title",f["id"],10):made.append(f"FIELD_{pos}")
+    starters=[x for x in pitchers if x["pos"]=="SP" and x["outs"]>0]
+    if starters:
+        cy=max(starters,key=lambda x:x["score"]);
+        if award_player(c,season,period,"CY_YOUNG","Cy Young Award",cy["id"],15):made.append("CY_YOUNG")
+    rel=[x for x in pitchers if x["pos"]!="SP" and x["outs"]>0]
+    if rel:
+        rp=max(rel,key=lambda x:(x["score"]+x["sv"]*1.5,x["sv"]))
+        if award_player(c,season,period,"RELIEVER","Reliever of the Season",rp["id"],10):made.append("RELIEVER")
+    return made
+
+def enforce_18_player_rosters(c):
+    template=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL","SP","SP","SP","SP","RP","RP","RP"]
+    for fr in c.execute("SELECT id FROM franchises ORDER BY id").fetchall():
+        fid=fr["id"]
+        rows=[dict(x) for x in c.execute("SELECT * FROM players WHERE franchise_id=? AND active=1 AND status='SIGNED' ORDER BY CASE WHEN user_id IS NOT NULL THEN 0 ELSE 1 END,id",(fid,))]
+        humans=[x for x in rows if x.get("user_id") is not None]
+        cpus=[x for x in rows if x.get("user_id") is None]
+        slots=[None]*len(template)
+        def group_for(pl):
+            if pl["type"]=="P":return "SP" if pl["primary_pos"]=="SP" else "RP"
+            return pl["primary_pos"] if pl["primary_pos"] in template[:9] else "UTIL"
+        def place(pl):
+            g=group_for(pl)
+            choices=[i for i,t in enumerate(template) if t==g and slots[i] is None]
+            if not choices and pl["type"]=="H":choices=[i for i,t in enumerate(template) if t=="UTIL" and slots[i] is None]
+            if choices:
+                slots[choices[0]]=pl;return True
+            return False
+        overflow=[]
+        for pl in humans:
+            if not place(pl):overflow.append(pl)
+        for pl in cpus:
+            if not place(pl):continue
+        # Fill any missing slots with fresh CPU filler.
+        hseason={k:0 for k in ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"]}
+        pseason={k:0 for k in ["G","GS","OUTS","H","ER","BB","SO","W","L","SV"]}
+        for i,t in enumerate(template):
+            if slots[i] is not None:continue
+            ptype="P" if t in ("SP","RP") else "H"
+            role=t if t!="UTIL" else "UTIL"
+            attrs=cpu_build(PITCHER_ATTRS if ptype=="P" else HITTER_ATTRS,role,R)
+            cur=c.execute("""INSERT INTO players(user_id,franchise_id,name,type,primary_pos,bats,throws,xp_wallet,attributes_json,season_json,status,active,age)
+                             VALUES(NULL,?,?,?,?,?,?,0,?,?,'SIGNED',1,18)""",
+                          (fid,f"{FIRST_NAMES[(i+int(fid[-2:])*7)%len(FIRST_NAMES)]} {LAST_NAMES[(i*5+int(fid[-2:])*11)%len(LAST_NAMES)]}",ptype,role,"R","R",json.dumps(attrs),json.dumps(pseason if ptype=="P" else hseason)))
+            slots[i]=dict(c.execute("SELECT * FROM players WHERE id=?",(cur.lastrowid,)).fetchone())
+        used={int(x["id"]) for x in slots if x}
+        for pl in cpus:
+            if int(pl["id"]) not in used:
+                c.execute("UPDATE players SET active=0,status='RETIRED',franchise_id=NULL WHERE id=?",(pl["id"],))
+        c.execute("DELETE FROM roster_slots WHERE franchise_id=?",(fid,))
+        for i,(grp,pl) in enumerate(zip(template,slots),1):
+            occ="HUMAN" if pl.get("user_id") is not None else "CPU"
+            c.execute("INSERT INTO roster_slots(franchise_id,slot_no,position_group,player_id,occupant_type) VALUES(?,?,?,?,?)",(fid,i,grp,pl["id"],occ))
+        hitter_ids=[int(slots[i]["id"]) for i in range(9)]
+        sp_ids=[int(slots[i]["id"]) for i,t in enumerate(template) if t=="SP"]
+        c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(hitter_ids),json.dumps(sp_ids[:4]),fid))
+        rp_ids=[int(slots[i]["id"]) for i,t in enumerate(template) if t=="RP"]
+        bp={"CL":rp_ids[-1] if rp_ids else None,"SU1":rp_ids[-2] if len(rp_ids)>1 else None,"SU2":None,"MR":rp_ids[:1],"LR":[],"EMERGENCY":[]}
+        c.execute("UPDATE team_strategy SET bullpen_json=? WHERE franchise_id=?",(json.dumps(bp),fid))
+    return True
+
 def gps_xp(g): return round(max(.25,min(.75,.25+.5*g/100)),3)
 def generate_season_schedule(c,season):
     fids=[f"EBL-F{i:02d}" for i in range(1,31)]
@@ -662,6 +887,11 @@ def division_for(fid):
     except: return "Unknown"
     return DIVISIONS[min(5,(n-1)//5)]
 
+
+
+def team_name(c,fid):
+    r=c.execute("SELECT name FROM franchises WHERE id=?",(fid,)).fetchone()
+    return r["name"] if r else fid
 
 def playoff_teams(c):
     teams=[dict(x) for x in c.execute(
@@ -1149,6 +1379,15 @@ def simulate_game(c,g):
             if r["user_id"] is not None
         ]
 
+        # Human playing-time protection: if a club has 10-11 human hitters,
+        # rotate the two bench spots through the lineup by league day.
+        if len(human_ids)>9:
+            offset=(int(g["league_day"])-1)%len(human_ids)
+            rotated=human_ids[offset:]+human_ids[:offset]
+            protected=set(rotated[:9])
+            clean=[pid for pid in clean if pid not in human_ids or pid in protected]
+            human_ids=rotated[:9]
+
 
         # Put active human players into the lineup if an old CPU lineup omitted them.
         for human_id in human_ids:
@@ -1230,7 +1469,7 @@ def simulate_game(c,g):
     def pitcher_line(fid,pid):
         pid=int(pid)
         if pid not in pitcher_live[fid]:
-            starter_id=int(rotations[fid][(g["league_day"]-1)%5])
+            starter_id=int(rotations[fid][(g["league_day"]-1)%4])
             pitcher_live[fid][pid]={
                 "G":1,"GS":1 if pid==starter_id else 0,"OUTS":0,
                 "H":0,"ER":0,"BB":0,"SO":0,"W":0,"L":0,"SV":0
@@ -1242,7 +1481,7 @@ def simulate_game(c,g):
     base_runner={away:None,home:None}
     current_pitcher={}
     for fid,opp in [(away,home),(home,away)]:
-        current_pitcher[fid]=rotations[fid][(g["league_day"]-1)%5]
+        current_pitcher[fid]=rotations[fid][(g["league_day"]-1)%4]
         used_pitchers[fid].add(current_pitcher[fid])
 
 
@@ -1541,6 +1780,8 @@ def simulate_game(c,g):
 
             con=contract_for(c,pid)
             salary=float(con["salary"]) if con else .25
+            if p.get("franchise_id"):
+                c.execute("UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",(salary,p["franchise_id"]))
 
 
             p["xp_wallet"]=round(
@@ -1616,7 +1857,7 @@ def simulate_game(c,g):
 
 
             is_starter=(
-                spid==rotations[fid][(g["league_day"]-1)%5]
+                spid==rotations[fid][(g["league_day"]-1)%4]
             )
 
 
@@ -1654,6 +1895,8 @@ def simulate_game(c,g):
 
             con=contract_for(c,spid)
             salary=float(con["salary"]) if con else .25
+            if p.get("franchise_id"):
+                c.execute("UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",(salary,p["franchise_id"]))
 
 
             p["xp_wallet"]=round(
@@ -2380,7 +2623,7 @@ class H(BaseHTTPRequestHandler):
             missing_slots=[]
             for fr in c.execute("SELECT id FROM franchises ORDER BY id"):
                 n=c.execute("SELECT COUNT(*) n FROM roster_slots WHERE franchise_id=?",(fr["id"],)).fetchone()["n"]
-                if n!=25:missing_slots.append({"franchise_id":fr["id"],"slots":n})
+                if n!=18:missing_slots.append({"franchise_id":fr["id"],"slots":n})
 
 
             duplicate_slots=[dict(x) for x in c.execute(
@@ -2395,7 +2638,7 @@ class H(BaseHTTPRequestHandler):
                 except Exception:batting=[]
                 try:rotation=json.loads(row["rotation_json"] or "[]")
                 except Exception:rotation=[]
-                if len(batting)!=9 or len(rotation)!=5:
+                if len(batting)!=9 or len(rotation)!=4:
                     lineup_issues.append({
                         "franchise_id":row["franchise_id"],
                         "batting_order":len(batting),
@@ -2405,9 +2648,9 @@ class H(BaseHTTPRequestHandler):
 
             issues=[]
             if team_count!=30:issues.append(f"Expected 30 franchises, found {team_count}")
-            if slot_count!=750:issues.append(f"Expected 750 roster slots, found {slot_count}")
+            if slot_count!=540:issues.append(f"Expected 540 roster slots, found {slot_count}")
             if regular_games!=1215:issues.append(f"Expected 1215 regular-season games for Season {season}, found {regular_games}")
-            if missing_slots:issues.append(f"{len(missing_slots)} franchises do not have exactly 25 roster slots")
+            if missing_slots:issues.append(f"{len(missing_slots)} franchises do not have exactly 18 roster slots")
             if duplicate_slots:issues.append(f"{len(duplicate_slots)} players occupy more than one roster slot")
             if lineup_issues:issues.append(f"{len(lineup_issues)} teams have an incomplete batting order or rotation")
             if phase=="REGULAR" and day<81 and next_day_games!=15:
@@ -2850,6 +3093,14 @@ class H(BaseHTTPRequestHandler):
                              "strategy":{"bullpen":json.loads(strat["bullpen_json"]),"defense":json.loads(strat["defense_json"]),
                                          "bench":json.loads(strat["bench_json"]),"substitutions":json.loads(strat["substitutions_json"])},
                              "offers":offers})
+        if p=="/api/notifications":
+            u=self.auth()
+            if not u:return
+            c=conn()
+            rows=[dict(x) for x in c.execute("SELECT id,type,title,body,ref_id,is_read,created_at FROM notifications WHERE user_id=? ORDER BY id DESC LIMIT 50",(u["id"],))]
+            unread=sum(1 for x in rows if not x["is_read"])
+            c.close();return self.out({"notifications":rows,"unread":unread})
+
         if p=="/api/awards":
             c=conn(); hitters=[]; pitchers=[]
             for r in c.execute("SELECT id,name,franchise_id,primary_pos,season_json FROM players WHERE active=1"):
@@ -2880,7 +3131,12 @@ class H(BaseHTTPRequestHandler):
             for pos in ["C","1B","2B","3B","SS","LF","CF","RF"]:
                 pool=[x for x in hitters if x["pos"]==pos]
                 fielding[pos]=sorted(pool,key=lambda x:(x["pa"],x["ops"]),reverse=True)[:5]
-            c.close();return self.out({"mvp":mvp,"batting":batting,"home_runs":hr,"stolen_bases":sb,"pitching":pitching,"fielding":fielding})
+            history=[dict(x) for x in c.execute("""SELECT ah.*,p.name player_name,f.name team_name FROM award_history ah
+                LEFT JOIN players p ON p.id=ah.player_id LEFT JOIN franchises f ON f.id=ah.franchise_id
+                ORDER BY ah.season DESC,ah.id DESC LIMIT 100""")]
+            c.close();return self.out({"mvp":mvp,"batting":batting,"home_runs":hr,"stolen_bases":sb,"pitching":pitching,"fielding":fielding,
+                "xp_values":{"MVP":15,"BATTING_TITLE":10,"CY_YOUNG":15,"SB_TITLE":10,"FIELDING":10,"RELIEVER":10,"QUARTER_BATTER":5,"QUARTER_PITCHER":5},
+                "history":history})
         if p.startswith("/api/chat/"):
             u=self.auth()
             if not u:return
@@ -3061,10 +3317,10 @@ class H(BaseHTTPRequestHandler):
             if not r:c.close();return self.out({"error":"PLAYER_NOT_FOUND"},404)
             pl=player_obj(c,r["id"])
             if attr not in pl["attributes"]:c.close();return self.out({"error":"INVALID_ATTRIBUTE"},400)
-            cc=attr_cost(pl["attributes"][attr])
-            if pl["xp_wallet"]<cc:c.close();return self.out({"error":"INSUFFICIENT_XP","cost":cc},400)
+            cc=development_cost(pl["attributes"][attr],pl.get("age",18))
+            if pl["xp_wallet"]<cc:c.close();return self.out({"error":"INSUFFICIENT_XP","cost":cc,"age":pl.get("age",18)},400)
             old=pl["attributes"][attr];pl["attributes"][attr]+=1;pl["xp_wallet"]=round(pl["xp_wallet"]-cc,3);save_player(c,pl)
-            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(pl["id"],"ATTRIBUTE_UPGRADE",-cc,json.dumps({"attribute":attr,"from":old,"to":old+1})));c.commit();c.close();return self.out({"ok":True})
+            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(pl["id"],"ATTRIBUTE_UPGRADE",-cc,json.dumps({"attribute":attr,"from":old,"to":old+1,"age":pl.get("age",18),"cost":cc})));c.commit();c.close();return self.out({"ok":True})
         if p=="/api/player/request-cpu-market":
             u=self.auth(["PLAYER","COMMISSIONER"])
             if not u:return
@@ -3090,6 +3346,8 @@ class H(BaseHTTPRequestHandler):
                 cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,?,'OPEN')",(f["id"],pr["id"],bonus,salary,years))
                 made.append({"offer_id":cur.lastrowid,"team":f["name"],"franchise_id":f["id"],"bonus":bonus,"salary":salary,"years":years})
             c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("CPU_MARKET_OFFERS",u["id"],json.dumps({"player_id":pr["id"],"offers":made})))
+            for off in made:
+                notify_user(c,u["id"],"CONTRACT",f"Contract offer from {off['team']}",f"{off['bonus']:g} XP bonus • {off['salary']:g} XP/game • {off['years']} year(s)",str(off["offer_id"]))
             c.commit();c.close();return self.out({"ok":True,"offers":made})
         if p=="/api/coach/offer":
             u=self.auth(["COMMISSIONER"])
@@ -3103,7 +3361,11 @@ class H(BaseHTTPRequestHandler):
             if pl["user_id"]==u["id"]:c.close();return self.out({"error":"CANNOT_SIGN_OWN_PLAYER"},403)
             reserved=c.execute("SELECT COALESCE(SUM(bonus),0) x FROM offers WHERE franchise_id=? AND status IN ('OPEN','HELD')",(f["id"],)).fetchone()["x"]
             if bonus>f["xp_budget"]-f["xp_spent"]-reserved:c.close();return self.out({"error":"INSUFFICIENT_TEAM_XP"},400)
-            cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,?,'OPEN')",(f["id"],pid,bonus,salary,years));c.commit();oid=cur.lastrowid;c.close();return self.out({"ok":True,"offer_id":oid})
+            cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,?,'OPEN')",(f["id"],pid,bonus,salary,years))
+            owner=c.execute("SELECT user_id,name FROM players WHERE id=?",(pid,)).fetchone()
+            if owner and owner["user_id"]:
+                notify_user(c,owner["user_id"],"CONTRACT",f"Contract offer from {f['name']}",f"{bonus:g} XP bonus • {salary:g} XP/game • {years} year(s)",str(cur.lastrowid))
+            c.commit();oid=cur.lastrowid;c.close();return self.out({"ok":True,"offer_id":oid})
         if p=="/api/player/respond-offer":
             u=self.auth()
             if not u:return
@@ -3285,6 +3547,34 @@ class H(BaseHTTPRequestHandler):
                 c.close()
                 return self.out({"ok":True})
             
+        if p=="/api/notifications/read":
+            u=self.auth()
+            if not u:return
+            d=self.body();c=conn()
+            nid=d.get("id")
+            if nid:
+                c.execute("UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?",(int(nid),u["id"]))
+            else:
+                c.execute("UPDATE notifications SET is_read=1 WHERE user_id=?",(u["id"],))
+            c.commit();c.close();return self.out({"ok":True})
+
+        if p=="/api/coach/franchise-upgrade":
+            u=self.auth(["COACH","COMMISSIONER"])
+            if not u:return
+            kind=str(self.body().get("kind","")).lower()
+            cols={"training":"training_level","stadium":"stadium_level","scouting":"scouting_level","performance":"performance_level","hq":"hq_level"}
+            if kind not in cols:return self.out({"error":"INVALID_UPGRADE"},400)
+            c=conn();fr=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
+            if not fr:c.close();return self.out({"error":"NO_FRANCHISE"},404)
+            level=int(fr[cols[kind]] or 0)
+            if level>=4:c.close();return self.out({"error":"MAX_LEVEL"},400)
+            cost=upgrade_cost(level)
+            if float(fr["xp_reserve"] or 0)<cost:c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":cost},400)
+            c.execute(f"UPDATE franchises SET {cols[kind]}={cols[kind]}+1,xp_reserve=xp_reserve-? WHERE id=?",(cost,fr["id"]))
+            fr2=dict(c.execute("SELECT * FROM franchises WHERE id=?",(fr["id"],)).fetchone())
+            c.execute("UPDATE franchises SET xp_budget=? WHERE id=?",(annual_team_budget(fr2),fr["id"]))
+            c.commit();c.close();return self.out({"ok":True,"kind":kind,"level":level+1,"cost":cost})
+
         if p=="/api/coach/set-strategy":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
@@ -3473,8 +3763,9 @@ class H(BaseHTTPRequestHandler):
             c=conn()
             if not c.execute("SELECT 1 FROM users WHERE id=?",(other,)).fetchone():
                 c.close();return self.out({"error":"USER_NOT_FOUND"},404)
-            c.execute("INSERT INTO direct_messages(sender_user_id,recipient_user_id,message) VALUES(?,?,?)",(u["id"],other,msg))
-            c.commit();c.close();return self.out({"ok":True})
+            cur=c.execute("INSERT INTO direct_messages(sender_user_id,recipient_user_id,message) VALUES(?,?,?)",(u["id"],other,msg))
+            notify_user(c,other,"DM",f"New message from {u['username']}",msg[:120],str(u["id"]))
+            c.commit();c.close();return self.out({"ok":True,"message_id":cur.lastrowid})
         if p=="/api/commish/activate":
             u=self.auth(["COMMISSIONER"])
             if not u:return
@@ -3926,7 +4217,15 @@ class H(BaseHTTPRequestHandler):
             if not games:
                 c.close()
                 return self.out({"error":"NO_GAMES_SCHEDULED","season":season,"day":day},400)
+            # Notify human players that their club is taking the field.
+            for g in games:
+                for fid in (g["away_id"],g["home_id"]):
+                    for ur in c.execute("SELECT DISTINCT user_id FROM players WHERE franchise_id=? AND active=1 AND user_id IS NOT NULL",(fid,)).fetchall():
+                        notify_user(c,ur["user_id"],"GAME",f"Game Day: {team_name(c,g['away_id'])} @ {team_name(c,g['home_id'])}",f"League Day {day}",g["id"])
             results=[simulate_game(c,g) for g in games]
+            process_quarter_awards(c,season,day)
+            if day==81:
+                process_season_awards(c,season)
             c.execute("UPDATE league_state SET v=? WHERE k='league_day'",(str(day),))
             c.commit();c.close()
             if day%7==0:
@@ -3991,7 +4290,13 @@ class H(BaseHTTPRequestHandler):
                        WHERE season=? AND league_day BETWEEN 1 AND 81""",
                     (season,)
                 )
-                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0")
+                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0")
+                c.execute("DELETE FROM award_history WHERE season=?",(season,))
+                c.execute("DELETE FROM notifications WHERE type IN ('GAME','AWARD')")
+                enforce_18_player_rosters(c)
+                # Reset each club to its infrastructure-adjusted annual XP pool.
+                for fr in c.execute("SELECT * FROM franchises").fetchall():
+                    c.execute("UPDATE franchises SET xp_budget=? WHERE id=?",(annual_team_budget(dict(fr)),fr["id"]))
 
 
                 players=c.execute("SELECT id,type FROM players").fetchall()
@@ -4117,14 +4422,22 @@ class H(BaseHTTPRequestHandler):
 
 
                 # ---------------------------------------------
-                # RESET TEAM REGULAR-SEASON STANDINGS
+                # FRANCHISE XP ROLLOVER + NEXT-YEAR BUDGET
                 # ---------------------------------------------
-                c.execute(
-                    """
-                    UPDATE franchises
-                    SET wins=0,losses=0,runs_for=0,runs_against=0
-                    """
-                )
+                for frrow in c.execute("SELECT * FROM franchises").fetchall():
+                    fr=dict(frrow);budget=float(fr.get("xp_budget",TEAM_BUDGET) or TEAM_BUDGET);spent=float(fr.get("xp_spent",0) or 0)
+                    unused=max(0.0,budget-spent)
+                    # Clubs must spend at least 70% of the annual pool to keep unused XP.
+                    rollover=unused if spent>=budget*.70 else 0.0
+                    reserve=min(reserve_cap(fr),float(fr.get("xp_reserve",0) or 0)+rollover)
+                    fr["xp_reserve"]=reserve
+                    next_budget=annual_team_budget(fr)
+                    c.execute("""UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,
+                               xp_reserve=?,xp_spent=0,xp_budget=? WHERE id=?""",
+                              (reserve,next_budget,fr["id"]))
+
+                # Players age one year when the league advances a season.
+                c.execute("UPDATE players SET age=age+1 WHERE active=1")
 
 
                 # ---------------------------------------------
