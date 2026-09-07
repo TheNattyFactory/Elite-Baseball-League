@@ -1020,7 +1020,7 @@ def simulate_game(c,g):
                                     "Lineout"
                                 ])
                             })
-                            else:
+                    else:
                             batline["AB"]+=1
                             batline["H"]+=1
 
