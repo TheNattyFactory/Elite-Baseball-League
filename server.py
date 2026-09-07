@@ -327,6 +327,22 @@ def init_db():
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       bytes INTEGER
     );
+    CREATE TABLE IF NOT EXISTS season_history(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      season INTEGER NOT NULL,
+      player_id INTEGER NOT NULL,
+      franchise_id TEXT,
+      player_type TEXT NOT NULL,
+      stats_json TEXT NOT NULL DEFAULT '{}',
+      archived_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(season,player_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS season_champions(
+      season INTEGER PRIMARY KEY,
+      franchise_id TEXT NOT NULL,
+      archived_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
 """)
 
     for username,password,role in [("coach","coach123","COACH"),("commish","commish123","COMMISSIONER")]:
