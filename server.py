@@ -1093,7 +1093,7 @@ def simulate_game(c,g):
                                         runner_line["CS"]+=1
                                     if not safe:
                                         outs+=1;base_runner[fid]=None;events.append({"type":"OUT","outs":outs,"out_type":"Caught Stealing"})
-                        events.append({"type":"PA_END","result":result,"outs":outs,"score":[score[away],score[home]]});break
+                                        events.append({"type":"PA_END","result":result,"outs":outs,"score":[score[away],score[home]]});break
                     if balls>=4:
                         batline["BB"]+=1
 
