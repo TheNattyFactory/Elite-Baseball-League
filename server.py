@@ -3226,7 +3226,7 @@ class H(BaseHTTPRequestHandler):
             champion=champion_row["v"] if champion_row else ""
 
             if phase!="OFFSEASON":
-        return self.out({
+                return self.out({
                 "error":"SEASON_NOT_COMPLETE",
                 "phase":phase
             },400)
