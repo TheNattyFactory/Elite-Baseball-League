@@ -1799,12 +1799,10 @@ class H(BaseHTTPRequestHandler):
                     "E":0
                 }
             }
-         c.close()
+            c.close()
 
-         return self.out({
-             "game":game
-            })
-
+            return self.out({
+             "game":game})
         if p=="/api/my-player":
             u=self.auth()
             if not u:return
