@@ -1800,7 +1800,7 @@ class H(BaseHTTPRequestHandler):
                 }
             }
 
-            c.close()
+        c.close()
 
             return self.out({
              "game":game
