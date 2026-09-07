@@ -1107,6 +1107,25 @@ def simulate_game(c,g):
                         if base_runner[fid] is None: base_runner[fid]=batter["id"]
                         events.append({"type":"PA_END","result":"BB","outs":outs,"score":[score[away],score[home]]});break
                     if strikes>=3:
+                        batline["AB"]+=1
+                        batline["SO"]+=1
+
+                        outs+=1
+
+                        events.append({
+                            "type":"OUT",
+                            "outs":outs,
+                            "out_type":"Strikeout"
+                        })
+
+                        events.append({
+                            "type":"PA_END",
+                            "result":"SO",
+                            "outs":outs,
+                            "score":[score[away],score[home]]
+                        })
+
+                        break
                         outs+=1;events.append({"type":"OUT","outs":outs,"out_type":"Strikeout"});events.append({"type":"PA_END","result":"SO","outs":outs,"score":[score[away],score[home]]});break
             events.append({"type":"INNING_END","inning":inning,"half":half,"score":[score[away],score[home]]})
         # late-inning defensive replacement marker for both teams
