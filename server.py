@@ -1709,17 +1709,17 @@ class H(BaseHTTPRequestHandler):
                 player=c.execute(
                     "SELECT id,name,franchise_id FROM players WHERE id=?",
                     (int(pid),)
-        ).fetchone()
+                ).fetchone()
 
-        if not player:
-            continue
+            if not player:
+                continue
 
-        hitter_rows.append({
-            "player_id":int(pid),
-            "name":player["name"],
-            "team_id":player["franchise_id"],
-            **line
-        })
+                hitter_rows.append({
+                    "player_id":int(pid),
+                    "name":player["name"],
+                    "team_id":player["franchise_id"],
+                    **line
+                })
 
     pitcher_rows=[]
 
@@ -1800,7 +1800,7 @@ class H(BaseHTTPRequestHandler):
                 }
             }
 
-            c.close()
+                c.close()
 
             return self.out({
          "game":game
