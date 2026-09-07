@@ -3332,7 +3332,7 @@ class H(BaseHTTPRequestHandler):
         # CREATE NEXT SEASON SCHEDULE
         # ---------------------------------------------
 
-        generate_season_schedule(
+            generate_season_schedule(
             c,
             next_season
         )
