@@ -571,7 +571,7 @@ def init_db():
         )
 
 
-        c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('season','2')")
+        c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('season','1')")
         c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('league_day','0')")
         c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('phase','REGULAR')")
         c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('playoff_round','')")
@@ -616,14 +616,14 @@ def init_db():
                 pairs=[(b,a) for a,b in pairs]
             for ai,bi in pairs:
                 c.execute("INSERT OR IGNORE INTO games(id,season,league_day,away_id,home_id,status) VALUES(?,?,?,?,?,'SCHEDULED')",
-                          (f"S02-G{gid:04d}",2,day,fids[ai],fids[bi]))
+                          (f"S01-G{gid:04d}",1,day,fids[ai],fids[bi]))
                 gid+=1
 
 
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('phase','RECRUITING')")
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('alpha_cpu_fill','1')")
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('auto_advance','0')")
-        c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('season_number','2')")
+        c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('season_number','1')")
         # EBL active roster: 18 players/team = 540 total.
         slot_template=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL","SP","SP","SP","SP","RP","RP","RP"]
         for fr in c.execute("SELECT id FROM franchises ORDER BY id").fetchall():
@@ -4320,54 +4320,27 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             c=conn()
             try:
-                season=int(c.execute("SELECT v FROM league_state WHERE k='season'").fetchone()["v"])
-                prefix=f"S{season:02d}-"
-
-
-                # Reverse only XP created by games from the current season.
-                ledger_rows=c.execute(
-                    "SELECT id,player_id,xp,detail_json FROM xp_ledger WHERE event_type IN ('SALARY','PERFORMANCE')"
-                ).fetchall()
-                xp_reversed=0.0
-                ledger_ids=[]
-                by_player={}
-                for row in ledger_rows:
-                    try:detail=json.loads(row["detail_json"] or "{}")
-                    except Exception:detail={}
-                    gid=str(detail.get("game", ""))
-                    if gid.startswith(prefix):
-                        amount=float(row["xp"] or 0)
-                        by_player[row["player_id"]]=by_player.get(row["player_id"],0.0)+amount
-                        xp_reversed+=amount
-                        ledger_ids.append(row["id"])
-
-
-                for pid,amount in by_player.items():
-                    c.execute(
-                        "UPDATE players SET xp_wallet=MAX(0,xp_wallet-?) WHERE id=?",
-                        (amount,pid)
-                    )
-                if ledger_ids:
-                    q=','.join('?' for _ in ledger_ids)
-                    c.execute(f"DELETE FROM xp_ledger WHERE id IN ({q})",ledger_ids)
-
-
-                # Keep historical seasons immutable. Rebuild only this season.
-                c.execute("DELETE FROM games WHERE season=? AND league_day>81",(season,))
-                c.execute(
-                    """UPDATE games SET status='SCHEDULED',away_runs=NULL,home_runs=NULL,box_json='{}',events_json='[]'
-                       WHERE season=? AND league_day BETWEEN 1 AND 81""",
-                    (season,)
-                )
-                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0")
-                c.execute("DELETE FROM award_history WHERE season=?",(season,))
+                # Genesis reset: return the closed-alpha league to Season 1, Day 0.
+                # Accounts, players, attributes, XP wallets, friendships and contracts stay intact.
+                c.execute("DELETE FROM games")
+                c.execute("DELETE FROM season_history")
+                c.execute("DELETE FROM season_champions")
+                c.execute("DELETE FROM franchise_season_history")
+                c.execute("DELETE FROM player_championships")
+                c.execute("DELETE FROM award_history")
+                c.execute("DELETE FROM rivalries")
+                c.execute("DELETE FROM league_records")
+                c.execute("DELETE FROM news")
                 c.execute("DELETE FROM notifications WHERE type IN ('GAME','AWARD')")
+
+                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0")
                 enforce_18_player_rosters(c)
-                # Reset each club to its infrastructure-adjusted annual XP pool.
+
+                # Reset every club to its infrastructure-adjusted annual XP pool.
                 for fr in c.execute("SELECT * FROM franchises").fetchall():
                     c.execute("UPDATE franchises SET xp_budget=? WHERE id=?",(annual_team_budget(dict(fr)),fr["id"]))
 
-
+                # Clear current-season stat lines without touching career identity or progression.
                 players=c.execute("SELECT id,type FROM players").fetchall()
                 for pl in players:
                     if pl["type"]=="H":
@@ -4376,19 +4349,27 @@ class H(BaseHTTPRequestHandler):
                         stats={"G":0,"GS":0,"OUTS":0,"H":0,"ER":0,"BB":0,"SO":0,"W":0,"L":0,"SV":0}
                     c.execute("UPDATE players SET season_json=? WHERE id=?",(json.dumps(stats),pl["id"]))
 
+                # Build a completely clean Season 1 schedule.
+                generate_season_schedule(c,1)
 
-                for key,value in (("league_day","0"),("phase","REGULAR"),("playoff_round",""),("champion","")):
+                for key,value in (("season","1"),("league_day","0"),("phase","REGULAR"),("playoff_round",""),("champion","")):
                     c.execute(
                         "INSERT INTO league_state(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",
                         (key,value)
                     )
-
+                c.execute(
+                    "INSERT INTO league_config(k,v) VALUES('season_number','1') ON CONFLICT(k) DO UPDATE SET v='1'"
+                )
 
                 c.commit()
                 return self.out({
-                    "ok":True,"season":season,"day":0,"phase":"REGULAR",
-                    "xp_reversed":round(xp_reversed,3),
-                    "ledger_entries_removed":len(ledger_ids)
+                    "ok":True,
+                    "season":1,
+                    "day":0,
+                    "phase":"REGULAR",
+                    "games_created":c.execute("SELECT COUNT(*) n FROM games WHERE season=1").fetchone()["n"],
+                    "rivalries_reset":True,
+                    "history_reset":True
                 })
             finally:
                 c.close()
