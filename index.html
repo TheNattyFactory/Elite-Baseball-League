@@ -34,8 +34,8 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
 .rivalry{padding:10px 0;border-bottom:1px solid var(--line)}.heat{height:6px;background:#142a40;border-radius:99px;overflow:hidden;margin-top:6px}.heat span{display:block;height:100%;background:var(--red)}.recordCard{padding:10px;border-left:3px solid var(--silver);margin:8px 0;background:#0a1d31;border-radius:7px}
 .dmContact{padding:9px;border-bottom:1px solid var(--line);cursor:pointer}.dmContact:hover{background:#102844}.dmContact.active{border-left:3px solid var(--red);background:#0d223b}.dmBubble{max-width:82%;padding:8px 10px;border-radius:10px;margin:6px 0;background:#102844}.dmBubble.mine{margin-left:auto;background:#173551}.dmMeta{font-size:11px;color:var(--mut)}
 
-.notifWrap{position:relative}.notifBell{position:relative;min-width:42px;font-size:18px}.notifCount{position:absolute;right:-5px;top:-7px;background:var(--red);color:white;border-radius:999px;min-width:19px;height:19px;padding:0 5px;display:grid;place-items:center;font-size:11px;font-weight:900}.notifPanel{position:fixed;right:12px;top:78px;width:min(390px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:#071522;border:1px solid var(--line);border-radius:13px;box-shadow:0 16px 45px #000a;padding:10px;z-index:60}.notifItem{padding:10px;border-bottom:1px solid #203950;cursor:pointer}.notifItem.unread{background:#102844}.notifItem:last-child{border-bottom:0}.playoffMark{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:999px;border:1px solid var(--red);font-size:10px;font-weight:900}.upgradeGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.upgradeCard{border:1px solid var(--line);border-radius:10px;padding:10px;background:#0a1d31}
-@media(max-width:800px){.two,.three,.gcgrid{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}.big{font-size:25px}th{position:static}.tickerTrack{animation-duration:28s}}
+.notifWrap{position:relative}.notifBell{position:relative;min-width:42px;font-size:18px}.notifCount{position:absolute;right:-5px;top:-7px;background:var(--red);color:white;border-radius:999px;min-width:19px;height:19px;padding:0 5px;display:grid;place-items:center;font-size:11px;font-weight:900}.notifPanel{position:fixed;right:12px;top:78px;width:min(390px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:#071522;border:1px solid var(--line);border-radius:13px;box-shadow:0 16px 45px #000a;padding:10px;z-index:60}.notifItem{padding:10px;border-bottom:1px solid #203950;cursor:pointer}.notifItem.unread{background:#102844}.notifItem:last-child{border-bottom:0}.teamMark{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;border:3px solid var(--tm2,#d7262e);box-shadow:inset 0 0 0 2px var(--tm3,#d9e0e8),0 3px 9px #0006;background:var(--tm1,#071a31);color:var(--tm3,#fff);font-size:11px;font-weight:950;letter-spacing:-.04em;vertical-align:middle}.teamMark.sm{width:24px;height:24px;border-width:2px;font-size:9px}.baseballDivider{height:18px;margin:8px 0 14px;opacity:.55;background:radial-gradient(circle at 9px 9px,#fff 0 7px,transparent 7.5px) 0 0/36px 18px repeat-x;position:relative}.baseballDivider:after{content:'⚾';position:absolute;left:50%;top:-4px;transform:translateX(-50%);background:#071522;padding:0 8px}.coachDash{display:grid;grid-template-columns:1.15fr .85fr;gap:10px}.taskCard{border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px;padding:11px;background:#091b2e}.moneyBar{height:10px;background:#06111e;border:1px solid #28445f;border-radius:99px;overflow:hidden}.moneyBar span{display:block;height:100%;background:linear-gradient(90deg,#4b85ba,#58c98b)}.friendCard{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px;border-bottom:1px solid var(--line)}.playerPortrait{width:82px;height:96px;border-radius:14px 14px 22px 22px;background:radial-gradient(circle at 50% 30%,#244766,#0b1d31 72%);border:1px solid #45627c;display:grid;place-items:center;position:relative;overflow:hidden;box-shadow:inset 0 -18px 0 #071a31,0 6px 16px #0005}.playerPortrait:before{content:'';width:42px;height:48px;border-radius:48% 48% 44% 44%;background:var(--skin,#c68e68);position:absolute;top:12px;box-shadow:0 -10px 0 var(--hair,#3b261e)}.playerPortrait:after{content:attr(data-pos);position:absolute;bottom:7px;font-size:11px;font-weight:950;color:white}.playoffMark{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:999px;border:1px solid var(--red);font-size:10px;font-weight:900}.upgradeGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.upgradeCard{border:1px solid var(--line);border-radius:10px;padding:10px;background:#0a1d31}
+@media(max-width:800px){.two,.three,.gcgrid,.coachDash{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}.big{font-size:25px}th{position:static}.tickerTrack{animation-duration:28s}}
 </style><style>
 .profileHero{display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:center}
 .profileLogo{display:flex;justify-content:center;align-items:center}
@@ -73,18 +73,18 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
 
 
 <section id="news" class="page"><div class="card"><h1>EBL NEWSROOM</h1><p class="muted">The stories, results, rivalries, and moments shaping the Elite Baseball League.</p><div class="subtabs"><button class="subtab active" onclick="newsFilter('ALL',this)">ALL</button><button class="subtab" onclick="newsFilter('GAME',this)">GAMES</button><button class="subtab" onclick="newsFilter('MANAGER',this)">DUGOUT</button><button class="subtab" onclick="newsFilter('TRANSACTION',this)">TRANSACTIONS</button><button class="subtab" onclick="newsFilter('MILESTONE',this)">MILESTONES</button><button class="subtab" onclick="newsFilter('RIVALRY',this)">RIVALRIES</button><button class="subtab" onclick="newsFilter('RECORD',this)">RECORDS</button></div><div id="newsFeed"></div></div></section>
-<section id="community" class="page"><div class="card"><h1>EBL COMMUNITY</h1><p class="muted">The history the league creates together.</p><div class="two"><div class="card"><h2>Rivalry Board</h2><div id="rivalryBoard"></div></div><div class="card"><h2>EBL Record Book</h2><div id="recordBook"></div></div></div></div></section><section id="messages" class="page"><div class="card"><h1>PRIVATE MESSAGES</h1><p class="muted">Talk directly with coaches, teammates, and other EBL members.</p><div class="two"><div class="card"><h2>Contacts</h2><div id="dmContacts"></div></div><div class="card"><h2 id="dmTitle">Conversation</h2><div id="dmThread" class="chatbox"></div><div class="chatinput"><input id="dmMsg" maxlength="500" placeholder="Write a private message..."><button class="btn" onclick="sendDM()">Send</button></div></div></div></div></section><section id="player" class="page"><div id="playerMain" class="card"></div>
+<section id="community" class="page"><div class="card"><h1>EBL COMMUNITY</h1><p class="muted">The history the league creates together.</p><div class="baseballDivider"></div><div class="two"><div class="card"><h2>Friends & Requests</h2><div id="friendsPanel"><p class="muted">Loading friends...</p></div></div><div class="card"><h2>Rivalry Board</h2><div id="rivalryBoard"></div></div></div><div class="card"><h2>EBL Record Book</h2><div id="recordBook"></div></div></div></section><section id="messages" class="page"><div class="card"><h1>PRIVATE MESSAGES</h1><p class="muted">Talk directly with coaches, teammates, and other EBL members.</p><div class="two"><div class="card"><h2>Contacts</h2><div id="dmContacts"></div></div><div class="card"><h2 id="dmTitle">Conversation</h2><div id="dmThread" class="chatbox"></div><div class="chatinput"><input id="dmMsg" maxlength="500" placeholder="Write a private message..."><button class="btn" onclick="sendDM()">Send</button></div></div></div></div></section><section id="player" class="page"><div id="playerMain" class="card"></div>
 <div id="createCard" class="card hidden"><h2>Create Your EBL Player</h2>
 <div class="creatorSteps"><div id="cs1" class="creatorStep active">1 • BASIC INFO</div><div id="cs2" class="creatorStep">2 • APPEARANCE</div><div id="cs3" class="creatorStep">3 • ATTRIBUTES</div><div id="cs4" class="creatorStep">4 • REVIEW</div></div>
 <div id="creatorStage"></div>
 </div></section>
 
 
-<section id="coach" class="page"><div class="card"><h1>Franchise Operations</h1><p class="muted">Manage contracts, batting order, field alignment, rotation, bullpen roles, and defensive tactics.</p><div id="coachHub"></div></div></section>
-<section id="league" class="page"><div class="card"><h1>League</h1><div class="subtabs"><button class="subtab active" onclick="leaguePane('standingsPane',this)">STANDINGS</button><button class="subtab" onclick="leaguePane('schedulePane',this)">SCHEDULE</button><button class="subtab" onclick="leaguePane('playoffsPane',this);loadPlayoffs()">PLAYOFFS</button></div><div id="standingsPane" class="subpane active"></div><div id="schedulePane" class="subpane"></div><div id="playoffsPane" class="subpane"><p class="muted">Playoff bracket loads here when the postseason field is set.</p></div></div></section>
+<section id="coach" class="page"><div class="card"><h1>⚾ Franchise Operations</h1><p class="muted">Manage contracts, batting order, field alignment, rotation, bullpen roles, and defensive tactics.</p><div id="coachHub"></div></div></section>
+<section id="league" class="page"><div class="card"><h1>⚾ League</h1><div class="subtabs"><button class="subtab active" onclick="leaguePane('standingsPane',this)">STANDINGS</button><button class="subtab" onclick="leaguePane('schedulePane',this)">SCHEDULE</button><button class="subtab" onclick="leaguePane('playoffsPane',this);loadPlayoffs()">PLAYOFFS</button></div><div id="standingsPane" class="subpane active"></div><div id="schedulePane" class="subpane"></div><div id="playoffsPane" class="subpane"><p class="muted">Playoff bracket loads here when the postseason field is set.</p></div></div></section>
 
 
-<section id="analytics" class="page"><div class="card"><h1>EBL Analytics</h1><div class="subtabs"><button class="subtab active" onclick="analyticsPane('aLeague',this)">LEAGUE</button><button class="subtab" onclick="analyticsPane('aBat',this)">BATTING</button><button class="subtab" onclick="analyticsPane('aPitch',this)">PITCHING</button></div><div id="aLeague" class="subpane active"></div><div id="aBat" class="subpane"></div><div id="aPitch" class="subpane"></div></div></section>
+<section id="analytics" class="page"><div class="card"><h1>⚾ EBL Analytics</h1><div class="subtabs"><button class="subtab active" onclick="analyticsPane('aLeague',this)">LEAGUE</button><button class="subtab" onclick="analyticsPane('aBat',this)">BATTING</button><button class="subtab" onclick="analyticsPane('aPitch',this)">PITCHING</button></div><div id="aLeague" class="subpane active"></div><div id="aBat" class="subpane"></div><div id="aPitch" class="subpane"></div></div></section>
 
 
 <section id="awards" class="page"><div class="card"><h1>Award Races</h1><p class="muted">Genesis races update as the season develops. Statistical titles are earned on the field; major awards use performance-based rankings.</p><div class="subtabs"><button class="subtab active" onclick="awardPane('mvpPane',this)">MVP</button><button class="subtab" onclick="awardPane('batTitle',this)">BATTING TITLE</button><button class="subtab" onclick="awardPane('pitchTitle',this)">PITCHING</button><button class="subtab" onclick="awardPane('sbTitle',this)">STOLEN BASES</button><button class="subtab" onclick="awardPane('fieldTitle',this)">FIELDING</button></div><div id="mvpPane" class="subpane active"></div><div id="batTitle" class="subpane"></div><div id="pitchTitle" class="subpane"></div><div id="sbTitle" class="subpane"></div><div id="fieldTitle" class="subpane"></div></div></section>
@@ -889,15 +889,15 @@ async function openUserProfile(username){
 }
 
 async function friendRequest(uid,username){
-  try{await api('/api/friends/request',{method:'POST',body:JSON.stringify({user_id:uid})});await openUserProfile(username)}
+  try{await api('/api/friends/request',{method:'POST',body:JSON.stringify({user_id:uid})});await Promise.all([openUserProfile(username),loadCommunity()])}
   catch(e){alert(e?.error||'Could not send friend request')}
 }
 async function acceptFriend(uid,username){
-  try{await api('/api/friends/accept',{method:'POST',body:JSON.stringify({user_id:uid})});await openUserProfile(username)}
+  try{await api('/api/friends/accept',{method:'POST',body:JSON.stringify({user_id:uid})});await Promise.all([openUserProfile(username),loadCommunity()])}
   catch(e){alert(e?.error||'Could not accept friend request')}
 }
 async function removeFriend(uid,username){
-  try{await api('/api/friends/remove',{method:'POST',body:JSON.stringify({user_id:uid})});await openUserProfile(username)}
+  try{await api('/api/friends/remove',{method:'POST',body:JSON.stringify({user_id:uid})});await Promise.all([openUserProfile(username),loadCommunity()])}
   catch(e){alert(e?.error||'Could not update friendship')}
 }
 async function messageProfile(uid){
@@ -1553,8 +1553,47 @@ function playoffPicture(){
   const rest=(LEAGUE?.teams||[]).filter(t=>!champs.includes(t.id)).sort((a,b)=>b.wins-a.wins||((b.runs_for-b.runs_against)-(a.runs_for-a.runs_against))||b.runs_for-a.runs_for);
   return {champs:new Set(champs),wc1:rest[0]?.id,wc2:rest[1]?.id};
 }
-function renderStandings(){if(!LEAGUE)return;let pic=playoffPicture();let html=`<div class="gold">Season ${LEAGUE.season} • League Day ${LEAGUE.day}</div><p class="muted"><span class="playoffMark">DIV</span> current division leader &nbsp; <span class="playoffMark">WC1</span>/<span class="playoffMark">WC2</span> current wild cards</p>`;for(let d of LEAGUE.divisions){let teams=LEAGUE.teams.filter(t=>t.division===d).sort((a,b)=>b.wins-a.wins||((b.runs_for-b.runs_against)-(a.runs_for-a.runs_against)));let lead=teams[0]?.wins||0;html+=`<div class="division"><h3>${d} Division</h3><div class="tablewrap"><table class="standingsTable"><thead><tr><th>Team</th><th>W</th><th>L</th><th>PCT</th><th>GB</th><th>RS</th><th>RA</th><th>DIFF</th></tr></thead><tbody>${teams.map(t=>{let g=t.wins+t.losses,pct=g?t.wins/g:0,gb=((lead-t.wins)+(t.losses-(teams[0]?.losses||0)))/2;let mark=pic.champs.has(t.id)?'<span class="playoffMark">DIV</span>':t.id===pic.wc1?'<span class="playoffMark">WC1</span>':t.id===pic.wc2?'<span class="playoffMark">WC2</span>':'';return `<tr class="${PLAYER?.franchise_id===t.id?'meRow':''}"><td><button class="teamLink" onclick="openTeam('${t.id}')">${t.name}</button>${mark}</td><td>${t.wins}</td><td>${t.losses}</td><td>${pct.toFixed(3).replace(/^0/,'')}</td><td>${gb<=0?'—':gb.toFixed(1)}</td><td>${t.runs_for}</td><td>${t.runs_against}</td><td>${t.runs_for-t.runs_against>=0?'+':''}${t.runs_for-t.runs_against}</td></tr>`}).join('')}</table></div></div>`}standingsPane.innerHTML=html}
+function renderStandings(){if(!LEAGUE)return;let pic=playoffPicture();let html=`<div class="gold">Season ${LEAGUE.season} • League Day ${LEAGUE.day}</div><p class="muted"><span class="playoffMark">DIV</span> current division leader &nbsp; <span class="playoffMark">WC1</span>/<span class="playoffMark">WC2</span> current wild cards</p>`;for(let d of LEAGUE.divisions){let teams=LEAGUE.teams.filter(t=>t.division===d).sort((a,b)=>b.wins-a.wins||((b.runs_for-b.runs_against)-(a.runs_for-a.runs_against)));let lead=teams[0]?.wins||0;html+=`<div class="division"><h3>${d} Division</h3><div class="tablewrap"><table class="standingsTable"><thead><tr><th>Team</th><th>W</th><th>L</th><th>PCT</th><th>GB</th><th>RS</th><th>RA</th><th>DIFF</th></tr></thead><tbody>${teams.map(t=>{let g=t.wins+t.losses,pct=g?t.wins/g:0,gb=((lead-t.wins)+(t.losses-(teams[0]?.losses||0)))/2;let mark=pic.champs.has(t.id)?'<span class="playoffMark">DIV</span>':t.id===pic.wc1?'<span class="playoffMark">WC1</span>':t.id===pic.wc2?'<span class="playoffMark">WC2</span>':'';return `<tr class="${PLAYER?.franchise_id===t.id?'meRow':''}"><td>${teamMark(t.id,true)} <button class="teamLink" onclick="openTeam('${t.id}')">${t.name}</button>${mark}</td><td>${t.wins}</td><td>${t.losses}</td><td>${pct.toFixed(3).replace(/^0/,'')}</td><td>${gb<=0?'—':gb.toFixed(1)}</td><td>${t.runs_for}</td><td>${t.runs_against}</td><td>${t.runs_for-t.runs_against>=0?'+':''}${t.runs_for-t.runs_against}</td></tr>`}).join('')}</table></div></div>`}standingsPane.innerHTML=html}
 async function loadSchedule(){let j=await api('/api/schedule');SCHEDULE=j.games;renderSchedule();renderTicker();renderGamecastList()}
+async function loadPlayoffs(){
+  const pane=document.getElementById('playoffsPane');
+  if(!pane)return;
+  try{
+    const j=await api('/api/playoffs/bracket');
+    const phase=String(j.phase||'REGULAR');
+    const currentRound=String(j.round||'');
+    const champId=j.champion||'';
+    const champName=champId?teamName(champId):'';
+    const roundLabel=currentRound?currentRound.replaceAll('_',' '):'Not started';
+    const status=phase==='REGULAR'
+      ? `<div class="playoffStatus"><b>PLAYOFF RACE</b><div class="muted">Season ${j.season} postseason field is still being decided. The bracket will populate when playoff games are created.</div></div>`
+      : phase==='PLAYOFFS'
+        ? `<div class="playoffStatus"><b>EBL PLAYOFFS • ${roundLabel}</b><div class="muted">Season ${j.season} postseason is underway.</div></div>`
+        : `<div class="playoffStatus"><b>SEASON ${j.season} COMPLETE</b><div>${champName?`🏆 <button class="clickableName" onclick="openTeam('${champId}')">${champName}</button> — EBL Champions`:'Postseason complete'}</div></div>`;
+
+    const rounds=(j.rounds||[]).map(r=>{
+      const cards=(r.series||[]).map(series=>{
+        const teams=series.teams||[];
+        const teamRows=teams.length?teams.map(t=>{
+          const win=series.winner_id===t.id;
+          return `<div class="seriesTeam ${win?'seriesWinner':''}"><button class="teamLink" onclick="openTeam('${t.id}')">${escapeHtml(String(t.name||teamName(t.id)||t.id))}</button><b>${Number(t.wins||0)}</b></div>`;
+        }).join(''):'<div class="muted">Matchup not set</div>';
+        const games=(series.games||[]).filter(g=>g.status==='FINAL');
+        const latest=games.length?games[games.length-1]:null;
+        const footer=series.winner_name
+          ? `<div class="gold" style="margin-top:7px">Winner: ${escapeHtml(String(series.winner_name))}</div>`
+          : latest?`<div class="muted" style="margin-top:7px">Latest: ${teamName(latest.away_id)} ${latest.away_runs}-${latest.home_runs} ${teamName(latest.home_id)}</div>`
+          : `<div class="muted" style="margin-top:7px">Best of ${Number(series.wins_needed||0)*2-1}</div>`;
+        return `<div class="seriesCard"><div class="seriesCode">${escapeHtml(String(series.code||''))}</div>${teamRows}${footer}</div>`;
+      }).join('');
+      return `<div class="bracketRound"><h3>${escapeHtml(String(r.name||''))}</h3>${cards||'<p class="muted">Not set</p>'}</div>`;
+    }).join('');
+
+    pane.innerHTML=status+`<div class="bracket">${rounds}</div>`;
+  }catch(e){
+    pane.innerHTML=`<div class="playoffStatus"><b>Playoff bracket unavailable</b><div class="muted">${escapeHtml(String(e?.error||e?.message||'Unable to load bracket'))}</div></div>`;
+  }
+}
 function renderSchedule(){let day=LEAGUE?.day||0,filterTeam=PLAYER?.franchise_id;let upcoming=SCHEDULE.filter(g=>g.league_day>=Math.max(1,day) && g.league_day<=day+7);schedulePane.innerHTML=`<div class="subtabs"><button class="subtab active" onclick="scheduleFilter('ALL',this)">ALL EBL</button><button class="subtab" onclick="scheduleFilter('MINE',this)">MY TEAM</button></div><div id="scheduleRows">${scheduleRows(upcoming,'ALL')}</div>`}
 function scheduleRows(games,mode){let arr=mode==='MINE'&&PLAYER?.franchise_id?games.filter(g=>g.away_id===PLAYER.franchise_id||g.home_id===PLAYER.franchise_id):games;return arr.map(g=>`<div class="game" ${g.status==='FINAL'?`onclick="watch('${g.id}')"`:''}><div class="gameLine"><span><b>Day ${g.league_day}</b> • ${teamName(g.away_id)} @ ${teamName(g.home_id)}</span><span class="${g.status==='FINAL'?'green':'muted'}">${g.status==='FINAL'?`${g.away_runs}-${g.home_runs} • WATCH`:'UPCOMING'}</span></div></div>`).join('')||'<p class="muted">No games in this window.</p>'}
 function scheduleFilter(mode,b){b.parentElement.querySelectorAll('.subtab').forEach(x=>x.classList.remove('active'));b.classList.add('active');let day=LEAGUE?.day||0;document.querySelector('#scheduleRows').innerHTML=scheduleRows(SCHEDULE.filter(g=>g.league_day>=Math.max(1,day)&&g.league_day<=day+7),mode)}
@@ -1565,8 +1604,8 @@ async function loadAwards(){let j=await api('/api/awards');const xp=j.xp_values|
 function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span><div><b>${x.name}</b><div class="muted">${detail(x)}</div></div><span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
 function renderHome(){
  if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
- let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="avatar">${initials(p.name)}</div><div><span class="muted">MY PLAYER</span><h2>${p.name}</h2><div>${p.primary_pos} • ${(+p.xp_wallet).toFixed(3)} XP available</div></div></div>`;
- homeTeam.innerHTML=t?`<span class="muted">MY TEAM</span><h2><button class="clickableName" onclick="openTeam('${p.franchise_id}')">${t.name}</button></h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Enter the CPU market from the Player tab.</p>`;
+ let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity">${playerPortraitMarkup(p)}<div><span class="muted">MY PLAYER</span><h2>${p.name}</h2><div>${p.primary_pos} • ${(+p.xp_wallet).toFixed(3)} XP available</div></div></div>`;
+ homeTeam.innerHTML=t?`<div class="identity">${teamMark(p.franchise_id)}<div><span class="muted">MY TEAM</span><h2><button class="clickableName" onclick="openTeam('${p.franchise_id}')">${t.name}</button></h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div></div></div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Enter the CPU market from the Player tab.</p>`;
  let ng=p.franchise_id?SCHEDULE.find(g=>g.status==='SCHEDULED'&&(g.away_id===p.franchise_id||g.home_id===p.franchise_id)&&g.league_day>=(LEAGUE?.day||0)):null;
  nextGame.innerHTML=ng?`<span class="muted">NEXT GAME • DAY ${ng.league_day}</span><h2>${teamName(ng.away_id)} @ ${teamName(ng.home_id)}</h2><p>${ng.away_id===p.franchise_id?'Road game':'Home game'}</p>`:`<h2>Next Game</h2><p class="muted">${p.franchise_id?'No upcoming game found.':'Sign a contract to join the schedule.'}</p>`;
 }
@@ -1603,10 +1642,16 @@ async function sendDM(){
 }
 async function loadCommunity(){
  try{
-  let [rv,rc]=await Promise.all([api('/api/rivalries'),api('/api/records')]);
+  let [rv,rc,fr]=await Promise.all([api('/api/rivalries'),api('/api/records'),api('/api/friends')]);
   rivalryBoard.innerHTML=rv.rivalries.length?rv.rivalries.map(r=>`<div class="rivalry"><b>${r.team_a_name} vs ${r.team_b_name}</b><div class="muted">${r.games} meetings • ${r.a_wins}-${r.b_wins} • ${r.one_run_games} one-run games</div><div class="heat"><span style="width:${Math.min(100,r.intensity)}%"></span></div><small>Intensity ${Math.round(r.intensity)}/100</small></div>`).join(''):'<p class="muted">No rivalries yet. They have to be earned.</p>';
   recordBook.innerHTML=rc.records.length?rc.records.map(r=>`<div class="recordCard"><span class="newsMeta">${r.record_label}</span><br><b>${r.holder_name}</b> — ${r.record_value}<div class="muted">${r.detail||''} • Day ${r.league_day}</div></div>`).join(''):'<p class="muted">Genesis begins with a blank record book.</p>';
- }catch(e){}
+  if(window.friendsPanel){
+   const incoming=(fr.incoming||[]).map(x=>`<div class="friendCard"><div><b>${escapeHtml(x.username)}</b><div class="muted">${escapeHtml(x.player_name||'EBL member')}</div></div><div><button class="btn" onclick="friendAccept(${x.user_id},'${jsq(x.username)}')">Accept</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
+   const friends=(fr.friends||[]).map(x=>`<div class="friendCard"><div>${x.franchise_id?teamMark(x.franchise_id,true):''} <b>${escapeHtml(x.username)}</b><div class="muted">${escapeHtml(x.player_name||'EBL member')}</div></div><div><button class="btn" onclick="startDM(${x.user_id},'${jsq(x.username)}')">Message</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
+   const outgoing=(fr.outgoing||[]).map(x=>`<div class="friendCard"><div><b>${escapeHtml(x.username)}</b><div class="muted">Friend request pending</div></div><button class="btn" onclick="friendRemove(${x.user_id},'${jsq(x.username)}')">Cancel</button></div>`).join('');
+   friendsPanel.innerHTML=(incoming?`<h3>Requests</h3>${incoming}`:'')+(friends?`<h3 style="margin-top:12px">Friends</h3>${friends}`:'')+(outgoing?`<h3 style="margin-top:12px">Sent</h3>${outgoing}`:'')||'<p class="muted">No friends yet. Open a user profile and send a friend request.</p>';
+  }
+ }catch(e){if(window.friendsPanel)friendsPanel.innerHTML='<p class="muted">Could not load friends.</p>'}
 }
 
 
@@ -1640,9 +1685,26 @@ function goPage(id){let b=document.querySelector(`.navbtn[data-page="${id}"]`);i
 
 
 function uniformOptions(selected){return ['WHITE','NAVY','RED','GRAY','BLACK','CREAM'].map(x=>`<option ${x===selected?'selected':''}>${x}</option>`).join('')}
+function teamAbbr(name){
+ const parts=String(name||'EBL').trim().split(/\s+/);
+ return parts.length>1?(parts[0][0]+parts[parts.length-1].slice(0,2)).toUpperCase():parts[0].slice(0,3).toUpperCase();
+}
 function teamLogoMarkup(style,p,s,a,name){
- const shapes=['◆','⬟','★','⚾','A','E','EBL','▲','●','✦'];
- return `<div style="width:220px;height:220px;border-radius:${style%2?'50%':'22%'};background:${p};border:12px solid ${s};box-shadow:inset 0 0 0 6px ${a},0 12px 30px #0007;display:flex;flex-direction:column;align-items:center;justify-content:center;color:${a};font-weight:950;text-align:center"><div style="font-size:72px">${shapes[(style-1)%shapes.length]}</div><div style="font-size:18px;padding:0 12px">${name}</div></div>`;
+ const shapes=['⚾','★','◆','⬟','✦','▲','●','E','B','L'];
+ const mark=shapes[(Number(style||1)-1)%shapes.length];
+ return `<div style="width:220px;height:220px;border-radius:${style%2?'50%':'22%'};background:radial-gradient(circle at 38% 30%,${a}22,transparent 35%),${p};border:12px solid ${s};box-shadow:inset 0 0 0 6px ${a},0 12px 30px #0007;display:flex;flex-direction:column;align-items:center;justify-content:center;color:${a};font-weight:950;text-align:center;position:relative"><div style="position:absolute;inset:15px;border:2px dashed ${a}88;border-radius:inherit"></div><div style="font-size:62px;line-height:1">${mark}</div><div style="font-size:24px;letter-spacing:.08em">${teamAbbr(name)}</div><div style="font-size:13px;padding:5px 12px 0">${name}</div></div>`;
+}
+function teamMark(fid,small=false){
+ const t=LEAGUE?.teams?.find(x=>x.id===fid)||{};
+ const n=t.display_name||t.name||fid||'EBL';
+ const p=t.primary_color||'#071A31',s=t.secondary_color||'#D7262E',a=t.accent_color||'#D9E0E8';
+ return `<span class="teamMark ${small?'sm':''}" style="--tm1:${p};--tm2:${s};--tm3:${a}" title="${escapeHtml(n)}">${teamAbbr(n)}</span>`;
+}
+function playerPortraitMarkup(p){
+ const skins=['#f1c7a7','#d9a17c','#b97855','#8b5a3c','#6f432f'];
+ const hairs=['#2b1c17','#4a2e21','#171717','#6b4932','#2f241f'];
+ let face=Number(p?.face_id||1),hair=Number(p?.hair_id||1);
+ return `<div class="playerPortrait" data-pos="${escapeHtml(p?.primary_pos||'EBL')}" style="--skin:${skins[(face-1)%skins.length]};--hair:${hairs[(hair-1)%hairs.length]}"></div>`;
 }
 function updateBrandPreview(){
  if(!window.brandPreview)return;
@@ -1660,7 +1722,21 @@ async function loadCoachHub(){
   if(!j.team){coachHub.innerHTML='<p class="muted">No franchise assigned.</p>';return}
   let H=j.roster.filter(x=>x.type==='H'),P=j.roster.filter(x=>x.type==='P'),SP=P.filter(x=>x.primary_pos==='SP');
   let lineup=j.lineup||[],rot=j.rotation||[],bp=j.strategy?.bullpen||{},def=j.strategy?.defense||{};
-  coachHub.innerHTML=`<div class="grid">
+  const next=j.next_game,opp=next?(next.away_id===j.team.id?next.home_id:next.away_id):null;
+  const humanCount=j.roster.filter(x=>x.user_id).length;
+  const lineupReady=(lineup||[]).length===9,rotationReady=(rot||[]).length===4;
+  coachHub.innerHTML=`<div class="coachDash">
+   <div class="card"><div class="identity">${teamMark(j.team.id)}<div><span class="muted">COACH DESK • DAY ${j.league_day}</span><h2>${j.team.name}</h2><div>${j.phase} • ${j.team.wins}-${j.team.losses} • ${humanCount}/18 human players</div></div></div><div class="baseballDivider"></div>
+    <div class="grid">
+      <div class="taskCard"><b>⚾ Next Game</b><div>${next?`Day ${next.league_day} • ${next.away_id===j.team.id?'@':'vs'} ${teamName(opp)}`:'No game scheduled'}</div></div>
+      <div class="taskCard"><b>📋 Lineup</b><div class="${lineupReady?'green':'red'}">${lineupReady?'Ready • 9 starters':'Needs attention'}</div></div>
+      <div class="taskCard"><b>🔥 Rotation</b><div class="${rotationReady?'green':'red'}">${rotationReady?'Ready • 4 starters':'Needs attention'}</div></div>
+      <div class="taskCard"><b>📄 Contracts</b><div>${j.contracts?.length||0} signed • ${j.offers.length} open offers</div></div>
+    </div>
+   </div>
+   <div class="card"><h3>Franchise XP</h3><div class="big">${Number(j.team.xp_available||0).toFixed(1)}</div><div class="muted">available after ${Number(j.team.reserved_offers||0).toFixed(1)} XP reserved for offers</div><div class="moneyBar" style="margin:10px 0"><span style="width:${Math.min(100,Number(j.team.spend_pct||0))}%"></span></div><div>${Number(j.team.xp_spent||0).toFixed(1)} / ${Number(j.team.xp_budget||0).toFixed(1)} spent (${Number(j.team.spend_pct||0).toFixed(1)}%)</div><div class="muted">Minimum rollover spend: ${(Number(j.team.xp_budget||0)*.70).toFixed(1)} • Reserve ${Number(j.team.xp_reserve||0).toFixed(1)}</div></div>
+   </div>
+   <div class="grid">
    <div class="statBox"><span class="label">FRANCHISE</span><b>${j.team.name}</b></div>
    <div class="statBox"><span class="label">RECORD</span><b>${j.team.wins}-${j.team.losses}</b></div>
    <div class="statBox"><span class="label">XP AVAILABLE</span><b>${(j.team.xp_budget-j.team.xp_spent).toFixed(1)}</b></div>
@@ -1732,8 +1808,10 @@ async function loadCoachHub(){
     <button class="btn" onclick="saveDefense()">Save Defensive Plan</button>
    </div>
    <div id="cMarket" class="subpane">
-    <div class="coachGrid"><div><h2>Free Agents</h2><button class="btn" onclick="loadCoachFreeAgents()">Refresh Free Agents</button><div id="coachFAs"></div></div>
-    <div><h2>Open Offers</h2>${j.offers.length?j.offers.map(o=>`<div class="offer"><b>${o.name}</b> • ${o.primary_pos}<br>${o.bonus} XP bonus • ${o.salary}/G • ${o.years} yr<br><button class="btn" onclick="cancelOffer(${o.id})">Cancel Offer</button></div>`).join(''):'<p class="muted">No open offers.</p>'}</div></div>
+    <div class="coachGrid"><div><h2>Free Agents</h2><p class="muted">Offer signing bonus XP, salary per game, and contract length. Accepted signing bonuses immediately count against the annual team XP pool.</p><button class="btn" onclick="loadCoachFreeAgents()">Refresh Free Agents</button><div id="coachFAs"></div></div>
+    <div><h2>Open Offers</h2>${j.offers.length?j.offers.map(o=>`<div class="offer"><b>${o.name}</b> • ${o.primary_pos}${o.username?` • @${o.username}`:''}<br>${o.bonus} XP bonus • ${o.salary}/G • ${o.years} yr<br><button class="btn" onclick="cancelOffer(${o.id})">Cancel Offer</button></div>`).join(''):'<p class="muted">No open offers.</p>'}
+    <h2 class="coachSection">Active Contracts</h2>${(j.contracts||[]).length?`<div class="tablewrap"><table><thead><tr><th>Player</th><th>Pos</th><th>Salary</th><th>Bonus</th><th>Years</th></tr></thead><tbody>${j.contracts.map(c=>`<tr><td>${escapeHtml(c.name)}${c.username?` <span class="muted">@${escapeHtml(c.username)}</span>`:''}</td><td>${c.primary_pos}</td><td>${Number(c.salary||0).toFixed(2)}/G</td><td>${Number(c.bonus||0).toFixed(1)}</td><td>${c.years_remaining}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No active contracts.</p>'}</div></div>
+   </div>
    <div id="cUpgrades" class="subpane">
     <h2>Franchise XP Reserve & Infrastructure</h2>
     <p class="muted">Spend at least 70% of the annual XP pool to roll unused XP into reserve. Reserve buys permanent upgrades that increase future annual XP pools. Headquarters also raises the reserve cap.</p>
@@ -1930,17 +2008,24 @@ async function resetTestAccount(){
     if(!confirm('Reset the current league back to Day 0? Season stats, standings and current-season game results will be erased. Human players/accounts remain; CPU rosters will be rebuilt to the new 18-player format.')) return;
     if(!confirm('Are you sure? This cannot be undone from the website.')) return;
 
-
     const out=document.getElementById('simout');
+    out.textContent='Resetting league...';
 
-
+    let j;
     try{
-        out.textContent='Resetting league...';
-        const j=await api('/api/commish/reset-league',{method:'POST'});
-        out.textContent='League reset complete — Day '+j.day;
-        await refresh();
+        j=await api('/api/commish/reset-league',{method:'POST'});
     }catch(e){
         out.textContent='Reset failed: '+(e?.error || e?.message || 'Unknown error');
+        return;
+    }
+
+    out.textContent='League reset complete — Day '+j.day;
+    try{
+        await refresh();
+        out.textContent='League reset complete — Day '+j.day;
+    }catch(e){
+        console.error('Post-reset refresh failed',e);
+        out.textContent='League reset complete — Day '+j.day+' (screen refresh had an error; reload the page if needed)';
     }
 } 
  

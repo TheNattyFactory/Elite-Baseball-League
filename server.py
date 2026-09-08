@@ -1,4 +1,4 @@
-﻿from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 from pathlib import Path
 import sqlite3, json, secrets, hashlib, os, mimetypes, hmac, random, math, smtplib, ssl, datetime, time, threading
@@ -2416,7 +2416,11 @@ class H(BaseHTTPRequestHandler):
 
 
             teams=[dict(x) for x in c.execute(
-                "SELECT id,name,wins,losses,runs_for,runs_against FROM franchises ORDER BY wins DESC,(runs_for-runs_against) DESC"
+                """SELECT f.id,f.name,f.wins,f.losses,f.runs_for,f.runs_against,
+                          b.display_name,b.logo_style,b.primary_color,b.secondary_color,b.accent_color
+                   FROM franchises f
+                   LEFT JOIN franchise_branding b ON b.franchise_id=f.id
+                   ORDER BY f.wins DESC,(f.runs_for-f.runs_against) DESC"""
     )]
 
 
@@ -3074,25 +3078,84 @@ class H(BaseHTTPRequestHandler):
                     pl["team"]=dict(f);pl["team"]["division"]=division_for(pl["franchise_id"])
             c.close();return self.out({"player":pl})
         if p=="/api/coach/free-agents":
-            u=self.auth(["COMMISSIONER"])
+            u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
             c=conn();rows=[player_obj(c,x["id"]) for x in c.execute("SELECT id FROM players WHERE status='FREE_AGENT' AND active=1 ORDER BY id DESC LIMIT 100")];c.close();return self.out({"players":rows})
         if p=="/api/coach/team":
-            u=self.auth(["COMMISSIONER"])
+            u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
             c=conn();f=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
             if not f:c.close();return self.out({"team":None})
-            roster=[dict(x) for x in c.execute("SELECT id,name,type,primary_pos FROM players WHERE franchise_id=? AND active=1 ORDER BY type,id",(f["id"],))]
+            roster=[dict(x) for x in c.execute(
+                """SELECT p.id,p.user_id,p.name,p.type,p.primary_pos,p.xp_wallet,p.status,u.username,
+                          co.salary,co.bonus,co.years_remaining
+                   FROM players p
+                   LEFT JOIN users u ON u.id=p.user_id
+                   LEFT JOIN contracts co ON co.player_id=p.id
+                   WHERE p.franchise_id=? AND p.active=1
+                   ORDER BY CASE p.type WHEN 'H' THEN 0 ELSE 1 END,p.primary_pos,p.id""",(f["id"],))]
             l=c.execute("SELECT * FROM lineups WHERE franchise_id=?",(f["id"],)).fetchone()
             strat=c.execute("SELECT * FROM team_strategy WHERE franchise_id=?",(f["id"],)).fetchone()
-            offers=[dict(x) for x in c.execute("""SELECT o.*,p.name,p.primary_pos FROM offers o JOIN players p ON p.id=o.player_id
+            offers=[dict(x) for x in c.execute("""SELECT o.*,p.name,p.primary_pos,u.username FROM offers o
+                       JOIN players p ON p.id=o.player_id LEFT JOIN users u ON u.id=p.user_id
                        WHERE o.franchise_id=? AND o.status IN ('OPEN','HELD') ORDER BY o.id DESC""",(f["id"],))]
             brand=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(f["id"],)).fetchone()
+            contracts=[dict(x) for x in c.execute(
+                """SELECT co.id,co.player_id,co.bonus,co.salary,co.years_remaining,co.signed_at,
+                          p.name,p.primary_pos,p.type,u.username
+                   FROM contracts co JOIN players p ON p.id=co.player_id
+                   LEFT JOIN users u ON u.id=p.user_id
+                   WHERE co.franchise_id=? AND p.active=1
+                   ORDER BY p.type,p.primary_pos,p.name""",(f["id"],))]
+            state={x["k"]:x["v"] for x in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
+            season=int(state.get("season",2));day=int(state.get("league_day",0))
+            next_game=c.execute(
+                """SELECT id,season,league_day,away_id,home_id,status
+                   FROM games WHERE season=? AND league_day>? AND status='SCHEDULED'
+                     AND (away_id=? OR home_id=?)
+                   ORDER BY league_day,id LIMIT 1""",(season,day,f["id"],f["id"])).fetchone()
+            reserved=float(c.execute("SELECT COALESCE(SUM(bonus),0) x FROM offers WHERE franchise_id=? AND status IN ('OPEN','HELD')",(f["id"],)).fetchone()["x"] or 0)
+            salary_rate=sum(float(x.get("salary") or 0) for x in contracts)
+            team=dict(f)
+            team["xp_available"]=max(0.0,float(team.get("xp_budget") or 0)-float(team.get("xp_spent") or 0)-reserved)
+            team["reserved_offers"]=reserved
+            team["salary_rate"]=round(salary_rate,3)
+            team["spend_pct"]=round((float(team.get("xp_spent") or 0)/float(team.get("xp_budget") or 1))*100,1)
             c.close()
-            return self.out({"team":dict(f),"branding":dict(brand) if brand else None,"roster":roster,"lineup":json.loads(l["batting_order_json"]),"rotation":json.loads(l["rotation_json"]),
-                             "strategy":{"bullpen":json.loads(strat["bullpen_json"]),"defense":json.loads(strat["defense_json"]),
-                                         "bench":json.loads(strat["bench_json"]),"substitutions":json.loads(strat["substitutions_json"])},
-                             "offers":offers})
+            return self.out({"team":team,"branding":dict(brand) if brand else None,"roster":roster,
+                             "lineup":json.loads(l["batting_order_json"]) if l else [],
+                             "rotation":json.loads(l["rotation_json"]) if l else [],
+                             "strategy":{"bullpen":json.loads(strat["bullpen_json"]) if strat else {},
+                                         "defense":json.loads(strat["defense_json"]) if strat else {},
+                                         "bench":json.loads(strat["bench_json"]) if strat else {},
+                                         "substitutions":json.loads(strat["substitutions_json"]) if strat else {}},
+                             "offers":offers,"contracts":contracts,
+                             "next_game":dict(next_game) if next_game else None,
+                             "league_day":day,"phase":state.get("phase","REGULAR")})
+        if p=="/api/friends":
+            u=self.auth()
+            if not u:return
+            c=conn()
+            accepted=[dict(x) for x in c.execute(
+                """SELECT f.id,
+                          CASE WHEN f.requester_user_id=? THEN f.addressee_user_id ELSE f.requester_user_id END user_id,
+                          u.username,p.name player_name,p.franchise_id
+                   FROM friendships f
+                   JOIN users u ON u.id=CASE WHEN f.requester_user_id=? THEN f.addressee_user_id ELSE f.requester_user_id END
+                   LEFT JOIN players p ON p.user_id=u.id AND p.active=1
+                   WHERE f.status='ACCEPTED' AND (f.requester_user_id=? OR f.addressee_user_id=?)
+                   ORDER BY LOWER(u.username)""",(u["id"],u["id"],u["id"],u["id"]))]
+            incoming=[dict(x) for x in c.execute(
+                """SELECT f.id,f.requester_user_id user_id,u.username,p.name player_name,p.franchise_id,f.created_at
+                   FROM friendships f JOIN users u ON u.id=f.requester_user_id
+                   LEFT JOIN players p ON p.user_id=u.id AND p.active=1
+                   WHERE f.addressee_user_id=? AND f.status='PENDING' ORDER BY f.id DESC""",(u["id"],))]
+            outgoing=[dict(x) for x in c.execute(
+                """SELECT f.id,f.addressee_user_id user_id,u.username,p.name player_name,p.franchise_id,f.created_at
+                   FROM friendships f JOIN users u ON u.id=f.addressee_user_id
+                   LEFT JOIN players p ON p.user_id=u.id AND p.active=1
+                   WHERE f.requester_user_id=? AND f.status='PENDING' ORDER BY f.id DESC""",(u["id"],))]
+            c.close();return self.out({"friends":accepted,"incoming":incoming,"outgoing":outgoing})
         if p=="/api/notifications":
             u=self.auth()
             if not u:return
@@ -3350,7 +3413,7 @@ class H(BaseHTTPRequestHandler):
                 notify_user(c,u["id"],"CONTRACT",f"Contract offer from {off['team']}",f"{off['bonus']:g} XP bonus • {off['salary']:g} XP/game • {off['years']} year(s)",str(off["offer_id"]))
             c.commit();c.close();return self.out({"ok":True,"offers":made})
         if p=="/api/coach/offer":
-            u=self.auth(["COMMISSIONER"])
+            u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
             d=self.body();pid=int(d.get("player_id",0));bonus=float(d.get("bonus",0));salary=float(d.get("salary",0));years=int(d.get("years",0))
             if bonus<0 or bonus>BONUS_CAP or salary not in SALARY_TIERS or years not in [1,2,3]:return self.out({"error":"INVALID_OFFER"},400)
@@ -3695,6 +3758,10 @@ class H(BaseHTTPRequestHandler):
             c=conn()
             if not c.execute("SELECT 1 FROM users WHERE id=?",(other,)).fetchone():
                 c.close();return self.out({"error":"USER_NOT_FOUND"},404)
+            if c.execute("""SELECT 1 FROM user_blocks WHERE
+                         (blocker_user_id=? AND blocked_user_id=?) OR
+                         (blocker_user_id=? AND blocked_user_id=?)""",(u["id"],other,other,u["id"])).fetchone():
+                c.close();return self.out({"error":"FRIEND_REQUEST_UNAVAILABLE"},403)
             reverse=c.execute(
                 "SELECT id,status FROM friendships WHERE requester_user_id=? AND addressee_user_id=?",
                 (other,u["id"])
@@ -3711,6 +3778,7 @@ class H(BaseHTTPRequestHandler):
             if existing:
                 c.close();return self.out({"ok":True,"status":existing["status"]})
             c.execute("INSERT INTO friendships(requester_user_id,addressee_user_id) VALUES(?,?)",(u["id"],other))
+            notify_user(c,other,"FRIEND",f"Friend request from {u['username']}","Open Community to accept or view their profile.",str(u["id"]))
             c.commit();c.close();return self.out({"ok":True,"status":"PENDING"})
 
 
@@ -3728,6 +3796,7 @@ class H(BaseHTTPRequestHandler):
             )
             if cur.rowcount!=1:
                 c.close();return self.out({"error":"FRIEND_REQUEST_NOT_FOUND"},404)
+            notify_user(c,other,"FRIEND",f"{u['username']} accepted your friend request","You are now EBL friends.",str(u["id"]))
             c.commit();c.close();return self.out({"ok":True,"status":"ACCEPTED"})
 
 
