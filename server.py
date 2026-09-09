@@ -22,6 +22,8 @@ SALARY_TIERS=[.25,.30,.35,.40,.45]
 BONUS_CAP=25.0
 TEAM_BUDGET=550.0
 STORAGE_KEEP_FULL_GAME_DAYS=7
+SP_XP_MULTIPLIER=3.0
+CHAT_RETENTION_HOURS=12
 
 
 FIRST_NAMES=["Marcus","Eli","Jordan","Dominic","Andre","Caleb","Noah","Isaiah","Lucas","Mateo","Julian","Miles","Cameron","Darius","Adrian","Nolan","Gavin","Roman","Jalen","Malik","Evan","Cole","Wesley","Bryce","Theo","Grant","Micah","Jonah","Emmett","Xavier","Leo","Mason","Owen","Silas","Aaron","Damian","Trevor","Derek","Logan","Rafael","Victor","Diego","Luis","Marco","Tomas","Javier","Nico","Santiago","Gabriel","Felix","Henry","Jack","Sam","Ben","Tyler","Connor","Dylan","Austin","Zachary","Nathan","Peter","Alex","Eric","Ryan","Sean","Ian","Blake","Chase","Troy","Reid","Dean","Clay","Jesse","Colin","Spencer","Garrett","Max","Milo","Asher","Ezra","Kai","Jace","Rory","Finn","Dante","Desmond","Terrence","Quincy","Leon","Curtis","Maurice","Devin","Kendrick","Avery","Tristan","Cody","Mitchell","Preston","Walker","Brody"]
@@ -794,14 +796,18 @@ def process_season_awards(c,season):
             if pool:
                 f=max(pool,key=lambda x:(x["attrs"].get("FLD",0)*.45+x["attrs"].get("REAC",0)*.25+x["attrs"].get("ARM",0)*.15+x["attrs"].get("ACC",0)*.15,x["pa"]))
                 if award_player(c,season,period,f"FIELD_{pos}",f"{pos} Fielding Title",f["id"],10):made.append(f"FIELD_{pos}")
+    # End-of-season pitching awards have position-specific eligibility.
+    # SPs compete only for Pitcher of the Season; RPs compete only for Reliever of the Season.
     starters=[x for x in pitchers if x["pos"]=="SP" and x["outs"]>0]
     if starters:
-        cy=max(starters,key=lambda x:x["score"]);
-        if award_player(c,season,period,"CY_YOUNG","Cy Young Award",cy["id"],15):made.append("CY_YOUNG")
-    rel=[x for x in pitchers if x["pos"]!="SP" and x["outs"]>0]
+        pos=max(starters,key=lambda x:x["score"])
+        if award_player(c,season,period,"PITCHER_OF_SEASON","Pitcher of the Season",pos["id"],15):
+            made.append("PITCHER_OF_SEASON")
+    rel=[x for x in pitchers if x["pos"]=="RP" and x["outs"]>0]
     if rel:
         rp=max(rel,key=lambda x:(x["score"]+x["sv"]*1.5,x["sv"]))
-        if award_player(c,season,period,"RELIEVER","Reliever of the Season",rp["id"],10):made.append("RELIEVER")
+        if award_player(c,season,period,"RELIEVER_OF_SEASON","Reliever of the Season",rp["id"],10):
+            made.append("RELIEVER_OF_SEASON")
     return made
 
 MIN_ACTIVE_TEAMS=8
@@ -2106,15 +2112,18 @@ def simulate_game(c,g):
             )
 
 
+            xp_mult=SP_XP_MULTIPLIER if is_starter else 1.0
             perf=round(
                 gps_xp(gps) *
-                rivalry_xp_multiplier(c,away,home),
+                rivalry_xp_multiplier(c,away,home) *
+                xp_mult,
                 3
             )
 
 
             con=contract_for(c,spid)
-            salary=float(con["salary"]) if con else .25
+            base_salary=float(con["salary"]) if con else .25
+            salary=round(base_salary*xp_mult,3)
             if p.get("franchise_id"):
                 c.execute("UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",(salary,p["franchise_id"]))
 
@@ -3603,7 +3612,15 @@ class H(BaseHTTPRequestHandler):
             mvp=sorted(hitters,key=lambda x:x["mvp"],reverse=True)[:10]
             hr=sorted(hitters,key=lambda x:(x["hr"],x["ops"]),reverse=True)[:10]
             sb=sorted(hitters,key=lambda x:(x["sb"],x["obp"]),reverse=True)[:10]
-            pitching=sorted([x for x in pitchers if x["outs"]>0],key=lambda x:(-x["score"],x["era"]))[:10]
+            starting_pitching=sorted(
+                [x for x in pitchers if x["pos"]=="SP" and x["outs"]>0],
+                key=lambda x:(-x["score"],x["era"])
+            )[:10]
+            relief_pitching=sorted(
+                [x for x in pitchers if x["pos"]=="RP" and x["outs"]>0],
+                key=lambda x:(-x["score"],x["era"])
+            )[:10]
+            pitching=starting_pitching + relief_pitching
             # Fielding titles are position race placeholders until complete fielding events populate OAA/DRS.
             fielding={}
             for pos in ["C","1B","2B","3B","SS","LF","CF","RF"]:
@@ -3612,15 +3629,39 @@ class H(BaseHTTPRequestHandler):
             history=[dict(x) for x in c.execute("""SELECT ah.*,p.name player_name,u.username,f.name team_name FROM award_history ah
                 LEFT JOIN players p ON p.id=ah.player_id LEFT JOIN users u ON u.id=p.user_id LEFT JOIN franchises f ON f.id=ah.franchise_id
                 ORDER BY ah.season DESC,ah.id DESC LIMIT 100""")]
-            c.close();return self.out({"mvp":mvp,"batting":batting,"home_runs":hr,"stolen_bases":sb,"pitching":pitching,"fielding":fielding,
-                "xp_values":{"MVP":15,"BATTING_TITLE":10,"CY_YOUNG":15,"SB_TITLE":10,"FIELDING":10,"RELIEVER":10,"QUARTER_BATTER":5,"QUARTER_PITCHER":5},
-                "history":history})
+            c.close();return self.out({
+                "mvp":mvp,
+                "batting":batting,
+                "home_runs":hr,
+                "stolen_bases":sb,
+                "pitching":pitching,
+                "starting_pitching":starting_pitching,
+                "relief_pitching":relief_pitching,
+                "fielding":fielding,
+                "xp_values":{
+                    "MVP":15,
+                    "BATTING_TITLE":10,
+                    "PITCHER_OF_SEASON":15,
+                    "RELIEVER_OF_SEASON":10,
+                    "SB_TITLE":10,
+                    "FIELDING":10,
+                    "QUARTER_BATTER":5,
+                    "QUARTER_PITCHER":5
+                },
+                "history":history
+            })
         if p.startswith("/api/chat/"):
             u=self.auth()
             if not u:return
             channel=p.split("/")[-1].upper()
             if channel not in ("EBL","TEAM"):return self.out({"error":"INVALID_CHANNEL"},400)
             c=conn();team_id=None
+            # Public/team chat is intentionally temporary. Private DMs are stored separately.
+            c.execute(
+                "DELETE FROM chat_messages WHERE created_at < datetime('now', ?)",
+                (f"-{CHAT_RETENTION_HOURS} hours",)
+            )
+            c.commit()
             if channel=="TEAM":
                 pr=c.execute("SELECT franchise_id FROM players WHERE user_id=? AND active=1 ORDER BY id DESC LIMIT 1",(u["id"],)).fetchone()
                 team_id=pr["franchise_id"] if pr else None
@@ -3634,6 +3675,8 @@ class H(BaseHTTPRequestHandler):
             fp=os.path.join(ROOT,"simulation_lab_report.json")
             with open(fp,"r") as f: return self.out(json.load(f))
         if p=="/api/analytics":
+            u=self.auth()
+            if not u:return
             c=conn()
             day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])
             finals=c.execute("SELECT COUNT(*) n FROM games WHERE status='FINAL'").fetchone()["n"]
@@ -3659,8 +3702,10 @@ class H(BaseHTTPRequestHandler):
             total_bb=sum(x["bb"] for x in active_h); total_so=sum(x["so"] for x in active_h); total_hr=sum(x["hr"] for x in active_h)
             league={"games":finals,"runs_per_game":runs/finals if finals else 0,"avg":total_h/max(1,sum(json.loads(c.execute("SELECT season_json FROM players WHERE id=?",(x["id"],)).fetchone()[0]).get("AB",0) for x in active_h)) if active_h else 0,
                     "bb_pct":total_bb/total_pa if total_pa else 0,"k_pct":total_so/total_pa if total_pa else 0,"hr_pct":total_hr/total_pa if total_pa else 0}
-            xp_rows=c.execute("SELECT event_type,COALESCE(SUM(xp),0) total,COUNT(*) n FROM xp_ledger GROUP BY event_type").fetchall()
-            xp={x["event_type"]:{"total":round(x["total"],3),"events":x["n"]} for x in xp_rows}
+            xp={}
+            if u["role"]=="COMMISSIONER":
+                xp_rows=c.execute("SELECT event_type,COALESCE(SUM(xp),0) total,COUNT(*) n FROM xp_ledger GROUP BY event_type").fetchall()
+                xp={x["event_type"]:{"total":round(x["total"],3),"events":x["n"]} for x in xp_rows}
             season=_season_number(c)
             active_ids=active_franchise_ids(c,season)
             q=",".join("?" for _ in active_ids)
@@ -3669,7 +3714,7 @@ class H(BaseHTTPRequestHandler):
                 active_ids
             )]
             c.close()
-            return self.out({"season":2,"day":day,"league":league,"xp":xp,
+            return self.out({"season":season,"day":day,"league":league,"xp":xp,
                 "leaders":{"ops":sorted(active_h,key=lambda x:x["ops"],reverse=True)[:10],
                            "hr":sorted(active_h,key=lambda x:(x["hr"],x["ops"]),reverse=True)[:10],
                            "pitching":sorted(active_p,key=lambda x:(x["era"],-x["so"]))[:10]},
@@ -4876,7 +4921,8 @@ class H(BaseHTTPRequestHandler):
             c=conn()
             try:
                 # Genesis reset: return the closed-alpha league to Season 1, Day 0.
-                # Accounts, players, attributes, XP wallets, friendships and contracts stay intact.
+                # Accounts, player identity/attributes, friendships and contracts stay intact.
+                # Earned XP, XP ledger history and temporary public/team chat are reset.
                 c.execute("DELETE FROM games")
                 c.execute("DELETE FROM season_history")
                 c.execute("DELETE FROM season_champions")
@@ -4886,8 +4932,11 @@ class H(BaseHTTPRequestHandler):
                 c.execute("DELETE FROM rivalries")
                 c.execute("DELETE FROM league_records")
                 c.execute("DELETE FROM news")
+                c.execute("DELETE FROM xp_ledger")
+                c.execute("DELETE FROM chat_messages")
                 c.execute("DELETE FROM notifications WHERE type IN ('GAME','AWARD')")
 
+                c.execute("UPDATE players SET xp_wallet=0")
                 c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0")
                 enforce_18_player_rosters(c)
 
