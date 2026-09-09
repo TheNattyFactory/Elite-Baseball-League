@@ -622,7 +622,7 @@ def init_db():
             fid=f"EBL-F{ti:02d}"
             hids=[]
             pids=[]
-            positions=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL"]
+            positions=["C","1B","2B","3B","SS","LF","CF","RF","DH"]
             for idx,pos in enumerate(positions,1):
                 attrs=cpu_build(HITTER_ATTRS,pos,R)
                 cur=c.execute("""INSERT INTO players(user_id,franchise_id,name,type,primary_pos,bats,throws,xp_wallet,attributes_json,season_json,status,active)
@@ -660,8 +660,9 @@ def init_db():
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('alpha_cpu_fill','1')")
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('auto_advance','0')")
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('season_number','1')")
-        # EBL active roster: 18 players/team = 540 total.
-        slot_template=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL","SP","SP","SP","SP","RP","RP","RP"]
+        # EBL active roster: 16 players/team = 480 total.
+        # Nine everyday hitters + four starting pitchers + three relief pitchers.
+        slot_template=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","SP","SP","SP","RP","RP","RP"]
         for fr in c.execute("SELECT id FROM franchises ORDER BY id").fetchall():
             fid=fr["id"]
             players=c.execute("SELECT id FROM players WHERE franchise_id=? ORDER BY id",(fid,)).fetchall()
@@ -669,6 +670,8 @@ def init_db():
                 pid=players[i-1]["id"] if i-1<len(players) else None
                 c.execute("""INSERT OR IGNORE INTO roster_slots(franchise_id,slot_no,position_group,player_id,occupant_type)
                              VALUES(?,?,?,?,?)""",(fid,i,posgrp,pid,"CPU" if pid else "OPEN"))
+    # Normalize existing leagues to the current active-roster shape on startup.
+    enforce_active_rosters(c)
     c.commit();c.close()
 
 
@@ -803,7 +806,7 @@ def process_season_awards(c,season):
         pos=max(starters,key=lambda x:x["score"])
         if award_player(c,season,period,"PITCHER_OF_SEASON","Pitcher of the Season",pos["id"],15):
             made.append("PITCHER_OF_SEASON")
-    rel=[x for x in pitchers if x["pos"]=="RP" and x["outs"]>0]
+    rel=[x for x in pitchers if x["pos"]!="SP" and x["outs"]>0]
     if rel:
         rp=max(rel,key=lambda x:(x["score"]+x["sv"]*1.5,x["sv"]))
         if award_player(c,season,period,"RELIEVER_OF_SEASON","Reliever of the Season",rp["id"],10):
@@ -946,8 +949,9 @@ def season_division(c,season,fid):
     ).fetchone()
     return row["division"] if row and row["division"] else division_for(fid)
 
-def enforce_18_player_rosters(c,season=None):
-    template=["C","1B","2B","3B","SS","LF","CF","RF","DH","UTIL","UTIL","SP","SP","SP","SP","RP","RP","RP"]
+def enforce_active_rosters(c,season=None):
+    # 16-player active roster: every hitter has an everyday lineup job.
+    template=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","SP","SP","SP","RP","RP","RP"]
     season=_season_number(c) if season is None else int(season)
     for fid in active_franchise_ids(c,season):
         rows=[dict(x) for x in c.execute("SELECT * FROM players WHERE franchise_id=? AND active=1 AND status='SIGNED' ORDER BY CASE WHEN user_id IS NOT NULL THEN 0 ELSE 1 END,id",(fid,))]
@@ -3606,7 +3610,7 @@ class H(BaseHTTPRequestHandler):
                     era=er*27/outs if outs else 99.0;whip=(bb+h)/(outs/3) if outs else 99.0
                     score=(so*1.2)-(er*2.2)-(bb*.7)+(outs/3)*.3
                     pitchers.append({"id":r["id"],"name":r["name"],"username":r["username"],"team":r["franchise_id"],"pos":r["primary_pos"],
-                                     "era":era,"whip":whip,"so":so,"outs":outs,"score":score})
+                                     "era":era,"whip":whip,"so":so,"sv":st.get("SV",0),"outs":outs,"score":score})
             qualified=[x for x in hitters if x["pa"]>=max(1,int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])*2)]
             batting=sorted(qualified or hitters,key=lambda x:(x["avg"],x["pa"]),reverse=True)[:10]
             mvp=sorted(hitters,key=lambda x:x["mvp"],reverse=True)[:10]
@@ -3617,8 +3621,8 @@ class H(BaseHTTPRequestHandler):
                 key=lambda x:(-x["score"],x["era"])
             )[:10]
             relief_pitching=sorted(
-                [x for x in pitchers if x["pos"]=="RP" and x["outs"]>0],
-                key=lambda x:(-x["score"],x["era"])
+                [x for x in pitchers if x["pos"]!="SP" and x["outs"]>0],
+                key=lambda x:(-(x["score"]+x.get("sv",0)*1.5),-x.get("sv",0),x["era"])
             )[:10]
             pitching=starting_pitching + relief_pitching
             # Fielding titles are position race placeholders until complete fielding events populate OAA/DRS.
@@ -3915,7 +3919,7 @@ class H(BaseHTTPRequestHandler):
                 c.execute("UPDATE players SET active=0,status='RETIRED',franchise_id=NULL WHERE id=?",(pid,))
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
                           ("PLAYER_RETIRED",u["id"],json.dumps({"player_id":pid,"player_name":pl["name"],"franchise_id":old_team,"reason":"VOLUNTARY"})))
-                enforce_18_player_rosters(c)
+                enforce_active_rosters(c)
                 c.commit()
                 return self.out({"ok":True,"player_id":pid,"player_name":pl["name"],"status":"RETIRED"})
             finally:
@@ -3992,8 +3996,16 @@ class H(BaseHTTPRequestHandler):
             if not pl:c.close();return self.out({"error":"PLAYER_NOT_FOUND"},404)
             off=c.execute("SELECT * FROM offers WHERE id=? AND player_id=?",(oid,pl["id"])).fetchone()
             if not off or off["status"] not in ["OPEN","HELD"]:c.close();return self.out({"error":"OFFER_NOT_AVAILABLE"},400)
-            if action=="HOLD":c.execute("UPDATE offers SET status='HELD' WHERE id=?",(oid,))
-            elif action=="REJECT":c.execute("UPDATE offers SET status='REJECTED' WHERE id=?",(oid,))
+            if action=="HOLD":
+                c.execute("UPDATE offers SET status='HELD' WHERE id=?",(oid,))
+                c.commit()
+                c.close()
+                return self.out({"ok":True,"status":"HELD"})
+            elif action=="REJECT":
+                c.execute("UPDATE offers SET status='REJECTED' WHERE id=?",(oid,))
+                c.commit()
+                c.close()
+                return self.out({"ok":True,"status":"REJECTED"})
             else:
                 f=c.execute(
                     "SELECT * FROM franchises WHERE id=?",
@@ -4028,37 +4040,14 @@ class H(BaseHTTPRequestHandler):
                 displaced_id=slot["player_id"]
 
 
-                # If a CPU currently owns this starting position,
-                # move him to an open UTIL bench slot when possible.
-                # Otherwise release him from the franchise.
+                # There are no inactive bench-hitter slots in the 16-player roster.
+                # A human signing directly replaces the CPU occupying that position.
                 if displaced_id:
-                    bench=None
-
-
-                    if pl["type"]=="H":
-                        bench=c.execute("""
-                            SELECT slot_no
-                            FROM roster_slots
-                            WHERE franchise_id=?
-                              AND position_group='UTIL'
-                              AND player_id IS NULL
-                            ORDER BY slot_no
-                            LIMIT 1
-                        """,(off["franchise_id"],)).fetchone()
-
-
-                    if bench:
-                        c.execute("""
-                            UPDATE roster_slots
-                            SET player_id=?,occupant_type='CPU'
-                            WHERE franchise_id=? AND slot_no=?
-                        """,(displaced_id,off["franchise_id"],bench["slot_no"]))
-                    else:
-                        c.execute("""
-                            UPDATE players
-                            SET franchise_id=NULL,status='FREE_AGENT'
-                            WHERE id=?
-                        """,(displaced_id,))
+                    c.execute("""
+                        UPDATE players
+                        SET franchise_id=NULL,status='FREE_AGENT'
+                        WHERE id=?
+                    """,(displaced_id,))
 
 
                 # Human now owns the proper roster position.
@@ -4938,7 +4927,7 @@ class H(BaseHTTPRequestHandler):
 
                 c.execute("UPDATE players SET xp_wallet=0")
                 c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0")
-                enforce_18_player_rosters(c)
+                enforce_active_rosters(c)
 
                 # Reset every club to its infrastructure-adjusted annual XP pool.
                 for fr in c.execute("SELECT * FROM franchises").fetchall():
@@ -5082,7 +5071,7 @@ class H(BaseHTTPRequestHandler):
                 if not c.execute("SELECT 1 FROM franchise_seasons WHERE season=? LIMIT 1",(next_season,)).fetchone():
                     set_season_membership(c,next_season,current_active)
 
-                enforce_18_player_rosters(c,next_season)
+                enforce_active_rosters(c,next_season)
                 summary["rosters_rebuilt"]=True
 
                 active_players=c.execute("SELECT id,type FROM players WHERE active=1").fetchall()
