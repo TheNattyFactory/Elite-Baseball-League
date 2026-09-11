@@ -21,12 +21,13 @@ PITCHER_ATTRS=["STA","PCLT","CTRL","VEL","BRK","FLD","ARM","ACC","REAC"]
 SALARY_MIN=0.30
 SALARY_MAX=0.40
 BONUS_CAP=100.0
-TEAM_BUDGET=480.0
+TEAM_BUDGET=500.0
 REVENUE_UPGRADE_COSTS=[50,65,80,100,125]
 FINISH_REWARD_MAX=30.0
 REBUILD_XP_MAX=0.03
 STORAGE_KEEP_FULL_GAME_DAYS=7
-SP_XP_MULTIPLIER=3.0
+SP_XP_MULTIPLIER=5.0
+RP_XP_MULTIPLIER=2.25
 CHAT_RETENTION_HOURS=12
 ALPHA_PLAYER_LIMIT=3
 MAX_REQUEST_BYTES=65536
@@ -788,16 +789,24 @@ def session_user(headers):
 
 def attr_cost(v): return 1 if v<25 else 2 if v<50 else 3 if v<70 else 5 if v<85 else 8 if v<95 else 12
 
-def age_xp_surcharge(age):
-    age=int(age or 18)
-    if age<25:return 0
-    if age<30:return 2
-    if age<35:return 4
-    if age==35:return 6
-    return 6+(age-35)
+def career_xp_surcharge(seasons_completed):
+    # Career progression curve: first four completed seasons have no surcharge.
+    # Seasons 5-8 cost +2 XP per attribute point; Season 9 costs +4,
+    # then the surcharge rises by +1 XP for every additional season.
+    seasons=max(0,int(seasons_completed or 0))
+    if seasons<4:return 0
+    if seasons<8:return 2
+    return 4+(seasons-8)
 
-def development_cost(value,age):
-    return attr_cost(value)+age_xp_surcharge(age)
+def player_seasons_completed(c,player_id):
+    row=c.execute(
+        "SELECT COUNT(DISTINCT season) n FROM season_history WHERE player_id=?",
+        (player_id,)
+    ).fetchone()
+    return int(row["n"] if row else 0)
+
+def development_cost(value,seasons_completed):
+    return attr_cost(value)+career_xp_surcharge(seasons_completed)
 
 def annual_team_budget(fr):
     return round(TEAM_BUDGET + 5*int(fr.get("revenue_level",0) or 0),3)
@@ -2472,6 +2481,72 @@ def simulate_game(c,g):
         opp=home if fid==away else away
 
 
+        # ---------------------------------------------
+        # TEAM SALARY (REGULAR SEASON ONLY)
+        # Every active roster player is paid once for every one of the
+        # team's 81 regular-season games, whether or not they appeared.
+        # Performance XP remains appearance-based below.
+        # ---------------------------------------------
+        if int(g["league_day"]) <= 81:
+            roster_players=c.execute(
+                """
+                SELECT DISTINCT p.id
+                FROM roster_slots rs
+                JOIN players p ON p.id=rs.player_id
+                WHERE rs.franchise_id=?
+                  AND rs.player_id IS NOT NULL
+                  AND p.active=1
+                """,
+                (fid,)
+            ).fetchall()
+
+            for rr in roster_players:
+                salary_pid=int(rr["id"])
+                salary_player=sim_player_obj(c,salary_pid)
+                if not salary_player:
+                    continue
+
+                con=contract_for(c,salary_pid)
+                salary=round(float(con["salary"]) if con else .35,3)
+
+                c.execute(
+                    "UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",
+                    (salary,fid)
+                )
+
+                salary_player["xp_wallet"]=round(
+                    float(salary_player.get("xp_wallet",0) or 0)+salary,
+                    3
+                )
+
+                c.execute(
+                    """
+                    INSERT INTO xp_ledger(
+                        player_id,event_type,xp,detail_json
+                    )
+                    VALUES(?,?,?,?)
+                    """,
+                    (
+                        salary_pid,
+                        "SALARY",
+                        salary,
+                        json.dumps({
+                            "game":g["id"],
+                            "league_day":int(g["league_day"]),
+                            "team":fid
+                        })
+                    )
+                )
+
+                save_player(c,salary_player)
+
+                box["xp"].append({
+                    "player_id":salary_pid,
+                    "salary":salary,
+                    "performance":0
+                })
+
+
         participant_ids=set(lineups[fid]) | used_bench[fid]
 
 
@@ -2511,36 +2586,9 @@ def simulate_game(c,g):
             )
 
 
-            con=contract_for(c,pid)
-            salary=float(con["salary"]) if con else .35
-            if p.get("franchise_id"):
-                c.execute("UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",(salary,p["franchise_id"]))
-
-
             p["xp_wallet"]=round(
-                p["xp_wallet"]+salary+perf,
+                p["xp_wallet"]+perf,
                 3
-            )
-
-
-            c.execute(
-                """
-                INSERT INTO xp_ledger(
-                    player_id,
-                    event_type,
-                    xp,
-                    detail_json
-                )
-                VALUES(?,?,?,?)
-                """,
-                (
-                    pid,
-                    "SALARY",
-                    salary,
-                    json.dumps({
-                        "game":g["id"]
-                    })
-                )
             )
 
 
@@ -2571,7 +2619,7 @@ def simulate_game(c,g):
 
             box["xp"].append({
                 "player_id":pid,
-                "salary":salary,
+                "salary":0,
                 "performance":perf
             })
 
@@ -2634,7 +2682,7 @@ def simulate_game(c,g):
             )
 
 
-            xp_mult=SP_XP_MULTIPLIER if is_starter else 1.0
+            xp_mult=SP_XP_MULTIPLIER if is_starter else RP_XP_MULTIPLIER
             perf=round(
                 gps_xp(gps) *
                 rivalry_xp_multiplier(c,away,home) *
@@ -2644,37 +2692,9 @@ def simulate_game(c,g):
             )
 
 
-            con=contract_for(c,spid)
-            base_salary=float(con["salary"]) if con else .35
-            salary=round(base_salary*xp_mult,3)
-            if p.get("franchise_id"):
-                c.execute("UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",(salary,p["franchise_id"]))
-
-
             p["xp_wallet"]=round(
-                p["xp_wallet"]+salary+perf,
+                p["xp_wallet"]+perf,
                 3
-            )
-
-
-            c.execute(
-                """
-                INSERT INTO xp_ledger(
-                    player_id,
-                    event_type,
-                    xp,
-                    detail_json
-                )
-                VALUES(?,?,?,?)
-                """,
-                (
-                    spid,
-                    "SALARY",
-                    salary,
-                    json.dumps({
-                        "game":g["id"]
-                    })
-                )
             )
 
 
@@ -2711,7 +2731,7 @@ def simulate_game(c,g):
 
             box["xp"].append({
                 "player_id":spid,
-                "salary":salary,
+                "salary":0,
                 "performance":perf
             })
     
@@ -2932,6 +2952,12 @@ def new_session(c,user_id,handler=None):
 
 
 def session_user(*args):
+    """Resolve the logged-in user without turning every authenticated request into a DB write.
+
+    SQLite allows many readers but only one writer. Updating last_seen_at on every GET
+    caused routine page refreshes to compete with contract/player transactions and could
+    lock users out of the app. Session validation is intentionally read-only here.
+    """
     own=False
     if len(args)==1:
         headers=args[0]
@@ -2951,10 +2977,7 @@ def session_user(*args):
                        FROM persistent_sessions s JOIN users u ON u.id=s.user_id
                        WHERE s.token_hash=? AND s.expires_at>?""",
                     (token_hash(raw),utcnow().isoformat())).fetchone()
-        if not r:return None
-        c.execute("UPDATE persistent_sessions SET last_seen_at=CURRENT_TIMESTAMP WHERE token_hash=?",(token_hash(raw),))
-        if own:c.commit()
-        return dict(r)
+        return dict(r) if r else None
     finally:
         if own:c.close()
 
@@ -2974,19 +2997,21 @@ def get_client_ip(handler):
 
 
 def rate_limit(c,key,limit,window_seconds):
-    # Persist rate-limit buckets in SQLite so deploys/restarts do not reset abuse protection.
+    """Process-local rate limiting so auth does not need a SQLite write lock.
+
+    The existing call signature is preserved. A Railway restart clears these counters,
+    which is acceptable for the current single-instance alpha and prevents a busy game
+    transaction from making login/register fail with DATABASE_LOCKED.
+    """
     now=int(time.time())
     with RATE_LOCK:
-        r=c.execute("SELECT window_start,count FROM rate_limits WHERE bucket_key=?",(key,)).fetchone()
+        r=RATE_STATE.get(key)
         if not r or now-int(r["window_start"])>=int(window_seconds):
-            c.execute("""INSERT INTO rate_limits(bucket_key,window_start,count)
-                         VALUES(?,?,1)
-                         ON CONFLICT(bucket_key) DO UPDATE SET window_start=excluded.window_start,count=1""",
-                      (key,now))
+            RATE_STATE[key]={"window_start":now,"count":1}
             return True
         if int(r["count"])>=int(limit):
             return False
-        c.execute("UPDATE rate_limits SET count=count+1 WHERE bucket_key=?",(key,))
+        r["count"]+=1
         return True
 
 
@@ -3519,9 +3544,21 @@ class H(BaseHTTPRequestHandler):
             c=conn()
             rows=[dict(x) for x in c.execute("""SELECT u.id,u.username,u.role,
                 (SELECT name FROM players p WHERE p.user_id=u.id AND p.active=1 ORDER BY p.id DESC LIMIT 1) player_name,
-                (SELECT f.name FROM players p JOIN franchises f ON f.id=p.franchise_id WHERE p.user_id=u.id AND p.active=1 ORDER BY p.id DESC LIMIT 1) team_name
-                FROM users u WHERE u.id<>? ORDER BY u.username""",(u["id"],))]
-            c.close();return self.out({"contacts":rows})
+                (SELECT f.name FROM players p JOIN franchises f ON f.id=p.franchise_id WHERE p.user_id=u.id AND p.active=1 ORDER BY p.id DESC LIMIT 1) team_name,
+                (SELECT COUNT(*) FROM direct_messages dm
+                  WHERE dm.sender_user_id=u.id
+                    AND dm.recipient_user_id=?
+                    AND dm.read_at IS NULL) unread
+                FROM users u WHERE u.id<>? ORDER BY unread DESC,u.username""",(u["id"],u["id"]))]
+            unread=sum(int(r.get("unread") or 0) for r in rows)
+            c.close();return self.out({"contacts":rows,"unread":unread})
+        if p=="/api/dm/unread":
+            u=self.auth()
+            if not u:return
+            c=conn()
+            row=c.execute("SELECT COUNT(*) n FROM direct_messages WHERE recipient_user_id=? AND read_at IS NULL",(u["id"],)).fetchone()
+            unread=int(row["n"] if row else 0)
+            c.close();return self.out({"unread":unread})
         if p.startswith("/api/dm/thread/"):
             u=self.auth()
             if not u:return
@@ -4475,24 +4512,39 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             d=self.body();name=str(d.get("name","")).strip();pos=str(d.get("position","")).upper();group=str(d.get("position_group") or position_group_for_pos(pos)).upper();bats=d.get("bats");throws=d.get("throws");attrs=d.get("attributes",{})
             c=conn()
-            c.execute("BEGIN IMMEDIATE")
-            if u["role"]=="PLAYER":
-                sec=c.execute("SELECT email_verified FROM user_security WHERE user_id=?",(u["id"],)).fetchone()
-                if not sec or not sec["email_verified"]:
-                    c.close();return self.out({"error":"EMAIL_NOT_VERIFIED"},403)
-            if not rate_limit(c,f"player-create:{u['id']}",6,3600):c.commit();c.close();return self.out({"error":"RATE_LIMITED"},429)
-            if c.execute("SELECT COUNT(*) n FROM players WHERE user_id=? AND active=1",(u["id"],)).fetchone()["n"]>=ALPHA_PLAYER_LIMIT:c.close();return self.out({"error":"ACTIVE_PLAYER_LIMIT_REACHED","limit":ALPHA_PLAYER_LIMIT},400)
-            ptype="P" if group=="PITCHER" else "H";valid=PITCHER_ATTRS if ptype=="P" else HITTER_ATTRS
-            valid_pos={"INF":{"C","1B","2B","3B","SS"},"OF":{"LF","CF","RF"},"PITCHER":{"SP","RP"}}
-            if not name or len(name)>40 or group not in POSITION_GROUPS or pos not in valid_pos.get(group,set()) or bats not in ["R","L","S"] or throws not in ["R","L"] or set(attrs)!=set(valid) or sum(attrs.values())!=50 or any(type(v) is not int or v<0 or v>50 for v in attrs.values()) or (pos!="C" and float(attrs.get("CALL",0) or 0)!=0):
-                c.close();return self.out({"error":"INVALID_50_XP_BUILD"},400)
-            season={k:0 for k in (["G","GS","OUTS","H","ER","BB","SO","W","L","SV"] if ptype=="P" else ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"])}
-            face_id=int(d.get("face_id",1));hair_id=int(d.get("hair_id",1))
-            if face_id not in range(1,11) or hair_id not in range(1,11):
-                c.close();return self.out({"error":"INVALID_APPEARANCE"},400)
-            cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,hair_id)
-                             VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,hair_id))
-            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid})));c.commit();pl=player_obj(c,cur.lastrowid);c.close();return self.out({"player":pl})
+            try:
+                c.execute("BEGIN IMMEDIATE")
+                if u["role"]=="PLAYER":
+                    sec=c.execute("SELECT email_verified FROM user_security WHERE user_id=?",(u["id"],)).fetchone()
+                    if not sec or not sec["email_verified"]:
+                        c.rollback();return self.out({"error":"EMAIL_NOT_VERIFIED"},403)
+                if not rate_limit(c,f"player-create:{u['id']}",6,3600):
+                    c.rollback();return self.out({"error":"RATE_LIMITED"},429)
+                if c.execute("SELECT COUNT(*) n FROM players WHERE user_id=? AND active=1",(u["id"],)).fetchone()["n"]>=ALPHA_PLAYER_LIMIT:
+                    c.rollback();return self.out({"error":"ACTIVE_PLAYER_LIMIT_REACHED","limit":ALPHA_PLAYER_LIMIT},400)
+                ptype="P" if group=="PITCHER" else "H";valid=PITCHER_ATTRS if ptype=="P" else HITTER_ATTRS
+                valid_pos={"INF":{"C","1B","2B","3B","SS"},"OF":{"LF","CF","RF"},"PITCHER":{"SP","RP"}}
+                if not name or len(name)>40 or group not in POSITION_GROUPS or pos not in valid_pos.get(group,set()) or bats not in ["R","L","S"] or throws not in ["R","L"] or set(attrs)!=set(valid) or sum(attrs.values())!=50 or any(type(v) is not int or v<0 or v>50 for v in attrs.values()) or (pos!="C" and float(attrs.get("CALL",0) or 0)!=0):
+                    c.rollback();return self.out({"error":"INVALID_50_XP_BUILD"},400)
+                season={k:0 for k in (["G","GS","OUTS","H","ER","BB","SO","W","L","SV"] if ptype=="P" else ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"])}
+                face_id=int(d.get("face_id",1));hair_id=int(d.get("hair_id",1))
+                if face_id not in range(1,11) or hair_id not in range(1,11):
+                    c.rollback();return self.out({"error":"INVALID_APPEARANCE"},400)
+                cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,hair_id)
+                                 VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,hair_id))
+                c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid})))
+                c.commit()
+                return self.out({"player":player_obj(c,cur.lastrowid)})
+            except sqlite3.OperationalError as e:
+                c.rollback()
+                if "locked" in str(e).lower():
+                    return self.out({"error":"DATABASE_BUSY"},503)
+                raise
+            except Exception:
+                c.rollback()
+                raise
+            finally:
+                c.close()
         if p=="/api/player/change-position":
             u=self.auth(["PLAYER","COMMISSIONER"])
             if not u:return
@@ -4563,10 +4615,12 @@ class H(BaseHTTPRequestHandler):
             if attr not in pl["attributes"]:c.rollback();c.close();return self.out({"error":"INVALID_ATTRIBUTE"},400)
             if attr=="CALL" and pl.get("primary_pos")!="C":c.rollback();c.close();return self.out({"error":"CALL_RATING_CATCHER_ONLY"},400)
             if int(pl["attributes"].get(attr,0))>=99:c.rollback();c.close();return self.out({"error":"ATTRIBUTE_MAXED"},400)
-            cc=development_cost(pl["attributes"][attr],pl.get("age",18))
-            if pl["xp_wallet"]<cc:c.rollback();c.close();return self.out({"error":"INSUFFICIENT_XP","cost":cc,"age":pl.get("age",18)},400)
+            seasons_completed=player_seasons_completed(c,pl["id"])
+            surcharge=career_xp_surcharge(seasons_completed)
+            cc=development_cost(pl["attributes"][attr],seasons_completed)
+            if pl["xp_wallet"]<cc:c.rollback();c.close();return self.out({"error":"INSUFFICIENT_XP","cost":cc,"seasons_completed":seasons_completed,"career_surcharge":surcharge},400)
             old=pl["attributes"][attr];pl["attributes"][attr]+=1;pl["xp_wallet"]=round(pl["xp_wallet"]-cc,3);save_player(c,pl)
-            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(pl["id"],"ATTRIBUTE_UPGRADE",-cc,json.dumps({"attribute":attr,"from":old,"to":old+1,"age":pl.get("age",18),"cost":cc})));c.commit();c.close();return self.out({"ok":True})
+            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(pl["id"],"ATTRIBUTE_UPGRADE",-cc,json.dumps({"attribute":attr,"from":old,"to":old+1,"seasons_completed":seasons_completed,"career_surcharge":surcharge,"cost":cc})));c.commit();c.close();return self.out({"ok":True})
         if p=="/api/player/request-cpu-market":
             u=self.auth(["PLAYER","COMMISSIONER"])
             if not u:return
@@ -4631,34 +4685,44 @@ class H(BaseHTTPRequestHandler):
             u=self.auth()
             if not u:return
             d=self.body();oid=int(d.get("offer_id",0));action=d.get("action")
-            if action not in ["ACCEPT","HOLD","REJECT"]:return self.out({"error":"INVALID_ACTION"},400)
-            c=conn();pl=owned_active_player(c,u["id"],request_player_id(self,d))
-            if not pl:c.close();return self.out({"error":"PLAYER_NOT_FOUND"},404)
-            off=c.execute("SELECT * FROM offers WHERE id=? AND player_id=?",(oid,pl["id"])).fetchone()
-            if not off or off["status"] not in ["OPEN","HELD"]:c.close();return self.out({"error":"OFFER_NOT_AVAILABLE"},400)
-            if action=="HOLD":
-                c.execute("UPDATE offers SET status='HELD' WHERE id=?",(oid,))
-                c.commit()
-                c.close()
-                return self.out({"ok":True,"status":"HELD"})
-            elif action=="REJECT":
-                c.execute("UPDATE offers SET status='REJECTED' WHERE id=?",(oid,))
-                c.commit()
-                c.close()
-                return self.out({"ok":True,"status":"REJECTED"})
-            else:
-                f=c.execute(
-                    "SELECT * FROM franchises WHERE id=?",
-                    (off["franchise_id"],)
-                ).fetchone()
+            if action not in ["ACCEPT","HOLD","REJECT"]:
+                return self.out({"error":"INVALID_ACTION"},400)
 
+            c=conn()
+            try:
+                # Serialize offer responses. This keeps two players on the same account (or
+                # two different users) from partially mutating roster/contract state at once.
+                c.execute("BEGIN IMMEDIATE")
+                pl=owned_active_player(c,u["id"],request_player_id(self,d))
+                if not pl:
+                    c.rollback();return self.out({"error":"PLAYER_NOT_FOUND"},404)
 
-                if f["xp_spent"]+off["bonus"]>f["xp_budget"]:
-                    c.close()
-                    return self.out({"error":"TEAM_BUDGET_CHANGED"},400)
+                off=c.execute("SELECT * FROM offers WHERE id=? AND player_id=?",(oid,pl["id"])).fetchone()
+                if not off or off["status"] not in ["OPEN","HELD"]:
+                    c.rollback();return self.out({"error":"OFFER_NOT_AVAILABLE"},400)
 
+                if action=="HOLD":
+                    c.execute("UPDATE offers SET status='HELD' WHERE id=?",(oid,))
+                    c.commit()
+                    return self.out({"ok":True,"status":"HELD","player_id":pl["id"]})
 
-                # Human players must take an actual roster slot.
+                if action=="REJECT":
+                    c.execute("UPDATE offers SET status='REJECTED' WHERE id=?",(oid,))
+                    c.commit()
+                    return self.out({"ok":True,"status":"REJECTED","player_id":pl["id"]})
+
+                # ACCEPT: every lookup and write below is scoped to the selected player_id.
+                # A user can therefore own multiple players and sign each independently.
+                if c.execute("SELECT 1 FROM contracts WHERE player_id=?",(pl["id"],)).fetchone():
+                    c.rollback();return self.out({"error":"PLAYER_ALREADY_SIGNED"},409)
+
+                f=c.execute("SELECT * FROM franchises WHERE id=?",(off["franchise_id"],)).fetchone()
+                if not f:
+                    c.rollback();return self.out({"error":"FRANCHISE_NOT_FOUND"},404)
+
+                if float(f["xp_spent"] or 0)+float(off["bonus"] or 0)>float(f["xp_budget"] or 0):
+                    c.rollback();return self.out({"error":"TEAM_BUDGET_CHANGED"},400)
+
                 allowed=eligible_roster_slot_groups(dict(pl))
                 marks=",".join("?" for _ in allowed)
                 slot=c.execute(f"""
@@ -4674,130 +4738,77 @@ class H(BaseHTTPRequestHandler):
                     LIMIT 1
                 """,(off["franchise_id"],*allowed,pl["primary_pos"])).fetchone()
 
-
                 if not slot:
-                    c.close()
-                    return self.out({"error":"ROSTER_POSITION_FULL"},400)
-
+                    c.rollback();return self.out({"error":"ROSTER_POSITION_FULL"},400)
 
                 displaced_id=slot["player_id"]
-
-
-                # There are no inactive bench-hitter slots in the 16-player roster.
-                # A human signing directly replaces the CPU occupying that position.
                 if displaced_id:
-                    c.execute("""
-                        UPDATE players
-                        SET franchise_id=NULL,status='FREE_AGENT'
-                        WHERE id=?
-                    """,(displaced_id,))
+                    c.execute("""UPDATE players
+                                 SET franchise_id=NULL,status='FREE_AGENT'
+                                 WHERE id=?""",(displaced_id,))
 
+                c.execute("""UPDATE roster_slots
+                             SET player_id=?,occupant_type='HUMAN'
+                             WHERE franchise_id=? AND slot_no=?""",
+                          (pl["id"],off["franchise_id"],slot["slot_no"]))
 
-                # Human now owns the proper roster position.
-                c.execute("""
-                    UPDATE roster_slots
-                    SET player_id=?,occupant_type='HUMAN'
-                    WHERE franchise_id=? AND slot_no=?
-                """,(pl["id"],off["franchise_id"],slot["slot_no"]))
-
-
-                # Keep saved batting order / rotation synchronized.
-                lr=c.execute(
-                    "SELECT batting_order_json,rotation_json FROM lineups WHERE franchise_id=?",
-                    (off["franchise_id"],)
-                ).fetchone()
-
-
+                lr=c.execute("SELECT batting_order_json,rotation_json FROM lineups WHERE franchise_id=?",
+                             (off["franchise_id"],)).fetchone()
                 if lr and displaced_id:
                     if pl["type"]=="H":
                         order=json.loads(lr["batting_order_json"])
-
-
                         if displaced_id in order:
-                            order=[
-                                pl["id"] if pid==displaced_id else pid
-                                for pid in order
-                            ]
-
-
-                        c.execute(
-                            "UPDATE lineups SET batting_order_json=? WHERE franchise_id=?",
-                            (json.dumps(order),off["franchise_id"])
-                        )
-
-
+                            order=[pl["id"] if pid==displaced_id else pid for pid in order]
+                        c.execute("UPDATE lineups SET batting_order_json=? WHERE franchise_id=?",
+                                  (json.dumps(order),off["franchise_id"]))
                     elif pl["type"]=="P" and str(slot["position_group"]).upper()=="SP":
                         rotation=json.loads(lr["rotation_json"])
-
-
                         if displaced_id in rotation:
-                            rotation=[
-                                pl["id"] if pid==displaced_id else pid
-                                for pid in rotation
-                            ]
+                            rotation=[pl["id"] if pid==displaced_id else pid for pid in rotation]
+                        c.execute("UPDATE lineups SET rotation_json=? WHERE franchise_id=?",
+                                  (json.dumps(rotation),off["franchise_id"]))
 
+                c.execute("UPDATE offers SET status='ACCEPTED' WHERE id=?",(oid,))
+                c.execute("""UPDATE offers
+                             SET status='CANCELLED_PLAYER_SIGNED'
+                             WHERE player_id=? AND id<>?
+                               AND status IN ('OPEN','HELD')""",(pl["id"],oid))
 
-                        c.execute(
-                            "UPDATE lineups SET rotation_json=? WHERE franchise_id=?",
-                            (json.dumps(rotation),off["franchise_id"])
-                        )
+                c.execute("""INSERT INTO contracts(player_id,franchise_id,bonus,salary,years_remaining)
+                             VALUES(?,?,?,?,?)""",
+                          (pl["id"],off["franchise_id"],off["bonus"],off["salary"],off["years"]))
 
+                c.execute("""UPDATE players
+                             SET franchise_id=?,status='SIGNED',xp_wallet=xp_wallet+?
+                             WHERE id=?""",
+                          (off["franchise_id"],off["bonus"],pl["id"]))
 
-                c.execute(
-                    "UPDATE offers SET status='ACCEPTED' WHERE id=?",
-                    (oid,)
-                )
+                # Signing bonus is charged to the team once and credited to this player only.
+                c.execute("UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",
+                          (off["bonus"],off["franchise_id"]))
+                c.execute("""INSERT INTO xp_ledger(player_id,event_type,xp,detail_json)
+                             VALUES(?,?,?,?)""",
+                          (pl["id"],"SIGNING_BONUS",off["bonus"],json.dumps({"offer_id":oid,"franchise_id":off["franchise_id"]})))
+                c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                          ("CONTRACT_SIGNED",u["id"],json.dumps({"player_id":pl["id"],"offer_id":oid,"franchise_id":off["franchise_id"],"bonus":off["bonus"],"salary":off["salary"],"years":off["years"]})))
 
-
-                c.execute("""
-                    UPDATE offers
-                    SET status='CANCELLED_PLAYER_SIGNED'
-                    WHERE player_id=? AND id<>?
-                      AND status IN ('OPEN','HELD')
-                """,(pl["id"],oid))
-
-
-                c.execute("""
-                    INSERT INTO contracts(
-                        player_id,franchise_id,bonus,salary,years_remaining
-                    )
-                    VALUES(?,?,?,?,?)
-                """,(
-                    pl["id"],
-                    off["franchise_id"],
-                    off["bonus"],
-                    off["salary"],
-                    off["years"]
-                ))
-
-
-                c.execute("""
-                    INSERT INTO contract_history(player_id,franchise_id,bonus,salary,years,signed_at,ended_at)
-                    VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)
-                """,(pl["id"],off["franchise_id"],off["bonus"],off["salary"],off["years"],datetime.now(timezone.utc).isoformat()))
-
-                c.execute("""
-                    UPDATE players
-                    SET franchise_id=?,
-                        status='SIGNED',
-                        xp_wallet=xp_wallet+?
-                    WHERE id=?
-                """,(
-                    off["franchise_id"],
-                    off["bonus"],
-                    pl["id"]
-                ))
-
-
-                c.execute("""
-                    UPDATE franchises
-                    SET xp_spent=xp_spent+?
-                    WHERE id=?
-                """,(off["bonus"],off["franchise_id"]))
                 c.commit()
+                return self.out({"ok":True,"status":"ACCEPTED","player_id":pl["id"],"franchise_id":off["franchise_id"]})
+
+            except sqlite3.IntegrityError as e:
+                c.rollback()
+                return self.out({"error":"CONTRACT_SIGNING_FAILED","detail":str(e)},409)
+            except sqlite3.OperationalError as e:
+                c.rollback()
+                if "locked" in str(e).lower():
+                    return self.out({"error":"DATABASE_BUSY"},503)
+                raise
+            except Exception:
+                c.rollback()
+                raise
+            finally:
                 c.close()
-                return self.out({"ok":True})
-            
+
         if p=="/api/notifications/read":
             u=self.auth()
             if not u:return
