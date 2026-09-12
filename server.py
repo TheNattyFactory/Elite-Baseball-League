@@ -21,7 +21,7 @@ PITCHER_ATTRS=["STA","PCLT","CTRL","VEL","BRK","FLD","ARM","ACC","REAC"]
 SALARY_MIN=0.30
 SALARY_MAX=0.40
 BONUS_CAP=100.0
-TEAM_BUDGET=500.0
+TEAM_BUDGET=480.0
 REVENUE_UPGRADE_COSTS=[50,65,80,100,125]
 FINISH_REWARD_MAX=30.0
 REBUILD_XP_MAX=0.03
@@ -1368,6 +1368,8 @@ def player_obj(c,pid):
     r=c.execute("SELECT * FROM players WHERE id=?",(pid,)).fetchone()
     if not r:return None
     d=dict(r);d["attributes"]=json.loads(d.pop("attributes_json"));d["season"]=json.loads(d.pop("season_json"));d["overall"]=player_overall(d)
+    owner=c.execute("SELECT username FROM users WHERE id=?",(d.get("user_id"),)).fetchone() if d.get("user_id") else None
+    d["username"]=owner["username"] if owner else None
     con=c.execute("SELECT * FROM contracts WHERE player_id=?",(pid,)).fetchone()
     d["contract"]=dict(con) if con else None
     d["offers"]=[dict(x) for x in c.execute("SELECT * FROM offers WHERE player_id=? AND status IN ('OPEN','HELD') ORDER BY id DESC",(pid,))]
@@ -2069,11 +2071,30 @@ def simulate_game(c,g):
 
     used_pitchers={away:set(),home:set()};used_bench={away:set(),home:set()}
     base_runner={away:None,home:None}
+    # Track which pitcher is responsible for each occupied base runner so
+    # pitcher decisions follow the run that actually put the winning team ahead.
+    base_runner_pitcher={away:None,home:None}
     unearned_runners={away:set(),home:set()}
     current_pitcher={}
     for fid,opp in [(away,home),(home,away)]:
         current_pitcher[fid]=starter_ids[fid]
         used_pitchers[fid].add(current_pitcher[fid])
+
+    decision_win_candidate=None
+    decision_loss_candidate=None
+
+    def register_go_ahead(scoring_fid,defending_fid,old_scoring,old_defending,responsible_pitcher_id):
+        """Remember the pitchers of record whenever a team takes the lead.
+
+        The final such lead change belongs to the eventual winner, so the losing
+        pitcher is the pitcher responsible for the go-ahead run rather than the
+        starter by default. The winning candidate is the pitcher who was of record
+        for the scoring club immediately before that lead was taken.
+        """
+        nonlocal decision_win_candidate,decision_loss_candidate
+        if old_scoring<=old_defending and score[scoring_fid]>score[defending_fid]:
+            decision_win_candidate=current_pitcher.get(scoring_fid)
+            decision_loss_candidate=responsible_pitcher_id
 
 
     events.append({"type":"GAME_START","away":away,"home":home,"away_name":team_names[away],"home_name":team_names[home],"score":[0,0]})
@@ -2119,10 +2140,14 @@ def simulate_game(c,g):
                         outs+=1
                         pitchline["OUTS"]+=1
                         if base_runner[fid] is not None and R.random()<.55:
+                            old_scoring,old_defending=score[fid],score[opp]
+                            responsible_pid=base_runner_pitcher[fid] or pitcher["id"]
                             score[fid]+=1
+                            register_go_ahead(fid,opp,old_scoring,old_defending,responsible_pid)
                             pitchline["ER"]+=1
                             events.append({"type":"RUN","inning":inning,"half":half,"team":fid,"runs":1,"score":[score[away],score[home]],"note":"Bunt play"})
                             base_runner[fid]=None
+                            base_runner_pitcher[fid]=None
                     else:
                         outs+=1
                         pitchline["OUTS"]+=1
@@ -2308,6 +2333,7 @@ def simulate_game(c,g):
 
                         if result=="ROE":
                             base_runner[fid]=batter["id"]
+                            base_runner_pitcher[fid]=pitcher["id"]
                             unearned_runners[fid].add(batter["id"])
                             events.append({"type":"PA_END","inning":inning,"half":half,"batter_id":batter["id"],"pitcher_id":pitcher["id"],"result":"ROE","outs":outs,"score":[score[away],score[home]]})
                             break
@@ -2335,12 +2361,15 @@ def simulate_game(c,g):
                                     hitter_line(runner_id)["R"]+=1
                                     batline["RBI"]+=1
                                     runs+=1
+                                old_scoring,old_defending=score[fid],score[opp]
                                 score[fid]+=runs
+                                register_go_ahead(fid,opp,old_scoring,old_defending,pitcher["id"])
                                 earned_runs=runs
                                 if base_runner[fid] is not None and base_runner[fid] in unearned_runners[fid]: earned_runs-=1
                                 pitchline["ER"]+=max(0,earned_runs)
                                 if base_runner[fid] is not None: unearned_runners[fid].discard(base_runner[fid])
                                 base_runner[fid]=None
+                                base_runner_pitcher[fid]=None
                                 events.append({
                                     "type":"RUN","inning":inning,"half":half,
                                     "team":fid,"runs":runs,
@@ -2352,7 +2381,10 @@ def simulate_game(c,g):
                                     runner_id=base_runner[fid]
                                     hitter_line(runner_id)["R"]+=1
                                     batline["RBI"]+=1
+                                    old_scoring,old_defending=score[fid],score[opp]
+                                    responsible_pid=base_runner_pitcher[fid] or pitcher["id"]
                                     score[fid]+=1
+                                    register_go_ahead(fid,opp,old_scoring,old_defending,responsible_pid)
                                     if runner_id not in unearned_runners[fid]: pitchline["ER"]+=1
                                     unearned_runners[fid].discard(runner_id)
                                     events.append({
@@ -2362,6 +2394,7 @@ def simulate_game(c,g):
                                         "runner_id":runner_id,"batter_id":batter["id"]
                                     })
                                     base_runner[fid]=None
+                                    base_runner_pitcher[fid]=None
 
 
                                 runner_id,replaced_runner=maybe_pinch_run(
@@ -2376,11 +2409,13 @@ def simulate_game(c,g):
                                     }
                                     events.append(ev2);box["strategy_events"].append(ev2)
                                 base_runner[fid]=runner_id
+                                base_runner_pitcher[fid]=pitcher["id"]
                                 runner=sim_player_obj(c,runner_id)
                                 if runner and R.random()<pickoff_probability(runner):
                                     outs+=1
                                     pitchline["OUTS"]+=1
                                     base_runner[fid]=None
+                                    base_runner_pitcher[fid]=None
                                     ev_pick={
                                         "type":"PICKOFF","team":fid,
                                         "runner_id":runner_id,
@@ -2403,6 +2438,7 @@ def simulate_game(c,g):
                                         outs+=1
                                         pitchline["OUTS"]+=1
                                         base_runner[fid]=None
+                                        base_runner_pitcher[fid]=None
                                         events.append({
                                             "type":"OUT","inning":inning,"half":half,
                                             "runner_id":runner_id,"outs":outs,
@@ -2424,6 +2460,7 @@ def simulate_game(c,g):
                         pitchline["BB"]+=1
                         if base_runner[fid] is None:
                             base_runner[fid]=batter["id"]
+                            base_runner_pitcher[fid]=pitcher["id"]
                         events.append({
                             "type":"PA_END","inning":inning,"half":half,
                             "batter_id":batter["id"],"pitcher_id":pitcher["id"],
@@ -2465,7 +2502,9 @@ def simulate_game(c,g):
     if score[away]==score[home]:
         winner=R.choice([away,home])
         loser=home if winner==away else away
+        old_scoring,old_defending=score[winner],score[loser]
         score[winner]+=1
+        register_go_ahead(winner,loser,old_scoring,old_defending,current_pitcher[loser])
         pitcher_line(loser,current_pitcher[loser])["ER"]+=1
         events.append({"type":"RUN","inning":9,"half":"TIEBREAK","team":winner,"runs":1,"score":[score[away],score[home]],"note":"Tiebreak"})
     winner=away if score[away]>score[home] else home;loser=home if winner==away else away
@@ -2662,8 +2701,28 @@ def simulate_game(c,g):
             }))
             pline["G"]=1
             pline["GS"]=1 if is_starter else 0
-            pline["W"]=1 if fid==winner and is_starter else 0
-            pline["L"]=1 if fid==loser and is_starter else 0
+
+            # Pitcher decisions are based on the final lead change, not simply
+            # assigned to both starters. A starter must complete five innings
+            # (15 outs) to qualify for a win. If the winning starter leaves too
+            # early, award the win to the first reliever who recorded an out.
+            winning_pitcher_id=decision_win_candidate
+            if fid==winner and winning_pitcher_id==starter_ids[fid]:
+                starter_outs=int(pitcher_live[fid].get(int(starter_ids[fid]),{}).get("OUTS",0) or 0)
+                if starter_outs<15:
+                    winning_pitcher_id=next((
+                        int(pid) for pid,line in pitcher_live[fid].items()
+                        if int(pid)!=int(starter_ids[fid]) and int(line.get("OUTS",0) or 0)>0
+                    ),None)
+            if fid==winner and winning_pitcher_id is None:
+                winning_pitcher_id=starter_ids[fid]
+
+            losing_pitcher_id=decision_loss_candidate if fid==loser else None
+            if fid==loser and losing_pitcher_id is None:
+                losing_pitcher_id=current_pitcher.get(fid) or starter_ids[fid]
+
+            pline["W"]=1 if fid==winner and int(spid)==int(winning_pitcher_id) else 0
+            pline["L"]=1 if fid==loser and int(spid)==int(losing_pitcher_id) else 0
             pline["SV"]=1 if (
                 not is_starter and fid==winner
                 and int(spid)==int(strategies[fid]["bullpen"].get("CL") or -1)
@@ -3200,14 +3259,22 @@ def run_storage_maintenance(current_season=None,current_day=None,aggressive=Fals
 
 
 def owned_active_player(c,user_id,requested_id=None):
-    """Return an active player owned by user. If no id is supplied, use newest."""
+    """Return an active player owned by user. Invalid/stale requested ids fall back to newest."""
     try:
         pid=int(requested_id or 0)
     except Exception:
         pid=0
     if pid>0:
-        return c.execute("SELECT * FROM players WHERE id=? AND user_id=? AND active=1",(pid,user_id)).fetchone()
-    return c.execute("SELECT * FROM players WHERE user_id=? AND active=1 ORDER BY id DESC LIMIT 1",(user_id,)).fetchone()
+        row=c.execute(
+            "SELECT * FROM players WHERE id=? AND user_id=? AND active=1",
+            (pid,user_id)
+        ).fetchone()
+        if row:
+            return row
+    return c.execute(
+        "SELECT * FROM players WHERE user_id=? AND active=1 ORDER BY id DESC LIMIT 1",
+        (user_id,)
+    ).fetchone()
 
 def request_player_id(handler,body=None):
     if isinstance(body,dict) and body.get("player_id") not in (None,""):
