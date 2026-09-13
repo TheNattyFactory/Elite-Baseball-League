@@ -178,6 +178,8 @@ def init_db():
       active INTEGER NOT NULL DEFAULT 1,
       face_id INTEGER NOT NULL DEFAULT 1,
       hair_id INTEGER NOT NULL DEFAULT 1,
+      facial_hair_id INTEGER NOT NULL DEFAULT 1,
+      eye_color_id INTEGER NOT NULL DEFAULT 6,
       age INTEGER NOT NULL DEFAULT 18
     );
     CREATE TABLE IF NOT EXISTS offers(
@@ -246,6 +248,7 @@ def init_db():
 
     CREATE TABLE IF NOT EXISTS news(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      season INTEGER NOT NULL DEFAULT 1,
       league_day INTEGER NOT NULL DEFAULT 0,
       category TEXT NOT NULL,
       headline TEXT NOT NULL,
@@ -516,6 +519,21 @@ def init_db():
         c.execute("ALTER TABLE players ADD COLUMN age INTEGER NOT NULL DEFAULT 18")
     if "position_group" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN position_group TEXT NOT NULL DEFAULT 'INF'")
+    if "facial_hair_id" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN facial_hair_id INTEGER NOT NULL DEFAULT 1")
+        c.execute("UPDATE players SET facial_hair_id=2 WHERE face_id IN (2,7)")
+        c.execute("UPDATE players SET facial_hair_id=4 WHERE face_id IN (4,9)")
+        c.execute("UPDATE players SET facial_hair_id=3 WHERE face_id IN (5,10)")
+    if "eye_color_id" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN eye_color_id INTEGER NOT NULL DEFAULT 6")
+
+    news_cols={r["name"] for r in c.execute("PRAGMA table_info(news)").fetchall()}
+    if "season" not in news_cols:
+        c.execute("ALTER TABLE news ADD COLUMN season INTEGER NOT NULL DEFAULT 1")
+        c.execute("""UPDATE news
+                     SET season=(SELECT g.season FROM games g WHERE g.id=news.game_id)
+                     WHERE game_id IS NOT NULL
+                       AND EXISTS(SELECT 1 FROM games g WHERE g.id=news.game_id)""")
 
     lineup_cols={r["name"] for r in c.execute("PRAGMA table_info(lineups)").fetchall()}
     if "field_positions_json" not in lineup_cols:
@@ -861,6 +879,15 @@ def award_player(c,season,period,code,name,pid,xp,detail=None):
     c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
               (pid,"AWARD",xp,json.dumps({"season":season,"period":period,"award":name,**(detail or {})})))
     notify_user(c,pl["user_id"],"AWARD",f"{name}: +{xp:g} XP",f"{pl['name']} earned {name}.",str(pid))
+    team=c.execute("SELECT name FROM franchises WHERE id=?",(pl["franchise_id"],)).fetchone() if pl["franchise_id"] else None
+    team_name=team["name"] if team else "Free Agent"
+    if detail and isinstance(detail.get("days"),list) and detail.get("days"):
+        news_day=int(detail["days"][-1])
+    else:
+        news_day=81 if period=="REGULAR_SEASON" else int((c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone() or {'v':0})["v"] or 0)
+    post_news(c,"AWARD",f"🏆 {pl['name']} wins {name}",
+              f"{pl['name']} of the {team_name} has been named {name} for Season {season} and earns +{xp:g} XP.",
+              news_day,pl["franchise_id"],pid,None,4,season=season)
     return True
 
 def process_quarter_awards(c,season,end_day):
@@ -1128,6 +1155,48 @@ def auto_batting_order(c,hitter_ids):
     return order
 
 
+def auto_pitching_plan(c,fid):
+    """Return an unmanaged club's rotation and bullpen ranked by pitcher OVR.
+
+    Starting-pitcher roster slots compete with other SP slots; relief-pitcher
+    roster slots compete with other RP slots. This keeps a human RP who joins a
+    CPU-managed team from being stranded outside stale bullpen JSON.
+    """
+    rows=c.execute(
+        """SELECT rs.position_group,p.id,p.primary_pos,p.attributes_json
+             FROM roster_slots rs
+             JOIN players p ON p.id=rs.player_id
+            WHERE rs.franchise_id=?
+              AND rs.position_group IN ('SP','RP')
+              AND p.type='P' AND p.active=1 AND p.status='SIGNED'""",
+        (fid,)
+    ).fetchall()
+    starters=[]; relievers=[]
+    for r in rows:
+        attrs=json.loads(r["attributes_json"] or "{}")
+        pid=int(r["id"])
+        if r["position_group"]=="SP":
+            ovr=player_overall_from_attrs(attrs,"P","SP")
+            starters.append((ovr,pid))
+        else:
+            role=r["primary_pos"] if r["primary_pos"] in ("RP","MR","LR","SU","CL") else "RP"
+            ovr=player_overall_from_attrs(attrs,"P",role)
+            relievers.append((ovr,pid))
+    starters.sort(reverse=True)
+    relievers.sort(reverse=True)
+    rotation=[pid for _,pid in starters[:5]]
+    rp=[pid for _,pid in relievers]
+    bullpen={
+        "CL":rp[0] if len(rp)>0 else None,
+        "SU1":rp[1] if len(rp)>1 else None,
+        "SU2":None,
+        "MR":[rp[2]] if len(rp)>2 else ([rp[1]] if len(rp)>1 else rp[:1]),
+        "LR":[rp[2]] if len(rp)>2 else rp[-1:] if rp else [],
+        "EMERGENCY":list(reversed(rp))
+    }
+    return rotation,bullpen
+
+
 def enforce_active_rosters(c,season=None):
     # 16-player active roster: every hitter has an everyday lineup job.
     template=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","SP","SP","SP","RP","RP","RP"]
@@ -1171,11 +1240,9 @@ def enforce_active_rosters(c,season=None):
             occ="HUMAN" if pl.get("user_id") is not None else "CPU"
             c.execute("INSERT INTO roster_slots(franchise_id,slot_no,position_group,player_id,occupant_type) VALUES(?,?,?,?,?)",(fid,i,grp,pl["id"],occ))
         hitter_ids=[int(slots[i]["id"]) for i in range(9)]
-        sp_ids=[int(slots[i]["id"]) for i,t in enumerate(template) if t=="SP"]
         generated_order=auto_batting_order(c,hitter_ids)
-        c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(generated_order),json.dumps(sp_ids[:4]),fid))
-        rp_ids=[int(slots[i]["id"]) for i,t in enumerate(template) if t=="RP"]
-        bp={"CL":rp_ids[-1] if rp_ids else None,"SU1":rp_ids[-2] if len(rp_ids)>1 else None,"SU2":None,"MR":rp_ids[:1],"LR":[],"EMERGENCY":[]}
+        rotation,bp=auto_pitching_plan(c,fid)
+        c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(generated_order),json.dumps(rotation[:5]),fid))
         c.execute("UPDATE team_strategy SET bullpen_json=? WHERE franchise_id=?",(json.dumps(bp),fid))
     return True
 
@@ -1419,7 +1486,17 @@ def player_obj(c,pid):
     d["username"]=owner["username"] if owner else None
     con=c.execute("SELECT * FROM contracts WHERE player_id=?",(pid,)).fetchone()
     d["contract"]=dict(con) if con else None
-    d["offers"]=[dict(x) for x in c.execute("SELECT * FROM offers WHERE player_id=? AND status IN ('OPEN','HELD') ORDER BY id DESC",(pid,))]
+    last_contract=c.execute("""SELECT ch.*,f.name team_name
+                              FROM contract_history ch
+                              LEFT JOIN franchises f ON f.id=ch.franchise_id
+                              WHERE ch.player_id=?
+                              ORDER BY ch.id DESC LIMIT 1""",(pid,)).fetchone()
+    d["former_team"]={"franchise_id":last_contract["franchise_id"],"team_name":last_contract["team_name"],"salary":last_contract["salary"]} if last_contract else None
+    d["offers"]=[]
+    for row in c.execute("SELECT * FROM offers WHERE player_id=? AND status IN ('OPEN','HELD') ORDER BY id DESC",(pid,)):
+        off=dict(row)
+        off["returning_offer"]=bool(last_contract and off.get("franchise_id")==last_contract["franchise_id"])
+        d["offers"].append(off)
     d["ledger"]=[dict(x) for x in c.execute("SELECT event_type,xp,detail_json FROM xp_ledger WHERE player_id=? ORDER BY id DESC LIMIT 25",(pid,))]
     d["career"]=career_summary(c,pid,d.get("season"),bool(d.get("active")))
     d["career_seasons"]=d["career"]["seasons_completed"] if d.get("career") else 0
@@ -1773,13 +1850,18 @@ def record_championship(c,season,franchise_id,league_day):
     )
 
 
-def post_news(c,category,headline,body,league_day=0,franchise_id=None,player_id=None,game_id=None,importance=1):
-    # Prevent exact duplicate headlines for the same league day.
-    exists=c.execute("SELECT 1 FROM news WHERE league_day=? AND headline=?",(league_day,headline)).fetchone()
+def post_news(c,category,headline,body,league_day=0,franchise_id=None,player_id=None,game_id=None,importance=1,season=None):
+    # News is season-aware so Day 1/Day 94 stories from different seasons never collide.
+    if season is None and game_id is not None:
+        gr=c.execute("SELECT season FROM games WHERE id=?",(game_id,)).fetchone()
+        season=int(gr["season"]) if gr else None
+    if season is None:
+        season=_season_number(c)
+    exists=c.execute("SELECT 1 FROM news WHERE season=? AND league_day=? AND headline=?",(season,league_day,headline)).fetchone()
     if exists:return
-    c.execute("""INSERT INTO news(league_day,category,headline,body,franchise_id,player_id,game_id,importance)
-                 VALUES(?,?,?,?,?,?,?,?)""",
-              (league_day,category,headline,body,franchise_id,player_id,game_id,importance))
+    c.execute("""INSERT INTO news(season,league_day,category,headline,body,franchise_id,player_id,game_id,importance)
+                 VALUES(?,?,?,?,?,?,?,?,?)""",
+              (season,league_day,category,headline,body,franchise_id,player_id,game_id,importance))
 
 
 def generate_game_news(c,g,score,winner,loser,box):
@@ -1802,6 +1884,37 @@ def generate_game_news(c,g,score,winner,loser,box):
     post_news(c,"GAME",headline,body,day,winner,None,g["id"],imp)
 
 
+    # Individual performances deserve their own headlines when they clear a
+    # genuinely dominant threshold. Keep these selective so the Newsroom feels
+    # like a league newspaper instead of a box-score dump.
+    for pid_s,line in (box.get("hitters") or {}).items():
+        pid=int(pid_s)
+        hits=int(line.get("H",0) or 0); hr=int(line.get("HR",0) or 0); rbi=int(line.get("RBI",0) or 0)
+        if hr>=2 or hits>=4 or rbi>=5:
+            pl=c.execute("SELECT name,franchise_id FROM players WHERE id=?",(pid,)).fetchone()
+            if pl:
+                feats=[]
+                if hits:feats.append(f"{hits} hits")
+                if hr:feats.append(f"{hr} HR")
+                if rbi:feats.append(f"{rbi} RBI")
+                post_news(c,"PLAYER",f"🔥 {pl['name']} delivers a dominant performance",
+                          f"{pl['name']} powered the lineup with {', '.join(feats)} on League Day {day}.",
+                          day,pl["franchise_id"],pid,g["id"],3,season=g["season"])
+
+    for tfid,rows in (box.get("pitchers") or {}).items():
+        for line in rows or []:
+            pid=int(line.get("player_id",0) or 0); outs=int(line.get("OUTS",0) or 0)
+            er=int(line.get("ER",0) or 0); so=int(line.get("SO",0) or 0)
+            is_start=int(line.get("GS",0) or 0)==1
+            dominant=(is_start and ((outs>=21 and er<=1 and so>=7) or (so>=10 and er<=2))) or ((not is_start) and outs>=6 and er==0 and so>=3)
+            if dominant and pid:
+                pl=c.execute("SELECT name,franchise_id FROM players WHERE id=?",(pid,)).fetchone()
+                if pl:
+                    ip=f"{outs//3}.{outs%3}"
+                    post_news(c,"PLAYER",f"🔥 {pl['name']} dominates on the mound",
+                              f"{pl['name']} worked {ip} innings with {so} strikeouts and {er} earned run{'s' if er!=1 else ''} on League Day {day}.",
+                              day,pl["franchise_id"],pid,g["id"],3,season=g["season"])
+
     sev=box.get("strategy_events",[])
     if len(sev)>=8:
         post_news(c,"MANAGER",f"{names[winner]} lean on the dugout in tactical win",
@@ -1809,15 +1922,16 @@ def generate_game_news(c,g,score,winner,loser,box):
                   day,winner,None,g["id"],1)
 
 
-def generate_daily_news(c,day):
-    games=c.execute("SELECT * FROM games WHERE league_day=? AND status='FINAL'",(day,)).fetchall()
+def generate_daily_news(c,day,season=None):
+    season=int(season or _season_number(c))
+    games=c.execute("SELECT * FROM games WHERE season=? AND league_day=? AND status='FINAL'",(season,day)).fetchall()
     if not games:return
     # Best run differential of the day.
     best=max(games,key=lambda x:abs(x["away_runs"]-x["home_runs"]))
     winner=best["away_id"] if best["away_runs"]>best["home_runs"] else best["home_id"]
     wn=c.execute("SELECT name FROM franchises WHERE id=?",(winner,)).fetchone()["name"]
     post_news(c,"AROUND_EBL",f"Around the EBL: {wn} make the loudest statement",
-              f"League Day {day} is in the books. {len(games)} games reshaped the standings as the Genesis season continues to build its first rivalries and storylines.",
+              f"Season {season}, League Day {day} is in the books. {len(games)} games reshaped the standings and added new player and team storylines.",
               day,winner,None,None,2)
 
 
@@ -1861,13 +1975,14 @@ def update_team_game_records(c,g,score):
                   g["league_day"],holder,None,g["id"],3)
 
 
-def weekly_recap(c,day):
+def weekly_recap(c,day,season=None):
     if day<=0 or day%7:return
-    games=c.execute("SELECT COUNT(*) n FROM games WHERE league_day>? AND league_day<=? AND status='FINAL'",(day-7,day)).fetchone()["n"]
+    season=int(season or _season_number(c))
+    games=c.execute("SELECT COUNT(*) n FROM games WHERE season=? AND league_day>? AND league_day<=? AND status='FINAL'",(season,day-7,day)).fetchone()["n"]
     if not games:return
     leader=c.execute("SELECT id,name,wins,losses FROM franchises ORDER BY wins DESC,losses ASC LIMIT 1").fetchone()
     post_news(c,"WEEKLY",f"EBL Week {day//7}: {leader['name']} set the pace",
-              f"Seven more league days are complete. {leader['name']} lead at {leader['wins']}-{leader['losses']} as Genesis builds its first rivalries, records, and breakout stories.",
+              f"Seven more league days are complete in Season {season}. {leader['name']} lead at {leader['wins']}-{leader['losses']} as the pennant race, records, and breakout stories develop.",
               day,leader["id"],None,None,3)
 
 
@@ -1983,17 +2098,17 @@ def simulate_game(c,g):
         if fr and fr["owner_user_id"] is None and len(lineups[fid])==9:
             lineups[fid]=auto_batting_order(c,lineups[fid])
     rotations={fid:json.loads(lrows[fid]["rotation_json"]) for fid in [away,home]}
-    # CPU clubs automatically rank their saved rotation by SP OVR. Human-coached clubs keep the coach's 3-5 man order.
+    auto_bullpens={}
+    # Unmanaged clubs rebuild their staff from the active roster every game.
+    # Rotation order and bullpen hierarchy are determined by pitcher OVR, so a
+    # newly signed human reliever cannot be trapped outside stale strategy JSON.
     for rf in [away,home]:
         fr=c.execute("SELECT owner_user_id FROM franchises WHERE id=?",(rf,)).fetchone()
         if fr and fr["owner_user_id"] is None:
-            ranked=[]
-            for pid in rotations[rf]:
-                pr=c.execute("SELECT id,type,primary_pos,attributes_json FROM players WHERE id=?",(int(pid),)).fetchone()
-                if pr:
-                    attrs=json.loads(pr["attributes_json"] or "{}")
-                    ranked.append((player_overall_from_attrs(attrs,"P","SP"),int(pid)))
-            if len(ranked)==len(rotations[rf]):rotations[rf]=[pid for _,pid in sorted(ranked,reverse=True)]
+            auto_rot,auto_bp=auto_pitching_plan(c,rf)
+            if auto_rot:
+                rotations[rf]=auto_rot
+            auto_bullpens[rf]=auto_bp
     # Guard against an old/incomplete rotation. A playable club needs 3-5 pitchers;
     # old CPU saves remain valid with their existing four-man default.
     for rf in [away,home]:
@@ -2016,6 +2131,8 @@ def simulate_game(c,g):
             pregame_fatigue[fid][int(pid)]=pitcher_recovery_state(c,int(pid),int(g["league_day"]))["fatigue"]
 
     strategies={fid:team_strategy_for(c,fid) for fid in [away,home]}
+    for fid,bp in auto_bullpens.items():
+        strategies[fid]["bullpen"]=bp
 
     # Team defense is a real simulation input. Better FLD/REAC turn more marginal
     # balls into outs; ARM/ACC reduce extra-base damage. This is intentionally
@@ -3255,8 +3372,12 @@ def run_storage_maintenance(current_season=None,current_day=None,aggressive=Fals
     c=conn()
     try:
         cur=c.execute("DELETE FROM chat_messages WHERE created_at < datetime('now', ?)",(f"-{CHAT_RETENTION_HOURS} hours",)); pruned_chat=cur.rowcount
-        if current_day is not None:
-            cur=c.execute("DELETE FROM news WHERE league_day < ?",(max(0,int(current_day)-7),)); pruned_news=cur.rowcount
+        if current_season is not None:
+            # Keep the full current season newsroom intact. Low-importance stories
+            # are only pruned once they are more than two seasons old; awards,
+            # championships, records and other major history remain permanently.
+            cutoff=max(1,int(current_season)-2)
+            cur=c.execute("DELETE FROM news WHERE season < ? AND importance < 4",(cutoff,)); pruned_news=cur.rowcount
         c.commit()
         try:c.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         except:pass
@@ -3265,14 +3386,28 @@ def run_storage_maintenance(current_season=None,current_day=None,aggressive=Fals
 
 
 def owned_active_player(c,user_id,requested_id=None):
-    """Return an active player owned by user. If no id is supplied, use newest."""
+    """Return an active player owned by user.
+
+    Browser-selected player ids can become stale after season rollover, logout/login,
+    retirement, or account switching. Never let a stale requested id make an account
+    with valid active players look empty: try the requested id first, then fall back
+    to the user's newest active player.
+    """
     try:
         pid=int(requested_id or 0)
     except Exception:
         pid=0
     if pid>0:
-        return c.execute("SELECT * FROM players WHERE id=? AND user_id=? AND active=1",(pid,user_id)).fetchone()
-    return c.execute("SELECT * FROM players WHERE user_id=? AND active=1 ORDER BY id DESC LIMIT 1",(user_id,)).fetchone()
+        row=c.execute(
+            "SELECT * FROM players WHERE id=? AND user_id=? AND active=1",
+            (pid,user_id)
+        ).fetchone()
+        if row:
+            return row
+    return c.execute(
+        "SELECT * FROM players WHERE user_id=? AND active=1 ORDER BY id DESC LIMIT 1",
+        (user_id,)
+    ).fetchone()
 
 def request_player_id(handler,body=None):
     if isinstance(body,dict) and body.get("player_id") not in (None,""):
@@ -3776,6 +3911,28 @@ class H(BaseHTTPRequestHandler):
             finally:
                 c.close()
 
+        if p=="/api/commish/coach-assignments":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+            c=conn()
+            try:
+                coaches=[dict(x) for x in c.execute(
+                    """SELECT u.id,u.username,u.role,f.id franchise_id,f.name franchise_name
+                       FROM users u
+                       LEFT JOIN franchises f ON f.owner_user_id=u.id
+                       WHERE u.role='COACH'
+                       ORDER BY u.username,f.name"""
+                ).fetchall()]
+                teams=[dict(x) for x in c.execute(
+                    """SELECT f.id,f.name,f.owner_user_id,u.username coach_username
+                       FROM franchises f
+                       LEFT JOIN users u ON u.id=f.owner_user_id
+                       ORDER BY f.name"""
+                ).fetchall()]
+                return self.out({"coaches":coaches,"teams":teams})
+            finally:
+                c.close()
+
         if p=="/api/commish/reports":
             u=self.auth(["COMMISSIONER"])
             if not u:return
@@ -3795,12 +3952,13 @@ class H(BaseHTTPRequestHandler):
             c=conn();rows=[dict(x) for x in c.execute("SELECT * FROM commissioner_audit ORDER BY id DESC LIMIT 250")]
             c.close();return self.out({"audit":rows})
         if p=="/api/news":
-            c=conn()
+            c=conn();season=_season_number(c)
             rows=[dict(x) for x in c.execute("""SELECT n.*,f.name franchise_name,p.name player_name
                 FROM news n LEFT JOIN franchises f ON f.id=n.franchise_id
                 LEFT JOIN players p ON p.id=n.player_id
-                ORDER BY n.league_day DESC,n.importance DESC,n.id DESC LIMIT 60""")]
-            c.close();return self.out({"news":rows})
+                WHERE n.season=?
+                ORDER BY n.league_day DESC,n.importance DESC,n.id DESC LIMIT 60""",(season,))]
+            c.close();return self.out({"season":season,"news":rows})
         if p=="/api/schedule":
             c=conn()
 
@@ -4175,7 +4333,11 @@ class H(BaseHTTPRequestHandler):
             pl=player_obj(c,active_row["id"]) if active_row else None
             if pl and pl.get("franchise_id"):
                 f=c.execute(
-                    "SELECT id,name,wins,losses,runs_for,runs_against FROM franchises WHERE id=?",
+                    """SELECT f.id,f.name,f.wins,f.losses,f.runs_for,f.runs_against,
+                              b.primary_color,b.secondary_color,b.accent_color
+                       FROM franchises f
+                       LEFT JOIN franchise_branding b ON b.franchise_id=f.id
+                       WHERE f.id=?""",
                     (pl["franchise_id"],)
                 ).fetchone()
                 if f:
@@ -4593,10 +4755,11 @@ class H(BaseHTTPRequestHandler):
                     c.rollback();return self.out({"error":"INVALID_50_XP_BUILD"},400)
                 season={k:0 for k in (["G","GS","OUTS","H","ER","BB","SO","W","L","SV"] if ptype=="P" else ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"])}
                 face_id=int(d.get("face_id",1));hair_id=int(d.get("hair_id",1))
-                if face_id not in range(1,11) or hair_id not in range(1,11):
+                facial_hair_id=int(d.get("facial_hair_id",1));eye_color_id=int(d.get("eye_color_id",6))
+                if face_id not in range(1,11) or hair_id not in range(1,11) or facial_hair_id not in range(1,6) or eye_color_id not in range(1,7):
                     c.rollback();return self.out({"error":"INVALID_APPEARANCE"},400)
-                cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,hair_id)
-                                 VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,hair_id))
+                cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,hair_id,facial_hair_id,eye_color_id)
+                                 VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,hair_id,facial_hair_id,eye_color_id))
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid})))
                 c.commit()
                 return self.out({"player":player_obj(c,cur.lastrowid)})
@@ -4693,9 +4856,16 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             d=self.body();c=conn();pr=owned_active_player(c,u["id"],request_player_id(self,d))
             if not pr or pr["status"]!="FREE_AGENT":c.close();return self.out({"error":"PLAYER_NOT_FREE_AGENT"},400)
-            # CPU franchises evaluate positional need and make 3 varied, affordable offers.
-            existing=c.execute("SELECT COUNT(*) n FROM offers WHERE player_id=? AND status IN ('OPEN','HELD')",(pr["id"],)).fetchone()["n"]
-            if existing:c.close();return self.out({"error":"ACTIVE_OFFERS_ALREADY_EXIST"},400)
+            # CPU franchises fill the player's market up to three active offers.
+            # A former-team return offer does not block the player from shopping around.
+            existing_rows=c.execute("SELECT franchise_id,status FROM offers WHERE player_id=? AND status IN ('OPEN','HELD')",(pr["id"],)).fetchall()
+            existing_teams={x["franchise_id"] for x in existing_rows}
+            open_count=sum(1 for x in existing_rows if x["status"]=="OPEN")
+            held_count=sum(1 for x in existing_rows if x["status"]=="HELD")
+            # HOLD means "keep this offer while I keep shopping." Only OPEN offers
+            # occupy the three live-market slots; held offers stay preserved.
+            slots=max(0,3-open_count)
+            if slots<=0:c.close();return self.out({"error":"OPEN_OFFERS_FULL","open_offers":open_count,"held_offers":held_count},400)
             attrs=json.loads(pr["attributes_json"]);overall=sum(attrs.values())/max(1,len(attrs))
             season=_season_number(c)
             active_ids=active_franchise_ids(c,season)
@@ -4703,6 +4873,8 @@ class H(BaseHTTPRequestHandler):
             teams=[dict(x) for x in c.execute(f"SELECT * FROM franchises WHERE id IN ({q}) ORDER BY id",active_ids)]
             scored=[]
             for f in teams:
+                if f["id"] in existing_teams:
+                    continue
                 need=R.uniform(0,12)
                 group=str(pr["position_group"] or position_group_for_pos(pr["primary_pos"])).upper()
                 desired={"INF":5,"OF":4,"PITCHER":7}.get(group,4)
@@ -4714,7 +4886,7 @@ class H(BaseHTTPRequestHandler):
                 scored.append((need+overall*.12+R.uniform(0,4),f))
             scored.sort(key=lambda x:x[0],reverse=True)
             made=[]
-            for rank,(_,f) in enumerate(scored[:3]):
+            for rank,(_,f) in enumerate(scored[:slots]):
                 bonus=round(min(25,6+overall*.45+R.uniform(0,7)-rank),1)
                 salary=round(max(SALARY_MIN,min(SALARY_MAX,0.30+(overall/100.0)*0.10+R.uniform(-0.015,0.015))),2)
                 years=R.choice([1,2,2,3])
@@ -4724,6 +4896,43 @@ class H(BaseHTTPRequestHandler):
             for off in made:
                 notify_user(c,u["id"],"CONTRACT",f"Contract offer from {off['team']}",f"{off['bonus']:g} XP bonus • {off['salary']:g} XP/game • {off['years']} year(s)",str(off["offer_id"]))
             c.commit();c.close();return self.out({"ok":True,"offers":made})
+        if p=="/api/commish/assign-coach":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+            d=self.body();coach_id=int(d.get("coach_user_id",0) or 0);fid=str(d.get("franchise_id") or "").strip()
+            c=conn()
+            try:
+                if not fid:
+                    return self.out({"error":"FRANCHISE_REQUIRED"},400)
+                fr=c.execute("SELECT id,name,owner_user_id FROM franchises WHERE id=?",(fid,)).fetchone()
+                if not fr:
+                    return self.out({"error":"FRANCHISE_NOT_FOUND"},404)
+                if coach_id:
+                    coach=c.execute("SELECT id,username,role FROM users WHERE id=?",(coach_id,)).fetchone()
+                    if not coach or coach["role"]!="COACH":
+                        return self.out({"error":"INVALID_COACH"},400)
+                    # One team per coach. Moving a coach automatically releases the old club.
+                    c.execute("UPDATE franchises SET owner_user_id=NULL WHERE owner_user_id=? AND id<>?",(coach_id,fid))
+                    # One coach per team. Reassignment replaces the previous coach.
+                    c.execute("UPDATE franchises SET owner_user_id=? WHERE id=?",(coach_id,fid))
+                    action="COACH_ASSIGNED"
+                    detail=f"{coach['username']} -> {fr['name']}"
+                    result={"ok":True,"coach_user_id":coach_id,"coach_username":coach["username"],"franchise_id":fid,"franchise_name":fr["name"]}
+                else:
+                    old=None
+                    if fr["owner_user_id"]:
+                        old=c.execute("SELECT username FROM users WHERE id=?",(fr["owner_user_id"],)).fetchone()
+                    c.execute("UPDATE franchises SET owner_user_id=NULL WHERE id=?",(fid,))
+                    action="COACH_UNASSIGNED"
+                    detail=f"{(old['username'] if old else 'coach')} <- {fr['name']}"
+                    result={"ok":True,"coach_user_id":None,"franchise_id":fid,"franchise_name":fr["name"]}
+                day=int(league_cfg(c,"league_day","0") or 0)
+                c.execute("INSERT INTO commissioner_audit(league_day,action,detail) VALUES(?,?,?)",(day,action,detail))
+                c.commit()
+                return self.out(result)
+            finally:
+                c.close()
+
         if p=="/api/coach/offer":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
@@ -5629,6 +5838,8 @@ class H(BaseHTTPRequestHandler):
                     for ur in c.execute("SELECT DISTINCT user_id FROM players WHERE franchise_id=? AND active=1 AND user_id IS NOT NULL",(fid,)).fetchall():
                         notify_user(c,ur["user_id"],"GAME",f"Game Day: {team_name(c,g['away_id'])} @ {team_name(c,g['home_id'])}",f"League Day {day}",g["id"])
             results=[simulate_game(c,g) for g in games]
+            generate_daily_news(c,day,season)
+            weekly_recap(c,day,season)
             process_quarter_awards(c,season,day)
             if day==81:
                 process_season_awards(c,season)
@@ -5745,7 +5956,8 @@ class H(BaseHTTPRequestHandler):
                     return self.out({"error":"SEASON_NOT_COMPLETE","phase":phase},400)
 
                 next_season=current_season+1
-                summary={"contracts_expired":0,"contracts_advanced":0,"retired":0,"retired_names":[],"free_agents":[],"offers_expired":0,"rosters_rebuilt":False}
+                summary={"contracts_expired":0,"contracts_advanced":0,"retired":0,"retired_names":[],"free_agents":[],"offers_expired":0,"return_offers":0,"rosters_rebuilt":False}
+                return_offer_candidates=[]
 
                 # Active players are archived here. Voluntary offseason retirees
                 # are archived by /api/player/retire at retirement time.
@@ -5791,7 +6003,14 @@ class H(BaseHTTPRequestHandler):
                         if pl:
                             summary["free_agents"].append(pl["name"])
                             if pl["user_id"]:
-                                notify_user(c,pl["user_id"],"CONTRACT","Contract expired",f"{pl['name']} is now an EBL free agent.",str(pid))
+                                return_offer_candidates.append({
+                                    "player_id":pid,
+                                    "user_id":pl["user_id"],
+                                    "player_name":pl["name"],
+                                    "franchise_id":con["franchise_id"],
+                                    "previous_salary":float(con["salary"] or SALARY_MIN)
+                                })
+                                notify_user(c,pl["user_id"],"CONTRACT","Contract expired",f"{pl['name']} is now an EBL free agent. Your former club will send a return offer for the new season.",str(pid))
                     else:
                         c.execute("UPDATE contracts SET years_remaining=? WHERE player_id=?",(remaining,pid))
                         summary["contracts_advanced"]+=1
@@ -5829,6 +6048,27 @@ class H(BaseHTTPRequestHandler):
                 if not c.execute("SELECT 1 FROM franchise_seasons WHERE season=? LIMIT 1",(next_season,)).fetchone():
                     set_season_membership(c,next_season,current_active)
 
+                # Every human player whose deal expires gets a visible return offer from
+                # the club they just played for. They can accept it, hold it, reject it,
+                # or shop the wider market.
+                for cand in return_offer_candidates:
+                    if cand["franchise_id"] not in current_active:
+                        continue
+                    active=c.execute("SELECT active,status FROM players WHERE id=?",(cand["player_id"],)).fetchone()
+                    if not active or not active["active"] or active["status"]!="FREE_AGENT":
+                        continue
+                    if c.execute("SELECT 1 FROM offers WHERE player_id=? AND franchise_id=? AND status IN ('OPEN','HELD')",(cand["player_id"],cand["franchise_id"])).fetchone():
+                        continue
+                    fr=c.execute("SELECT name,xp_budget,xp_spent FROM franchises WHERE id=?",(cand["franchise_id"],)).fetchone()
+                    reserved=float(c.execute("SELECT COALESCE(SUM(bonus),0) x FROM offers WHERE franchise_id=? AND status IN ('OPEN','HELD')",(cand["franchise_id"],)).fetchone()["x"] or 0)
+                    available=max(0.0,float(fr["xp_budget"] or TEAM_BUDGET)-float(fr["xp_spent"] or 0)-reserved) if fr else 0.0
+                    bonus=round(min(5.0,available),1)
+                    salary=round(float(cand["previous_salary"])+0.02,2)
+                    cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,2,'OPEN')",(cand["franchise_id"],cand["player_id"],bonus,salary))
+                    summary["return_offers"]+=1
+                    if cand["user_id"]:
+                        notify_user(c,cand["user_id"],"CONTRACT",f"Return offer from {fr['name'] if fr else cand['franchise_id']}",f"{bonus:g} XP bonus • {salary:g} XP/game • 2 years",str(cur.lastrowid))
+
                 enforce_active_rosters(c,next_season)
                 summary["rosters_rebuilt"]=True
 
@@ -5847,6 +6087,7 @@ class H(BaseHTTPRequestHandler):
                 for key,value in (("season",str(next_season)),("league_day","0"),("phase","REGULAR"),("playoff_round",""),("champion","")):
                     c.execute("INSERT INTO league_state(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",(key,value))
                 c.execute("INSERT INTO league_config(k,v) VALUES('season_number',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",(str(next_season),))
+                post_news(c,"LEAGUE",f"Season {next_season} is open",f"A new EBL season begins. Rosters, contracts, standings, and statistics have rolled forward for Season {next_season}.",0,None,None,None,4,season=next_season)
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
                           ("SEASON_ADVANCED",u["id"],json.dumps({"from":current_season,"to":next_season,**summary})))
 
