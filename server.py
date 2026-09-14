@@ -17,7 +17,7 @@ RATE_LOCK=threading.Lock()
 
 
 HITTER_ATTRS=["CON","POW","VIS","DISC","TIM","SPD","BRIQ","LEAD","FLD","ARM","ACC","REAC","CALL"]
-PITCHER_ATTRS=["STA","PCLT","CTRL","VEL","BRK","FLD","ARM","ACC","REAC"]
+PITCHER_ATTRS=["STA","PCLT","CTRL","CMD","VEL","BRK","MOV","DEC","SEQ","FLD","ARM","ACC","REAC"]
 SALARY_MIN=0.30
 SALARY_MAX=0.40
 BONUS_CAP=100.0
@@ -72,7 +72,11 @@ def cpu_build(attr_names, role, rng):
     # Every Genesis player starts from zero and spends exactly the same 50-point pool.
     vals={a:0 for a in attr_names}
     if role in ("SP","RP","LR","MR","SU","CL"):
-        preferred=["CTRL","VEL","BRK"] + (["STA","PCLT"] if role=="SP" else ["PCLT","STA"])
+        preferred=(
+            ["CTRL","CMD","VEL","BRK","MOV","SEQ","STA","DEC","PCLT"]
+            if role=="SP" else
+            ["VEL","BRK","DEC","CMD","PCLT","MOV","SEQ","CTRL","STA"]
+        )
     else:
         preferred={
           "C":["CALL","ARM","ACC","REAC","FLD","CON","VIS"],"SS":["FLD","REAC","ACC","CON","SPD","BRIQ"],
@@ -180,6 +184,7 @@ def init_db():
       hair_id INTEGER NOT NULL DEFAULT 1,
       facial_hair_id INTEGER NOT NULL DEFAULT 1,
       eye_color_id INTEGER NOT NULL DEFAULT 6,
+      jersey_number INTEGER NOT NULL DEFAULT 24,
       age INTEGER NOT NULL DEFAULT 18
     );
     CREATE TABLE IF NOT EXISTS offers(
@@ -526,6 +531,21 @@ def init_db():
         c.execute("UPDATE players SET facial_hair_id=3 WHERE face_id IN (5,10)")
     if "eye_color_id" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN eye_color_id INTEGER NOT NULL DEFAULT 6")
+    if "jersey_number" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN jersey_number INTEGER NOT NULL DEFAULT 24")
+        # Give every existing player a stable number immediately. Signed players
+        # are made unique within their current franchise; free agents get a
+        # deterministic preferred number that can travel with them.
+        for fr in c.execute("SELECT id FROM franchises ORDER BY id").fetchall():
+            used=set()
+            rows=c.execute("SELECT id FROM players WHERE franchise_id=? AND active=1 ORDER BY id",(fr["id"],)).fetchall()
+            for idx,row in enumerate(rows,1):
+                num=((idx-1)%99)+1
+                while num in used:
+                    num=(num%99)+1
+                used.add(num)
+                c.execute("UPDATE players SET jersey_number=? WHERE id=?",(num,row["id"]))
+        c.execute("UPDATE players SET jersey_number=((id*7)%99)+1 WHERE franchise_id IS NULL")
 
     news_cols={r["name"] for r in c.execute("PRAGMA table_info(news)").fetchall()}
     if "season" not in news_cols:
@@ -578,6 +598,21 @@ def init_db():
             attrs["CTRL"]=float(attrs.get("CTRL",0) or 0)+ctrl_add
             attrs["VEL"]=float(attrs.get("VEL",0) or 0)+vel_add
             attrs["BRK"]=float(attrs.get("BRK",0) or 0)+brk_add
+            c.execute("UPDATE players SET attributes_json=? WHERE id=?",(json.dumps(attrs),row["id"]))
+
+    # Pitching depth expansion: new craft ratings are additive. Existing pitchers
+    # receive them at zero, so their established CTRL/VEL/BRK behavior is preserved.
+    for row in c.execute("SELECT id,attributes_json FROM players WHERE type='P'").fetchall():
+        try:
+            attrs=json.loads(row["attributes_json"] or "{}")
+        except Exception:
+            attrs={}
+        changed=False
+        for key in ("CMD","MOV","DEC","SEQ"):
+            if key not in attrs:
+                attrs[key]=0
+                changed=True
+        if changed:
             c.execute("UPDATE players SET attributes_json=? WHERE id=?",(json.dumps(attrs),row["id"]))
 
     franchise_cols={r["name"] for r in c.execute("PRAGMA table_info(franchises)")}
@@ -1509,6 +1544,24 @@ def player_obj(c,pid):
 
 
 
+def assign_team_jersey_number(c,franchise_id,player_id,preferred):
+    try:
+        preferred=int(preferred)
+    except Exception:
+        preferred=24
+    preferred=max(0,min(99,preferred))
+    taken={int(r["jersey_number"]) for r in c.execute(
+        "SELECT jersey_number FROM players WHERE franchise_id=? AND active=1 AND status='SIGNED' AND id<>?",
+        (franchise_id,player_id)
+    ).fetchall() if r["jersey_number"] is not None}
+    if preferred not in taken:
+        chosen=preferred
+    else:
+        chosen=next((n for n in range(0,100) if n not in taken),preferred)
+    c.execute("UPDATE players SET jersey_number=? WHERE id=?",(chosen,player_id))
+    return chosen
+
+
 def sim_player_obj(c,pid):
     r=c.execute("SELECT * FROM players WHERE id=?",(pid,)).fetchone()
     if not r:return None
@@ -1561,6 +1614,7 @@ def player_overall_from_attrs(attrs, player_type, pos):
         value=batting*wb+fielding*wf+baserunning*wr
     else:
         pitching=avg(["CTRL","VEL","BRK"])
+        craft=avg(["CMD","MOV","DEC","SEQ"])
         fielding=avg(["FLD","ARM","ACC","REAC"])
         sta=float(attrs.get("STA",0) or 0)
         pclt=float(attrs.get("PCLT",0) or 0)
@@ -1570,6 +1624,8 @@ def player_overall_from_attrs(attrs, player_type, pos):
             value=pitching*.70+pclt*.15+fielding*.10+sta*.05
         else:
             value=pitching*.68+sta*.10+pclt*.12+fielding*.10
+        # Craft ratings add specialization without taking value away from legacy builds.
+        value+=craft*.08
 
     return max(1,int(round(value)))
 
@@ -1757,10 +1813,10 @@ def steal_success_probability(player,catcher=None):
     defense=catcher or {}
     # ARM is the primary caught-stealing weapon; ACC and REAC add smaller
     # contributions so a complete catcher controls the running game best.
-    catcher_penalty=(float(defense.get("ARM",0) or 0)*.00120 +
-                     float(defense.get("ACC",0) or 0)*.00070 +
-                     float(defense.get("REAC",0) or 0)*.00040)
-    return max(.30,min(.96,.58+spd*.0035+briq*.0027+lead*.0031-catcher_penalty))
+    catcher_penalty=(float(defense.get("ARM",0) or 0)*.00110 +
+                     float(defense.get("ACC",0) or 0)*.00060 +
+                     float(defense.get("REAC",0) or 0)*.00035)
+    return max(.42,min(.97,.77+spd*.0035+briq*.0027+lead*.0031-catcher_penalty))
 
 
 def pickoff_probability(player):
@@ -2313,7 +2369,7 @@ def simulate_game(c,g):
                 batline["PA"]+=1
                 events.append({"type":"PA_START","inning":inning,"half":half,"batter_id":batter["id"],"batter":batter["name"],
                                "pitcher_id":pitcher["id"],"pitcher":pitcher["name"],"outs":outs,"score":[score[away],score[home]]})
-                balls=strikes=0;pitch_no=0
+                balls=strikes=0;pitch_no=0;prev_pitch_type=None
                 while True:
                     pitch_no+=1
                     bat_attrs=batter.get("attributes",{})
@@ -2326,8 +2382,12 @@ def simulate_game(c,g):
                     tim=float(bat_attrs.get("TIM",0) or 0)
 
                     ctrl_raw=float(pit_attrs.get("CTRL",0) or 0)
+                    cmd_raw=float(pit_attrs.get("CMD",0) or 0)
                     vel_raw=float(pit_attrs.get("VEL",0) or 0)
                     brk_raw=float(pit_attrs.get("BRK",0) or 0)
+                    mov_raw=float(pit_attrs.get("MOV",0) or 0)
+                    dec_raw=float(pit_attrs.get("DEC",0) or 0)
+                    seq_raw=float(pit_attrs.get("SEQ",0) or 0)
                     sta=float(pit_attrs.get("STA",0) or 0)
                     pclt=float(pit_attrs.get("PCLT",0) or 0)
 
@@ -2348,11 +2408,19 @@ def simulate_game(c,g):
                     call_brk=call_rating*.025
 
                     ctrl=max(0.0,ctrl_raw-fatigue_penalty+clutch_bonus+call_ctrl)
+                    cmd=max(0.0,cmd_raw-fatigue_penalty*.55+clutch_bonus*.55)
                     vel_attr=max(0.0,vel_raw-fatigue_penalty*.60+clutch_bonus*.35)
                     brk=max(0.0,brk_raw-fatigue_penalty*.75+clutch_bonus*.65+call_brk)
+                    mov=max(0.0,mov_raw-fatigue_penalty*.45+clutch_bonus*.35)
+                    dec=max(0.0,dec_raw-fatigue_penalty*.20+clutch_bonus*.20)
+                    seq=max(0.0,seq_raw-fatigue_penalty*.15+clutch_bonus*.30)
 
-                    # Physical pitch properties come from actual skills.
-                    ptype=R.choice(["Four-Seam","Slider","Changeup","Sinker","Curve"])
+                    # Physical pitch properties come from actual skills. Sequencing makes
+                    # advanced pitchers less likely to repeat the same look back-to-back.
+                    pitch_types=["Four-Seam","Slider","Changeup","Sinker","Curve"]
+                    ptype=R.choice(pitch_types)
+                    if pitch_no>1 and prev_pitch_type and ptype==prev_pitch_type and R.random()<min(.82,seq*.008):
+                        ptype=R.choice([x for x in pitch_types if x!=prev_pitch_type])
                     pitch_speed_base={
                         "Four-Seam":90.0,
                         "Sinker":88.5,
@@ -2364,17 +2432,19 @@ def simulate_game(c,g):
 
                     # CTRL governs how often the pitcher reaches the zone and how well pitches
                     # live near useful edges. DISC/VIS govern chase decisions outside the zone.
-                    zone_p=max(.45,min(.68,.495+ctrl*.0020))
+                    zone_p=max(.44,min(.68,.488+ctrl*.0020))
                     in_zone=R.random()<zone_p
-                    edge=max(0.0,min(1.0,R.random()+ctrl*.0025-.12))
+                    edge=max(0.0,min(1.0,R.random()+ctrl*.0025+cmd*.0030-.12))
                     if in_zone:
-                        px=round(max(.05,min(.95,R.gauss(.5,.16-.0007*min(ctrl,80)))),3)
-                        pz=round(max(.05,min(.95,R.gauss(.5,.16-.0007*min(ctrl,80)))),3)
+                        loc_sd=max(.065,.16-.0007*min(ctrl,80)-.00045*min(cmd,80))
+                        px=round(max(.05,min(.95,R.gauss(.5,loc_sd))),3)
+                        pz=round(max(.05,min(.95,R.gauss(.5,loc_sd))),3)
                         swing_p=max(.60,min(.84,.69+vis*.0012+(.025 if strikes==2 else 0)-(.01 if balls==3 else 0)))
                     else:
                         px=round(R.choice([R.uniform(.02,.18),R.uniform(.82,.98)]),3)
                         pz=round(R.choice([R.uniform(.02,.18),R.uniform(.82,.98)]),3)
-                        swing_p=max(.06,min(.42,.29+brk*.0017-disc*.0032-vis*.0012+(.035 if strikes==2 else 0)-(.045 if balls==3 else 0)))
+                        two_strike_seq=(seq*.0014 if strikes==2 else 0.0)
+                        swing_p=max(.06,min(.47,.29+brk*.0017+mov*.0008+dec*.0013+two_strike_seq-disc*.0032-vis*.0012+(.035 if strikes==2 else 0)-(.045 if balls==3 else 0)))
 
                     if R.random()>=swing_p:
                         if in_zone:
@@ -2383,9 +2453,10 @@ def simulate_game(c,g):
                             balls+=1;call="Ball"
                     else:
                         # VEL/BRK create swing difficulty; CON/VIS/TIM fight it.
-                        pitch_skill=.45*vel_attr+.55*brk+.10*ctrl*edge
+                        seq_mix=seq*(.23 if prev_pitch_type and ptype!=prev_pitch_type else .06)
+                        pitch_skill=.45*vel_attr+.55*brk+.10*ctrl*edge+.22*cmd*edge+.20*dec+seq_mix
                         hitter_skill=.40*con+.25*vis+.35*tim
-                        whiff=max(.08,min(.62,.325+(pitch_skill-hitter_skill)*.0032+(.10 if not in_zone else 0)))
+                        whiff=max(.08,min(.66,.325+(pitch_skill-hitter_skill)*.0032+(.10 if not in_zone else 0)))
                         if R.random()<whiff:
                             strikes+=1;call="Swinging Strike"
                         else:
@@ -2404,6 +2475,7 @@ def simulate_game(c,g):
                         "balls":min(balls,4),"strikes":min(strikes,3),
                         "batter_id":batter["id"],"pitcher_id":pitcher["id"]
                     })
+                    prev_pitch_type=ptype
 
 
                     if call=="In Play":
@@ -2411,15 +2483,15 @@ def simulate_game(c,g):
                         # POW/TIM/CON create exit velocity and launch-angle quality; VEL/BRK
                         # suppress it. Team defense then influences whether marginal contact
                         # falls safely, rather than a hidden H9/HR9 roll deciding the result.
-                        quality=.30*con+.40*tim+.30*powr-(.11*vel_attr+.09*brk)
-                        exit_velo=round(max(55.0,min(122.0,R.gauss(87.5+quality*.24,7.4))),1)
-                        launch_angle=round(max(-45.0,min(55.0,R.gauss(12.5+(tim-8)*.08+(powr-8)*.025,15.5))),1)
+                        quality=.30*con+.40*tim+.30*powr-(.11*vel_attr+.09*brk+.11*mov+.055*cmd+.035*dec)
+                        exit_velo=round(max(55.0,min(122.0,R.gauss(88.8+quality*.24,7.4))),1)
+                        launch_angle=round(max(-45.0,min(55.0,R.gauss(12.5+(tim-8)*.08+(powr-8)*.025-mov*.075,15.5))),1)
                         spray=round(R.uniform(-42,42),1)
 
-                        hr_score=(exit_velo-97.0)/4.4-abs(launch_angle-27.0)/11.5
+                        hr_score=(exit_velo-96.0)/4.4-abs(launch_angle-27.0)/11.5
                         hr_p=max(.002,min(.20,.34/(1.0+math.exp(-hr_score))))
 
-                        hit_score=(exit_velo-86.0)/7.2-abs(launch_angle-14.0)/22.0
+                        hit_score=(exit_velo-87.2)/7.2-abs(launch_angle-14.0)/22.0
                         defense_adj=(defense_rating.get(opp,0.0)-5.0)*.0025
                         hit_p=max(.12,min(.64,.145+.38/(1.0+math.exp(-hit_score))-defense_adj+shift_adj))
 
@@ -2427,7 +2499,7 @@ def simulate_game(c,g):
                         if roll<hr_p:
                             result="HR"
                         elif roll<hit_p:
-                            xbh_p=max(.08,min(.38,.15+(exit_velo-90.0)*.006+max(0.0,launch_angle-10.0)*.0025))
+                            xbh_p=max(.11,min(.44,.20+(exit_velo-90.0)*.0065+max(0.0,launch_angle-10.0)*.0028))
                             triple_p=max(.003,min(.035,.006+float(bat_attrs.get("SPD",0) or 0)*.00035))
                             xb=R.random()
                             if xb<triple_p:
@@ -4195,7 +4267,7 @@ class H(BaseHTTPRequestHandler):
             for pid,line in raw_box.get("hitters",{}).items():
                 player=c.execute(
                     """
-                    SELECT id,name,franchise_id
+                    SELECT id,name,franchise_id,face_id,hair_id,facial_hair_id,eye_color_id,jersey_number,primary_pos
                     FROM players
                     WHERE id=?
                     """,
@@ -4230,7 +4302,7 @@ class H(BaseHTTPRequestHandler):
 
                     player=c.execute(
                         """
-                        SELECT name
+                        SELECT name,face_id,hair_id,facial_hair_id,eye_color_id,jersey_number,primary_pos
                         FROM players
                         WHERE id=?
                         """,
@@ -4242,6 +4314,12 @@ class H(BaseHTTPRequestHandler):
                         "player_id":pid,
                         "name":player["name"] if player else f"Player {pid}",
                         "team_id":team_id,
+                        "face_id":player["face_id"] if player else 1,
+                        "hair_id":player["hair_id"] if player else 1,
+                        "facial_hair_id":player["facial_hair_id"] if player else 1,
+                        "eye_color_id":player["eye_color_id"] if player else 6,
+                        "jersey_number":player["jersey_number"] if player else 24,
+                        "primary_pos":player["primary_pos"] if player else "P",
                         **line
                     })
 
@@ -4756,10 +4834,11 @@ class H(BaseHTTPRequestHandler):
                 season={k:0 for k in (["G","GS","OUTS","H","ER","BB","SO","W","L","SV"] if ptype=="P" else ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"])}
                 face_id=int(d.get("face_id",1));hair_id=int(d.get("hair_id",1))
                 facial_hair_id=int(d.get("facial_hair_id",1));eye_color_id=int(d.get("eye_color_id",6))
-                if face_id not in range(1,11) or hair_id not in range(1,11) or facial_hair_id not in range(1,6) or eye_color_id not in range(1,7):
+                jersey_number=int(d.get("jersey_number",24))
+                if face_id not in range(1,11) or hair_id not in range(1,11) or facial_hair_id not in range(1,6) or eye_color_id not in range(1,7) or jersey_number not in range(0,100):
                     c.rollback();return self.out({"error":"INVALID_APPEARANCE"},400)
-                cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,hair_id,facial_hair_id,eye_color_id)
-                                 VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,hair_id,facial_hair_id,eye_color_id))
+                cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,hair_id,facial_hair_id,eye_color_id,jersey_number)
+                                 VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?,?,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,hair_id,facial_hair_id,eye_color_id,jersey_number))
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid})))
                 c.commit()
                 return self.out({"player":player_obj(c,cur.lastrowid)})
@@ -5054,10 +5133,11 @@ class H(BaseHTTPRequestHandler):
                              VALUES(?,?,?,?,?)""",
                           (pl["id"],off["franchise_id"],off["bonus"],off["salary"],off["years"]))
 
+                assigned_number=assign_team_jersey_number(c,off["franchise_id"],pl["id"],pl.get("jersey_number",24))
                 c.execute("""UPDATE players
-                             SET franchise_id=?,status='SIGNED',xp_wallet=xp_wallet+?
+                             SET franchise_id=?,status='SIGNED',xp_wallet=xp_wallet+?,jersey_number=?
                              WHERE id=?""",
-                          (off["franchise_id"],off["bonus"],pl["id"]))
+                          (off["franchise_id"],off["bonus"],assigned_number,pl["id"]))
 
                 # Signing bonus is charged to the team once and credited to this player only.
                 c.execute("UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",
