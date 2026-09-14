@@ -226,6 +226,18 @@ def init_db():
       detail_json TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS team_practice(
+      player_id INTEGER NOT NULL,
+      practice_date TEXT NOT NULL,
+      season INTEGER NOT NULL,
+      league_day INTEGER NOT NULL,
+      franchise_id TEXT NOT NULL,
+      xp REAL NOT NULL DEFAULT 0.25,
+      joined_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(player_id,practice_date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_team_practice_team_date
+      ON team_practice(franchise_id,practice_date);
     CREATE TABLE IF NOT EXISTS lineups(
       franchise_id TEXT PRIMARY KEY,
       batting_order_json TEXT NOT NULL DEFAULT '[]',
@@ -3481,6 +3493,14 @@ def owned_active_player(c,user_id,requested_id=None):
         (user_id,)
     ).fetchone()
 
+def practice_day_key():
+    """Calendar-day key for EBL daily practice, using league HQ Eastern time."""
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.datetime.now(ZoneInfo("America/New_York")).date().isoformat()
+    except Exception:
+        return datetime.datetime.utcnow().date().isoformat()
+
 def request_player_id(handler,body=None):
     if isinstance(body,dict) and body.get("player_id") not in (None,""):
         return body.get("player_id")
@@ -4433,6 +4453,91 @@ class H(BaseHTTPRequestHandler):
                 active_players.append(dict(row))
             c.close()
             return self.out({"player":pl,"players":active_players,"player_limit":ALPHA_PLAYER_LIMIT,"careers":former})
+        if p=="/api/my-team":
+            u=self.auth()
+            if not u:return
+            c=conn()
+            pl=owned_active_player(c,u["id"],request_player_id(self))
+            if not pl:
+                c.close();return self.out({"team":None,"reason":"NO_ACTIVE_PLAYER"})
+            fid=pl["franchise_id"]
+            if not fid:
+                c.close();return self.out({"team":None,"player_id":pl["id"],"reason":"FREE_AGENT"})
+            team=c.execute("SELECT id,name,wins,losses,runs_for,runs_against FROM franchises WHERE id=?",(fid,)).fetchone()
+            if not team:
+                c.close();return self.out({"team":None,"player_id":pl["id"],"reason":"TEAM_NOT_FOUND"})
+            brand=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(fid,)).fetchone()
+            roster=[]
+            for row in c.execute(
+                """SELECT p.id,p.user_id,p.name,p.type,p.primary_pos,p.bats,p.throws,p.jersey_number,p.status,
+                          p.attributes_json,p.season_json,u.username
+                   FROM players p LEFT JOIN users u ON u.id=p.user_id
+                   WHERE p.franchise_id=? AND p.active=1
+                   ORDER BY CASE p.type WHEN 'H' THEN 0 ELSE 1 END,p.primary_pos,p.name""",(fid,)):
+                x=dict(row)
+                try:attrs=json.loads(x.pop("attributes_json") or "{}")
+                except Exception:attrs={}
+                try:x["stats"]=json.loads(x.pop("season_json") or "{}")
+                except Exception:x["stats"]={}
+                x["overall"]=player_overall_from_attrs(attrs,x.get("type","H"),x.get("primary_pos","UTIL"))
+                roster.append(x)
+            l=c.execute("SELECT batting_order_json,rotation_json,field_positions_json FROM lineups WHERE franchise_id=?",(fid,)).fetchone()
+            strat=c.execute("SELECT bullpen_json FROM team_strategy WHERE franchise_id=?",(fid,)).fetchone()
+            try:lineup=json.loads(l["batting_order_json"] or "[]") if l else []
+            except Exception:lineup=[]
+            try:rotation=json.loads(l["rotation_json"] or "[]") if l else []
+            except Exception:rotation=[]
+            try:field_positions=json.loads(l["field_positions_json"] or "{}") if l else {}
+            except Exception:field_positions={}
+            try:bullpen=json.loads(strat["bullpen_json"] or "{}") if strat else {}
+            except Exception:bullpen={}
+            state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
+            season=int(state.get("season",1));day=int(state.get("league_day",0));today=practice_day_key()
+            attendance=[dict(r) for r in c.execute(
+                """SELECT tp.player_id,tp.joined_at,p.name,p.primary_pos,u.username
+                   FROM team_practice tp JOIN players p ON p.id=tp.player_id
+                   LEFT JOIN users u ON u.id=p.user_id
+                   WHERE tp.franchise_id=? AND tp.practice_date=?
+                   ORDER BY tp.joined_at""",(fid,today))]
+            human_total=c.execute("SELECT COUNT(*) n FROM players WHERE franchise_id=? AND active=1 AND user_id IS NOT NULL",(fid,)).fetchone()["n"]
+            practiced=any(int(a["player_id"])==int(pl["id"]) for a in attendance)
+
+            # Seven-day clubhouse attendance and the selected player's current practice streak.
+            try:
+                today_date=datetime.date.fromisoformat(today)
+            except Exception:
+                today_date=datetime.datetime.utcnow().date()
+            week_dates=[(today_date-datetime.timedelta(days=i)).isoformat() for i in range(6,-1,-1)]
+            week_start=week_dates[0]
+            count_rows=c.execute(
+                """SELECT practice_date,COUNT(*) n FROM team_practice
+                   WHERE franchise_id=? AND practice_date>=? AND practice_date<=?
+                   GROUP BY practice_date""",(fid,week_start,today)).fetchall()
+            count_map={str(r["practice_date"]):int(r["n"] or 0) for r in count_rows}
+            practice_history=[{"date":d,"count":count_map.get(d,0),"human_total":int(human_total or 0)} for d in week_dates]
+            player_dates={str(r["practice_date"]) for r in c.execute(
+                "SELECT practice_date FROM team_practice WHERE player_id=? AND franchise_id=? ORDER BY practice_date DESC LIMIT 120",
+                (pl["id"],fid)).fetchall()}
+            streak_anchor=today_date if today in player_dates else today_date-datetime.timedelta(days=1)
+            practice_streak=0
+            cursor=streak_anchor
+            while cursor.isoformat() in player_dates:
+                practice_streak+=1
+                cursor-=datetime.timedelta(days=1)
+
+            next_game=c.execute(
+                """SELECT id,league_day,away_id,home_id,status FROM games
+                   WHERE season=? AND league_day>=? AND status='SCHEDULED' AND (away_id=? OR home_id=?)
+                   ORDER BY league_day,id LIMIT 1""",(season,max(1,day),fid,fid)).fetchone()
+            out={"team":dict(team),"branding":dict(brand) if brand else None,"division":division_for(fid),
+                 "player_id":pl["id"],"roster":roster,"lineup":lineup,"field_positions":field_positions,
+                 "rotation":rotation,"bullpen":bullpen,"practice":{"date":today,"reward":0.25,
+                 "completed":practiced,"attendance":attendance,"human_total":human_total,
+                 "streak":practice_streak,"history":practice_history},
+                 "season":season,"league_day":day,"phase":state.get("phase","REGULAR"),
+                 "next_game":dict(next_game) if next_game else None}
+            c.close();return self.out(out)
+
         if p=="/api/coach/free-agents":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
@@ -5310,6 +5415,29 @@ class H(BaseHTTPRequestHandler):
                     bp[k]=[int(x) for x in bp.get(k,[]) if int(x) not in starter_set]
                 c.execute("UPDATE team_strategy SET bullpen_json=?,updated_at=CURRENT_TIMESTAMP WHERE franchise_id=?",(json.dumps(bp),f["id"]))
             c.execute("UPDATE lineups SET rotation_json=? WHERE franchise_id=?",(json.dumps(ids),f["id"]));c.commit();c.close();return self.out({"ok":True,"rotation_size":len(ids)})
+        if p=="/api/team/practice":
+            u=self.auth()
+            if not u:return
+            d=self.body();c=conn()
+            pl=owned_active_player(c,u["id"],request_player_id(self,d))
+            if not pl:
+                c.close();return self.out({"error":"NO_ACTIVE_PLAYER"},404)
+            fid=pl["franchise_id"]
+            if not fid or str(pl["status"] or "").upper()!="SIGNED":
+                c.close();return self.out({"error":"NO_TEAM"},400)
+            state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day')")}
+            season=int(state.get("season",1));day=int(state.get("league_day",0));today=practice_day_key();reward=0.25
+            existing=c.execute("SELECT xp FROM team_practice WHERE player_id=? AND practice_date=?",(pl["id"],today)).fetchone()
+            if existing:
+                c.close();return self.out({"ok":True,"already_completed":True,"xp":float(existing["xp"]),"practice_date":today})
+            c.execute("""INSERT INTO team_practice(player_id,practice_date,season,league_day,franchise_id,xp)
+                         VALUES(?,?,?,?,?,?)""",(pl["id"],today,season,day,fid,reward))
+            c.execute("UPDATE players SET xp_wallet=xp_wallet+? WHERE id=?",(reward,pl["id"]))
+            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                      (pl["id"],"TEAM_PRACTICE",reward,json.dumps({"franchise_id":fid,"practice_date":today,"season":season,"league_day":day})))
+            c.commit();new_wallet=c.execute("SELECT xp_wallet FROM players WHERE id=?",(pl["id"],)).fetchone()["xp_wallet"];c.close()
+            return self.out({"ok":True,"already_completed":False,"xp":reward,"xp_wallet":new_wallet,"practice_date":today})
+
         if p=="/api/chat/send":
             u=self.auth()
             if not u:return
