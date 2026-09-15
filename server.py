@@ -1476,6 +1476,11 @@ def career_summary(c,pid,current_stats=None,active=False):
            FROM player_championships pc LEFT JOIN franchises f ON f.id=pc.franchise_id
            WHERE pc.player_id=? ORDER BY pc.season DESC""",(pid,)
     )]
+    contracts=[dict(x) for x in c.execute(
+        """SELECT ch.franchise_id,f.name team_name,ch.salary,ch.bonus,ch.years,ch.signed_at,ch.ended_at
+           FROM contract_history ch LEFT JOIN franchises f ON f.id=ch.franchise_id
+           WHERE ch.player_id=? ORDER BY ch.id DESC""",(pid,)
+    )]
     totals_rates=_career_rates(totals,ptype)
     teams=[]; seen=set()
     for row in hist+([current] if current else []):
@@ -1487,7 +1492,7 @@ def career_summary(c,pid,current_stats=None,active=False):
         "seasons_completed":len(hist),"first_season":hist[0]["season"] if hist else current_season,
         "latest_season":current_season if current else (hist[-1]["season"] if hist else current_season),
         "history":list(reversed(hist)),"current_season":current,"career_totals":totals,"career_rates":totals_rates,
-        "awards":awards,"award_count":len(awards),"championships":championships,"championship_count":len(championships),"teams":teams
+        "awards":awards,"award_count":len(awards),"championships":championships,"championship_count":len(championships),"teams":teams,"contract_history":contracts
     }
 
 
@@ -2042,6 +2047,102 @@ def update_team_game_records(c,g,score):
                   f"{name} establish the Genesis record for most runs by a team in one game with {high}.",
                   g["league_day"],holder,None,g["id"],3)
 
+
+
+def _record_player(c,key,label,value,pid,g,detail):
+    """Update a player record only when the new value is strictly better."""
+    old=c.execute("SELECT record_value FROM league_records WHERE record_key=?",(key,)).fetchone()
+    if old and float(value)<=float(old["record_value"]):
+        return False
+    pl=c.execute("SELECT name,franchise_id FROM players WHERE id=?",(pid,)).fetchone()
+    if not pl:return False
+    c.execute("""INSERT OR REPLACE INTO league_records
+        (record_key,record_label,record_value,holder_type,holder_id,game_id,league_day,detail)
+        VALUES(?,?,?,?,?,?,?,?)""",
+        (key,label,float(value),"PLAYER",str(pid),g["id"],int(g["league_day"]),detail))
+    post_news(c,"RECORD",f"🏆 New EBL record: {pl['name']}",
+              detail,int(g["league_day"]),pl["franchise_id"],pid,g["id"],3,season=g["season"])
+    return True
+
+
+def update_player_game_records(c,g,box):
+    """Permanent EBL single-game player records from the completed box score."""
+    for pid_s,line in (box.get("hitters") or {}).items():
+        pid=int(pid_s)
+        pl=c.execute("SELECT name FROM players WHERE id=?",(pid,)).fetchone()
+        if not pl:continue
+        name=pl["name"]
+        for key,label,stat in (
+            ("PLAYER_H_GAME","Most Hits — Player, Game","H"),
+            ("PLAYER_HR_GAME","Most Home Runs — Player, Game","HR"),
+            ("PLAYER_RBI_GAME","Most RBI — Player, Game","RBI"),
+            ("PLAYER_SB_GAME","Most Stolen Bases — Player, Game","SB"),
+        ):
+            value=int(line.get(stat,0) or 0)
+            if value>0:
+                _record_player(c,key,label,value,pid,g,f"{name} recorded {value} {stat} in one game.")
+
+    for _fid,rows in (box.get("pitchers") or {}).items():
+        for line in rows or []:
+            pid=int(line.get("player_id",0) or 0)
+            if not pid:continue
+            pl=c.execute("SELECT name FROM players WHERE id=?",(pid,)).fetchone()
+            if not pl:continue
+            name=pl["name"]
+            so=int(line.get("SO",0) or 0)
+            outs=int(line.get("OUTS",0) or 0)
+            if so>0:
+                _record_player(c,"PLAYER_SO_GAME","Most Strikeouts — Pitcher, Game",so,pid,g,
+                               f"{name} struck out {so} batters in one game.")
+            if outs>=27 and int(line.get("H",0) or 0)==0:
+                _record_player(c,"PLAYER_NOHITTER_OUTS","Longest No-Hit Start — Pitcher",outs,pid,g,
+                               f"{name} completed {outs//3}.{outs%3} innings without allowing a hit.")
+
+
+def update_player_season_records(c,g):
+    """Season records use the persisted season lines after this game is saved."""
+    season=int(g["season"])
+    for pl in c.execute("SELECT id,name,type,season_json FROM players WHERE active=1").fetchall():
+        try:st=json.loads(pl["season_json"] or "{}")
+        except Exception:continue
+        pid=int(pl["id"]); name=pl["name"]
+        if pl["type"]=="H":
+            checks=(
+                ("SEASON_H","Most Hits — Player, Season","H"),
+                ("SEASON_HR","Most Home Runs — Player, Season","HR"),
+                ("SEASON_RBI","Most RBI — Player, Season","RBI"),
+                ("SEASON_SB","Most Stolen Bases — Player, Season","SB"),
+            )
+        else:
+            checks=(
+                ("SEASON_W","Most Wins — Pitcher, Season","W"),
+                ("SEASON_SO","Most Strikeouts — Pitcher, Season","SO"),
+                ("SEASON_SV","Most Saves — Pitcher, Season","SV"),
+            )
+        for key,label,stat in checks:
+            value=int(st.get(stat,0) or 0)
+            if value>0:
+                _record_player(c,key,label,value,pid,g,
+                               f"{name} reached {value} {stat} in Season {season}.")
+
+
+def update_player_milestones(c,g):
+    """Post once-per-threshold milestone stories; news uniqueness prevents repeats."""
+    season=int(g["season"]); day=int(g["league_day"])
+    for pl in c.execute("SELECT id,name,franchise_id,type,season_json FROM players WHERE active=1").fetchall():
+        try:st=json.loads(pl["season_json"] or "{}")
+        except Exception:continue
+        pid=int(pl["id"]); name=pl["name"]
+        checks=(("H",25),("H",50),("H",75),("H",100),("HR",10),("HR",20),("HR",30),("SB",10),("SB",20)) if pl["type"]=="H" else (("SO",25),("SO",50),("SO",75),("SO",100),("W",5),("W",10),("SV",5),("SV",10))
+        for stat,target in checks:
+            if int(st.get(stat,0) or 0)>=target:
+                headline=f"⭐ {name} reaches {target} {stat}"
+                exists=c.execute("SELECT 1 FROM news WHERE season=? AND category='MILESTONE' AND player_id=? AND headline=?",
+                                 (season,pid,headline)).fetchone()
+                if not exists:
+                    post_news(c,"MILESTONE",headline,
+                              f"{name} reached the {target} {stat} milestone in Season {season}.",
+                              day,pl["franchise_id"],pid,g["id"],2,season=season)
 
 def weekly_recap(c,day,season=None):
     if day<=0 or day%7:return
@@ -3093,6 +3194,10 @@ def simulate_game(c,g):
     )
 
 
+    update_player_game_records(c,g,box)
+    update_player_season_records(c,g)
+    update_player_milestones(c,g)
+
     generate_game_news(
         c,
         g,
@@ -3530,7 +3635,7 @@ class H(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options","DENY")
         self.send_header("Referrer-Policy","same-origin")
         self.send_header("Permissions-Policy","camera=(), microphone=(), geolocation=()")
-        self.send_header("Content-Security-Policy","default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+        self.send_header("Content-Security-Policy","default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://cdn.jsdelivr.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
         super().end_headers()
     def out(self,obj,status=200,headers=None):
         b=json.dumps(obj).encode();self.send_response(status);self.send_header("Content-Type","application/json");self.send_header("Content-Length",len(b))
@@ -3763,8 +3868,7 @@ class H(BaseHTTPRequestHandler):
             uid=profile["id"]
             players=[]
             for row in c.execute(
-                """SELECT p.id,p.name,p.type,p.primary_pos,p.franchise_id,p.status,p.active,p.age,p.season_json,
-                          f.name team_name
+                """SELECT p.*,f.name team_name
                    FROM players p LEFT JOIN franchises f ON f.id=p.franchise_id
                    WHERE p.user_id=? ORDER BY p.active DESC,p.id DESC""",
                 (uid,)
@@ -3772,6 +3876,11 @@ class H(BaseHTTPRequestHandler):
                 pl=dict(row)
                 try:pl["stats"]=json.loads(pl.pop("season_json") or "{}")
                 except Exception:pl["stats"]={}
+                try:attrs=json.loads(pl.pop("attributes_json") or "{}")
+                except Exception:attrs={}
+                pl["overall"]=player_overall_from_attrs(attrs,pl.get("type","H"),pl.get("primary_pos","UTIL"))
+                con=c.execute("SELECT franchise_id,salary,bonus,years,status,created_at FROM contracts WHERE player_id=?",(pl["id"],)).fetchone()
+                pl["contract"]=dict(con) if con else None
                 # Reuse the same career builder as /api/my-player so public profiles and
                 # the owner's Player tab always tell the same historical story.
                 pl["career"]=career_summary(c,pl["id"],pl.get("stats"),bool(pl.get("active")))
@@ -3827,8 +3936,14 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/records":
             c=conn();rows=[dict(x) for x in c.execute("SELECT * FROM league_records ORDER BY league_day DESC,record_value DESC")]
             for r in rows:
-                x=c.execute("SELECT name FROM franchises WHERE id=?",(r["holder_id"],)).fetchone()
-                r["holder_name"]=x["name"] if x else r["holder_id"]
+                if r.get("holder_type")=="PLAYER":
+                    x=c.execute("""SELECT p.name,u.username FROM players p
+                                   LEFT JOIN users u ON u.id=p.user_id WHERE p.id=?""",(r["holder_id"],)).fetchone()
+                    r["holder_name"]=x["name"] if x else r["holder_id"]
+                    r["username"]=x["username"] if x else None
+                else:
+                    x=c.execute("SELECT name FROM franchises WHERE id=?",(r["holder_id"],)).fetchone()
+                    r["holder_name"]=x["name"] if x else r["holder_id"]
             c.close();return self.out({"records":rows})
         if p=="/api/dm/contacts":
             u=self.auth()
@@ -4501,41 +4616,20 @@ class H(BaseHTTPRequestHandler):
                    ORDER BY tp.joined_at""",(fid,today))]
             human_total=c.execute("SELECT COUNT(*) n FROM players WHERE franchise_id=? AND active=1 AND user_id IS NOT NULL",(fid,)).fetchone()["n"]
             practiced=any(int(a["player_id"])==int(pl["id"]) for a in attendance)
-
-            # Seven-day clubhouse attendance and the selected player's current practice streak.
-            try:
-                today_date=datetime.date.fromisoformat(today)
-            except Exception:
-                today_date=datetime.datetime.utcnow().date()
-            week_dates=[(today_date-datetime.timedelta(days=i)).isoformat() for i in range(6,-1,-1)]
-            week_start=week_dates[0]
-            count_rows=c.execute(
-                """SELECT practice_date,COUNT(*) n FROM team_practice
-                   WHERE franchise_id=? AND practice_date>=? AND practice_date<=?
-                   GROUP BY practice_date""",(fid,week_start,today)).fetchall()
-            count_map={str(r["practice_date"]):int(r["n"] or 0) for r in count_rows}
-            practice_history=[{"date":d,"count":count_map.get(d,0),"human_total":int(human_total or 0)} for d in week_dates]
-            player_dates={str(r["practice_date"]) for r in c.execute(
-                "SELECT practice_date FROM team_practice WHERE player_id=? AND franchise_id=? ORDER BY practice_date DESC LIMIT 120",
-                (pl["id"],fid)).fetchall()}
-            streak_anchor=today_date if today in player_dates else today_date-datetime.timedelta(days=1)
-            practice_streak=0
-            cursor=streak_anchor
-            while cursor.isoformat() in player_dates:
-                practice_streak+=1
-                cursor-=datetime.timedelta(days=1)
-
             next_game=c.execute(
                 """SELECT id,league_day,away_id,home_id,status FROM games
                    WHERE season=? AND league_day>=? AND status='SCHEDULED' AND (away_id=? OR home_id=?)
                    ORDER BY league_day,id LIMIT 1""",(season,max(1,day),fid,fid)).fetchone()
+            recent_games=[dict(r) for r in c.execute(
+                """SELECT id,league_day,away_id,home_id,away_score,home_score,status FROM games
+                   WHERE season=? AND status='FINAL' AND (away_id=? OR home_id=?)
+                   ORDER BY league_day DESC,id DESC LIMIT 5""",(season,fid,fid))]
             out={"team":dict(team),"branding":dict(brand) if brand else None,"division":division_for(fid),
                  "player_id":pl["id"],"roster":roster,"lineup":lineup,"field_positions":field_positions,
                  "rotation":rotation,"bullpen":bullpen,"practice":{"date":today,"reward":0.25,
-                 "completed":practiced,"attendance":attendance,"human_total":human_total,
-                 "streak":practice_streak,"history":practice_history},
+                 "completed":practiced,"attendance":attendance,"human_total":human_total},
                  "season":season,"league_day":day,"phase":state.get("phase","REGULAR"),
-                 "next_game":dict(next_game) if next_game else None}
+                 "next_game":dict(next_game) if next_game else None,"recent_games":recent_games}
             c.close();return self.out(out)
 
         if p=="/api/coach/free-agents":
