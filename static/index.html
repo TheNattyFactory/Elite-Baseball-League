@@ -2288,7 +2288,13 @@ const SLEEVE_NAMES=['None','Left Arm','Right Arm','Both Arms'];
 function eblHairColor(model){const id=Math.max(1,Math.min(HAIR_COLORS.length,Number(model?.hair_color_id)||3));return (HAIR_COLORS[id-1]||HAIR_COLORS[2]).color}
 function setCreatorStep(n){
  document.querySelectorAll('.creatorStep').forEach((x,i)=>{x.classList.toggle('active',i===n-1);x.classList.toggle('done',i<n-1)});
- if(n===1)creatorBasic(); if(n===2)creatorAppearance(); if(n===3)creatorAttributes(); if(n===4)creatorReview();
+ try{
+   if(n===1)creatorBasic(); if(n===2)creatorAppearance(); if(n===3)creatorAttributes(); if(n===4)creatorReview();
+ }catch(err){
+   console.error('EBL creator step failed',n,err);
+   const stage=document.getElementById('creatorStage');
+   if(stage)stage.innerHTML=`<div class="card"><b>Creator step could not load.</b><p class="muted">${escapeHtml(err?.message||String(err))}</p><button class="btn" onclick="setCreatorStep(1)">BACK TO BASIC INFO</button></div>`;
+ }
 }
 function demandLabel(level){
  return {HIGH_NEED:'HIGH NEED',AVAILABLE:'AVAILABLE',CROWDED:'CROWDED',FULL:'FULL'}[level]||'CHECKING';
@@ -2364,8 +2370,9 @@ function cartoonAvatarSvg(faceId=1,hairId=1,facialId=1,eyeColor='#25364a',team1=
  const hair=hairColor||f.hair||'#3a241b',skin=f.skin||'#c9906b';
  const gradId=`avatarSkin_${++AVATAR_GRAD_SEQ}`;
  const shape=[
-  [88,84],[91,82],[86,86],[94,80],[84,88],[88,82],[96,84],[86,90],[92,86],[89,88]
- ][Math.max(1,Math.min(20,+faceId))-1];
+  [88,84],[91,82],[86,86],[94,80],[84,88],[88,82],[96,84],[86,90],[92,86],[89,88],
+  [86,86],[94,88],[88,82],[98,84],[90,82],[86,94],[92,80],[87,88],[94,94],[96,86]
+ ][Math.max(1,Math.min(20,+faceId))-1] || [88,84];
  const fw=shape[0],fh=shape[1];
  const x=100-fw/2,y=68-fh/2+18;
  const hairPaths=[
