@@ -2343,11 +2343,19 @@ function creatorBasic(){
  loadPositionDemand();
 }
 function saveBasic(){
- const name=cname.value.trim();
+ const nameEl=document.getElementById('cname'), jerseyEl=document.getElementById('cjersey');
+ const groupEl=document.getElementById('cgroup'), posEl=document.getElementById('cpos');
+ const batsEl=document.getElementById('cbats'), throwsEl=document.getElementById('cthrows');
+ if(!nameEl||!jerseyEl||!groupEl||!posEl||!batsEl||!throwsEl){
+   console.error('EBL creator basic controls missing');
+   return alert('Player creator could not continue. Please refresh and try again.');
+ }
+ const name=nameEl.value.trim();
  if(!name)return alert('Enter a player name before continuing.');
  if(name.length>40)return alert('Player names must be 40 characters or fewer.');
- const num=Number(cjersey.value);if(!Number.isInteger(num)||num<0||num>99)return alert('Jersey number must be from 0 to 99.');
- CREATOR.name=name;CREATOR.position_group=cgroup.value;CREATOR.position=cpos.value;CREATOR.bats=cbats.value;CREATOR.throws=cthrows.value;CREATOR.jersey_number=num;setCreatorStep(2)
+ const num=Number(jerseyEl.value);if(!Number.isInteger(num)||num<0||num>99)return alert('Jersey number must be from 0 to 99.');
+ CREATOR.name=name;CREATOR.position_group=groupEl.value;CREATOR.position=posEl.value;CREATOR.bats=batsEl.value;CREATOR.throws=throwsEl.value;CREATOR.jersey_number=num;
+ setCreatorStep(2);
 }
 function facialHairClass(id){return ['', 'stubble','goatee','beard','mustache'][Math.max(1,Math.min(5,Number(id||1)))-1]||''}
 let AVATAR_GRAD_SEQ=0;
@@ -2449,6 +2457,7 @@ async function renderCreator3D(hostId='creator3dPreview',source=CREATOR,pose='au
  host.innerHTML=`<div class="avatar3dBadge">EBL PLAYER</div>${stationaryPlayerSvg(model,compact,pose)}`;
 }
 function creatorAppearance(){
+ const creatorStage=document.getElementById('creatorStage');if(!creatorStage)return;
  const current=FACE_PRESETS[CREATOR.face_id-1]||FACE_PRESETS[0];
  const eye=EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5];
  creatorStage.innerHTML=`<div class="creatorHero"><div><span class="badge">PLAYER APPEARANCE</span><br><b>Build your EBL look</b><div class="muted">Choose a distinct face shape, hairstyle, hair color, facial hair and eye color. Your exact look follows your player across EBL.</div></div><div>⚾</div></div>
@@ -3231,7 +3240,6 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
 }
 
 function eblActionPlayerSvg(p,action='batting'){
- p=eblAppearancePlayerV11(p||{});
  p=eblAppearancePlayer(p||{});
  const a=String(action||'batting').toLowerCase();
  const team=teamPalette(p.franchise_id), t1=team[0]||'#123a5a',t2=team[1]||'#d92832',t3=team[2]||'#f5f7fa';
