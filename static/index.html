@@ -541,8 +541,55 @@ dialog{
 .faceThumbV12{box-shadow:inset 0 0 0 1px rgba(255,255,255,.035),inset 0 -28px 42px rgba(0,0,0,.14)}
 .eblIdentityPortrait svg,.playerBust svg{filter:drop-shadow(0 8px 12px rgba(0,0,0,.22))}
 </style>
+
+<style id="eblSportsCartoonV19">
+.faceThumbV12 svg{transform:scale(1.32) translateY(7%);transform-origin:50% 27%}
+</style>
+
+<style id="eblSportsCartoonV20">
+/* V20 — creator polish + stronger baseball-card presentation */
+.creatorPresetGrid,.appearanceGrid{scrollbar-width:thin;scrollbar-color:rgba(255,202,40,.55) rgba(8,29,49,.55)}
+.creatorPresetGrid::-webkit-scrollbar,.appearanceGrid::-webkit-scrollbar{width:7px;height:7px}
+.creatorPresetGrid::-webkit-scrollbar-thumb,.appearanceGrid::-webkit-scrollbar-thumb{background:rgba(255,202,40,.55);border-radius:99px}
+.creatorPresetGrid::-webkit-scrollbar-track,.appearanceGrid::-webkit-scrollbar-track{background:rgba(8,29,49,.55);border-radius:99px}
+.creatorAppearanceCard button,.appearanceChoice{touch-action:manipulation}
+.eblIdentityBadge{padding:6px 8px;border:1px solid rgba(148,188,222,.18);border-radius:14px;background:rgba(5,26,45,.34)}
+.eblIdentityPortrait--badge{background:radial-gradient(circle at 50% 30%,rgba(37,91,130,.35),rgba(4,22,39,.72));border:1px solid rgba(148,188,222,.18)}
+@media(max-width:720px){
+  .creatorPresetGrid,.appearanceGrid{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .creatorAppearanceCard{border-radius:18px}
+  .creatorAppearanceCard h3{letter-spacing:.01em}
+}
+</style>
+
+<style id="eblSportsCartoonV21">
+/* V21 — portrait composition: more athlete card, less floating avatar. */
+.eblIdentityPortrait svg{filter:drop-shadow(0 7px 12px rgba(0,0,0,.22))}
+.faceThumbV12{background:radial-gradient(circle at 50% 34%,rgba(36,91,132,.34),rgba(4,22,39,.84) 72%)}
+@media(max-width:720px){.faceThumbV12 svg{transform:scale(1.28) translateY(7%);transform-origin:50% 28%}}
+</style>
+
+<style id="eblSportsCartoonV22Css">
+.eblIdentityMiniV22{display:inline-flex;align-items:center;gap:8px;min-width:0;vertical-align:middle}.eblIdentityMiniV22__art{width:38px;height:38px;display:grid;place-items:center;overflow:hidden;border-radius:10px;background:rgba(10,42,67,.72);flex:0 0 38px}.eblIdentityMiniV22__art svg{width:48px;height:auto;display:block}.eblIdentityMiniV22__copy{min-width:0}.eblIdentityMiniV22__copy b,.eblIdentityMiniV22__copy small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eblIdentityMiniV22__copy small{font-size:.7rem;opacity:.66;margin-top:1px}
+</style>
+
+<style id="eblSportsCartoonV23Css">
+/* V23 — clearer selected state and mobile creator controls */
+.creatorPresetCard[aria-pressed="true"],.appearanceChoice[aria-pressed="true"],.creatorPresetCard.selected,.appearanceChoice.selected{outline:2px solid #f2c94c;outline-offset:2px;box-shadow:0 0 0 4px rgba(242,201,76,.10),0 10px 24px rgba(0,0,0,.18)}
+.creatorPresetCard:focus-visible,.appearanceChoice:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.eblCreatorStatusV23{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.eblCreatorStatusV23 span{font-size:.72rem;padding:5px 8px;border-radius:999px;background:rgba(9,38,62,.72);border:1px solid rgba(143,184,217,.18);white-space:nowrap}
+@media(max-width:720px){.creatorPresetCard,.appearanceChoice{min-height:44px}.creatorPresetGrid,.appearanceGrid{scroll-snap-type:x proximity}.creatorPresetCard,.appearanceChoice{scroll-snap-align:start}}
+</style>
+
+<style id="eblSportsCartoonV24Css">
+/* V24 — shared identity surfaces scale cleanly from roster chip to profile card. */
+.eblPlayerArtV24{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 28%,rgba(45,104,146,.34),rgba(4,22,39,.88) 72%);border:1px solid rgba(143,184,217,.18)}
+.eblPlayerArtV24 svg{display:block;width:100%;height:100%;object-fit:contain}
+.eblPlayerArtV24--xs{width:34px;height:34px;border-radius:9px}.eblPlayerArtV24--sm{width:48px;height:48px;border-radius:12px}.eblPlayerArtV24--md{width:76px;height:76px;border-radius:16px}.eblPlayerArtV24--lg{width:min(100%,260px);aspect-ratio:4/5;border-radius:22px}
+.eblPlayerLineV24{display:flex;align-items:center;gap:10px;min-width:0}.eblPlayerLineV24__text{min-width:0}.eblPlayerLineV24__text b,.eblPlayerLineV24__text small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.eblPlayerLineV24__text small{opacity:.68;font-size:.72rem;margin-top:2px}
+</style>
 </head>
-<!-- EBL SPORTS CARTOON V18: exhaustive creator renderer runtime audit -->
+<!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
 <nav id="mainNav">
@@ -4495,4 +4542,106 @@ function eblPlayerIdentityBadgeV11(p={},opts={}){
 .eblIdentityBadge small{opacity:.68;margin-top:2px;font-size:.76rem}
 </style>
 
+
+<script id="eblSportsCartoonV20">
+/* V20 — one public identity surface for future roster/profile/GameCast work. */
+function eblCanonicalPlayerV20(player){
+  if(typeof eblAppearancePlayerV11==='function') return eblAppearancePlayerV11(player||{});
+  if(typeof eblAppearancePlayer==='function') return eblAppearancePlayer(player||{});
+  return player||{};
+}
+function eblPortraitV20(player,cls=''){
+  const p=eblCanonicalPlayerV20(player);
+  return `<div class="eblIdentityPortrait ${typeof escapeHtml==='function'?escapeHtml(cls):cls}">${stationaryPlayerSvg(p)}</div>`;
+}
+function eblActionV20(player,action='batting',cls=''){
+  const p=eblCanonicalPlayerV20(player);
+  return `<div class="eblActionArt ${typeof escapeHtml==='function'?escapeHtml(cls):cls}">${eblActionPlayerSvg(p,action)}</div>`;
+}
+</script>
+
+<script id="eblSportsCartoonV21">
+/* Stable identity payload helper for creator -> saved player -> league surfaces. */
+function eblIdentityPayloadV21(player){
+ const p=eblCanonicalPlayerV20(player||{});
+ return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),franchise_id:p.franchise_id??null};
+}
+</script>
+
+<script id="eblSportsCartoonV22">
+/* V22 — legacy/API identity compatibility layer. */
+function eblIdentityCompatV22(raw={}){
+ const a=raw.appearance||raw.avatar||{};
+ const first=(...xs)=>xs.find(v=>v!==undefined&&v!==null&&v!=='');
+ return eblCanonicalPlayerV20({
+   ...raw,
+   name:first(raw.name,raw.player_name,a.name,''),
+   primary_pos:first(raw.primary_pos,raw.position,raw.pos,a.primary_pos,'UTIL'),
+   jersey_number:first(raw.jersey_number,raw.number,a.jersey_number,24),
+   face_id:first(raw.face_id,a.face_id,1),
+   hair_id:first(raw.hair_id,a.hair_id,1),
+   hair_color_id:first(raw.hair_color_id,a.hair_color_id,3),
+   facial_hair_id:first(raw.facial_hair_id,a.facial_hair_id,1),
+   eye_color_id:first(raw.eye_color_id,a.eye_color_id,6),
+   eye_black_id:first(raw.eye_black_id,a.eye_black_id,1),
+   eyewear_id:first(raw.eyewear_id,raw.goggles_id,a.eyewear_id,a.goggles_id,1),
+   chain_id:first(raw.chain_id,a.chain_id,1),
+   sleeve_id:first(raw.sleeve_id,a.sleeve_id,1),
+   bats:first(raw.bats,a.bats,'R'),
+   throws:first(raw.throws,a.throws,'R'),
+   franchise_id:first(raw.franchise_id,raw.team_id,a.franchise_id,null)
+ });
+}
+function eblIdentityMiniV22(raw={},subtitle=''){
+ const p=eblIdentityCompatV22(raw);
+ const sub=subtitle||[p.primary_pos,p.jersey_number?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+ return `<span class="eblIdentityMiniV22"><span class="eblIdentityMiniV22__art">${stationaryPlayerSvg(p)}</span><span class="eblIdentityMiniV22__copy"><b>${escapeHtml(p.name||'Player')}</b><small>${escapeHtml(sub)}</small></span></span>`;
+}
+</script>
+
+<script id="eblSportsCartoonV23">
+/* V23 — non-destructive creator selection/accessibility synchronizer. */
+function eblSyncCreatorSelectionV23(){
+  if(typeof CREATOR==='undefined') return;
+  const map={face_id:CREATOR.face_id,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id};
+  document.querySelectorAll('[data-k][data-v]').forEach(el=>{
+    const k=el.dataset.k,v=Number(el.dataset.v),on=Object.prototype.hasOwnProperty.call(map,k)&&Number(map[k])===v;
+    el.classList.toggle('selected',on); el.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function eblCreatorSnapshotV23(){
+  if(typeof CREATOR==='undefined') return null;
+  return typeof eblIdentityPayloadV21==='function'?eblIdentityPayloadV21(CREATOR):eblIdentityCompatV22(CREATOR);
+}
+if(typeof MutationObserver!=='undefined'){
+  const eblCreatorObserverV23=new MutationObserver(()=>eblSyncCreatorSelectionV23());
+  const start=()=>{if(document.body){eblCreatorObserverV23.observe(document.body,{childList:true,subtree:true});eblSyncCreatorSelectionV23();}};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+}
+</script>
+
+<script id="eblSportsCartoonV24">
+/* V24 — one resilient render entry point for Home, Profile, Roster, Awards and GameCast. */
+function eblPlayerArtV24(raw={},size='md',action='portrait'){
+  const p=typeof eblIdentityCompatV22==='function'?eblIdentityCompatV22(raw):raw;
+  const safeSize=['xs','sm','md','lg'].includes(size)?size:'md';
+  let art='';
+  try{
+    art=(action&&action!=='portrait'&&typeof eblActionPlayerSvg==='function')?eblActionPlayerSvg(p,action):stationaryPlayerSvg(p);
+  }catch(err){
+    try{ art=stationaryPlayerSvg({name:p.name||'Player',face_id:1,hair_id:1,facial_hair_id:1,hair_color_id:3,eye_color_id:6,jersey_number:p.jersey_number||24,primary_pos:p.primary_pos||'UTIL'}); }catch(_){ art=''; }
+  }
+  return `<span class="eblPlayerArtV24 eblPlayerArtV24--${safeSize}" aria-hidden="true">${art}</span>`;
+}
+function eblPlayerLineV24(raw={},opts={}){
+  const p=typeof eblIdentityCompatV22==='function'?eblIdentityCompatV22(raw):raw;
+  const sub=opts.subtitle||[p.primary_pos,p.jersey_number?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+  const art=eblPlayerArtV24(p,opts.size||'sm',opts.action||'portrait');
+  return `<span class="eblPlayerLineV24">${art}<span class="eblPlayerLineV24__text"><b>${escapeHtml(p.name||p.player_name||'Player')}</b>${sub?`<small>${escapeHtml(sub)}</small>`:''}</span></span>`;
+}
+function eblIdentityKeyV24(raw={}){
+  const p=typeof eblIdentityCompatV22==='function'?eblIdentityCompatV22(raw):raw;
+  return [p.face_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.jersey_number,p.franchise_id??'FA'].join(':');
+}
+</script>
 </body></html>
