@@ -542,7 +542,7 @@ dialog{
 .eblIdentityPortrait svg,.playerBust svg{filter:drop-shadow(0 8px 12px rgba(0,0,0,.22))}
 </style>
 </head>
-<!-- EBL SPORTS CARTOON V13: unified creator portrait + sports illustration polish -->
+<!-- EBL SPORTS CARTOON V14: creator renderer dependency hotfix -->
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
 <nav id="mainNav">
@@ -902,6 +902,22 @@ dialog{
 .homeCycleBtn{min-width:38px;padding:6px 10px}
 </style>
   
+
+<script id="eblCreatorV14Hotfix">
+/* EBL Creator V14 — renderer dependency hotfix */
+function teamInitials(team){
+  if(!team) return 'EBL';
+  if(typeof team==='string'){
+    const clean=team.trim();
+    if(!clean) return 'EBL';
+    const words=clean.split(/\s+/).filter(Boolean);
+    return (words.length>1 ? words.map(x=>x[0]).join('') : clean.slice(0,3)).toUpperCase().slice(0,3);
+  }
+  const explicit=team.abbr||team.abbreviation||team.short_name||team.code||team.initials;
+  if(explicit) return String(explicit).toUpperCase().slice(0,3);
+  return teamInitials(team.name||team.city||'EBL');
+}
+</script>
 <script>
 async function api(url,opt={}){
   let r=await fetch(url,{
