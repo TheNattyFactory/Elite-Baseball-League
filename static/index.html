@@ -305,6 +305,24 @@ dialog{
 }
 </style>
 
+
+<style>
+.eblAvatarHost{min-height:0!important;height:auto!important;display:block!important;overflow:hidden;border-radius:22px;background:
+ radial-gradient(circle at 50% 18%,rgba(255,255,255,.12),transparent 28%),
+ linear-gradient(145deg,#102d46 0%,#071725 62%,#04101a 100%);position:relative}
+.eblAvatarHost canvas{display:none!important}
+.eblAvatarHost .stationary3d{width:min(100%,390px);margin:0 auto;padding:8px 18px 0;filter:drop-shadow(0 18px 22px rgba(0,0,0,.32))}
+.eblAvatarHost .stationary3d svg{display:block;width:100%;height:auto;max-height:390px}
+.eblAvatarHost .avatar3dBadge{position:absolute;z-index:2;top:14px;left:14px;font-size:11px;letter-spacing:.14em;font-weight:900;color:#f0ca58;border:1px solid rgba(240,202,88,.45);background:rgba(3,15,25,.72);padding:7px 10px;border-radius:999px}
+.home3dMini.eblAvatarHost .stationary3d{width:150px;padding:0}
+.home3dMini.eblAvatarHost .stationary3d svg{max-height:150px}
+.home3dMini.eblAvatarHost .avatar3dBadge{display:none}
+@media(max-width:600px){
+ .eblAvatarHost .stationary3d{width:min(100%,300px);padding:4px 10px 0}
+ .eblAvatarHost .stationary3d svg{max-height:315px}
+}
+</style>
+
 </head>
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
@@ -1745,11 +1763,11 @@ function renderPlayer(){
 
                 <div class="card" style="margin-top:14px">
                     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px">
-                        <div><span class="newsMeta">PLAYER MODEL</span><h3 style="margin:2px 0 0">${escapeHtml(p.name)} in 3D</h3></div>
+                        <div><span class="newsMeta">PLAYER MODEL</span><h3 style="margin:2px 0 0">${escapeHtml(p.name)}</h3></div>
                         <span class="pill">#${Number(p.jersey_number??24)}</span>
                     </div>
                     <div id="player3dHQ" class="avatar3dPreview"></div>
-                    <div class="muted" style="margin-top:7px">Stationary EBL player model. This uses the shared EBL body with your saved head, hair, facial hair, eyes, throwing hand, batting side, jersey number, and team colors.</div>
+                    <div class="muted" style="margin-top:7px">Your EBL player avatar uses your saved face, hair, facial hair, eyes, game-day cosmetics, jersey number, batting side, throwing hand, and team colors.</div>
                 </div>
 
 
@@ -2211,138 +2229,10 @@ function eblPlayerPose(p,requested='auto'){
 async function renderCreator3D(hostId='creator3dPreview',source=CREATOR,pose='auto'){
  const host=document.getElementById(hostId);if(!host)return;
  const model=source||CREATOR;
- const resolvedPose=eblPlayerPose(model,pose);
- const modelTeam=(LEAGUE?.teams||[]).find(x=>x.id===model?.franchise_id)||model?.team||{};
- const modelPrimary=modelTeam.primary_color||'#0d3153',modelSecondary=modelTeam.secondary_color||'#d7262e',modelAccent=modelTeam.accent_color||'#f4f7fb';
- if(EBL_3D_ANIM){cancelAnimationFrame(EBL_3D_ANIM);EBL_3D_ANIM=null}
- host.innerHTML='<div class="avatar3dBadge">EBL 3D PLAYER</div>';
- const THREE=await loadEblThree();
- if(!THREE){host.innerHTML='<div class="avatar3dBadge">EBL PLAYER</div>'+stationaryPlayerSvg(model,host.classList.contains('home3dMini'),resolvedPose);return}
- const compact=host.classList.contains('home3dMini');const w=compact?150:Math.max(280,host.clientWidth||360),h=compact?150:430;
- const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));renderer.setSize(w,h,false);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;host.appendChild(renderer.domElement);
- const scene=new THREE.Scene();
- const camera=new THREE.PerspectiveCamera(31,w/h,.1,100);camera.position.set(0,2.9,8.6);camera.lookAt(0,2.25,0);
- scene.add(new THREE.HemisphereLight(0xdcecff,0x101a28,2.5));
- const key=new THREE.DirectionalLight(0xffffff,3.7);key.position.set(4,7,5);key.castShadow=true;scene.add(key);
- const rim=new THREE.DirectionalLight(0x7fb8ff,1.8);rim.position.set(-5,5,-3);scene.add(rim);
- const player=new THREE.Group();scene.add(player);
- const skin=new THREE.MeshStandardMaterial({color:eblSkinForFace(model.face_id),roughness:.68});
- const hair=new THREE.MeshStandardMaterial({color:eblHairForModel(model),roughness:.9});
- const jersey=new THREE.MeshStandardMaterial({color:modelPrimary,roughness:.72});
- const accent=new THREE.MeshStandardMaterial({color:modelSecondary,roughness:.72});
- const white=new THREE.MeshStandardMaterial({color:modelAccent,roughness:.78});
- const pants=new THREE.MeshStandardMaterial({color:'#eef2f6',roughness:.82});
- const dark=new THREE.MeshStandardMaterial({color:'#09131f',roughness:.9});
- const leather=new THREE.MeshStandardMaterial({color:'#6c3d24',roughness:.95});
- const batMat=new THREE.MeshStandardMaterial({color:'#c7995b',roughness:.75});
- const eyeMat=new THREE.MeshStandardMaterial({color:(EYE_COLORS[(model.eye_color_id||6)-1]||EYE_COLORS[5]).color,roughness:.35});
- const eyeWhite=new THREE.MeshStandardMaterial({color:'#fff',roughness:.3});
- function mesh(g,m,p=[0,0,0],r=[0,0,0],sc=[1,1,1],parent=player){const o=new THREE.Mesh(g,m);o.position.set(...p);o.rotation.set(...r);o.scale.set(...sc);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
- function group(p=[0,0,0],r=[0,0,0],parent=player){const g=new THREE.Group();g.position.set(...p);g.rotation.set(...r);parent.add(g);return g}
- function capsule(parent,len,rad,mat,p,r){return mesh(new THREE.CapsuleGeometry(rad,len,6,14),mat,p,r,[1,1,1],parent)}
- // shared baseball body
- mesh(new THREE.CylinderGeometry(.68,.84,1.55,36),jersey,[0,2.6,0]);
- mesh(new THREE.SphereGeometry(.9,32,20),jersey,[0,3.16,0],[0,0,0],[1,.34,.68]);
- mesh(new THREE.CylinderGeometry(.61,.7,.14,32),accent,[0,3.38,0]);
- mesh(new THREE.BoxGeometry(.05,1.42,.05),white,[0,2.62,.83]);
- mesh(new THREE.CylinderGeometry(.65,.72,.9,30),pants,[0,1.47,0]);
- mesh(new THREE.CylinderGeometry(.73,.73,.12,30),dark,[0,1.91,0]);
- mesh(new THREE.BoxGeometry(.17,.13,.07),accent,[0,1.91,.73]);
- // position-based stationary pose: hitter, pitcher, or fielder
- const primaryPos=String(model.primary_pos||'').toUpperCase();
- const isPitcher=resolvedPose==='pitching';
- const isCatcher=resolvedPose==='catching';
- const isFielder=resolvedPose==='fielding';
- const batSide=model.bats==='L'?-1:1;
- const ls=group([-.78,3.04,0],[0,0,isPitcher ? .62 :(isCatcher ? .48 :(isFielder ? .34 :-.72*batSide))]),rs=group([.78,3.04,0],[0,0,isPitcher?-.62:(isCatcher?-.48:(isFielder?-.34:-.98*batSide))]);
- capsule(ls,.55,.2,jersey,[0,-.34,0]);capsule(rs,.55,.2,jersey,[0,-.34,0]);
- const le=group([-.04,-.77,.03],[isPitcher ? .18 : .08,0,isPitcher?-.45:(isCatcher ? .36 :(isFielder ? .28 :-.72*batSide))],ls),re=group([.04,-.77,.03],[isPitcher ? .18 : .08,0,isPitcher ? .45 :(isCatcher?-.36:(isFielder?-.28:-.45*batSide))],rs);
- capsule(le,.58,.145,skin,[0,-.35,0]);capsule(re,.58,.145,skin,[0,-.35,0]);
- mesh(new THREE.SphereGeometry(.18,18,14),skin,[0,-.77,.02],[0,0,0],[.9,1,.8],le);mesh(new THREE.SphereGeometry(.18,18,14),skin,[0,-.77,.02],[0,0,0],[.9,1,.8],re);
- // legs / socks / cleats
- for(const side of [-1,1]){
-   const legX=isCatcher?side*.48:side*.34, upperY=isCatcher ? .62 : .74, lowerY=isCatcher?-.08:-.04;
-   mesh(new THREE.CapsuleGeometry(.25,.88,6,16),pants,[legX,upperY,0],[0,0,isCatcher?side*.32:0]);
-   mesh(new THREE.CapsuleGeometry(.19,.56,6,14),white,[legX,lowerY,isCatcher ? .18 : 0],[isCatcher?-.28:0,0,isCatcher?side*-.18:0]);
-   mesh(new THREE.CylinderGeometry(.205,.205,.22,20),accent,[legX,isCatcher ? .16 : .21,isCatcher ? .12 : 0]);
-   mesh(new THREE.BoxGeometry(.52,.2,.92),dark,[legX,isCatcher?-.43:-.48,isCatcher ? .34 : .16],[isCatcher?-.18:-.05,0,0]);
-  }
-  if(isCatcher){player.position.y=-.18;player.scale.y=.93;mesh(new THREE.BoxGeometry(1.18,.78,.08),dark,[0,2.68,.88],[0,0,0],[1,1,1]);mesh(new THREE.BoxGeometry(.12,.7,.1),accent,[0,2.68,.94]);}
- // neck and head
- mesh(new THREE.CylinderGeometry(.22,.27,.38,24),skin,[0,3.56,0]);
- const fg=eblFaceGeometry(model.face_id),fs=fg.scale;
- mesh(new THREE.SphereGeometry(.61,44,30),skin,[0,4.18,0],[0,0,0],fs);
- mesh(new THREE.SphereGeometry(.45,34,22),skin,[0,fg.jawY,.08],[0,0,0],[fs[0]*fg.jaw[0],fg.jaw[1],fs[2]*fg.jaw[2]]);
- mesh(new THREE.SphereGeometry(.13,18,14),skin,[-fg.ear*fs[0],4.18,0],[0,0,0],[.6,1,.68]);mesh(new THREE.SphereGeometry(.13,18,14),skin,[fg.ear*fs[0],4.18,0],[0,0,0],[.6,1,.68]);
- for(const side of [-1,1]){mesh(new THREE.SphereGeometry(.095,18,12),eyeWhite,[side*fg.eye,4.24,.555],[0,0,0],[1.18,.72,.55]);mesh(new THREE.SphereGeometry(.052,16,10),eyeMat,[side*fg.eye,4.24,.61]);mesh(new THREE.BoxGeometry(.21,.035,.035),hair,[side*fg.eye,4.39,.57],[0,0,side*fg.brow]);}
- mesh(new THREE.ConeGeometry(.075*fg.nose,.23*fg.nose,14),skin,[0,4.08,.64],[Math.PI/2,0,0]);mesh(new THREE.BoxGeometry(.26*fg.mouth,.035,.035),new THREE.MeshStandardMaterial({color:'#9f5e58'}),[0,3.91,.59]);
- // hair / facial hair / cap
- const hairId=Math.max(1,Math.min(10,Number(model.hair_id)||1));
- // Distinct EBL hairstyle silhouettes. Keep these geometry-only so every hair color works with every style.
- const scalp=(sx=1,sy=1,sz=1,y=4.48,z=-.02)=>mesh(new THREE.SphereGeometry(.65,34,20,0,Math.PI*2,0,Math.PI*.53),hair,[0,y,z],[0,0,0],[fs[0]*sx,sy,fs[2]*sz]);
- const puff=(x,y,z,sx,sy,sz)=>mesh(new THREE.SphereGeometry(.24,22,14),hair,[x,y,z],[0,0,0],[sx,sy,sz]);
- if(hairId===1){scalp(1.01,.82,1.01,4.48);puff(0,4.66,.08,.95,.42,1.08);} // classic crop
- else if(hairId===2){scalp(1.005,.48,1.0,4.43);mesh(new THREE.BoxGeometry(.72,.12,.72),hair,[0,4.58,.02],[0,0,-.04],[1,.72,1]);} // short fade
- else if(hairId===3){scalp(1.02,.72,1.01,4.47);[-.34,-.12,.12,.34].forEach((x,i)=>puff(x,4.69+(i%2)*.045,.08,.72,.62,1.0));} // textured top
- else if(hairId===4){scalp(1.04,.88,1.04,4.5);[-.38,-.13,.13,.38].forEach((x,i)=>puff(x,4.7-(i%2)*.03,.02,.82,.72,1.05));} // loose waves
- else if(hairId===5){scalp(1.02,.64,1.01,4.45);mesh(new THREE.SphereGeometry(.42,28,16),hair,[.2,4.63,.05],[0,0,-.2],[1.25,.48,1.02]);} // side part
- else if(hairId===6){scalp(1.0,.28,1.0,4.39);} // buzz cut
- else if(hairId===7){scalp(1.06,.9,1.08,4.5);puff(-.46,4.38,-.03,.82,1.55,1.0);puff(.46,4.38,-.03,.82,1.55,1.0);puff(0,4.72,-.08,1.45,.55,1.05);} // medium flow
- else if(hairId===8){scalp(1.015,.5,1.08,4.44,-.08);mesh(new THREE.SphereGeometry(.48,28,16),hair,[0,4.57,-.17],[-.18,0,0],[1.0,.42,1.25]);} // slick back
- else if(hairId===9){scalp(.995,.12,.995,4.36);} // shaved shadow
- else if(hairId===10){scalp(1.08,.78,1.08,4.48);for(const [x,y,z] of [[-.36,4.65,.04],[-.13,4.76,.02],[.13,4.76,.02],[.36,4.65,.04],[-.45,4.45,-.02],[.45,4.45,-.02],[0,4.62,-.22]])puff(x,y,z,.9,.9,.9);} // curly / afro
- const fh=Math.max(1,Math.min(5,Number(model.facial_hair_id)||1));
- // Facial hair shares the selected hair color and uses distinct silhouettes in both 3D and portrait views.
- if(fh===2){ // stubble: close jaw/chin shadow
-   mesh(new THREE.SphereGeometry(.44,28,16,0,Math.PI*2,Math.PI*.43,Math.PI*.22),hair,[0,3.91,.32],[0,0,0],[1.02,.42,.86]).material.transparent=true;player.children[player.children.length-1].material.opacity=.62;
- }
- if(fh===3){ // goatee: mustache + focused chin beard
-   mesh(new THREE.BoxGeometry(.34,.055,.06),hair,[0,3.995,.615]);
-   mesh(new THREE.CapsuleGeometry(.105,.22,5,12),hair,[0,3.79,.565],[0,0,0],[1,.9,.75]);
- }
- if(fh===4){ // full beard: jaw wrap with extra chin volume
-   mesh(new THREE.SphereGeometry(.47,30,18,0,Math.PI*2,Math.PI*.31,Math.PI*.52),hair,[0,3.89,.31],[0,0,0],[1.02,.74,.86]);
-   mesh(new THREE.SphereGeometry(.25,22,14),hair,[0,3.73,.47],[0,0,0],[1.12,.72,.8]);
- }
- if(fh===5){ // mustache: two tapered halves instead of one block
-   mesh(new THREE.CapsuleGeometry(.045,.17,4,10),hair,[-.105,3.995,.62],[0,0,-Math.PI/2.35],[1,.85,.85]);
-   mesh(new THREE.CapsuleGeometry(.045,.17,4,10),hair,[.105,3.995,.62],[0,0,Math.PI/2.35],[1,.85,.85]);
- }
- // Optional game-day cosmetics. These are visual only and never affect ratings.
- const eyeBlack=Math.max(1,Math.min(3,Number(model.eye_black_id)||1));
- const eyewear=Math.max(1,Math.min(2,Number(model.eyewear_id)||1));
- const chain=Math.max(1,Math.min(3,Number(model.chain_id)||1));
- const sleeve=Math.max(1,Math.min(4,Number(model.sleeve_id)||1));
- if(eyeBlack>1){for(const side of [-1,1]){mesh(new THREE.BoxGeometry(.18,.045,.025),dark,[side*.25,4.13,.64],[0,0,side*.05]);if(eyeBlack===3)mesh(new THREE.BoxGeometry(.16,.035,.025),dark,[side*.25,4.07,.645],[0,0,side*.05]);}}
- if(eyewear===2){for(const side of [-1,1])mesh(new THREE.TorusGeometry(.16,.025,8,20),dark,[side*.25,4.24,.64],[Math.PI/2,0,0]);mesh(new THREE.BoxGeometry(.18,.035,.035),dark,[0,4.24,.65]);}
- if(chain>1){const chainMat=new THREE.MeshStandardMaterial({color:chain===2?'#d8ad3d':'#c5ccd3',metalness:.7,roughness:.28});mesh(new THREE.TorusGeometry(.38,.025,8,32,Math.PI),chainMat,[0,3.46,.73],[0,0,Math.PI]);}
- const sleeveMat=new THREE.MeshStandardMaterial({color:modelSecondary,roughness:.8});
- if(sleeve===2||sleeve===4)mesh(new THREE.CapsuleGeometry(.105,.52,5,12),sleeveMat,[-.73,2.52,.04],[0,0,.08]);
- if(sleeve===3||sleeve===4)mesh(new THREE.CapsuleGeometry(.105,.52,5,12),sleeveMat,[.73,2.52,.04],[0,0,-.08]);
- mesh(new THREE.CylinderGeometry(.66,.69,.17,36),jersey,[0,4.68,0]);mesh(new THREE.SphereGeometry(.66,34,16,0,Math.PI*2,0,Math.PI*.45),jersey,[0,4.68,-.01]);mesh(new THREE.BoxGeometry(.82,.075,.5),jersey,[0,4.61,.54],[.08,0,0]);
- const num=eblMakeNumberSprite(THREE,Number(model.jersey_number??24),'#f4f7fb');num.position.set(0,2.61,.92);player.add(num);
- // equipment follows the stationary baseball pose
- const gloveSide=model.throws==='L'?1:-1;
- if(isPitcher){
-   mesh(new THREE.SphereGeometry(.27,20,16),leather,[0,2.72,.96],[0,0,0],[1.08,.8,.52]);
- }else if(isCatcher){
-   mesh(new THREE.SphereGeometry(.31,20,16),leather,[gloveSide*.28,2.28,1.02],[0,0,0],[1.18,.88,.56]);
-   // simple chest protector + crouched receiving silhouette
- }else if(isFielder){
-   mesh(new THREE.SphereGeometry(.28,20,16),leather,[gloveSide*.48,2.12,.92],[0,0,0],[1.1,.82,.55]);
-   player.rotation.x=.035;
- }else{
-   mesh(new THREE.SphereGeometry(.24,20,16),leather,[gloveSide*.92,1.96,.12],[0,0,0],[1.05,.78,.5]);
- }
- if(!isPitcher && !isCatcher && !isFielder){
-   const bx=batSide > 0 ? .86 : -.86;
-   mesh(new THREE.CylinderGeometry(.05,.09,2.08,18),batMat,[bx,3.18,-.18],[0,0,batSide*-.72]);
- }
- const ground=new THREE.Mesh(new THREE.CircleGeometry(2.3,56),new THREE.MeshStandardMaterial({color:0x06111f,roughness:1,transparent:true,opacity:.72}));ground.rotation.x=-Math.PI/2;ground.position.y=-.6;ground.receiveShadow=true;scene.add(ground);
- const ring=new THREE.Mesh(new THREE.RingGeometry(1.7,1.76,56),new THREE.MeshBasicMaterial({color:0x2b6fa8,transparent:true,opacity:.45,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=-.585;scene.add(ring);
- player.rotation.y=.18;renderer.domElement.style.touchAction='auto';renderer.render(scene,camera);
+ const compact=host.classList.contains('home3dMini');
+ host.classList.add('eblAvatarHost');
+ host.innerHTML=`<div class="avatar3dBadge">EBL PLAYER</div>${stationaryPlayerSvg(model,compact,pose)}`;
 }
-
 function creatorAppearance(){
  const current=FACE_PRESETS[CREATOR.face_id-1]||FACE_PRESETS[0];
  const eye=EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5];
