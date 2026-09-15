@@ -542,7 +542,7 @@ dialog{
 .eblIdentityPortrait svg,.playerBust svg{filter:drop-shadow(0 8px 12px rgba(0,0,0,.22))}
 </style>
 </head>
-<!-- EBL SPORTS CARTOON V14: creator renderer dependency hotfix -->
+<!-- EBL SPORTS CARTOON V15: complete creator renderer dependency hotfix -->
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
 <nav id="mainNav">
@@ -916,6 +916,23 @@ function teamInitials(team){
   const explicit=team.abbr||team.abbreviation||team.short_name||team.code||team.initials;
   if(explicit) return String(explicit).toUpperCase().slice(0,3);
   return teamInitials(team.name||team.city||'EBL');
+}
+
+function teamPalette(team){
+  const fallback={primary:'#153c63',secondary:'#d7262e',accent:'#f0c84b',text:'#f3f6fa'};
+  if(!team) return fallback;
+  if(typeof team==='string'){
+    const t=(typeof LEAGUE!=='undefined' && LEAGUE?.teams)
+      ? LEAGUE.teams.find(x=>x.id===team || x.name===team)
+      : null;
+    return t ? teamPalette(t) : fallback;
+  }
+  return {
+    primary:team.primary_color||team.primary||team.color_primary||fallback.primary,
+    secondary:team.secondary_color||team.secondary||team.color_secondary||fallback.secondary,
+    accent:team.accent_color||team.accent||fallback.accent,
+    text:team.text_color||fallback.text
+  };
 }
 </script>
 <script>
