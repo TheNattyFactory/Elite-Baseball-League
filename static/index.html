@@ -391,6 +391,53 @@ dialog{
 .eblPlayerFeatureKicker{font-size:.65rem!important;letter-spacing:.12em;text-transform:uppercase;color:#d9ad55!important;font-weight:900}
 @media(max-width:600px){.eblPlayerFeature{gap:10px;padding:9px}.eblPlayerFeature .eblIdentityPortrait--card{width:72px;height:82px;flex-basis:72px}}
 </style>
+<style>
+.eblIdentityPortrait{position:relative;isolation:isolate}
+.eblIdentityPortrait:before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(145deg,rgba(255,255,255,.10),transparent 34%,rgba(0,0,0,.18))}
+.eblIdentityPortrait .stationary3d,.eblIdentityPortrait .eblComicAvatar{position:relative;z-index:1}
+.eblIdentityPortrait--hero{box-shadow:0 22px 44px rgba(0,0,0,.32)}
+.eblIdentityPortrait--hero svg{transform:scale(1.035);transform-origin:50% 52%}
+.eblIdentityPortrait--card svg{transform:scale(1.045);transform-origin:50% 50%}
+.eblIdentityPortrait--mini svg{transform:scale(1.08);transform-origin:50% 48%}
+</style>
+<style>
+/* EBL illustrated avatar V2 polish */
+.eblIdentityPortrait{
+  background:
+    radial-gradient(circle at 50% 24%,rgba(255,255,255,.12),transparent 31%),
+    linear-gradient(155deg,#153b5b 0%,#091c2d 55%,#050e17 100%);
+}
+.eblIdentityPortrait:after{
+  content:"";position:absolute;left:8%;right:8%;bottom:5%;height:22%;
+  background:radial-gradient(ellipse at center,rgba(0,0,0,.34),transparent 70%);
+  z-index:0;pointer-events:none;
+}
+.eblIdentityPortrait--hero{border:2px solid rgba(217,173,85,.58)}
+.eblIdentityPortrait--card{border-color:rgba(217,173,85,.38)}
+.eblIdentityPortrait--mini{border-color:rgba(255,255,255,.14)}
+.eblComicAvatar svg{overflow:visible}
+</style>
+<style>
+/* EBL avatar V3: sharper comic identity at every display size */
+.eblIdentityPortrait .eblComicAvatar svg{filter:contrast(1.025) saturate(1.055)}
+.eblIdentityPortrait--mini .eblComicAvatar svg{filter:contrast(1.04) saturate(1.04)}
+.eblIdentityPortrait--hero .eblComicAvatar svg{filter:contrast(1.03) saturate(1.07)}
+</style>
+<style>
+/* EBL avatar V4: hair + facial-hair separation */
+.eblIdentityPortrait--hero .eblComicAvatar{transform:translateY(-1px)}
+.eblIdentityPortrait--card .eblComicAvatar{transform:translateY(-.5px)}
+</style>
+<style>
+/* EBL Avatar V5 — eye readability and game-day details */
+.eblIdentityPortrait--mini .eblComicAvatar svg{shape-rendering:geometricPrecision}
+.eblIdentityPortrait--mini{box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),0 6px 14px rgba(0,0,0,.22)}
+</style>
+<style>
+/* EBL Avatar V6 — expression individuality */
+.eblIdentityPortrait--hero .eblFaceExpression{filter:drop-shadow(0 1px 0 rgba(255,255,255,.08))}
+.eblIdentityPortrait--mini .eblFaceExpression{stroke-width:1.05}
+</style>
 </head>
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
@@ -2911,12 +2958,14 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
   `M94 98 Q150 76 206 98`,
   `M82 104 Q80 43 150 39 Q220 43 218 106 Q204 78 190 88 Q180 54 166 78 Q150 45 137 78 Q118 56 108 90 Q93 77 82 104Z`
  ][hairId-1];
- const beard=facial===2?`<path d="M118 164 Q150 180 182 164" fill="none" stroke="${hair}" stroke-width="6" opacity=".45" stroke-linecap="round"/>`
- :facial===3?`<path d="M136 166 Q150 181 164 166 Q162 200 150 207 Q138 200 136 166Z" fill="${hair}" opacity=".92"/>`
- :facial===4?`<path d="M111 153 Q117 197 150 210 Q183 197 189 153 Q177 188 150 194 Q123 188 111 153Z" fill="${hair}" opacity=".9"/>`
- :facial===5?`<path d="M128 166 Q150 154 172 166" fill="none" stroke="${hair}" stroke-width="8" stroke-linecap="round"/>`:'';
- const black=eyeBlack>1?`<path d="M101 142 L120 145 M180 145 L199 142" stroke="#101318" stroke-width="7" stroke-linecap="round"/>${eyeBlack===3?`<path d="M103 151 L119 153 M181 153 L197 151" stroke="#101318" stroke-width="4"/>`:''}`:'';
- const glasses=eyewear===2?`<g fill="none" stroke="#18222d" stroke-width="5"><rect x="99" y="122" width="43" height="30" rx="12"/><rect x="158" y="122" width="43" height="30" rx="12"/><path d="M142 132 Q150 128 158 132"/></g>`:'';
+ const beard=facial===2?`<g opacity=".58" fill="${hair}">
+   <circle cx="119" cy="169" r="2.2"/><circle cx="128" cy="176" r="2"/><circle cx="139" cy="181" r="2.1"/><circle cx="150" cy="184" r="2.3"/><circle cx="161" cy="181" r="2.1"/><circle cx="172" cy="176" r="2"/><circle cx="181" cy="169" r="2.2"/>
+   <path d="M116 164 Q150 188 184 164" fill="none" stroke="${hair}" stroke-width="3" stroke-dasharray="2 5" stroke-linecap="round"/>
+  </g>`
+ :facial===3?`<g fill="${hair}" stroke="#17202a" stroke-width="2"><path d="M137 166 Q150 174 163 166 L161 193 Q156 205 150 210 Q144 205 139 193Z"/><path d="M132 165 Q150 156 168 165" fill="none" stroke="${hair}" stroke-width="7" stroke-linecap="round"/></g>`
+ :facial===4?`<g><path d="M108 151 Q112 193 132 207 Q150 221 168 207 Q188 193 192 151 Q180 184 168 193 Q150 207 132 193 Q120 184 108 151Z" fill="${hair}" stroke="#17202a" stroke-width="3"/><path d="M127 164 Q150 151 173 164" fill="none" stroke="${hair}" stroke-width="8" stroke-linecap="round"/></g>`
+ :facial===5?`<g><path d="M126 164 Q138 154 150 164 Q162 154 174 164 Q163 176 150 169 Q137 176 126 164Z" fill="${hair}" stroke="#17202a" stroke-width="2"/></g>`:''; const black=eyeBlack>1?`<g opacity=".96"><path d="M99 145 Q110 141 121 145" stroke="#0a0d10" stroke-width="8" stroke-linecap="round"/><path d="M179 145 Q190 141 201 145" stroke="#0a0d10" stroke-width="8" stroke-linecap="round"/>${eyeBlack===3?`<path d="M101 154 Q111 151 120 154 M180 154 Q190 151 199 154" stroke="#0a0d10" stroke-width="4.5" stroke-linecap="round"/>`:''}</g>`:'';
+ const glasses=eyewear===2?`<g><path d="M97 124 Q120 115 143 124 L140 149 Q120 158 101 149Z" fill="#89d8ee" fill-opacity=".20" stroke="#152431" stroke-width="5"/><path d="M157 124 Q180 115 203 124 L199 149 Q180 158 160 149Z" fill="#89d8ee" fill-opacity=".20" stroke="#152431" stroke-width="5"/><path d="M142 130 Q150 125 158 130 M98 129 L88 125 M202 129 L212 125" fill="none" stroke="#152431" stroke-width="5" stroke-linecap="round"/><path d="M105 128 Q118 122 132 125 M165 125 Q179 121 193 128" fill="none" stroke="#fff" stroke-width="2.5" opacity=".46" stroke-linecap="round"/></g>`:'';
  const chainSvg=chain>1?`<path d="M121 232 Q150 257 179 232" fill="none" stroke="${chain===2?'#e2b93f':'#cfd7df'}" stroke-width="5"/>`:'';
  const bat=bats==='L'?`<g transform="rotate(25 238 190)"><rect x="235" y="72" width="16" height="190" rx="8" fill="#d6a45f"/><rect x="238" y="68" width="10" height="28" rx="5" fill="#efc67c"/></g>`
  :`<g transform="rotate(-25 62 190)"><rect x="49" y="72" width="16" height="190" rx="8" fill="#d6a45f"/><rect x="52" y="68" width="10" height="28" rx="5" fill="#efc67c"/></g>`;
@@ -2934,15 +2983,77 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
  <path d="M132 205 L126 235 Q150 250 174 235 L168 205Z" fill="${skin}" stroke="#33241e" stroke-width="4"/>
  <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#eblskin${face}${hairId}${num})" stroke="#17202a" stroke-width="6"/>
  <ellipse cx="${cx-rx+2}" cy="132" rx="13" ry="18" fill="${skin}" stroke="#17202a" stroke-width="5"/><ellipse cx="${cx+rx-2}" cy="132" rx="13" ry="18" fill="${skin}" stroke="#17202a" stroke-width="5"/>
- <path d="${hairTop}" fill="${hair}" stroke="#17202a" stroke-width="5" stroke-linejoin="round"/>
+ ${(()=>{
+   const sides=[
+    `M94 103 Q96 128 103 143 L108 113Z M206 103 Q204 128 197 143 L192 113Z`,
+    `M96 104 L102 132 L109 110Z M204 104 L198 132 L191 110Z`,
+    `M90 101 Q91 139 104 151 L109 111Z M210 101 Q209 139 196 151 L191 111Z`,
+    `M86 101 Q84 147 101 164 L108 112Z M214 101 Q216 147 199 164 L192 112Z`,
+    `M96 104 Q99 127 106 139 L110 111Z M204 104 Q201 127 194 139 L190 111Z`,
+    `M101 104 L105 122 L110 108Z M199 104 L195 122 L190 108Z`,
+    `M84 100 Q82 155 99 176 L108 111Z M216 100 Q218 155 201 176 L192 111Z`,
+    `M91 102 Q93 138 104 151 L110 111Z M209 102 Q207 138 196 151 L190 111Z`,
+    ``,
+    `M82 100 Q80 148 100 160 L108 111Z M218 100 Q220 148 200 160 L192 111Z`
+   ];
+   return sides[hairId-1]?`<path d="${sides[hairId-1]}" fill="${hair}" stroke="#17202a" stroke-width="4" stroke-linejoin="round"/>`:'';
+ })()}
+  <path d="${hairTop}" fill="${hair}" stroke="#17202a" stroke-width="5" stroke-linejoin="round"/>
  <path d="M86 103 Q94 52 150 46 Q207 51 216 102 Q183 80 150 79 Q117 80 86 103Z" fill="${t1}" stroke="#101923" stroke-width="6"/>
  <path d="M91 101 Q150 76 211 101" fill="none" stroke="${t2}" stroke-width="12"/>
  <path d="M205 98 Q241 101 255 114 Q226 119 194 111Z" fill="${t1}" stroke="#101923" stroke-width="6"/>
  <text x="150" y="84" text-anchor="middle" fill="${t3}" font-size="22" font-weight="900" font-family="Arial">${initials}</text>
  <path d="M103 118 Q120 108 136 117" fill="none" stroke="${hair}" stroke-width="7" stroke-linecap="round"/><path d="M164 117 Q181 108 198 118" fill="none" stroke="${hair}" stroke-width="7" stroke-linecap="round"/>
- <ellipse cx="120" cy="135" rx="14" ry="12" fill="#fff"/><ellipse cx="180" cy="135" rx="14" ry="12" fill="#fff"/>
- <circle cx="121" cy="136" r="7" fill="${eye}"/><circle cx="179" cy="136" r="7" fill="${eye}"/><circle cx="121" cy="136" r="3" fill="#111"/><circle cx="179" cy="136" r="3" fill="#111"/>
+ <!-- EBL_AVATAR_V5_EYES -->
+ ${(()=>{
+   const f=face;
+   const eyeRy=[0,10,11,9,12,10,9,11,10,12,9][f]||10;
+   const eyeRx=[0,14,13,15,14,12,15,13,14,12,15][f]||14;
+   const lid=[0,0,1,-1,1,-1,0,1,-1,0,1][f]||0;
+   return `<g>
+    <ellipse cx="120" cy="${135+lid}" rx="${eyeRx}" ry="${eyeRy}" fill="#fff" stroke="#26323d" stroke-width="2"/>
+    <ellipse cx="180" cy="${135-lid}" rx="${eyeRx}" ry="${eyeRy}" fill="#fff" stroke="#26323d" stroke-width="2"/>
+    <circle cx="121" cy="${136+lid}" r="7.5" fill="${eye}" stroke="#26323d" stroke-width="1.5"/>
+    <circle cx="179" cy="${136-lid}" r="7.5" fill="${eye}" stroke="#26323d" stroke-width="1.5"/>
+    <circle cx="121" cy="${136+lid}" r="3.2" fill="#101820"/><circle cx="179" cy="${136-lid}" r="3.2" fill="#101820"/>
+    <circle cx="118.5" cy="${133.5+lid}" r="1.6" fill="#fff" opacity=".9"/><circle cx="176.5" cy="${133.5-lid}" r="1.6" fill="#fff" opacity=".9"/>
+    <path d="M106 ${127+lid} Q120 ${120+lid} 134 ${127+lid}" fill="none" stroke="#17202a" stroke-width="2.5" opacity=".48"/>
+    <path d="M166 ${127-lid} Q180 ${120-lid} 194 ${127-lid}" fill="none" stroke="#17202a" stroke-width="2.5" opacity=".48"/>
+   </g>`;
+ })()}
+ ${(()=>{
+   const f=face;
+   const mouth=[
+    '', 'M132 176 Q150 184 168 176',
+    'M133 178 Q150 171 167 178',
+    'M132 176 Q150 180 168 176',
+    'M134 178 Q150 188 166 178',
+    'M132 179 Q150 174 168 179',
+    'M134 177 Q150 182 166 177',
+    'M132 178 Q150 186 168 178',
+    'M133 178 Q150 172 167 178',
+    'M134 176 Q150 181 166 176',
+    'M132 179 Q150 184 168 179'
+   ][f]||'M132 178 Q150 182 168 178';
+   return `<g class="eblFaceExpression">
+     <path d="${mouth}" fill="none" stroke="#6b342f" stroke-width="3.4" stroke-linecap="round"/>
+     ${[2,5,8].includes(f)?`<path d="M137 181 Q150 185 163 181" fill="none" stroke="#fff" stroke-width="2" opacity=".72"/>`:''}
+     ${[4,7,10].includes(f)?`<path d="M111 111 Q120 106 130 111 M170 111 Q180 106 189 111" fill="none" stroke="${hair}" stroke-width="3" opacity=".5" stroke-linecap="round"/>`:''}
+   </g>`;
+ })()}
  ${black}${glasses}
+ <!-- EBL_AVATAR_V3_FACE_DETAIL -->
+ ${(()=>{
+   const f=face;
+   const brow=[0,0,-2,2,-1,1,-1,2,-2,1,0][f]||0;
+   const nose=[0,0,3,6,-2,4,7,-3,5,1,6][f]||0;
+   const cheek=[0,.48,.55,.61,.45,.53,.64,.47,.59,.50,.62][f]||.52;
+   return `<path d="M103 ${118+brow} Q120 ${108-brow} 136 117" fill="none" stroke="${hair}" stroke-width="2" opacity=".35"/>
+   <path d="M164 117 Q181 ${108+brow} 198 ${118-brow}" fill="none" stroke="${hair}" stroke-width="2" opacity=".35"/>
+   <path d="M${150+nose*.18} 145 Q${144+nose*.10} ${155+nose*.25} ${149+nose*.12} ${162+nose*.18}" fill="none" stroke="#6f4036" stroke-width="2.2" opacity=".48" stroke-linecap="round"/>
+   <path d="M${150-rx*cheek} 157 Q${150-rx*.62} 169 ${150-rx*.48} 178" fill="none" stroke="#8d594a" stroke-width="2" opacity=".18"/>
+   <path d="M${150+rx*cheek} 157 Q${150+rx*.62} 169 ${150+rx*.48} 178" fill="none" stroke="#8d594a" stroke-width="2" opacity=".18"/>`;
+ })()}
  <path d="M150 135 Q142 154 148 160 Q154 164 162 157" fill="none" stroke="#8d594a" stroke-width="4" stroke-linecap="round"/>
  <path d="M123 177 Q150 198 177 177 Q166 207 150 209 Q134 207 123 177Z" fill="#fff" stroke="#3a2020" stroke-width="5"/>
  <path d="M134 194 Q150 203 166 194" fill="none" stroke="#d96f6f" stroke-width="5"/>
