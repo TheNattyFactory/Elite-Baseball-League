@@ -143,6 +143,22 @@ def init_db():
       role TEXT NOT NULL DEFAULT 'PLAYER' CHECK(role IN ('PLAYER','COACH','COMMISSIONER')),
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    CREATE TABLE IF NOT EXISTS coach_applications(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      preferred_franchise_id TEXT,
+      experience TEXT NOT NULL DEFAULT '',
+      reason TEXT NOT NULL DEFAULT '',
+      philosophy TEXT NOT NULL DEFAULT '',
+      rules_ack INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','APPROVED','DENIED')),
+      review_note TEXT NOT NULL DEFAULT '',
+      submitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at TEXT,
+      reviewed_by INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_coach_applications_user ON coach_applications(user_id,id);
+    CREATE INDEX IF NOT EXISTS idx_coach_applications_status ON coach_applications(status,id);
     CREATE TABLE IF NOT EXISTS franchises(
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -4134,6 +4150,33 @@ class H(BaseHTTPRequestHandler):
             finally:
                 c.close()
 
+        if p=="/api/coach/application":
+            u=self.auth()
+            if not u:return
+            c=conn()
+            try:
+                app=c.execute("SELECT * FROM coach_applications WHERE user_id=? ORDER BY id DESC LIMIT 1",(u["id"],)).fetchone()
+                team=c.execute("SELECT id,name FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
+                approved=(u["role"] in ("COACH","COMMISSIONER")) or bool(app and app["status"]=="APPROVED")
+                available=[dict(x) for x in c.execute("SELECT id,name FROM franchises WHERE owner_user_id IS NULL ORDER BY name")] if approved and not team else []
+                return self.out({"application":dict(app) if app else None,"approved":approved,"assigned_team":dict(team) if team else None,"available_teams":available})
+            finally:
+                c.close()
+
+        if p=="/api/commish/coach-applications":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+            c=conn()
+            try:
+                rows=[dict(x) for x in c.execute("""SELECT a.*,u.username,u.role,f.name preferred_franchise_name,owned.id assigned_franchise_id,owned.name assigned_franchise_name
+                    FROM coach_applications a JOIN users u ON u.id=a.user_id
+                    LEFT JOIN franchises f ON f.id=a.preferred_franchise_id
+                    LEFT JOIN franchises owned ON owned.owner_user_id=a.user_id
+                    ORDER BY CASE a.status WHEN 'PENDING' THEN 0 WHEN 'APPROVED' THEN 1 ELSE 2 END,a.id DESC""")]
+                return self.out({"applications":rows})
+            finally:
+                c.close()
+
         if p=="/api/commish/coach-assignments":
             u=self.auth(["COMMISSIONER"])
             if not u:return
@@ -5209,6 +5252,50 @@ class H(BaseHTTPRequestHandler):
             for off in made:
                 notify_user(c,u["id"],"CONTRACT",f"Contract offer from {off['team']}",f"{off['bonus']:g} XP bonus • {off['salary']:g} XP/game • {off['years']} year(s)",str(off["offer_id"]))
             c.commit();c.close();return self.out({"ok":True,"offers":made})
+        if p=="/api/coach/apply":
+            u=self.auth()
+            if not u:return
+            d=self.body();preferred=str(d.get("preferred_franchise_id") or "").strip() or None
+            experience=str(d.get("experience") or "").strip()[:2000]
+            reason=str(d.get("reason") or "").strip()[:3000]
+            philosophy=str(d.get("philosophy") or "").strip()[:3000]
+            rules_ack=1 if d.get("rules_ack") else 0
+            if not reason or not philosophy or not rules_ack:return self.out({"error":"COACH_APPLICATION_INCOMPLETE"},400)
+            c=conn()
+            try:
+                if u["role"] in ("COACH","COMMISSIONER"):return self.out({"error":"ALREADY_COACH_APPROVED"},409)
+                if preferred and not c.execute("SELECT 1 FROM franchises WHERE id=?",(preferred,)).fetchone():return self.out({"error":"INVALID_FRANCHISE"},400)
+                pending=c.execute("SELECT id FROM coach_applications WHERE user_id=? AND status='PENDING' ORDER BY id DESC LIMIT 1",(u["id"],)).fetchone()
+                if pending:return self.out({"error":"APPLICATION_ALREADY_PENDING","application_id":pending["id"]},409)
+                cur=c.execute("INSERT INTO coach_applications(user_id,preferred_franchise_id,experience,reason,philosophy,rules_ack,status) VALUES(?,?,?,?,?,?,'PENDING')",(u["id"],preferred,experience,reason,philosophy,rules_ack))
+                c.commit();return self.out({"ok":True,"application_id":cur.lastrowid,"status":"PENDING"})
+            finally:
+                c.close()
+
+        if p in ("/api/commish/coach-application/approve","/api/commish/coach-application/deny"):
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+            d=self.body();aid=int(d.get("application_id",0) or 0);note=str(d.get("review_note") or "").strip()[:2000]
+            status="APPROVED" if p.endswith("/approve") else "DENIED"
+            c=conn()
+            try:
+                app=c.execute("SELECT * FROM coach_applications WHERE id=?",(aid,)).fetchone()
+                if not app:return self.out({"error":"APPLICATION_NOT_FOUND"},404)
+                if app["status"]!="PENDING":return self.out({"error":"APPLICATION_ALREADY_REVIEWED","status":app["status"]},409)
+                c.execute("UPDATE coach_applications SET status=?,review_note=?,reviewed_at=CURRENT_TIMESTAMP,reviewed_by=? WHERE id=?",(status,note,u["id"],aid))
+                if status=="APPROVED":
+                    target=c.execute("SELECT role,username FROM users WHERE id=?",(app["user_id"],)).fetchone()
+                    if not target:return self.out({"error":"APPLICANT_NOT_FOUND"},404)
+                    if target["role"]=="PLAYER":c.execute("UPDATE users SET role='COACH' WHERE id=?",(app["user_id"],))
+                    notify_user(c,app["user_id"],"COACH","Coach application approved","You are approved to coach in the EBL. A franchise can now be assigned to you.",str(aid))
+                else:
+                    notify_user(c,app["user_id"],"COACH","Coach application reviewed",note or "Your coach application was not approved at this time.",str(aid))
+                day=int(league_cfg(c,"league_day","0") or 0)
+                c.execute("INSERT INTO commissioner_audit(league_day,action,detail) VALUES(?,?,?)",(day,"COACH_APPLICATION_"+status,f"application {aid} user {app['user_id']}"))
+                c.commit();return self.out({"ok":True,"application_id":aid,"status":status})
+            finally:
+                c.close()
+
         if p=="/api/commish/assign-coach":
             u=self.auth(["COMMISSIONER"])
             if not u:return
