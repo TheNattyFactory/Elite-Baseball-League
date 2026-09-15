@@ -438,6 +438,38 @@ dialog{
 .eblIdentityPortrait--hero .eblFaceExpression{filter:drop-shadow(0 1px 0 rgba(255,255,255,.08))}
 .eblIdentityPortrait--mini .eblFaceExpression{stroke-width:1.05}
 </style>
+<style>
+/* EBL Avatar V7 — stronger team identity */
+.eblIdentityPortrait--mini .eblComicAvatar text{paint-order:stroke}
+.eblIdentityPortrait--hero .eblComicAvatar svg{filter:contrast(1.04) saturate(1.08)}
+</style>
+<style>
+/* EBL Avatar V8 — uniform depth + small-card silhouette */
+.eblIdentityPortrait .eblComicAvatar{filter:drop-shadow(0 5px 7px rgba(0,0,0,.24))}
+.eblIdentityPortrait--mini .eblComicAvatar{filter:drop-shadow(0 2px 3px rgba(0,0,0,.24))}
+.eblIdentityPortrait--mini svg{transform:scale(1.095);transform-origin:50% 47%}
+.eblIdentityPortrait--card svg{transform:scale(1.052);transform-origin:50% 49%}
+</style>
+<style>
+/* EBL Avatar V9 — broadcast-card finish */
+.eblIdentityPortrait{overflow:hidden}
+.eblIdentityPortrait--hero:before{
+  box-shadow:inset 0 0 34px rgba(0,0,0,.22);
+}
+.eblIdentityPortrait--card:before{
+  box-shadow:inset 0 0 22px rgba(0,0,0,.18);
+}
+.eblIdentityPortrait--mini:before{
+  box-shadow:inset 0 0 12px rgba(0,0,0,.2);
+}
+</style>
+<style>
+/* EBL Avatar V10 — identity consistency pass */
+.eblIdentityPortrait[data-ebl-player]{contain:layout paint}
+.eblIdentityPortrait--mini .eblComicAvatar,
+.eblIdentityPortrait--card .eblComicAvatar,
+.eblIdentityPortrait--hero .eblComicAvatar{will-change:auto}
+</style>
 </head>
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
@@ -2926,7 +2958,31 @@ function teamMark(fid,small=false){
  const p=t.primary_color||'#071A31',s=t.secondary_color||'#D7262E',a=t.accent_color||'#D9E0E8';
  return `<span class="teamMark ${small?'sm':''}" style="--tm1:${p};--tm2:${s};--tm3:${a}" title="${escapeHtml(n)}">${teamAbbr(n)}</span>`;
 }
+
+// EBL_AVATAR_V10_IDENTITY_NORMALIZER
+function eblAppearancePlayer(p={}){
+ const a=p.appearance||p.avatar||{};
+ return {
+  ...p,
+  jersey_number:p.jersey_number??a.jersey_number??24,
+  face_id:p.face_id??a.face_id??1,
+  hair_id:p.hair_id??a.hair_id??1,
+  hair_color_id:p.hair_color_id??a.hair_color_id??3,
+  facial_hair_id:p.facial_hair_id??a.facial_hair_id??1,
+  eye_color_id:p.eye_color_id??a.eye_color_id??6,
+  eye_black_id:p.eye_black_id??a.eye_black_id??1,
+  eyewear_id:p.eyewear_id??a.eyewear_id??a.goggles_id??1,
+  chain_id:p.chain_id??a.chain_id??1,
+  sleeve_id:p.sleeve_id??a.sleeve_id??1,
+  bats:p.bats??a.bats??'R',
+  throws:p.throws??a.throws??'R',
+  primary_pos:p.primary_pos??p.position??a.primary_pos??'UTIL',
+  franchise_id:p.franchise_id??p.team_id??a.franchise_id??null
+ };
+}
+
 function stationaryPlayerSvg(p,compact=false,pose='auto'){
+ p=eblAppearancePlayer(p||{});
  const face=Math.max(1,Math.min(10,Number(p?.face_id||1)));
  const hairId=Math.max(1,Math.min(10,Number(p?.hair_id||1)));
  const facial=Math.max(1,Math.min(5,Number(p?.facial_hair_id||1)));
@@ -3002,7 +3058,13 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
  <path d="M86 103 Q94 52 150 46 Q207 51 216 102 Q183 80 150 79 Q117 80 86 103Z" fill="${t1}" stroke="#101923" stroke-width="6"/>
  <path d="M91 101 Q150 76 211 101" fill="none" stroke="${t2}" stroke-width="12"/>
  <path d="M205 98 Q241 101 255 114 Q226 119 194 111Z" fill="${t1}" stroke="#101923" stroke-width="6"/>
- <text x="150" y="84" text-anchor="middle" fill="${t3}" font-size="22" font-weight="900" font-family="Arial">${initials}</text>
+ <!-- EBL_AVATAR_V7_CAP_IDENTITY -->
+ <!-- EBL_AVATAR_V9_CAP_STITCH -->
+ <path d="M150 57 Q149 70 150 89" fill="none" stroke="${t3}" stroke-width="1.5" opacity=".2" stroke-dasharray="2 3"/>
+
+ <circle cx="150" cy="57" r="5" fill="${t2}" stroke="#101923" stroke-width="2"/>
+ <path d="M111 74 Q150 55 189 74" fill="none" stroke="${t3}" stroke-width="2.5" opacity=".28"/>
+ <text x="150" y="84" text-anchor="middle" fill="${t3}" font-size="22" font-weight="900" font-family="Arial Black,Arial" stroke="#101923" stroke-width="1.3" paint-order="stroke">${initials}</text>
  <path d="M103 118 Q120 108 136 117" fill="none" stroke="${hair}" stroke-width="7" stroke-linecap="round"/><path d="M164 117 Q181 108 198 118" fill="none" stroke="${hair}" stroke-width="7" stroke-linecap="round"/>
  <!-- EBL_AVATAR_V5_EYES -->
  ${(()=>{
@@ -3058,6 +3120,20 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
  <path d="M123 177 Q150 198 177 177 Q166 207 150 209 Q134 207 123 177Z" fill="#fff" stroke="#3a2020" stroke-width="5"/>
  <path d="M134 194 Q150 203 166 194" fill="none" stroke="#d96f6f" stroke-width="5"/>
  ${beard}
+ <!-- EBL_AVATAR_V8_UNIFORM_DEPTH -->
+ <path d="M76 239 Q96 218 121 216" fill="none" stroke="${t2}" stroke-width="7" opacity=".88"/>
+ <path d="M179 216 Q204 218 224 239" fill="none" stroke="${t2}" stroke-width="7" opacity=".88"/>
+ <path d="M129 216 Q150 228 171 216 Q166 239 150 243 Q134 239 129 216Z" fill="#101923" opacity=".82"/>
+ <path d="M132 217 Q150 228 168 217" fill="none" stroke="${t3}" stroke-width="2.4" opacity=".62"/>
+ <!-- EBL_AVATAR_V7_JERSEY_DETAIL -->
+ <!-- EBL_AVATAR_V9_JERSEY_BUTTONS -->
+ <g fill="${t3}" opacity=".6">
+  <circle cx="150" cy="258" r="2.1"/><circle cx="150" cy="276" r="2.1"/><circle cx="150" cy="294" r="2.1"/>
+ </g>
+
+ <path d="M121 220 Q150 235 179 220" fill="none" stroke="${t2}" stroke-width="5"/>
+ <path d="M150 224 L150 304" stroke="${t3}" stroke-width="2" opacity=".2"/>
+ <text x="150" y="246" text-anchor="middle" fill="${t3}" font-size="16" font-weight="900" font-family="Arial Black,Arial" opacity=".9">${initials}</text>
  <text x="150" y="307" text-anchor="middle" fill="${t3}" stroke="#071019" stroke-width="2" paint-order="stroke" font-size="43" font-weight="900" font-family="Arial">${num}</text>
  <text x="42" y="299" fill="${t3}" opacity=".8" font-size="13" font-weight="800" font-family="Arial">${pos}</text>
  </svg></div>`;
