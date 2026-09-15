@@ -528,7 +528,21 @@ dialog{
 /* EBL Sports Cartoon V10 — distinct hair silhouettes */
 .presetCard .faceThumb svg,.preset-card .faceThumb svg{overflow:visible}
 </style>
+
+<style id="eblSportsCartoonV12">
+.faceThumbV12{position:relative;overflow:hidden;border-radius:14px;background:radial-gradient(circle at 50% 30%,rgba(42,91,130,.34),rgba(5,25,43,.18) 64%,rgba(3,16,29,.4))}
+.faceThumbV12 svg{width:100%;height:100%;display:block;transform:scale(1.32) translateY(7%);transform-origin:50% 30%}
+.creatorPresetCard .faceThumbV12{min-height:150px}
+</style>
+
+<style id="eblSportsCartoonV13">
+/* Cleaner illustrated baseball-card presentation */
+.faceThumbV12 svg{transform:scale(1.42) translateY(9%);transform-origin:50% 27%}
+.faceThumbV12{box-shadow:inset 0 0 0 1px rgba(255,255,255,.035),inset 0 -28px 42px rgba(0,0,0,.14)}
+.eblIdentityPortrait svg,.playerBust svg{filter:drop-shadow(0 8px 12px rgba(0,0,0,.22))}
+</style>
 </head>
+<!-- EBL SPORTS CARTOON V13: unified creator portrait + sports illustration polish -->
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
 <nav id="mainNav">
@@ -2412,7 +2426,14 @@ function cartoonAvatarSvg(faceId=1,hairId=1,facialId=1,eyeColor='#25364a',team1=
 }
 function faceThumbMarkup(f,hairId=1,facialId=CREATOR.facial_hair_id,eyeColor=(EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5]).color){
  const faceId=Math.max(1,FACE_PRESETS.indexOf(f)+1);
- return `<div class="faceThumb">${cartoonAvatarSvg(faceId,hairId,facialId,eyeColor,'#153c63','#d7262e','#f3f6fa',true,24,eblHairColor(CREATOR))}</div>`;
+ const model=eblAppearancePlayer({
+   ...CREATOR,
+   face_id:faceId,
+   hair_id:hairId,
+   facial_hair_id:facialId,
+   eye_color_id:Math.max(1,EYE_COLORS.findIndex(x=>x.color===eyeColor)+1)||CREATOR.eye_color_id
+ });
+ return `<div class="faceThumb faceThumbV12">${stationaryPlayerSvg(model,true,'portrait')}</div>`;
 }
 
 let EBL_THREE_PROMISE=null;
