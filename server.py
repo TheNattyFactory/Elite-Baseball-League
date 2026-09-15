@@ -1,5 +1,5 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, quote
 from pathlib import Path
 import sqlite3, json, secrets, hashlib, os, mimetypes, hmac, random, math, smtplib, ssl, datetime, time, threading
 from email.message import EmailMessage
@@ -10,6 +10,8 @@ from urllib.error import HTTPError, URLError
 ROOT=os.path.dirname(os.path.abspath(__file__))
 DB=os.environ.get("EBL_DB_PATH", os.path.join(ROOT,"ebl.db"))
 STATIC=os.path.join(ROOT,"static")
+ELITE_HUB_URL=os.environ.get("ELITE_HUB_URL",os.environ.get("ELITE_CORE_URL","")).rstrip("/")
+ELITE_GATEWAY_API_URL=os.environ.get("ELITE_GATEWAY_API_URL",ELITE_HUB_URL).rstrip("/")
 SESSIONS={}
 R=random.Random(7500831)
 RATE_STATE={}
@@ -36,6 +38,29 @@ POSITION_GROUPS=("INF","OF","PITCHER")
 INF_POSITIONS={"C","1B","2B","3B","SS"}
 OF_POSITIONS={"LF","CF","RF","DH","UTIL"}
 PITCHER_POSITIONS={"SP","RP","LR","MR","SU","CL"}
+
+def elite_core_post(path,payload,timeout=6):
+    if not ELITE_GATEWAY_API_URL:
+        return None,"ELITE_GATEWAY_NOT_CONFIGURED"
+    try:
+        raw=json.dumps(payload,separators=(",",":")).encode("utf-8")
+        req=Request(
+            ELITE_GATEWAY_API_URL.rstrip("/")+"/"+path.lstrip("/"),
+            data=raw,
+            headers={"Content-Type":"application/json","Accept":"application/json","User-Agent":"EBL-Gateway/1.0"},
+            method="POST"
+        )
+        with urlopen(req,timeout=timeout) as resp:
+            data=json.loads(resp.read(262144).decode("utf-8"))
+        return data,None
+    except HTTPError as e:
+        try:
+            data=json.loads(e.read(65536).decode("utf-8"))
+            return None,data.get("error") or "ELITE_GATEWAY_REJECTED"
+        except Exception:
+            return None,"ELITE_GATEWAY_REJECTED"
+    except (URLError,TimeoutError,ValueError,json.JSONDecodeError):
+        return None,"ELITE_GATEWAY_UNAVAILABLE"
 
 def position_group_for_pos(pos):
     pos=str(pos or "").upper()
@@ -3670,6 +3695,68 @@ class H(BaseHTTPRequestHandler):
         p=urlparse(self.path).path
 
 
+        if p=="/elite/enter":
+            q=parse_qs(urlparse(self.path).query)
+            token=(q.get("elite_token") or [""])[0].strip()
+            if not token:
+                self.send_response(302);self.send_header("Location","/?elite_error=MISSING_TOKEN");self.end_headers();return
+
+            core,err=elite_core_post("/api/gateway/consume",{"token":token,"sport":"baseball"})
+            if err or not core:
+                self.send_response(302);self.send_header("Location","/?elite_error="+quote(err or "GATEWAY_FAILED",safe=""));self.end_headers();return
+
+            elite_username=str(core.get("username") or "").strip()
+            elite_uid=str(core.get("elite_user_id") or "").strip()
+            ext=core.get("external_account")
+            c=conn()
+            try:
+                local=None
+
+                # First-link preference: the EBL account already authenticated in this browser.
+                # This safely supports different Elite Sports and EBL usernames.
+                current=session_user(self.headers)
+                if current:
+                    local=c.execute("SELECT id,username,role FROM users WHERE id=?",(current["id"],)).fetchone()
+
+                # Otherwise honor an account that was linked previously.
+                if not local and ext and str(ext.get("external_user_id") or "").strip():
+                    local=c.execute("SELECT id,username,role FROM users WHERE id=?",(str(ext["external_user_id"]),)).fetchone()
+
+                # Final first-link fallback: same username. Never create a duplicate EBL account/player.
+                if not local:
+                    local=c.execute("SELECT id,username,role FROM users WHERE username=? COLLATE NOCASE",(elite_username,)).fetchone()
+                    if not local:
+                        c.close()
+                        self.send_response(302);self.send_header("Location","/?elite_error=EBL_ACCOUNT_REQUIRED");self.end_headers();return
+
+                    ticket=str(core.get("link_ticket") or "").strip()
+                    if not ticket:
+                        c.close()
+                        self.send_response(302);self.send_header("Location","/?elite_error=LINK_TICKET_REQUIRED");self.end_headers();return
+
+                    linked,lerr=elite_core_post("/api/gateway/link-external",{
+                        "link_ticket":ticket,
+                        "sport":"baseball",
+                        "external_user_id":str(local["id"]),
+                        "external_username":str(local["username"]),
+                        "sport_role":str(local["role"])
+                    })
+                    if lerr or not linked:
+                        c.close()
+                        self.send_response(302);self.send_header("Location","/?elite_error="+quote(lerr or "LINK_FAILED",safe=""));self.end_headers();return
+
+                sid,_=new_session(c,local["id"],self)
+                c.commit()
+            finally:
+                try:c.close()
+                except Exception:pass
+
+            self.send_response(302)
+            self.send_header("Set-Cookie",session_cookie(sid))
+            self.send_header("Location","/?elite=connected")
+            self.end_headers()
+            return
+
         if p=="/health" or p.startswith("/api/"):
             return self.api_get(p)
 
@@ -3795,6 +3882,73 @@ class H(BaseHTTPRequestHandler):
             ]
             c.close()
             return self.out({"players":rows})
+
+        if p.startswith("/api/elite-bridge/profile/"):
+            username=p.split("/")[-1].strip()
+            c=conn()
+            profile=c.execute(
+                "SELECT id,username,role,created_at FROM users WHERE lower(username)=lower(?)",
+                (username,)
+            ).fetchone()
+            if not profile:
+                c.close()
+                return self.out({"error":"USER_NOT_FOUND"},404)
+
+            uid=profile["id"]
+            players=[]
+            for row in c.execute(
+                """SELECT p.id,p.name,p.franchise_id,p.type,p.primary_pos,p.active,
+                          p.jersey_number,p.season_json,f.name team_name
+                   FROM players p
+                   LEFT JOIN franchises f ON f.id=p.franchise_id
+                   WHERE p.user_id=?
+                   ORDER BY p.active DESC,p.id DESC""",
+                (uid,)
+            ):
+                pl=dict(row)
+                try:
+                    stats=json.loads(pl.pop("season_json") or "{}")
+                except Exception:
+                    stats={}
+                pl["career"]=career_summary(c,pl["id"],stats,bool(pl.get("active")))
+                pl["profile_path"]="/profile/"+str(profile["username"])
+                players.append(pl)
+
+            championships=[dict(x) for x in c.execute(
+                """SELECT DISTINCT pc.season,pc.franchise_id,f.name team_name
+                   FROM player_championships pc
+                   LEFT JOIN franchises f ON f.id=pc.franchise_id
+                   WHERE pc.user_id=? ORDER BY pc.season DESC""",
+                (uid,)
+            )]
+            award_count=sum(int((x.get("career") or {}).get("award_count",0) or 0) for x in players)
+            completed_seasons=sum(int((x.get("career") or {}).get("seasons_completed",0) or 0) for x in players)
+
+            payload={
+                "adapter_version":1,
+                "sport":{"key":"baseball","name":"Elite Baseball League","abbr":"EBL","icon":"⚾"},
+                "identity":{
+                    "sport_user_id":uid,
+                    "username":profile["username"],
+                    "role":profile["role"],
+                    "joined_at":profile["created_at"]
+                },
+                "career_passport":{
+                    "status":"ACTIVE" if any(bool(x.get("active")) for x in players) else ("ALUMNI" if players else "NO_CAREER"),
+                    "players":players,
+                    "completed_seasons":completed_seasons,
+                    "awards":award_count,
+                    "championships":championships,
+                    "championship_count":len(championships),
+                    "profile_path":"/profile/"+str(profile["username"])
+                },
+                "elite_profile_url":(
+                    ELITE_HUB_URL+"/profile.html?u="+str(profile["username"])
+                    if ELITE_HUB_URL else None
+                )
+            }
+            c.close()
+            return self.out(payload)
 
         if p.startswith("/api/team/"):
             fid=p.split("/")[-1].strip()
@@ -6174,86 +6328,69 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             c=conn()
             try:
-                # FULL GENESIS RESET — closed-alpha destructive reset.
-                # Keep accounts, franchises/branding/config, friendships and commissioner access.
-                # Remove every player/career/economy/competition artifact so creation starts clean.
-
-                # Player-linked and season-generated data first.
-                for table in (
-                    "games","season_history","season_champions","franchise_season_history",
-                    "player_championships","award_history","rivalries","league_records",
-                    "news","xp_ledger","team_practice","lineups","pitcher_workload",
-                    "offers","contract_history","contracts","transactions"
-                ):
-                    c.execute(f"DELETE FROM {table}")
-
-                # Remove player-specific notifications and transient league chat.
-                c.execute("DELETE FROM notifications")
+                # Genesis reset: return the closed-alpha league to Season 1, Day 0.
+                # Accounts, player identity/attributes, friendships and contracts stay intact.
+                # Earned XP, XP ledger history and temporary public/team chat are reset.
+                c.execute("DELETE FROM games")
+                c.execute("DELETE FROM season_history")
+                c.execute("DELETE FROM season_champions")
+                c.execute("DELETE FROM franchise_season_history")
+                c.execute("DELETE FROM player_championships")
+                c.execute("DELETE FROM award_history")
+                c.execute("DELETE FROM rivalries")
+                c.execute("DELETE FROM league_records")
+                c.execute("DELETE FROM news")
+                c.execute("DELETE FROM xp_ledger")
                 c.execute("DELETE FROM chat_messages")
+                c.execute("DELETE FROM notifications WHERE type IN ('GAME','AWARD')")
 
-                # The alpha player universe itself is wiped.
-                c.execute("DELETE FROM players")
+                c.execute("UPDATE players SET xp_wallet=0")
+                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0")
+                enforce_active_rosters(c)
 
-                # No stale human/CPU player references survive the reset.
-                c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN'")
-
-                # Reset club competitive/economy state while preserving identity/branding.
-                c.execute("""UPDATE franchises
-                             SET wins=0,losses=0,runs_for=0,runs_against=0,
-                                 xp_spent=0""")
+                # Reset every club to its infrastructure-adjusted annual XP pool.
                 for fr in c.execute("SELECT * FROM franchises").fetchall():
-                    c.execute("UPDATE franchises SET xp_budget=? WHERE id=?",
-                              (annual_team_budget(dict(fr)),fr["id"]))
+                    c.execute("UPDATE franchises SET xp_budget=? WHERE id=?",(annual_team_budget(dict(fr)),fr["id"]))
 
-                # Rebuild Season 1 membership from the configured active pool.
-                c.execute("DELETE FROM franchise_seasons")
-                active_ids=[r["id"] for r in c.execute(
-                    "SELECT id FROM franchises ORDER BY id LIMIT ?",
-                    (MIN_ACTIVE_TEAMS,)
-                ).fetchall()]
-                set_season_membership(c,1,active_ids)
+                # Clear current-season stat lines without touching career identity or progression.
+                players=c.execute("SELECT id,type FROM players").fetchall()
+                for pl in players:
+                    if pl["type"]=="H":
+                        stats={"G":0,"PA":0,"AB":0,"H":0,"1B":0,"2B":0,"3B":0,"HR":0,"BB":0,"SO":0,"R":0,"RBI":0,"SB":0,"CS":0}
+                    else:
+                        stats={"G":0,"GS":0,"OUTS":0,"H":0,"ER":0,"BB":0,"SO":0,"W":0,"L":0,"SV":0}
+                    c.execute("UPDATE players SET season_json=? WHERE id=?",(json.dumps(stats),pl["id"]))
 
-                # Build a completely fresh Season 1 schedule.
+                # Build a completely clean Season 1 schedule using the
+                # configured active franchise pool (minimum eight).
+                if not c.execute("SELECT 1 FROM franchise_seasons WHERE season=1 LIMIT 1").fetchone():
+                    set_season_membership(
+                        c,1,[r["id"] for r in c.execute(
+                            "SELECT id FROM franchises ORDER BY id LIMIT ?",
+                            (MIN_ACTIVE_TEAMS,)
+                        ).fetchall()]
+                    )
                 generate_season_schedule(c,1)
 
-                for key,value in (
-                    ("season","1"),("league_day","0"),("phase","REGULAR"),
-                    ("playoff_round",""),("champion","")
-                ):
+                for key,value in (("season","1"),("league_day","0"),("phase","REGULAR"),("playoff_round",""),("champion","")):
                     c.execute(
-                        "INSERT INTO league_state(k,v) VALUES(?,?) "
-                        "ON CONFLICT(k) DO UPDATE SET v=excluded.v",
+                        "INSERT INTO league_state(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",
                         (key,value)
                     )
                 c.execute(
-                    "INSERT INTO league_config(k,v) VALUES('season_number','1') "
-                    "ON CONFLICT(k) DO UPDATE SET v='1'"
+                    "INSERT INTO league_config(k,v) VALUES('season_number','1') ON CONFLICT(k) DO UPDATE SET v='1'"
                 )
-
-                # Audit the destructive alpha reset.
-                try:
-                    c.execute(
-                        "INSERT INTO commissioner_audit(action,detail) VALUES(?,?)",
-                        ("FULL_GENESIS_RESET","Season 1 Day 0; players, XP, careers, contracts, games, records and history wiped")
-                    )
-                except Exception:
-                    pass
 
                 c.commit()
                 return self.out({
                     "ok":True,
-                    "reset":"FULL_GENESIS",
                     "season":1,
                     "day":0,
                     "phase":"REGULAR",
-                    "players_remaining":c.execute("SELECT COUNT(*) n FROM players").fetchone()["n"],
-                    "xp_entries_remaining":c.execute("SELECT COUNT(*) n FROM xp_ledger").fetchone()["n"],
-                    "contracts_remaining":c.execute("SELECT COUNT(*) n FROM contracts").fetchone()["n"],
-                    "games_created":c.execute("SELECT COUNT(*) n FROM games WHERE season=1").fetchone()["n"]
+                    "games_created":c.execute("SELECT COUNT(*) n FROM games WHERE season=1").fetchone()["n"],
+                    "rivalries_reset":True,
+                    "history_reset":True
                 })
-            except Exception as e:
-                c.rollback()
-                return self.out({"error":"GENESIS_RESET_FAILED","detail":str(e)},500)
             finally:
                 c.close()
 
