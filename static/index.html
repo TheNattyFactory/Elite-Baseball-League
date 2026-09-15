@@ -542,7 +542,7 @@ dialog{
 .eblIdentityPortrait svg,.playerBust svg{filter:drop-shadow(0 8px 12px rgba(0,0,0,.22))}
 </style>
 </head>
-<!-- EBL SPORTS CARTOON V15: complete creator renderer dependency hotfix -->
+<!-- EBL SPORTS CARTOON V16: stationary renderer variable repair -->
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
 <nav id="mainNav">
@@ -3224,19 +3224,19 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
    <ellipse cx="${cx-rx+1}" cy="139" rx="14" ry="19" fill="${skin}" stroke-width="5"/>
    <ellipse cx="${cx+rx-1}" cy="139" rx="14" ry="19" fill="${skin}" stroke-width="5"/>
    <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${skin}" stroke-width="6"/>
-   <!-- integrated hair -->
+   <!-- integrated hairColor -->
    ${hairPaths?`<path d="${hairPaths}" fill="${hairs}" stroke-width="5"/>`:''}
-   ${hairPaths?`<g fill="none" stroke="${hair}" stroke-width="2.2" opacity=".42">
+   ${hairPaths?`<g fill="none" stroke="${hairColor}" stroke-width="2.2" opacity=".42">
      <path d="M113 106 Q125 90 138 91"/><path d="M132 101 Q145 86 157 90"/><path d="M154 99 Q169 87 183 101"/>
    </g>`:''}
    <!-- Sports Cartoon V10: hairstyle texture -->
-   ${hairId===21?`<g fill="none" stroke="${hair}" stroke-width="5"><circle cx="116" cy="89" r="9"/><circle cx="137" cy="78" r="10"/><circle cx="160" cy="76" r="10"/><circle cx="181" cy="88" r="9"/></g>`:''}
-   ${hairId===22?`<g fill="${hair}" stroke="#111820" stroke-width="1.5"><circle cx="116" cy="84" r="8"/><circle cx="132" cy="73" r="8"/><circle cx="150" cy="70" r="8"/><circle cx="168" cy="74" r="8"/><circle cx="185" cy="86" r="8"/></g>`:''}
-   ${hairId===23?`<path d="M116 65 L184 65 M116 78 L184 78" fill="none" stroke="${hair}" stroke-width="4" opacity=".5"/>`:''}
+   ${hairId===21?`<g fill="none" stroke="${hairColor}" stroke-width="5"><circle cx="116" cy="89" r="9"/><circle cx="137" cy="78" r="10"/><circle cx="160" cy="76" r="10"/><circle cx="181" cy="88" r="9"/></g>`:''}
+   ${hairId===22?`<g fill="${hairColor}" stroke="#111820" stroke-width="1.5"><circle cx="116" cy="84" r="8"/><circle cx="132" cy="73" r="8"/><circle cx="150" cy="70" r="8"/><circle cx="168" cy="74" r="8"/><circle cx="185" cy="86" r="8"/></g>`:''}
+   ${hairId===23?`<path d="M116 65 L184 65 M116 78 L184 78" fill="none" stroke="${hairColor}" stroke-width="4" opacity=".5"/>`:''}
    ${[24,25,26,27].includes(hairId)?`<g fill="none" stroke="#111820" stroke-width="2" opacity=".5"><path d="M118 83 Q126 91 118 100 Q110 109 118 118"/><path d="M145 71 Q153 80 145 90 Q137 100 145 111"/><path d="M174 75 Q182 84 174 94 Q166 104 174 114"/></g>`:''}
    <!-- cel-style cheek / jaw shade -->
    <path d="M111 151 Q119 181 146 193 Q127 191 116 179 Q108 168 111 151Z" fill="#7c493c" opacity=".10" stroke="none"/>
-      <!-- cap behind/over hair -->
+      <!-- cap behind/over hairColor -->
    <path d="M103 111 Q107 67 150 63 Q193 67 197 111 Q173 97 150 98 Q127 97 103 111Z" fill="${t1}" stroke-width="6"/>
    <path d="M149 64 Q150 82 150 98" fill="none" stroke="${t3}" stroke-width="2" opacity=".35"/>
    <circle cx="150" cy="64" r="4.5" fill="${t2}" stroke-width="2"/>
