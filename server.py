@@ -1,5 +1,5 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs, quote
+from urllib.parse import urlparse
 from pathlib import Path
 import sqlite3, json, secrets, hashlib, os, mimetypes, hmac, random, math, smtplib, ssl, datetime, time, threading
 from email.message import EmailMessage
@@ -10,8 +10,6 @@ from urllib.error import HTTPError, URLError
 ROOT=os.path.dirname(os.path.abspath(__file__))
 DB=os.environ.get("EBL_DB_PATH", os.path.join(ROOT,"ebl.db"))
 STATIC=os.path.join(ROOT,"static")
-ELITE_HUB_URL=os.environ.get("ELITE_HUB_URL",os.environ.get("ELITE_CORE_URL","")).rstrip("/")
-ELITE_GATEWAY_API_URL=os.environ.get("ELITE_GATEWAY_API_URL",ELITE_HUB_URL).rstrip("/")
 SESSIONS={}
 R=random.Random(7500831)
 RATE_STATE={}
@@ -38,29 +36,6 @@ POSITION_GROUPS=("INF","OF","PITCHER")
 INF_POSITIONS={"C","1B","2B","3B","SS"}
 OF_POSITIONS={"LF","CF","RF","DH","UTIL"}
 PITCHER_POSITIONS={"SP","RP","LR","MR","SU","CL"}
-
-def elite_core_post(path,payload,timeout=6):
-    if not ELITE_GATEWAY_API_URL:
-        return None,"ELITE_GATEWAY_NOT_CONFIGURED"
-    try:
-        raw=json.dumps(payload,separators=(",",":")).encode("utf-8")
-        req=Request(
-            ELITE_GATEWAY_API_URL.rstrip("/")+"/"+path.lstrip("/"),
-            data=raw,
-            headers={"Content-Type":"application/json","Accept":"application/json","User-Agent":"EBL-Gateway/1.0"},
-            method="POST"
-        )
-        with urlopen(req,timeout=timeout) as resp:
-            data=json.loads(resp.read(262144).decode("utf-8"))
-        return data,None
-    except HTTPError as e:
-        try:
-            data=json.loads(e.read(65536).decode("utf-8"))
-            return None,data.get("error") or "ELITE_GATEWAY_REJECTED"
-        except Exception:
-            return None,"ELITE_GATEWAY_REJECTED"
-    except (URLError,TimeoutError,ValueError,json.JSONDecodeError):
-        return None,"ELITE_GATEWAY_UNAVAILABLE"
 
 def position_group_for_pos(pos):
     pos=str(pos or "").upper()
@@ -209,6 +184,11 @@ def init_db():
       hair_id INTEGER NOT NULL DEFAULT 1,
       facial_hair_id INTEGER NOT NULL DEFAULT 1,
       eye_color_id INTEGER NOT NULL DEFAULT 6,
+      hair_color_id INTEGER NOT NULL DEFAULT 3,
+      eye_black_id INTEGER NOT NULL DEFAULT 1,
+      eyewear_id INTEGER NOT NULL DEFAULT 1,
+      chain_id INTEGER NOT NULL DEFAULT 1,
+      sleeve_id INTEGER NOT NULL DEFAULT 1,
       jersey_number INTEGER NOT NULL DEFAULT 24,
       age INTEGER NOT NULL DEFAULT 18
     );
@@ -568,6 +548,16 @@ def init_db():
         c.execute("UPDATE players SET facial_hair_id=3 WHERE face_id IN (5,10)")
     if "eye_color_id" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN eye_color_id INTEGER NOT NULL DEFAULT 6")
+    if "hair_color_id" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN hair_color_id INTEGER NOT NULL DEFAULT 3")
+    if "eye_black_id" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN eye_black_id INTEGER NOT NULL DEFAULT 1")
+    if "eyewear_id" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN eyewear_id INTEGER NOT NULL DEFAULT 1")
+    if "chain_id" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN chain_id INTEGER NOT NULL DEFAULT 1")
+    if "sleeve_id" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN sleeve_id INTEGER NOT NULL DEFAULT 1")
     if "jersey_number" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN jersey_number INTEGER NOT NULL DEFAULT 24")
         # Give every existing player a stable number immediately. Signed players
@@ -3695,68 +3685,6 @@ class H(BaseHTTPRequestHandler):
         p=urlparse(self.path).path
 
 
-        if p=="/elite/enter":
-            q=parse_qs(urlparse(self.path).query)
-            token=(q.get("elite_token") or [""])[0].strip()
-            if not token:
-                self.send_response(302);self.send_header("Location","/?elite_error=MISSING_TOKEN");self.end_headers();return
-
-            core,err=elite_core_post("/api/gateway/consume",{"token":token,"sport":"baseball"})
-            if err or not core:
-                self.send_response(302);self.send_header("Location","/?elite_error="+quote(err or "GATEWAY_FAILED",safe=""));self.end_headers();return
-
-            elite_username=str(core.get("username") or "").strip()
-            elite_uid=str(core.get("elite_user_id") or "").strip()
-            ext=core.get("external_account")
-            c=conn()
-            try:
-                local=None
-
-                # First-link preference: the EBL account already authenticated in this browser.
-                # This safely supports different Elite Sports and EBL usernames.
-                current=session_user(self.headers)
-                if current:
-                    local=c.execute("SELECT id,username,role FROM users WHERE id=?",(current["id"],)).fetchone()
-
-                # Otherwise honor an account that was linked previously.
-                if not local and ext and str(ext.get("external_user_id") or "").strip():
-                    local=c.execute("SELECT id,username,role FROM users WHERE id=?",(str(ext["external_user_id"]),)).fetchone()
-
-                # Final first-link fallback: same username. Never create a duplicate EBL account/player.
-                if not local:
-                    local=c.execute("SELECT id,username,role FROM users WHERE username=? COLLATE NOCASE",(elite_username,)).fetchone()
-                    if not local:
-                        c.close()
-                        self.send_response(302);self.send_header("Location","/?elite_error=EBL_ACCOUNT_REQUIRED");self.end_headers();return
-
-                    ticket=str(core.get("link_ticket") or "").strip()
-                    if not ticket:
-                        c.close()
-                        self.send_response(302);self.send_header("Location","/?elite_error=LINK_TICKET_REQUIRED");self.end_headers();return
-
-                    linked,lerr=elite_core_post("/api/gateway/link-external",{
-                        "link_ticket":ticket,
-                        "sport":"baseball",
-                        "external_user_id":str(local["id"]),
-                        "external_username":str(local["username"]),
-                        "sport_role":str(local["role"])
-                    })
-                    if lerr or not linked:
-                        c.close()
-                        self.send_response(302);self.send_header("Location","/?elite_error="+quote(lerr or "LINK_FAILED",safe=""));self.end_headers();return
-
-                sid,_=new_session(c,local["id"],self)
-                c.commit()
-            finally:
-                try:c.close()
-                except Exception:pass
-
-            self.send_response(302)
-            self.send_header("Set-Cookie",session_cookie(sid))
-            self.send_header("Location","/?elite=connected")
-            self.end_headers()
-            return
-
         if p=="/health" or p.startswith("/api/"):
             return self.api_get(p)
 
@@ -3883,73 +3811,6 @@ class H(BaseHTTPRequestHandler):
             c.close()
             return self.out({"players":rows})
 
-        if p.startswith("/api/elite-bridge/profile/"):
-            username=p.split("/")[-1].strip()
-            c=conn()
-            profile=c.execute(
-                "SELECT id,username,role,created_at FROM users WHERE lower(username)=lower(?)",
-                (username,)
-            ).fetchone()
-            if not profile:
-                c.close()
-                return self.out({"error":"USER_NOT_FOUND"},404)
-
-            uid=profile["id"]
-            players=[]
-            for row in c.execute(
-                """SELECT p.id,p.name,p.franchise_id,p.type,p.primary_pos,p.active,
-                          p.jersey_number,p.season_json,f.name team_name
-                   FROM players p
-                   LEFT JOIN franchises f ON f.id=p.franchise_id
-                   WHERE p.user_id=?
-                   ORDER BY p.active DESC,p.id DESC""",
-                (uid,)
-            ):
-                pl=dict(row)
-                try:
-                    stats=json.loads(pl.pop("season_json") or "{}")
-                except Exception:
-                    stats={}
-                pl["career"]=career_summary(c,pl["id"],stats,bool(pl.get("active")))
-                pl["profile_path"]="/profile/"+str(profile["username"])
-                players.append(pl)
-
-            championships=[dict(x) for x in c.execute(
-                """SELECT DISTINCT pc.season,pc.franchise_id,f.name team_name
-                   FROM player_championships pc
-                   LEFT JOIN franchises f ON f.id=pc.franchise_id
-                   WHERE pc.user_id=? ORDER BY pc.season DESC""",
-                (uid,)
-            )]
-            award_count=sum(int((x.get("career") or {}).get("award_count",0) or 0) for x in players)
-            completed_seasons=sum(int((x.get("career") or {}).get("seasons_completed",0) or 0) for x in players)
-
-            payload={
-                "adapter_version":1,
-                "sport":{"key":"baseball","name":"Elite Baseball League","abbr":"EBL","icon":"⚾"},
-                "identity":{
-                    "sport_user_id":uid,
-                    "username":profile["username"],
-                    "role":profile["role"],
-                    "joined_at":profile["created_at"]
-                },
-                "career_passport":{
-                    "status":"ACTIVE" if any(bool(x.get("active")) for x in players) else ("ALUMNI" if players else "NO_CAREER"),
-                    "players":players,
-                    "completed_seasons":completed_seasons,
-                    "awards":award_count,
-                    "championships":championships,
-                    "championship_count":len(championships),
-                    "profile_path":"/profile/"+str(profile["username"])
-                },
-                "elite_profile_url":(
-                    ELITE_HUB_URL+"/profile.html?u="+str(profile["username"])
-                    if ELITE_HUB_URL else None
-                )
-            }
-            c.close()
-            return self.out(payload)
-
         if p.startswith("/api/team/"):
             fid=p.split("/")[-1].strip()
             c=conn()
@@ -3966,7 +3827,8 @@ class H(BaseHTTPRequestHandler):
             roster=[]
             for row in c.execute(
                 """SELECT p.id,p.user_id,p.name,p.type,p.primary_pos,p.bats,p.throws,p.xp_wallet,
-                          p.season_json,p.attributes_json,p.status,p.active,u.username
+                          p.season_json,p.attributes_json,p.status,p.active,p.face_id,p.hair_id,p.hair_color_id,
+                          p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.jersey_number,u.username
                    FROM players p LEFT JOIN users u ON u.id=p.user_id
                    WHERE p.franchise_id=? AND p.active=1
                    ORDER BY CASE p.type WHEN 'H' THEN 0 ELSE 1 END,p.primary_pos,p.name""",
@@ -4033,7 +3895,7 @@ class H(BaseHTTPRequestHandler):
                 try:attrs=json.loads(pl.pop("attributes_json") or "{}")
                 except Exception:attrs={}
                 pl["overall"]=player_overall_from_attrs(attrs,pl.get("type","H"),pl.get("primary_pos","UTIL"))
-                con=c.execute("SELECT franchise_id,salary,bonus,years,status,created_at FROM contracts WHERE player_id=?",(pl["id"],)).fetchone()
+                con=c.execute("SELECT franchise_id,salary,bonus,years_remaining AS years,'ACTIVE' AS status,signed_at AS created_at FROM contracts WHERE player_id=?",(pl["id"],)).fetchone()
                 pl["contract"]=dict(con) if con else None
                 # Reuse the same career builder as /api/my-player so public profiles and
                 # the owner's Player tab always tell the same historical story.
@@ -4556,7 +4418,7 @@ class H(BaseHTTPRequestHandler):
             for pid,line in raw_box.get("hitters",{}).items():
                 player=c.execute(
                     """
-                    SELECT id,name,franchise_id,face_id,hair_id,facial_hair_id,eye_color_id,jersey_number,primary_pos
+                    SELECT id,name,franchise_id,face_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number,primary_pos,bats,throws
                     FROM players
                     WHERE id=?
                     """,
@@ -4572,6 +4434,12 @@ class H(BaseHTTPRequestHandler):
                     "player_id":int(pid),
                     "name":player["name"],
                     "team_id":player["franchise_id"],
+                    "face_id":player["face_id"],"hair_id":player["hair_id"],"hair_color_id":player["hair_color_id"],
+                    "facial_hair_id":player["facial_hair_id"],"eye_color_id":player["eye_color_id"],
+                    "eye_black_id":player["eye_black_id"],"eyewear_id":player["eyewear_id"],
+                    "chain_id":player["chain_id"],"sleeve_id":player["sleeve_id"],
+                    "jersey_number":player["jersey_number"],"primary_pos":player["primary_pos"],
+                    "bats":player["bats"],"throws":player["throws"],
                     **line
                 })
 
@@ -4591,7 +4459,7 @@ class H(BaseHTTPRequestHandler):
 
                     player=c.execute(
                         """
-                        SELECT name,face_id,hair_id,facial_hair_id,eye_color_id,jersey_number,primary_pos
+                        SELECT name,face_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number,primary_pos,bats,throws
                         FROM players
                         WHERE id=?
                         """,
@@ -4607,8 +4475,15 @@ class H(BaseHTTPRequestHandler):
                         "hair_id":player["hair_id"] if player else 1,
                         "facial_hair_id":player["facial_hair_id"] if player else 1,
                         "eye_color_id":player["eye_color_id"] if player else 6,
+                        "hair_color_id":player["hair_color_id"] if player else 3,
+                        "eye_black_id":player["eye_black_id"] if player else 1,
+                        "eyewear_id":player["eyewear_id"] if player else 1,
+                        "chain_id":player["chain_id"] if player else 1,
+                        "sleeve_id":player["sleeve_id"] if player else 1,
                         "jersey_number":player["jersey_number"] if player else 24,
                         "primary_pos":player["primary_pos"] if player else "P",
+                        "bats":player["bats"] if player else "R",
+                        "throws":player["throws"] if player else "R",
                         **line
                     })
 
@@ -5187,11 +5062,17 @@ class H(BaseHTTPRequestHandler):
                 season={k:0 for k in (["G","GS","OUTS","H","ER","BB","SO","W","L","SV"] if ptype=="P" else ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"])}
                 face_id=int(d.get("face_id",1));hair_id=int(d.get("hair_id",1))
                 facial_hair_id=int(d.get("facial_hair_id",1));eye_color_id=int(d.get("eye_color_id",6))
+                hair_color_id=int(d.get("hair_color_id",3));eye_black_id=int(d.get("eye_black_id",1))
+                eyewear_id=int(d.get("eyewear_id",1));chain_id=int(d.get("chain_id",1));sleeve_id=int(d.get("sleeve_id",1))
                 jersey_number=int(d.get("jersey_number",24))
-                if face_id not in range(1,11) or hair_id not in range(1,11) or facial_hair_id not in range(1,6) or eye_color_id not in range(1,7) or jersey_number not in range(0,100):
+                if (face_id not in range(1,21) or hair_id not in range(1,29) or facial_hair_id not in range(1,15)
+                    or eye_color_id not in range(1,7) or hair_color_id not in range(1,10)
+                    or eye_black_id not in range(1,4) or eyewear_id not in range(1,3)
+                    or chain_id not in range(1,4) or sleeve_id not in range(1,5)
+                    or jersey_number not in range(0,100)):
                     c.rollback();return self.out({"error":"INVALID_APPEARANCE"},400)
-                cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,hair_id,facial_hair_id,eye_color_id,jersey_number)
-                                 VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?,?,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,hair_id,facial_hair_id,eye_color_id,jersey_number))
+                cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,hair_id,facial_hair_id,eye_color_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number)
+                                 VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?,?,?,?,?,?,?,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,hair_id,facial_hair_id,eye_color_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number))
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid})))
                 c.commit()
                 return self.out({"player":player_obj(c,cur.lastrowid)})
