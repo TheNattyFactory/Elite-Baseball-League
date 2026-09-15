@@ -1296,10 +1296,15 @@ function profilePlayerCard(p){
   const team=p.franchise_id?`<button class="clickableName" onclick="openTeam('${jsq(p.franchise_id)}')">${escapeHtml(String(p.team_name||p.franchise_id))}</button>`:'Free Agent';
   const champs=(c.championships||[]).map(x=>`<button class="champBanner" onclick="openTeam('${jsq(x.franchise_id)}')">🏆 S${x.season} ${escapeHtml(String(x.team_name||x.franchise_id))}</button>`).join('');
   const status=p.active?'ACTIVE CAREER':'CAREER COMPLETE';
+  const con=p.contract||{};
+  const contractLine=con.status?`<div class="muted" style="margin-top:4px">Contract • ${Number(con.salary||0).toFixed(2)} XP/game • ${Number(con.years||0)} season${Number(con.years||0)===1?'':'s'}${Number(con.bonus||0)?` • ${Number(con.bonus).toFixed(2)} XP bonus`:''}</div>`:'';
+  const currentLine=careerLine({stats:p.stats||{},rates:(c.current_season||{}).rates||{}},p.type);
+  const contractHistory=(c.contract_history||[]).map(x=>`<div class="recordCard"><b>${escapeHtml(String(x.team_name||x.franchise_id||'Team'))}</b><div class="muted">${Number(x.salary||0).toFixed(2)} XP/game • ${Number(x.years||0)} season${Number(x.years||0)===1?'':'s'}${Number(x.bonus||0)?` • ${Number(x.bonus).toFixed(2)} XP bonus`:''}</div></div>`).join('');
   return `<div class="profilePlayer">
-    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
-      <div><h3 style="margin:0">${escapeHtml(String(p.name||'Player'))} <span class="gold">${escapeHtml(String(p.primary_pos||''))}</span></h3><div class="muted">${team} • Age ${Number(p.age||18)} • ${status}</div></div>
-      <span class="legacyBadge">${p.type==='P'?'Pitcher':'Position Player'}</span>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <div style="width:118px;min-width:118px">${stationaryPlayerSvg(p,true,'auto')}</div>
+      <div style="flex:1;min-width:210px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h3 style="margin:0">${escapeHtml(String(p.name||'Player'))} <span class="gold">${escapeHtml(String(p.primary_pos||''))}</span></h3><div class="muted">${team} • #${Number(p.jersey_number??0)} • Age ${Number(p.age||18)} • ${status}</div>${contractLine}</div><span class="legacyBadge">${p.type==='P'?'Pitcher':'Position Player'}</span></div>
+      ${p.active?`<div class="recordCard" style="margin-top:8px"><span class="label">CURRENT SEASON</span><div>${escapeHtml(currentLine||'Season underway')}</div></div>`:''}</div>
     </div>
     <div class="grid" style="margin-top:10px">
       <div class="statBox"><span class="label">SEASONS</span><b>${c.seasons_completed||0}</b></div>
@@ -1311,8 +1316,10 @@ function profilePlayerCard(p){
     ${champs?`<div class="legacyStrip" style="margin-top:10px">${champs}</div>`:''}
     <details style="margin-top:10px"><summary class="clickableName">Full Career History</summary>
       <h4>Season by Season</h4>${careerHistoryHtml(c,p.type)}
+      <h4>Career Timeline</h4>${careerTimelineHtml(c)}
       <h4>Honors</h4>${careerHonorsHtml(c)}
       ${(c.teams||[]).length?`<h4>Teams</h4><p class="muted">${c.teams.map(x=>escapeHtml(x.team_name||'Free Agent')).join(' → ')}</p>`:''}
+      ${contractHistory?`<h4>Contract History</h4>${contractHistory}`:''}
     </details>
   </div>`;
 }
@@ -1474,6 +1481,12 @@ function careerHistoryHtml(c,type){
  for(const h of (c?.history||[]))rows.push(h);
  if(!rows.length)return '<p class="muted">Your first completed season will appear here.</p>';
  return rows.map(x=>`<div class="recordCard"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><div><b>Season ${x.season}${x.current?' • CURRENT':''}</b><div class="muted">${escapeHtml(x.team_name||'Free Agent')}</div></div>${x.current?'<span class="gold">IN PROGRESS</span>':'<span class="muted">FINAL</span>'}</div><div style="margin-top:8px">${careerLine(x,type)}</div></div>`).join('');
+}
+function careerTimelineHtml(c){
+ const rows=c?.timeline||[];
+ if(!rows.length)return '<p class="muted">Career milestones will appear here as this player builds an EBL legacy.</p>';
+ const icon={DEBUT:'⚾',CONTRACT:'✍️',AWARD:'🏅',CHAMPIONSHIP:'🏆',RETIREMENT:'★'};
+ return rows.map(x=>`<div class="recordCard"><div style="display:flex;gap:10px;align-items:flex-start"><b style="font-size:20px">${icon[x.kind]||'•'}</b><div><b>${escapeHtml(String(x.title||'Career milestone'))}</b><div class="muted">${escapeHtml(String(x.detail||''))}</div></div></div></div>`).join('');
 }
 function careerHonorsHtml(c){
  const champs=(c?.championships||[]).map(x=>`<div class="recordCard"><b>🏆 EBL Champion — Season ${x.season}</b><div class="muted">${escapeHtml(x.team_name||x.franchise_id||'Team')}</div></div>`).join('');
@@ -1972,7 +1985,7 @@ function renderPlayer(){
         PLAYER_HQ_TAB || 'playerOverview',
         activeButton
     );
-    requestAnimationFrame(()=>renderCreator3D('player3dHQ',p));
+    requestAnimationFrame(()=>renderCreator3D('player3dHQ',p,eblPlayerPose(p)));
 }
 
 
@@ -2005,7 +2018,7 @@ function refreshChangePositions(){
 async function changePlayerPosition(){return onceAction('changePosition',async()=>{
  try{const group=changeGroup.value,position=changePos.value;await api('/api/player/change-position',{method:'POST',body:JSON.stringify({player_id:PLAYER?.id,position_group:group,position})});await loadPlayer(PLAYER?.id);renderHome();}catch(e){alert(e.error||'Could not change position')}})}
                 
-let CREATOR={name:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,pool:50,attributes:{}};
+let CREATOR={name:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,hair_color_id:3,eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1,pool:50,attributes:{}};
 let POSITION_DEMAND=[];
 const FACE_PRESETS=[
  {skin:'#f0c4a6',hair:'#4a2d20',eye:'#22313f',label:'Classic',radius:'48% 48% 44% 44%',beard:''},
@@ -2029,6 +2042,17 @@ const EYE_COLORS=[
  {name:'Gray',color:'#697681'},
  {name:'Dark',color:'#18232d'}
 ];
+const HAIR_COLORS=[
+ {name:'Black',color:'#171717'}, {name:'Dark Brown',color:'#2b1b15'}, {name:'Brown',color:'#4a2d20'},
+ {name:'Light Brown',color:'#75503a'}, {name:'Auburn',color:'#71351f'}, {name:'Blonde',color:'#c9a66b'},
+ {name:'Light Blonde',color:'#e1c98b'}, {name:'Gray',color:'#777b80'}, {name:'White',color:'#d8d8d2'}
+];
+const EYE_BLACK_NAMES=['None','Single Stripe','Double Stripe'];
+const EYEWEAR_NAMES=['None','Sport Goggles'];
+const CHAIN_NAMES=['None','Gold Chain','Silver Chain'];
+const SLEEVE_NAMES=['None','Left Arm','Right Arm','Both Arms'];
+
+function eblHairColor(model){const id=Math.max(1,Math.min(HAIR_COLORS.length,Number(model?.hair_color_id)||3));return (HAIR_COLORS[id-1]||HAIR_COLORS[2]).color}
 function setCreatorStep(n){
  document.querySelectorAll('.creatorStep').forEach((x,i)=>{x.classList.toggle('active',i===n-1);x.classList.toggle('done',i<n-1)});
  if(n===1)creatorBasic(); if(n===2)creatorAppearance(); if(n===3)creatorAttributes(); if(n===4)creatorReview();
@@ -2094,9 +2118,9 @@ function saveBasic(){
 }
 function facialHairClass(id){return ['', 'stubble','goatee','beard','mustache'][Math.max(1,Math.min(5,Number(id||1)))-1]||''}
 let AVATAR_GRAD_SEQ=0;
-function cartoonAvatarSvg(faceId=1,hairId=1,facialId=1,eyeColor='#25364a',team1='#0d3153',team2='#d7262e',team3='#f4f7fb',thumb=false,jerseyNumber=24){
+function cartoonAvatarSvg(faceId=1,hairId=1,facialId=1,eyeColor='#25364a',team1='#0d3153',team2='#d7262e',team3='#f4f7fb',thumb=false,jerseyNumber=24,hairColor=null){
  const f=FACE_PRESETS[(Math.max(1,Math.min(10,+faceId))-1)]||FACE_PRESETS[0];
- const hair=f.hair||'#3a241b',skin=f.skin||'#c9906b';
+ const hair=hairColor||f.hair||'#3a241b',skin=f.skin||'#c9906b';
  const gradId=`avatarSkin_${++AVATAR_GRAD_SEQ}`;
  const shape=[
   [88,84],[91,82],[86,86],[94,80],[84,88],[88,82],[96,84],[86,90],[92,86],[89,88]
@@ -2140,7 +2164,7 @@ function cartoonAvatarSvg(faceId=1,hairId=1,facialId=1,eyeColor='#25364a',team1=
 }
 function faceThumbMarkup(f,hairId=1,facialId=CREATOR.facial_hair_id,eyeColor=(EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5]).color){
  const faceId=Math.max(1,FACE_PRESETS.indexOf(f)+1);
- return `<div class="faceThumb">${cartoonAvatarSvg(faceId,hairId,facialId,eyeColor,'#153c63','#d7262e','#f3f6fa',true)}</div>`;
+ return `<div class="faceThumb">${cartoonAvatarSvg(faceId,hairId,facialId,eyeColor,'#153c63','#d7262e','#f3f6fa',true,24,eblHairColor(CREATOR))}</div>`;
 }
 
 let EBL_THREE_PROMISE=null;
@@ -2154,27 +2178,46 @@ async function loadEblThree(){
  }
  return EBL_THREE_PROMISE;
 }
-function eblFaceScale(faceId){
- const shapes={1:[1,1,1],2:[.94,1.03,.95],3:[1.07,.98,1.02],4:[.98,1.08,.96],5:[1.08,.94,1.03],6:[.92,1.02,.95],7:[1.1,1,.98],8:[1.03,1.08,1],9:[.96,1.12,.95],10:[1,1,.93]};
- return shapes[Number(faceId)||1]||shapes[1];
-}
+const EBL_FACE_GEOMETRY={
+ 1:{scale:[1,1,1],jaw:[.92,.60,.90],jawY:3.94,ear:.65,eye:.225,brow:.08,nose:1,mouth:1},
+ 2:{scale:[1.06,.98,.98],jaw:[1.08,.62,.94],jawY:3.95,ear:.69,eye:.245,brow:.035,nose:1.08,mouth:1.08},
+ 3:{scale:[.96,1.08,.98],jaw:[.88,.66,.90],jawY:3.91,ear:.62,eye:.215,brow:.10,nose:.94,mouth:.96},
+ 4:{scale:[1.04,1.02,1],jaw:[1.16,.58,.96],jawY:3.91,ear:.68,eye:.24,brow:-.02,nose:1.10,mouth:1.10},
+ 5:{scale:[1.02,1.04,.98],jaw:[.82,.56,.88],jawY:3.90,ear:.65,eye:.23,brow:-.10,nose:1.08,mouth:.94},
+ 6:{scale:[.90,1.09,.96],jaw:[.80,.68,.86],jawY:3.91,ear:.59,eye:.205,brow:.06,nose:1.02,mouth:.90},
+ 7:{scale:[1.13,.98,1.02],jaw:[1.14,.64,.98],jawY:3.96,ear:.72,eye:.26,brow:.02,nose:1.06,mouth:1.12},
+ 8:{scale:[1.07,1.04,1.03],jaw:[1.02,.72,.96],jawY:3.96,ear:.69,eye:.235,brow:.12,nose:.92,mouth:1.04},
+ 9:{scale:[.98,1.10,.97],jaw:[.86,.52,.88],jawY:3.88,ear:.63,eye:.23,brow:-.12,nose:1.12,mouth:.92},
+ 10:{scale:[1,1.02,.94],jaw:[.96,.70,.86],jawY:3.96,ear:.64,eye:.22,brow:.14,nose:.90,mouth:1.02}
+};
+function eblFaceGeometry(faceId){return EBL_FACE_GEOMETRY[Math.max(1,Math.min(10,Number(faceId)||1))]||EBL_FACE_GEOMETRY[1]}
+function eblFaceScale(faceId){return eblFaceGeometry(faceId).scale}
+
 function eblSkinForFace(faceId){return (FACE_PRESETS[(Math.max(1,Math.min(10,Number(faceId)||1))-1)]||FACE_PRESETS[0]).skin||'#c9906b'}
 function eblHairForFace(faceId){return (FACE_PRESETS[(Math.max(1,Math.min(10,Number(faceId)||1))-1)]||FACE_PRESETS[0]).hair||'#3a241b'}
+function eblHairForModel(model){return model?.hair_color_id?eblHairColor(model):eblHairForFace(model?.face_id)}
 function eblMakeNumberSprite(THREE,num,color='#fff'){
  const c=document.createElement('canvas');c.width=256;c.height=256;const x=c.getContext('2d');
  x.clearRect(0,0,256,256);x.font='900 150px system-ui,Arial';x.textAlign='center';x.textBaseline='middle';x.fillStyle=color;x.strokeStyle='rgba(0,0,0,.55)';x.lineWidth=12;x.strokeText(String(num),128,138);x.fillText(String(num),128,138);
  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
  const mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false});const sp=new THREE.Sprite(mat);sp.scale.set(.72,.72,1);return sp;
 }
-async function renderCreator3D(hostId='creator3dPreview',source=CREATOR){
+function eblPlayerPose(p,requested='auto'){
+ const r=String(requested||'auto').toLowerCase();
+ if(['batting','fielding','pitching','catching'].includes(r))return r;
+ if(p?.position_group==='PITCHER'||p?.type==='P')return 'pitching';
+ return 'batting';
+}
+async function renderCreator3D(hostId='creator3dPreview',source=CREATOR,pose='auto'){
  const host=document.getElementById(hostId);if(!host)return;
  const model=source||CREATOR;
+ const resolvedPose=eblPlayerPose(model,pose);
  const modelTeam=(LEAGUE?.teams||[]).find(x=>x.id===model?.franchise_id)||model?.team||{};
  const modelPrimary=modelTeam.primary_color||'#0d3153',modelSecondary=modelTeam.secondary_color||'#d7262e',modelAccent=modelTeam.accent_color||'#f4f7fb';
  if(EBL_3D_ANIM){cancelAnimationFrame(EBL_3D_ANIM);EBL_3D_ANIM=null}
  host.innerHTML='<div class="avatar3dBadge">EBL 3D PLAYER</div>';
  const THREE=await loadEblThree();
- if(!THREE){host.innerHTML='<div class="avatar3dBadge">EBL PLAYER</div>'+stationaryPlayerSvg(model,host.classList.contains('home3dMini'));return}
+ if(!THREE){host.innerHTML='<div class="avatar3dBadge">EBL PLAYER</div>'+stationaryPlayerSvg(model,host.classList.contains('home3dMini'),resolvedPose);return}
  const compact=host.classList.contains('home3dMini');const w=compact?150:Math.max(280,host.clientWidth||360),h=compact?150:430;
  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));renderer.setSize(w,h,false);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;host.appendChild(renderer.domElement);
  const scene=new THREE.Scene();
@@ -2184,7 +2227,7 @@ async function renderCreator3D(hostId='creator3dPreview',source=CREATOR){
  const rim=new THREE.DirectionalLight(0x7fb8ff,1.8);rim.position.set(-5,5,-3);scene.add(rim);
  const player=new THREE.Group();scene.add(player);
  const skin=new THREE.MeshStandardMaterial({color:eblSkinForFace(model.face_id),roughness:.68});
- const hair=new THREE.MeshStandardMaterial({color:eblHairForFace(model.face_id),roughness:.9});
+ const hair=new THREE.MeshStandardMaterial({color:eblHairForModel(model),roughness:.9});
  const jersey=new THREE.MeshStandardMaterial({color:modelPrimary,roughness:.72});
  const accent=new THREE.MeshStandardMaterial({color:modelSecondary,roughness:.72});
  const white=new THREE.MeshStandardMaterial({color:modelAccent,roughness:.78});
@@ -2206,35 +2249,76 @@ async function renderCreator3D(hostId='creator3dPreview',source=CREATOR){
  mesh(new THREE.CylinderGeometry(.73,.73,.12,30),dark,[0,1.91,0]);
  mesh(new THREE.BoxGeometry(.17,.13,.07),accent,[0,1.91,.73]);
  // position-based stationary pose: hitter, pitcher, or fielder
- const isPitcher=model.position_group==='PITCHER'||model.type==='P';
  const primaryPos=String(model.primary_pos||'').toUpperCase();
- const isCatcher=!isPitcher && primaryPos==='C';
- const isFielder=!isPitcher && !isCatcher && ['1B','2B','3B','SS','LF','CF','RF'].includes(primaryPos);
+ const isPitcher=resolvedPose==='pitching';
+ const isCatcher=resolvedPose==='catching';
+ const isFielder=resolvedPose==='fielding';
  const batSide=model.bats==='L'?-1:1;
- const ls=group([-.78,3.04,0],[0,0,isPitcher?.62:(isCatcher?.48:(isFielder?.34:-.72*batSide))]),rs=group([.78,3.04,0],[0,0,isPitcher?-.62:(isCatcher?-.48:(isFielder?-.34:-.98*batSide))]);
+ const ls=group([-.78,3.04,0],[0,0,isPitcher ? .62 :(isCatcher ? .48 :(isFielder ? .34 :-.72*batSide))]),rs=group([.78,3.04,0],[0,0,isPitcher?-.62:(isCatcher?-.48:(isFielder?-.34:-.98*batSide))]);
  capsule(ls,.55,.2,jersey,[0,-.34,0]);capsule(rs,.55,.2,jersey,[0,-.34,0]);
- const le=group([-.04,-.77,.03],[isPitcher?.18:.08,0,isPitcher?-.45:(isCatcher?.36:(isFielder?.28:-.72*batSide))],ls),re=group([.04,-.77,.03],[isPitcher?.18:.08,0,isPitcher?.45:(isCatcher?-.36:(isFielder?-.28:-.45*batSide))],rs);
+ const le=group([-.04,-.77,.03],[isPitcher ? .18 : .08,0,isPitcher?-.45:(isCatcher ? .36 :(isFielder ? .28 :-.72*batSide))],ls),re=group([.04,-.77,.03],[isPitcher ? .18 : .08,0,isPitcher ? .45 :(isCatcher?-.36:(isFielder?-.28:-.45*batSide))],rs);
  capsule(le,.58,.145,skin,[0,-.35,0]);capsule(re,.58,.145,skin,[0,-.35,0]);
  mesh(new THREE.SphereGeometry(.18,18,14),skin,[0,-.77,.02],[0,0,0],[.9,1,.8],le);mesh(new THREE.SphereGeometry(.18,18,14),skin,[0,-.77,.02],[0,0,0],[.9,1,.8],re);
  // legs / socks / cleats
  for(const side of [-1,1]){
-   const legX=isCatcher?side*.48:side*.34, upperY=isCatcher?.62:.74, lowerY=isCatcher?-.08:-.04;
+   const legX=isCatcher?side*.48:side*.34, upperY=isCatcher ? .62 : .74, lowerY=isCatcher?-.08:-.04;
    mesh(new THREE.CapsuleGeometry(.25,.88,6,16),pants,[legX,upperY,0],[0,0,isCatcher?side*.32:0]);
-   mesh(new THREE.CapsuleGeometry(.19,.56,6,14),white,[legX,lowerY,isCatcher?.18:0],[isCatcher?-.28:0,0,isCatcher?side*-.18:0]);
-   mesh(new THREE.CylinderGeometry(.205,.205,.22,20),accent,[legX,isCatcher?.16:.21,isCatcher?.12:0]);
-   mesh(new THREE.BoxGeometry(.52,.2,.92),dark,[legX,isCatcher?-.43:-.48,isCatcher?.34:.16],[isCatcher?-.18:-.05,0,0]);
+   mesh(new THREE.CapsuleGeometry(.19,.56,6,14),white,[legX,lowerY,isCatcher ? .18 : 0],[isCatcher?-.28:0,0,isCatcher?side*-.18:0]);
+   mesh(new THREE.CylinderGeometry(.205,.205,.22,20),accent,[legX,isCatcher ? .16 : .21,isCatcher ? .12 : 0]);
+   mesh(new THREE.BoxGeometry(.52,.2,.92),dark,[legX,isCatcher?-.43:-.48,isCatcher ? .34 : .16],[isCatcher?-.18:-.05,0,0]);
   }
   if(isCatcher){player.position.y=-.18;player.scale.y=.93;mesh(new THREE.BoxGeometry(1.18,.78,.08),dark,[0,2.68,.88],[0,0,0],[1,1,1]);mesh(new THREE.BoxGeometry(.12,.7,.1),accent,[0,2.68,.94]);}
  // neck and head
  mesh(new THREE.CylinderGeometry(.22,.27,.38,24),skin,[0,3.56,0]);
- const fs=eblFaceScale(model.face_id);mesh(new THREE.SphereGeometry(.61,44,30),skin,[0,4.18,0],[0,0,0],fs);mesh(new THREE.SphereGeometry(.45,34,22),skin,[0,3.94,.08],[0,0,0],[fs[0]*.92,.6,fs[2]*.9]);
- mesh(new THREE.SphereGeometry(.13,18,14),skin,[-.65*fs[0],4.18,0],[0,0,0],[.6,1,.68]);mesh(new THREE.SphereGeometry(.13,18,14),skin,[.65*fs[0],4.18,0],[0,0,0],[.6,1,.68]);
- for(const side of [-1,1]){mesh(new THREE.SphereGeometry(.095,18,12),eyeWhite,[side*.225,4.24,.555],[0,0,0],[1.18,.72,.55]);mesh(new THREE.SphereGeometry(.052,16,10),eyeMat,[side*.225,4.24,.61]);mesh(new THREE.BoxGeometry(.21,.035,.035),hair,[side*.225,4.39,.57],[0,0,side*.08]);}
- mesh(new THREE.ConeGeometry(.075,.23,14),skin,[0,4.08,.64],[Math.PI/2,0,0]);mesh(new THREE.BoxGeometry(.26,.035,.035),new THREE.MeshStandardMaterial({color:'#9f5e58'}),[0,3.91,.59]);
+ const fg=eblFaceGeometry(model.face_id),fs=fg.scale;
+ mesh(new THREE.SphereGeometry(.61,44,30),skin,[0,4.18,0],[0,0,0],fs);
+ mesh(new THREE.SphereGeometry(.45,34,22),skin,[0,fg.jawY,.08],[0,0,0],[fs[0]*fg.jaw[0],fg.jaw[1],fs[2]*fg.jaw[2]]);
+ mesh(new THREE.SphereGeometry(.13,18,14),skin,[-fg.ear*fs[0],4.18,0],[0,0,0],[.6,1,.68]);mesh(new THREE.SphereGeometry(.13,18,14),skin,[fg.ear*fs[0],4.18,0],[0,0,0],[.6,1,.68]);
+ for(const side of [-1,1]){mesh(new THREE.SphereGeometry(.095,18,12),eyeWhite,[side*fg.eye,4.24,.555],[0,0,0],[1.18,.72,.55]);mesh(new THREE.SphereGeometry(.052,16,10),eyeMat,[side*fg.eye,4.24,.61]);mesh(new THREE.BoxGeometry(.21,.035,.035),hair,[side*fg.eye,4.39,.57],[0,0,side*fg.brow]);}
+ mesh(new THREE.ConeGeometry(.075*fg.nose,.23*fg.nose,14),skin,[0,4.08,.64],[Math.PI/2,0,0]);mesh(new THREE.BoxGeometry(.26*fg.mouth,.035,.035),new THREE.MeshStandardMaterial({color:'#9f5e58'}),[0,3.91,.59]);
  // hair / facial hair / cap
- const hairId=Number(model.hair_id)||1,hairHeight=[.42,.26,.48,.52,.38,.22,.58,.3,.08,.5][hairId-1]||.38;
- if(hairId!==9){mesh(new THREE.SphereGeometry(.65,34,20,0,Math.PI*2,0,Math.PI*.53),hair,[0,4.47,-.01],[0,0,0],[fs[0]*1.02,hairHeight/.42,fs[2]*1.02]);if([3,4,7,10].includes(hairId))mesh(new THREE.SphereGeometry(.3,22,14),hair,[0,4.72,-.04],[0,0,0],[1.05,.7,1]);}
- const fh=Number(model.facial_hair_id)||1;if(fh===2)mesh(new THREE.SphereGeometry(.43,24,14,0,Math.PI*2,Math.PI*.47,Math.PI*.18),hair,[0,3.91,.31],[0,0,0],[1,.42,.84]);if(fh===3)mesh(new THREE.ConeGeometry(.16,.33,18),hair,[0,3.79,.55],[0,0,Math.PI]);if(fh===4)mesh(new THREE.SphereGeometry(.46,28,16,0,Math.PI*2,Math.PI*.34,Math.PI*.48),hair,[0,3.9,.31],[0,0,0],[1,.72,.84]);if(fh===5)mesh(new THREE.BoxGeometry(.4,.075,.075),hair,[0,3.99,.61]);
+ const hairId=Math.max(1,Math.min(10,Number(model.hair_id)||1));
+ // Distinct EBL hairstyle silhouettes. Keep these geometry-only so every hair color works with every style.
+ const scalp=(sx=1,sy=1,sz=1,y=4.48,z=-.02)=>mesh(new THREE.SphereGeometry(.65,34,20,0,Math.PI*2,0,Math.PI*.53),hair,[0,y,z],[0,0,0],[fs[0]*sx,sy,fs[2]*sz]);
+ const puff=(x,y,z,sx,sy,sz)=>mesh(new THREE.SphereGeometry(.24,22,14),hair,[x,y,z],[0,0,0],[sx,sy,sz]);
+ if(hairId===1){scalp(1.01,.82,1.01,4.48);puff(0,4.66,.08,.95,.42,1.08);} // classic crop
+ else if(hairId===2){scalp(1.005,.48,1.0,4.43);mesh(new THREE.BoxGeometry(.72,.12,.72),hair,[0,4.58,.02],[0,0,-.04],[1,.72,1]);} // short fade
+ else if(hairId===3){scalp(1.02,.72,1.01,4.47);[-.34,-.12,.12,.34].forEach((x,i)=>puff(x,4.69+(i%2)*.045,.08,.72,.62,1.0));} // textured top
+ else if(hairId===4){scalp(1.04,.88,1.04,4.5);[-.38,-.13,.13,.38].forEach((x,i)=>puff(x,4.7-(i%2)*.03,.02,.82,.72,1.05));} // loose waves
+ else if(hairId===5){scalp(1.02,.64,1.01,4.45);mesh(new THREE.SphereGeometry(.42,28,16),hair,[.2,4.63,.05],[0,0,-.2],[1.25,.48,1.02]);} // side part
+ else if(hairId===6){scalp(1.0,.28,1.0,4.39);} // buzz cut
+ else if(hairId===7){scalp(1.06,.9,1.08,4.5);puff(-.46,4.38,-.03,.82,1.55,1.0);puff(.46,4.38,-.03,.82,1.55,1.0);puff(0,4.72,-.08,1.45,.55,1.05);} // medium flow
+ else if(hairId===8){scalp(1.015,.5,1.08,4.44,-.08);mesh(new THREE.SphereGeometry(.48,28,16),hair,[0,4.57,-.17],[-.18,0,0],[1.0,.42,1.25]);} // slick back
+ else if(hairId===9){scalp(.995,.12,.995,4.36);} // shaved shadow
+ else if(hairId===10){scalp(1.08,.78,1.08,4.48);for(const [x,y,z] of [[-.36,4.65,.04],[-.13,4.76,.02],[.13,4.76,.02],[.36,4.65,.04],[-.45,4.45,-.02],[.45,4.45,-.02],[0,4.62,-.22]])puff(x,y,z,.9,.9,.9);} // curly / afro
+ const fh=Math.max(1,Math.min(5,Number(model.facial_hair_id)||1));
+ // Facial hair shares the selected hair color and uses distinct silhouettes in both 3D and portrait views.
+ if(fh===2){ // stubble: close jaw/chin shadow
+   mesh(new THREE.SphereGeometry(.44,28,16,0,Math.PI*2,Math.PI*.43,Math.PI*.22),hair,[0,3.91,.32],[0,0,0],[1.02,.42,.86]).material.transparent=true;player.children[player.children.length-1].material.opacity=.62;
+ }
+ if(fh===3){ // goatee: mustache + focused chin beard
+   mesh(new THREE.BoxGeometry(.34,.055,.06),hair,[0,3.995,.615]);
+   mesh(new THREE.CapsuleGeometry(.105,.22,5,12),hair,[0,3.79,.565],[0,0,0],[1,.9,.75]);
+ }
+ if(fh===4){ // full beard: jaw wrap with extra chin volume
+   mesh(new THREE.SphereGeometry(.47,30,18,0,Math.PI*2,Math.PI*.31,Math.PI*.52),hair,[0,3.89,.31],[0,0,0],[1.02,.74,.86]);
+   mesh(new THREE.SphereGeometry(.25,22,14),hair,[0,3.73,.47],[0,0,0],[1.12,.72,.8]);
+ }
+ if(fh===5){ // mustache: two tapered halves instead of one block
+   mesh(new THREE.CapsuleGeometry(.045,.17,4,10),hair,[-.105,3.995,.62],[0,0,-Math.PI/2.35],[1,.85,.85]);
+   mesh(new THREE.CapsuleGeometry(.045,.17,4,10),hair,[.105,3.995,.62],[0,0,Math.PI/2.35],[1,.85,.85]);
+ }
+ // Optional game-day cosmetics. These are visual only and never affect ratings.
+ const eyeBlack=Math.max(1,Math.min(3,Number(model.eye_black_id)||1));
+ const eyewear=Math.max(1,Math.min(2,Number(model.eyewear_id)||1));
+ const chain=Math.max(1,Math.min(3,Number(model.chain_id)||1));
+ const sleeve=Math.max(1,Math.min(4,Number(model.sleeve_id)||1));
+ if(eyeBlack>1){for(const side of [-1,1]){mesh(new THREE.BoxGeometry(.18,.045,.025),dark,[side*.25,4.13,.64],[0,0,side*.05]);if(eyeBlack===3)mesh(new THREE.BoxGeometry(.16,.035,.025),dark,[side*.25,4.07,.645],[0,0,side*.05]);}}
+ if(eyewear===2){for(const side of [-1,1])mesh(new THREE.TorusGeometry(.16,.025,8,20),dark,[side*.25,4.24,.64],[Math.PI/2,0,0]);mesh(new THREE.BoxGeometry(.18,.035,.035),dark,[0,4.24,.65]);}
+ if(chain>1){const chainMat=new THREE.MeshStandardMaterial({color:chain===2?'#d8ad3d':'#c5ccd3',metalness:.7,roughness:.28});mesh(new THREE.TorusGeometry(.38,.025,8,32,Math.PI),chainMat,[0,3.46,.73],[0,0,Math.PI]);}
+ const sleeveMat=new THREE.MeshStandardMaterial({color:modelSecondary,roughness:.8});
+ if(sleeve===2||sleeve===4)mesh(new THREE.CapsuleGeometry(.105,.52,5,12),sleeveMat,[-.73,2.52,.04],[0,0,.08]);
+ if(sleeve===3||sleeve===4)mesh(new THREE.CapsuleGeometry(.105,.52,5,12),sleeveMat,[.73,2.52,.04],[0,0,-.08]);
  mesh(new THREE.CylinderGeometry(.66,.69,.17,36),jersey,[0,4.68,0]);mesh(new THREE.SphereGeometry(.66,34,16,0,Math.PI*2,0,Math.PI*.45),jersey,[0,4.68,-.01]);mesh(new THREE.BoxGeometry(.82,.075,.5),jersey,[0,4.61,.54],[.08,0,0]);
  const num=eblMakeNumberSprite(THREE,Number(model.jersey_number??24),'#f4f7fb');num.position.set(0,2.61,.92);player.add(num);
  // equipment follows the stationary baseball pose
@@ -2251,7 +2335,7 @@ async function renderCreator3D(hostId='creator3dPreview',source=CREATOR){
    mesh(new THREE.SphereGeometry(.24,20,16),leather,[gloveSide*.92,1.96,.12],[0,0,0],[1.05,.78,.5]);
  }
  if(!isPitcher && !isCatcher && !isFielder){
-   const bx=batSide>0?.86:-.86;
+   const bx=batSide > 0 ? .86 : -.86;
    mesh(new THREE.CylinderGeometry(.05,.09,2.08,18),batMat,[bx,3.18,-.18],[0,0,batSide*-.72]);
  }
  const ground=new THREE.Mesh(new THREE.CircleGeometry(2.3,56),new THREE.MeshStandardMaterial({color:0x06111f,roughness:1,transparent:true,opacity:.72}));ground.rotation.x=-Math.PI/2;ground.position.y=-.6;ground.receiveShadow=true;scene.add(ground);
@@ -2262,22 +2346,28 @@ async function renderCreator3D(hostId='creator3dPreview',source=CREATOR){
 function creatorAppearance(){
  const current=FACE_PRESETS[CREATOR.face_id-1]||FACE_PRESETS[0];
  const eye=EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5];
- creatorStage.innerHTML=`<div class="creatorHero"><div><span class="badge">PLAYER APPEARANCE</span><br><b>Build your EBL look</b><div class="muted">Choose a face, hairstyle, facial hair and eye color. Your portrait follows your player across EBL.</div></div><div>⚾</div></div>
+ creatorStage.innerHTML=`<div class="creatorHero"><div><span class="badge">PLAYER APPEARANCE</span><br><b>Build your EBL look</b><div class="muted">Choose a distinct face shape, hairstyle, hair color, facial hair and eye color. Your exact look follows your player across EBL.</div></div><div>⚾</div></div>
  <div class="appearanceGrid"><div class="appearancePanel">
  <h3>FACE</h3><div class="presetGrid">${FACE_PRESETS.map((f,i)=>`<div class="preset ${CREATOR.face_id===i+1?'selected':''}" onclick="pickFace(${i+1})">${faceThumbMarkup(f,Math.min(CREATOR.hair_id,10))}<div class="presetLabel">${f.label}</div></div>`).join('')}</div>
  <h3 style="margin-top:18px">HAIR STYLE</h3><div class="presetGrid">${HAIR_NAMES.map((n,i)=>`<div class="preset ${CREATOR.hair_id===i+1?'selected':''}" onclick="pickHair(${i+1})">${faceThumbMarkup(current,i+1)}<div class="presetLabel">${n}</div></div>`).join('')}</div>
+ <h3 style="margin-top:18px">HAIR COLOR</h3><div class="colorChoices">${HAIR_COLORS.map((x,i)=>`<button class="colorChoice ${CREATOR.hair_color_id===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" aria-label="${x.name}" onclick="pickHairColor(${i+1})"></button>`).join('')}</div>
  <h3 style="margin-top:18px">FACIAL HAIR</h3><div class="presetGrid">${FACIAL_HAIR_NAMES.map((n,i)=>`<div class="preset ${CREATOR.facial_hair_id===i+1?'selected':''}" onclick="pickFacialHair(${i+1})">${faceThumbMarkup(current,CREATOR.hair_id,i+1,eye.color)}<div class="presetLabel">${n}</div></div>`).join('')}</div>
  <h3 style="margin-top:18px">EYE COLOR</h3><div class="colorChoices">${EYE_COLORS.map((x,i)=>`<button class="colorChoice ${CREATOR.eye_color_id===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" aria-label="${x.name}" onclick="pickEyeColor(${i+1})"></button>`).join('')}</div>
- </div><div><h3>LIVE 3D PREVIEW</h3><div id="creator3dPreview" class="avatar3dPreview"></div><div class="muted" style="margin:7px 2px 0">Drag the player to rotate. Same body rig, swappable head/hair and uniform materials.</div><div class="card" style="margin-top:10px;text-align:center"><b>${escapeHtml(CREATOR.name||'Your Player')}</b><div class="muted">#${CREATOR.jersey_number} • ${escapeHtml(CREATOR.position||'EBL')} • ${current.label} • ${HAIR_NAMES[CREATOR.hair_id-1]} • ${FACIAL_HAIR_NAMES[CREATOR.facial_hair_id-1]} • ${eye.name} eyes</div></div></div></div>
+ <h3 style="margin-top:18px">GAME-DAY COSMETICS</h3>
+ <div class="presetGrid">${EYE_BLACK_NAMES.map((n,i)=>`<div class="preset ${CREATOR.eye_black_id===i+1?'selected':''}" onclick="pickEyeBlack(${i+1})"><div class="presetLabel">Eye Black<br><b>${n}</b></div></div>`).join('')}</div>
+ <div class="presetGrid" style="margin-top:8px">${EYEWEAR_NAMES.map((n,i)=>`<div class="preset ${CREATOR.eyewear_id===i+1?'selected':''}" onclick="pickEyewear(${i+1})"><div class="presetLabel">Eyewear<br><b>${n}</b></div></div>`).join('')}</div>
+ <div class="presetGrid" style="margin-top:8px">${CHAIN_NAMES.map((n,i)=>`<div class="preset ${CREATOR.chain_id===i+1?'selected':''}" onclick="pickChain(${i+1})"><div class="presetLabel">Chain<br><b>${n}</b></div></div>`).join('')}</div>
+ <div class="presetGrid" style="margin-top:8px">${SLEEVE_NAMES.map((n,i)=>`<div class="preset ${CREATOR.sleeve_id===i+1?'selected':''}" onclick="pickSleeve(${i+1})"><div class="presetLabel">Sleeves<br><b>${n}</b></div></div>`).join('')}</div>
+ </div><div><h3>LIVE 3D PREVIEW</h3><div id="creator3dPreview" class="avatar3dPreview"></div><div class="muted" style="margin:7px 2px 0">Drag the player to rotate. Same body rig, swappable head/hair and uniform materials.</div><div class="card" style="margin-top:10px;text-align:center"><b>${escapeHtml(CREATOR.name||'Your Player')}</b><div class="muted">#${CREATOR.jersey_number} • ${escapeHtml(CREATOR.position||'EBL')} • ${current.label} • ${HAIR_NAMES[CREATOR.hair_id-1]} • ${(HAIR_COLORS[(CREATOR.hair_color_id||3)-1]||HAIR_COLORS[2]).name} hair • ${FACIAL_HAIR_NAMES[CREATOR.facial_hair_id-1]} • ${eye.name} eyes</div></div></div></div>
  <div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(1)">BACK</button> <button class="btn" onclick="beginAttributes()">NEXT: ATTRIBUTES</button></div>`;
  requestAnimationFrame(()=>renderCreator3D('creator3dPreview'));
 }
 function avatarMarkup(){
  let f=FACE_PRESETS[CREATOR.face_id-1]||FACE_PRESETS[0];
  const eye=(EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5]).color;
- return cartoonAvatarSvg(CREATOR.face_id,CREATOR.hair_id,CREATOR.facial_hair_id,eye,'#0d3153','#d7262e','#f4f7fb',false,CREATOR.jersey_number);
+ return cartoonAvatarSvg(CREATOR.face_id,CREATOR.hair_id,CREATOR.facial_hair_id,eye,'#0d3153','#d7262e','#f4f7fb',false,CREATOR.jersey_number,eblHairColor(CREATOR));
 }
-function pickFace(id){CREATOR.face_id=id;creatorAppearance()} function pickHair(id){CREATOR.hair_id=id;creatorAppearance()} function pickFacialHair(id){CREATOR.facial_hair_id=id;creatorAppearance()} function pickEyeColor(id){CREATOR.eye_color_id=id;creatorAppearance()}
+function pickFace(id){CREATOR.face_id=id;creatorAppearance()} function pickHair(id){CREATOR.hair_id=id;creatorAppearance()} function pickHairColor(id){CREATOR.hair_color_id=id;creatorAppearance()} function pickFacialHair(id){CREATOR.facial_hair_id=id;creatorAppearance()} function pickEyeColor(id){CREATOR.eye_color_id=id;creatorAppearance()} function pickEyeBlack(id){CREATOR.eye_black_id=id;creatorAppearance()} function pickEyewear(id){CREATOR.eyewear_id=id;creatorAppearance()} function pickChain(id){CREATOR.chain_id=id;creatorAppearance()} function pickSleeve(id){CREATOR.sleeve_id=id;creatorAppearance()}
 function beginAttributes(){
  let pitcher=CREATOR.position_group==='PITCHER',names=pitcher?PA:HA;
  if(!CREATOR.attributes || Object.keys(CREATOR.attributes).join(',')!==names.join(',')){CREATOR.attributes=Object.fromEntries(names.map(x=>[x,0]));CREATOR.pool=50}
@@ -2513,14 +2603,14 @@ function attributeReview(){if(CREATOR.pool!==0)return alert('Spend all 50 XP fir
 function creatorReview(){
  creatorStage.innerHTML=`<div class="two"><div class="card"><div class="identity"><div class="avatar">${initials(CREATOR.name)}</div><div><h2>${escapeHtml(CREATOR.name)}</h2><div class="muted">${CREATOR.position_group} • Preferred ${CREATOR.position} • Bats ${CREATOR.bats} • Throws ${CREATOR.throws}</div></div></div>
  <h3 style="margin-top:14px">50-XP Build</h3><p class="muted">Review your starting strengths carefully. You can go back and rebalance before creating the player.</p>${Object.entries(CREATOR.attributes).map(([k,v])=>`<div class="attr"><b>${k}</b><span>${v}</span><span></span></div>`).join('')}</div>
- <div class="card"><h3>Appearance</h3><div class="avatarPreview">${avatarMarkup()}</div><p class="muted">Face ${CREATOR.face_id} • ${HAIR_NAMES[CREATOR.hair_id-1]} • ${FACIAL_HAIR_NAMES[CREATOR.facial_hair_id-1]} • ${(EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5]).name} eyes</p></div></div>
+ <div class="card"><h3>Appearance</h3><div class="avatarPreview">${avatarMarkup()}</div><p class="muted">Face ${CREATOR.face_id} • ${HAIR_NAMES[CREATOR.hair_id-1]} • ${FACIAL_HAIR_NAMES[CREATOR.facial_hair_id-1]} • ${(HAIR_COLORS[(CREATOR.hair_color_id||3)-1]||HAIR_COLORS[2]).name} hair • ${(EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5]).name} eyes</p></div></div>
  <button class="btn" onclick="setCreatorStep(3)">BACK</button> <button class="btn" onclick="finishCreator()">CREATE EBL PLAYER</button>`;
 }
 async function finishCreator(){return onceAction('finishCreator',async()=>{
  try{
    if(!String(CREATOR.name||'').trim())return alert('A player name is required. Go back to Basic Info and enter a name.');
    if(CREATOR.position!=='C' && CREATOR.attributes?.CALL){return alert('CALL is a catcher-only rating. Set CALL back to 0 or choose C as your preferred position.');}
-   let payload={name:CREATOR.name,position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
+   let payload={name:CREATOR.name,position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
    let created=await api('/api/player/create',{method:'POST',body:JSON.stringify(payload)});
    PLAYER_HQ_TAB='playerOverview';
    const newId=created?.player?.id||null;
@@ -2629,8 +2719,10 @@ function scheduleFilter(mode,b){b.parentElement.querySelectorAll('.subtab').forE
 function renderTicker(){let day=LEAGUE?.day||0,arr=SCHEDULE.filter(g=>g.league_day===Math.max(1,day)||g.league_day===day+1).slice(0,15);let items=arr.map(g=>`<span class="tick" ${g.status==='FINAL'?`onclick="watch('${g.id}')"`:''}><b>${g.status==='FINAL'?'FINAL':'NEXT'}</b> ${teamName(g.away_id)} ${g.status==='FINAL'?g.away_runs:'@'} ${teamName(g.home_id)} ${g.status==='FINAL'?g.home_runs:''}</span>`).join('');tickerTrack.innerHTML=items+items}
 function renderGamecastList(){let finals=SCHEDULE.filter(g=>g.status==='FINAL').slice(-30).reverse();gamecastList.innerHTML=finals.length?finals.map(g=>`<div class="game" onclick="watch('${g.id}')"><b>${teamName(g.away_id)} ${g.away_runs} — ${g.home_runs} ${teamName(g.home_id)}</b><span class="gold"> • WATCH GAMECAST</span></div>`).join(''):'<p class="muted">No final games yet. Genesis Opening Day will populate GameCast.</p>'}
 function leaguePlayerName(x){
- const name=escapeHtml(String(x?.name||x?.player_name||'Player'));
- return x?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">${name}</button>`:name;
+ const name=escapeHtml(String(x?.name||x?.player_name||x?.holder_name||'Player'));
+ if(x?.username)return `<button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">${name}</button>`;
+ const pid=Number(x?.id||x?.player_id||x?.holder_player_id||0);
+ return pid?`<button class="clickableName" onclick="openPlayerCard(${pid})">${name}</button>`:name;
 }
 async function loadAnalytics(){
  let j=await api('/api/analytics'),L=j.league;
@@ -2676,7 +2768,7 @@ function renderHome(){
  }
  if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
  let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div id="home3dPlayer" class="avatar3dPreview home3dMini"></div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
- requestAnimationFrame(()=>renderCreator3D('home3dPlayer',p));
+ requestAnimationFrame(()=>renderCreator3D('home3dPlayer',p,eblPlayerPose(p)));
  homeTeam.innerHTML=t?`<div class="identity">${teamMark(p.franchise_id)}<div><span class="muted">MY TEAM</span><h2><button class="clickableName" onclick="openTeam('${p.franchise_id}')">${t.name}</button></h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div></div></div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Enter the CPU market from the Player tab.</p>`;
  let ng=p.franchise_id?SCHEDULE.find(g=>g.status==='SCHEDULED'&&(g.away_id===p.franchise_id||g.home_id===p.franchise_id)&&g.league_day>=(LEAGUE?.day||0)):null;
  nextGame.innerHTML=ng?`<span class="muted">NEXT GAME • DAY ${ng.league_day}</span><h2>${teamName(ng.away_id)} @ ${teamName(ng.home_id)}</h2><p>${ng.away_id===p.franchise_id?'Road game':'Home game'}</p>`:`<h2>Next Game</h2><p class="muted">${p.franchise_id?'No upcoming game found.':'Sign a contract to join the schedule.'}</p>`;
@@ -2744,7 +2836,7 @@ async function loadCommunity(){
  try{
   let [rv,rc,fr]=await Promise.all([api('/api/rivalries'),api('/api/records'),api('/api/friends')]);
   rivalryBoard.innerHTML=rv.rivalries.length?rv.rivalries.map(r=>`<div class="rivalry"><b>${r.team_a_name} vs ${r.team_b_name}</b><div class="muted">${r.games} meetings • ${r.a_wins}-${r.b_wins} • ${r.one_run_games} one-run games</div><div class="heat"><span style="width:${Math.min(100,r.intensity)}%"></span></div><small>Intensity ${Math.round(r.intensity)}/100</small></div>`).join(''):'<p class="muted">No rivalries yet. They have to be earned.</p>';
-  recordBook.innerHTML=rc.records.length?rc.records.map(r=>`<div class="recordCard"><span class="newsMeta">${r.record_label}</span><br><b>${r.holder_name}</b> — ${r.record_value}<div class="muted">${r.detail||''} • Day ${r.league_day}</div></div>`).join(''):'<p class="muted">Genesis begins with a blank record book.</p>';
+  recordBook.innerHTML=rc.records.length?rc.records.map(r=>`<div class="recordCard"><span class="newsMeta">${escapeHtml(String(r.record_label||'EBL RECORD'))}</span><br><b>${r.holder_type==='PLAYER'?leaguePlayerName({player_id:r.holder_id,name:r.holder_name,username:r.username}):escapeHtml(String(r.holder_name||r.holder_id||''))}</b> — ${escapeHtml(String(r.record_value??''))}<div class="muted">${escapeHtml(String(r.detail||''))} • Day ${Number(r.league_day||0)}</div></div>`).join(''):'<p class="muted">Genesis begins with a blank record book.</p>';
   if(window.friendsPanel){
    const incoming=(fr.incoming||[]).map(x=>`<div class="friendCard"><div><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b><div class="muted">${x.player_name?`<button class="clickableName muted" onclick="openUserProfile('${jsq(x.username)}')">${escapeHtml(x.player_name)}</button>`:'EBL member'}</div></div><div><button class="btn" onclick="friendAccept(${x.user_id},'${jsq(x.username)}')">Accept</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
    const friends=(fr.friends||[]).map(x=>`<div class="friendCard"><div>${x.franchise_id?teamMark(x.franchise_id,true):''} <b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b><div class="muted">${x.player_name?`<button class="clickableName muted" onclick="openUserProfile('${jsq(x.username)}')">${escapeHtml(x.player_name)}</button>`:'EBL member'}</div></div><div><button class="btn" onclick="startDM(${x.user_id},'${jsq(x.username)}')">Message</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
@@ -2800,21 +2892,36 @@ function teamMark(fid,small=false){
  const p=t.primary_color||'#071A31',s=t.secondary_color||'#D7262E',a=t.accent_color||'#D9E0E8';
  return `<span class="teamMark ${small?'sm':''}" style="--tm1:${p};--tm2:${s};--tm3:${a}" title="${escapeHtml(n)}">${teamAbbr(n)}</span>`;
 }
-function stationaryPlayerSvg(p,compact=false){
+function stationaryPlayerSvg(p,compact=false,pose='auto'){
  const face=Math.max(1,Math.min(10,Number(p?.face_id||1))),hairId=Math.max(1,Math.min(10,Number(p?.hair_id||1)));
  const facial=Math.max(1,Math.min(5,Number(p?.facial_hair_id||1)));
  const eyeId=Math.max(1,Math.min(6,Number(p?.eye_color_id||6)));
  const eye=(EYE_COLORS[eyeId-1]||EYE_COLORS[5]).color;
  const team=(LEAGUE?.teams||[]).find(x=>x.id===p?.franchise_id)||p?.team||{};
  const t1=team.primary_color||'#0d3153',t2=team.secondary_color||'#d7262e',t3=team.accent_color||'#f4f7fb';
- const skin=eblSkinForFace(face),hair=eblHairForFace(face),num=Number(p?.jersey_number??24);
- const pitcher=p?.position_group==='PITCHER'||p?.type==='P';
- const pos=String(p?.primary_pos||'').toUpperCase();
- const catcher=!pitcher&&pos==='C';
- const fielder=!pitcher&&!catcher&&['1B','2B','3B','SS','LF','CF','RF'].includes(pos);
+ const skin=eblSkinForFace(face),hair=eblHairForModel(p),num=Number(p?.jersey_number??24);
+ const resolvedPose=eblPlayerPose(p,pose);
+ const pitcher=resolvedPose==='pitching';
+ const catcher=resolvedPose==='catching';
+ const fielder=resolvedPose==='fielding';
  const batSide=(p?.bats==='L')?-1:1,gloveSide=(p?.throws==='L')?1:-1;
- const hairTop=hairId===9?'':`<path d="M64 48 Q80 ${hairId===7||hairId===10?24:30} 96 48 L94 58 Q80 49 66 58Z" fill="${hair}"/>`;
+ const hairTop=hairId===9?`<path d="M65 50 Q80 42 95 50" fill="none" stroke="${hair}" stroke-width="3" opacity=".38"/>`:[
+  '',
+  `<path d="M64 49 Q80 27 96 49 L94 58 Q80 50 66 58Z" fill="${hair}"/>`,
+  `<path d="M65 51 Q80 38 95 51 L94 57 Q80 52 66 57Z" fill="${hair}"/>`,
+  `<path d="M63 49 Q68 27 74 38 Q80 21 86 38 Q92 27 97 49 L94 58 Q80 48 66 58Z" fill="${hair}"/>`,
+  `<path d="M62 49 Q68 26 75 36 Q82 22 88 36 Q95 29 98 50 L95 60 Q80 48 65 60Z" fill="${hair}"/>`,
+  `<path d="M64 50 Q74 34 96 38 L95 56 Q82 49 66 59Z" fill="${hair}"/>`,
+  `<path d="M65 51 Q80 43 95 51 L94 56 Q80 52 66 56Z" fill="${hair}"/>`,
+  `<path d="M61 49 Q80 22 99 49 L97 72 Q92 64 94 55 Q80 47 66 55 Q68 66 63 73Z" fill="${hair}"/>`,
+  `<path d="M64 50 Q82 31 98 42 Q89 45 94 57 Q80 49 66 58Z" fill="${hair}"/>`,
+  '',
+  `<path d="M59 51 Q62 24 80 22 Q98 24 101 51 Q97 62 94 58 Q80 47 66 58 Q63 62 59 51Z" fill="${hair}"/>`
+ ][hairId]||'';
  const beard=facial===2?`<path d="M68 72 Q80 81 92 72" stroke="${hair}" stroke-width="3" opacity=".7"/>`:facial===3?`<path d="M76 76 Q80 88 84 76Z" fill="${hair}"/>`:facial===4?`<path d="M67 69 Q80 89 93 69 Q90 91 80 94 Q70 91 67 69Z" fill="${hair}" opacity=".9"/>`:facial===5?`<path d="M71 70 Q80 66 89 70" stroke="${hair}" stroke-width="4" stroke-linecap="round"/>`:'';
+ const eyeBlack=Math.max(1,Math.min(3,Number(p?.eye_black_id)||1)),eyewear=Math.max(1,Math.min(2,Number(p?.eyewear_id)||1)),chain=Math.max(1,Math.min(3,Number(p?.chain_id)||1)),sleeve=Math.max(1,Math.min(4,Number(p?.sleeve_id)||1));
+ const cosmeticFace=`${eyeBlack>1?`<path d="M61 83 L69 85 M91 85 L99 83" stroke="#111" stroke-width="3" stroke-linecap="round"/>${eyeBlack===3?`<path d="M62 88 L68 89 M92 89 L98 88" stroke="#111" stroke-width="2"/>`:''}`:''}${eyewear===2?`<g fill="none" stroke="#111a24" stroke-width="3"><ellipse cx="70" cy="77" rx="9" ry="7"/><ellipse cx="90" cy="77" rx="9" ry="7"/><path d="M79 77 H81"/></g>`:''}`;
+ const cosmeticBody=`${chain>1?`<path d="M67 118 Q80 132 93 118" fill="none" stroke="${chain===2?'#d8ad3d':'#c5ccd3'}" stroke-width="2.5"/>`:''}${sleeve===2||sleeve===4?`<path d="M61 126 Q56 139 55 151" stroke="${t2}" stroke-width="12" stroke-linecap="round"/>`:''}${sleeve===3||sleeve===4?`<path d="M99 126 Q104 139 105 151" stroke="${t2}" stroke-width="12" stroke-linecap="round"/>`:''}`;
  const bat=pitcher||fielder||catcher?'':`<g transform="translate(${batSide>0?111:49} 108) rotate(${batSide>0?-36:36})"><rect x="-3" y="-62" width="6" height="91" rx="3" fill="#c99b62"/><rect x="-5" y="24" width="10" height="8" rx="2" fill="#8c653d"/></g>`;
  const glove=pitcher?`<ellipse cx="80" cy="128" rx="12" ry="9" fill="#6c3d24" stroke="#9a6747" stroke-width="2"/>`:catcher?`<ellipse cx="${gloveSide<0?71:89}" cy="148" rx="14" ry="10" fill="#6c3d24" stroke="#9a6747" stroke-width="2"/>`:fielder?`<ellipse cx="${gloveSide<0?68:92}" cy="151" rx="12" ry="9" fill="#6c3d24" stroke="#9a6747" stroke-width="2"/>`:`<ellipse cx="${gloveSide<0?53:107}" cy="138" rx="10" ry="8" fill="#6c3d24" stroke="#9a6747" stroke-width="2"/>`;
  const arms=pitcher?`<g stroke="${skin}" stroke-width="11" stroke-linecap="round"><path d="M61 126 Q67 136 78 130"/><path d="M99 126 Q93 136 82 130"/></g>`:catcher?`<g stroke="${skin}" stroke-width="11" stroke-linecap="round"><path d="M61 126 Q62 143 72 149"/><path d="M99 126 Q98 143 88 149"/></g>`:fielder?`<g stroke="${skin}" stroke-width="11" stroke-linecap="round"><path d="M61 126 Q62 143 70 151"/><path d="M99 126 Q98 143 90 151"/></g>`:`<g stroke="${skin}" stroke-width="11" stroke-linecap="round"><path d="M61 126 Q55 111 ${batSide>0?101:59} 104"/><path d="M99 126 Q103 112 ${batSide>0?108:52} 110"/></g>`;
@@ -2836,6 +2943,7 @@ function stationaryPlayerSvg(p,compact=false){
   <rect x="64" y="192" width="12" height="12" rx="5" fill="${t2}"/><rect x="84" y="192" width="12" height="12" rx="5" fill="${t2}"/>
   <rect x="62" y="201" width="16" height="7" rx="3" fill="#111a24"/><rect x="82" y="201" width="16" height="7" rx="3" fill="#111a24"/>
   ${arms}
+  ${cosmeticBody}
   ${glove}
   <rect x="73" y="95" width="14" height="22" rx="6" fill="${skin}"/>
   <ellipse cx="80" cy="76" rx="27" ry="31" fill="url(#s${face}_${hairId}_${num})"/>
@@ -2845,20 +2953,21 @@ function stationaryPlayerSvg(p,compact=false){
   <rect x="56" y="61" width="48" height="7" rx="3" fill="${t1}"/><rect x="80" y="60" width="31" height="5" rx="2" fill="${t2}"/>
   <ellipse cx="70" cy="77" rx="6" ry="4" fill="#fff"/><ellipse cx="90" cy="77" rx="6" ry="4" fill="#fff"/>
   <circle cx="70" cy="77" r="2.6" fill="${eye}"/><circle cx="90" cy="77" r="2.6" fill="${eye}"/>
+  ${cosmeticFace}
   <path d="M80 78 Q77 88 81 89" fill="none" stroke="#8c5a4d" stroke-width="1.7"/>
   <path d="M72 95 Q80 100 88 95" fill="none" stroke="#8f5555" stroke-width="2" stroke-linecap="round"/>
   ${beard}
  </g></svg></div>`;
 }
 
-function playerPortraitMarkup(p){
+function playerPortraitMarkup(p,pose='auto'){
  const face=Math.max(1,Math.min(10,Number(p?.face_id||1))),hair=Math.max(1,Math.min(10,Number(p?.hair_id||1)));
  const facial=Math.max(1,Math.min(5,Number(p?.facial_hair_id||1)));
  const eyeId=Math.max(1,Math.min(6,Number(p?.eye_color_id||6)));
  const eye=(EYE_COLORS[eyeId-1]||EYE_COLORS[5]).color;
  const team=(LEAGUE?.teams||[]).find(x=>x.id===p?.franchise_id)||p?.team||{};
  const t1=team.primary_color||'#071A31',t2=team.secondary_color||'#D7262E',t3=team.accent_color||'#D9E0E8';
- return `<div class="playerPortrait" data-pos="#${Number(p?.jersey_number??24)} • ${escapeHtml(p?.primary_pos||'EBL')}" style="--team1:${t1};--team2:${t2};--team3:${t3};border-color:${t2}">${stationaryPlayerSvg(p,true)}</div>`;
+ return `<div class="playerPortrait" data-pos="#${Number(p?.jersey_number??24)} • ${escapeHtml(p?.primary_pos||'EBL')}" style="--team1:${t1};--team2:${t2};--team3:${t3};border-color:${t2}">${stationaryPlayerSvg(p,true,pose)}</div>`;
 }
 function updateBrandPreview(){
  if(!window.brandPreview)return;
@@ -3300,9 +3409,35 @@ async function optimizeStorage(){
   }catch(e){out.textContent='Storage optimization failed: '+(e?.error||e?.message||'Unknown error')}
 }
 async function loadLab(){let j=await api('/api/simulation-lab');labBody.innerHTML=`<h2>Developer Simulation Lab</h2><p class="muted">Seed ${j.seed}; ${j.pa_per_test.toLocaleString()} PA/test</p><div class="grid">${Object.entries(j.baseline).map(([k,v])=>statBox(k,typeof v==='number'?v.toFixed(3):v)).join('')}</div>`}
+async function hydrateGamecastAppearance(game){
+    // Box-score rows are historical stat snapshots and may not carry the full
+    // appearance payload. Pull the two current team rosters and merge only
+    // identity/appearance fields so GameCast uses the same saved player look
+    // as Home, Player HQ and team profiles.
+    const ids=[game?.away_id,game?.home_id].filter(Boolean);
+    if(!ids.length)return game;
+    try{
+        const results=await Promise.all(ids.map(fid=>api('/api/team/'+encodeURIComponent(fid)).catch(()=>null)));
+        const byId=new Map();
+        results.forEach(j=>(j?.roster||[]).forEach(p=>byId.set(Number(p.id),p)));
+        const appearanceKeys=['name','primary_pos','jersey_number','face_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','bats','throws','franchise_id','type','username'];
+        const mergeRow=row=>{
+            const live=byId.get(Number(row?.player_id));
+            if(!live)return row;
+            const out={...row};
+            appearanceKeys.forEach(k=>{if(live[k]!==undefined&&live[k]!==null)out[k]=live[k]});
+            return out;
+        };
+        if(game?.box){
+            game.box.hitter_rows=(game.box.hitter_rows||[]).map(mergeRow);
+            game.box.pitcher_rows=(game.box.pitcher_rows||[]).map(mergeRow);
+        }
+    }catch(e){console.warn('GameCast appearance hydration skipped',e)}
+    return game;
+}
 async function watch(id){
     let j=await api('/api/game/'+id);
-    GG=j.game;
+    GG=await hydrateGamecastAppearance(j.game);
     gi=0;
     clearInterval(timer);
     renderGameShell();
@@ -3532,7 +3667,7 @@ function gamecastPlayerById(pid){
 }
 function gamecastMatchupCard(p,label){
  if(!p)return `<div class="card" style="text-align:center"><span class="muted">${label}</span><div>Waiting for matchup…</div></div>`;
- const portrait=playerPortraitMarkup(p);
+ const portrait=playerPortraitMarkup(p,String(label||'').toLowerCase().includes('pitch')?'pitching':'batting');
  return `<div class="card" style="padding:10px;text-align:center;min-width:0"><span class="newsMeta">${label}</span><div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px">${portrait}<div><b style="font-size:18px">#${Number(p.jersey_number??24)} ${escapeHtml(p.name||'Player')}</b><div class="muted">${escapeHtml(p.primary_pos||'')}</div></div></div></div>`;
 }
 let GC_STATE={score:[0,0],inning:1,half:'TOP',balls:0,strikes:0,outs:0,runner:null,base:0};
