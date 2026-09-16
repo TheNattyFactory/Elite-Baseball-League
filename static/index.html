@@ -977,6 +977,52 @@ dialog{
 .player-avatar .eblRC16Svg,.playerBust .eblRC16Svg,.profile-avatar .eblRC16Svg{width:100%;height:100%;object-fit:contain}
 .roster-avatar .eblRC16Svg,.gamecast-player .eblRC16Svg{width:100%;height:100%;object-fit:contain}
 @media(max-width:720px){.eblCreatorThumbRC17 svg,.eblCreatorThumb-face svg,.eblCreatorThumb-hair svg,.eblCreatorThumb-facial_hair svg{width:100%!important;height:100%!important}.eblCreatorThumbRC17{min-height:84px}}
+</style><style id="eblPlayerRendererRC18Css">
+.rc18Finish{pointer-events:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.rc18Hair{fill:var(--hair);stroke:#07111a;stroke-width:3.2}.rc18HairAccent{fill:none;stroke:rgba(255,255,255,.18);stroke-width:2.1}
+.rc18Stubble{fill:none;stroke:var(--hair);stroke-width:5;stroke-dasharray:2 4;opacity:.65}.rc18BeardLine,.rc18Mustache{fill:none;stroke:var(--hair);stroke-width:4}.rc18BeardFill{fill:var(--hair);stroke:#07111a;stroke-width:2}
+.rc18JerseyLight{fill:none;stroke:rgba(255,255,255,.24);stroke-width:3}
+.live-player-preview .eblRC16Svg,.player-preview .eblRC16Svg{filter:drop-shadow(0 8px 14px rgba(0,0,0,.28)) contrast(1.1) brightness(1.08)}
+.player-avatar .eblRC16Svg,.playerBust .eblRC16Svg,.profile-avatar .eblRC16Svg{filter:drop-shadow(0 5px 9px rgba(0,0,0,.28)) contrast(1.1) brightness(1.08)}
+.eblCreatorThumbRC18 svg{filter:contrast(1.1) brightness(1.08) saturate(1.05)!important}
+@media(max-width:720px){
+ .player-avatar,.playerBust{min-width:132px;min-height:156px}
+ .player-avatar .eblRC16Svg,.playerBust .eblRC16Svg{transform:scale(1.12);transform-origin:center}
+ .eblCreatorThumbRC18{min-height:92px!important}
+}
+</style><style id="eblPlayerPresentationRC19Css">
+/* RC19 lets the SVG viewBox do the framing. This deliberately neutralizes older
+   thumbnail/home transforms that caused clipping and inconsistent scale. */
+.eblCreatorThumbRC19 svg{width:100%!important;height:100%!important;transform:none!important;transform-origin:center!important;overflow:visible!important}
+.player-avatar svg[data-ebl-surface="home"],.playerBust svg[data-ebl-surface="home"]{width:100%!important;height:100%!important;transform:none!important}
+svg[data-ebl-surface="home"]{filter:drop-shadow(0 5px 10px rgba(0,0,0,.32)) contrast(1.12) brightness(1.12)!important}
+svg[data-ebl-surface="creator"]{filter:drop-shadow(0 3px 6px rgba(0,0,0,.22)) contrast(1.08) brightness(1.08)!important}
+svg[data-ebl-surface="player-profile"],svg[data-ebl-surface="public-profile"]{filter:drop-shadow(0 7px 13px rgba(0,0,0,.3)) contrast(1.1) brightness(1.08)!important}
+@media(max-width:720px){
+ .eblCreatorThumbRC19{height:112px!important;min-height:112px!important;overflow:hidden!important}
+ .eblCreatorThumbRC19 svg{min-width:0!important;max-width:100%!important}
+}
+</style><style id="eblPlayerRendererRC20Css">
+/* RC20 guardrails: cards clip the camera, not the player geometry. */
+.eblCreatorThumbRC20{display:flex;align-items:center;justify-content:center}
+.eblCreatorThumbRC20 svg[data-ebl-renderer="RC20"]{display:block;width:100%!important;height:100%!important;max-width:100%!important}
+svg[data-ebl-renderer="RC20"]{shape-rendering:geometricPrecision;text-rendering:geometricPrecision}
+.player-avatar svg[data-ebl-renderer="RC20"],.playerBust svg[data-ebl-renderer="RC20"]{display:block;margin:auto}
+</style><style id="eblPlayerRendererRC21Css">
+/* RC21: readable on a phone without enlarging the surrounding cards. */
+.eblCreatorThumbRC21{height:118px!important;min-height:118px!important;overflow:hidden!important;border-radius:14px}
+.eblCreatorThumbRC21 svg[data-ebl-renderer="RC21"]{width:100%!important;height:100%!important;transform:none!important}
+svg[data-ebl-renderer="RC21"][data-ebl-surface="home"]{min-width:92px;min-height:132px}
+svg[data-ebl-renderer="RC21"][data-ebl-surface="creator"]{overflow:visible}
+@media(max-width:720px){
+ .eblCreatorThumbRC21{height:122px!important;min-height:122px!important}
+ .eblCreatorThumb-face svg[data-ebl-renderer="RC21"],
+ .eblCreatorThumb-facial_hair svg[data-ebl-renderer="RC21"]{filter:contrast(1.12) brightness(1.1)!important}
+ .eblCreatorThumb-hair svg[data-ebl-renderer="RC21"]{filter:contrast(1.1) brightness(1.12)!important}
+}
+@media(max-width:390px){
+ .eblCreatorThumbRC21{height:114px!important;min-height:114px!important}
+}
 </style></head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -7718,5 +7764,267 @@ const EBL_LAUNCH_FREEZE_RC17={
  surfaceViewBoxes:{action:'25 28 260 275',small:'56 38 194 252',portrait:'74 38 156 222'},
  runtimeHarness:'eblRC17SelfTest()',
  requiredPass:{portraits:7840,actions:112,surfaces:9}
+};
+</script><script id="eblPlayerRendererRC18">
+/* RC18 — SCREENSHOT RESPONSE PASS: contrast, identity readability, creator differentiation. */
+function eblRC18Palette(p={}){
+ const base=typeof eblRC9Palette==='function'?eblRC9Palette(p):{};
+ const jersey=String(base.jersey||base.jersey1||'#244f78'), jersey2=String(base.jersey2||'#d8ad45');
+ const tooDark=/^#(?:000000|050505|080808|0[0-9a-f]{5}|1[0-4][0-9a-f]{4})$/i.test(jersey);
+ return {...base,jersey:tooDark?'#244f78':jersey,jersey1:tooDark?'#244f78':jersey,jersey2:jersey2||'#d8ad45'};
+}
+function eblRC18Readable(svg,p={}){
+ const P=eblRC18Palette(p);
+ return String(svg)
+  .replace(/--jersey:\s*#[0-9a-fA-F]{6}/g,`--jersey:${P.jersey}`)
+  .replace(/--jersey2:\s*#[0-9a-fA-F]{6}/g,`--jersey2:${P.jersey2}`)
+  .replace(/fill="#000000"/gi,'fill="#172a3d"')
+  .replace(/fill="#000"/gi,'fill="#172a3d"');
+}
+function eblRC18HairSignature(p={}){
+ const id=Number(p.hair_id)||1, g=(id-1)%14;
+ const d=[
+ 'M128 82Q136 58 154 58Q173 61 181 82Q163 70 129 88Z',
+ 'M128 83Q132 61 149 58L159 51L166 59Q177 64 182 82Q164 70 129 88Z',
+ 'M128 84Q133 62 150 59Q170 57 182 80L176 72Q163 65 151 72Q139 65 129 87Z',
+ 'M129 82Q137 60 153 59Q172 61 180 80L171 74L162 64L153 73L143 63L130 84Z',
+ 'M128 84Q131 60 151 57Q173 58 184 81L179 89Q162 72 128 90Z',
+ 'M130 81Q139 59 156 60Q173 63 179 82Q162 69 131 86Z',
+ 'M128 84Q135 58 153 57Q174 60 182 83L170 73Q157 64 145 73L129 88Z',
+ 'M129 84Q133 60 150 58Q169 56 183 80L180 89Q165 75 153 78Q140 69 129 88Z',
+ 'M130 82Q135 62 151 59Q168 60 180 79L173 83Q160 71 130 87Z',
+ 'M128 84Q134 59 151 57Q172 58 183 82Q169 67 156 72Q143 62 129 88Z',
+ 'M129 83Q137 58 155 58Q175 62 181 83Q164 71 130 88Z',
+ 'M127 85Q131 61 149 58Q173 56 184 82L178 90Q162 74 151 79Q138 68 128 89Z',
+ 'M130 82Q138 60 154 60Q172 62 180 81Q163 69 131 87Z',
+ 'M128 84Q134 58 153 57Q174 59 183 82L176 73Q164 66 154 71Q142 63 129 88Z'
+ ][g];
+ const accent=g%3===0?'<path d="M139 66q12-12 25 0" class="rc18HairAccent"/>':g%3===1?'<path d="M145 62l7-10 6 10" class="rc18HairAccent"/>':'<path d="M134 70q17-14 35-4" class="rc18HairAccent"/>';
+ return `<g class="rc18HairSig"><path d="${d}" class="rc18Hair"/>${accent}</g>`;
+}
+function eblRC18BeardSignature(p={}){
+ const id=Number(p.facial_hair_id)||1;if(id<=1)return '';
+ const g=(id-2)%7;
+ const a=[
+ '<path d="M139 116Q152 121 165 115" class="rc18Stubble"/>',
+ '<path d="M143 113Q152 119 162 113M146 122Q152 128 159 122" class="rc18BeardLine"/>',
+ '<path d="M140 114Q152 124 165 113L162 129Q152 136 141 128Z" class="rc18BeardFill"/>',
+ '<path d="M141 112Q152 119 164 111" class="rc18Mustache"/>',
+ '<path d="M140 114Q152 123 165 113L164 132Q152 140 140 131Z" class="rc18BeardFill"/>',
+ '<path d="M139 111Q152 121 166 110L164 126Q152 133 141 126Z" class="rc18BeardFill"/>',
+ '<path d="M142 114Q152 121 163 113L160 124Q152 130 144 124Z" class="rc18BeardFill"/>'
+ ];return `<g class="rc18BeardSig">${a[g]}</g>`;
+}
+function eblRC18Highlights(mode='portrait'){
+ return `<g class="rc18Highlights"><path d="${mode==='portrait'?'M106 171Q119 161 132 157M196 171Q183 161 170 157':'M110 166Q122 156 135 151M192 166Q180 156 168 151'}" class="rc18JerseyLight"/><path d="${mode==='portrait'?'M122 221Q151 228 181 221':'M121 195Q151 202 181 195'}" class="rc18JerseyLight"/></g>`;
+}
+function eblPlayerRendererRC18(player={},opts={}){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ let svg=eblPlayerRendererRC17(p,opts);
+ svg=eblRC18Readable(svg,p);
+ const mode=String(opts.mode||'portrait');
+ return svg.replace('</svg>',`<g class="rc18Finish">${eblRC18HairSignature(p)}${eblRC18BeardSignature(p)}${eblRC18Highlights(mode)}</g></svg>`);
+}
+function eblFinalPlayerArtV63(player={},opts={}){return eblPlayerRendererRC18(player,opts)}
+function eblActionPlayerSvg(player={},action='batting',...rest){return eblPlayerRendererRC18(player,{mode:'action',action,surface:'gamecast'})}
+function eblFinalPortraitV63(player={}){return eblPlayerRendererRC18(player,{mode:'portrait',surface:'player-profile'})}
+function eblFinalSurfaceV63(player={},surface='profile',action=''){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const active=action||(surface==='gamecast'?((p.type==='P'||p.position==='P')?'pitching':'batting'):surface==='roster'?'fielding':surface==='home'?'running':'');
+ return active?eblPlayerRendererRC18(p,{mode:'action',action:active,surface}):eblPlayerRendererRC18(p,{mode:'portrait',surface});
+}
+function eblCreatorThumbRC2(kind,id){
+ const p=(typeof CREATOR==='object'&&CREATOR)?{...CREATOR}:{};
+ ['face_id','hair_id','facial_hair_id','skin_color_id','hair_color_id','eye_color_id'].forEach(k=>p[k]=Number(p[k])||1);p.jersey_number=Number(p.jersey_number)||24;
+ if(kind==='face')p.face_id=Number(id)||1;if(kind==='hair')p.hair_id=Number(id)||1;if(kind==='facial_hair')p.facial_hair_id=Number(id)||1;
+ return `<div class="eblCreatorThumbRC2 eblCreatorThumbRC18 eblCreatorThumb-${kind}">${eblPlayerRendererRC18(p,{mode:'portrait',surface:'creator',focus:kind,thumb:true})}</div>`;
+}
+const EBL_PLAYER_RENDERER_RC18={version:'RC18',screenshotDriven:true,contrastGuard:true,hairSignatures:14,beardSignatures:7,jerseyHighlights:true,creatorDifferentiation:true};
+</script><script id="eblScreenshotAuditRC18">
+const EBL_SCREENSHOT_AUDIT_RC18={
+ source:'2026-09-16 mobile screenshots',
+ fixed:['near-black jersey on navy','home-card avatar readability','creator hair differentiation','creator facial-hair differentiation','jersey shoulder separation'],
+ preserve:['mobile three-column creator grid','large live preview','single identity across surfaces'],
+ next:['runtime matrix','fresh mobile screenshots','freeze if contrast and identity hold']
+};
+</script><script id="eblPlayerPresentationRC19">
+/* RC19 — PRESENTATION LOCK: surface-aware framing without changing identity data. */
+const EBL_RC19_SURFACE={
+ creator:{viewBox:'72 38 158 190',preserve:'xMidYMid meet'},
+ home:{viewBox:'76 43 150 205',preserve:'xMidYMid meet'},
+ 'player-profile':{viewBox:'67 28 168 226',preserve:'xMidYMid meet'},
+ 'public-profile':{viewBox:'67 28 168 226',preserve:'xMidYMid meet'},
+ roster:{viewBox:'70 34 164 218',preserve:'xMidYMid meet'},
+ gamecast:{viewBox:'18 20 270 280',preserve:'xMidYMid meet'},
+ awards:{viewBox:'68 30 166 222',preserve:'xMidYMid meet'},
+ legacy:{viewBox:'68 30 166 222',preserve:'xMidYMid meet'},
+ 'identity-lab':{viewBox:'62 24 178 232',preserve:'xMidYMid meet'}
+};
+function eblRC19Frame(svg,surface='player-profile',focus=''){
+ let cfg=EBL_RC19_SURFACE[surface]||EBL_RC19_SURFACE['player-profile'];
+ if(surface==='creator'){
+  if(focus==='face')cfg={viewBox:'92 45 118 137',preserve:'xMidYMid meet'};
+  if(focus==='hair')cfg={viewBox:'86 32 130 148',preserve:'xMidYMid meet'};
+  if(focus==='facial_hair')cfg={viewBox:'91 56 120 137',preserve:'xMidYMid meet'};
+ }
+ return String(svg).replace(/<svg\b([^>]*)>/i,(m,a)=>{
+  a=a.replace(/\sviewBox="[^"]*"/i,'').replace(/\spreserveAspectRatio="[^"]*"/i,'');
+  return `<svg${a} viewBox="${cfg.viewBox}" preserveAspectRatio="${cfg.preserve}" data-ebl-surface="${surface}" data-ebl-focus="${focus||''}">`;
+ });
+}
+function eblRC19Contrast(svg){
+ return String(svg)
+ .replace(/(<path[^>]+class="[^"]*(?:jersey|Jersey)[^"]*"[^>]*)(>)/gi,'$1 style="filter:brightness(1.16) saturate(1.08)"$2')
+ .replace(/(<g[^>]+class="[^"]*rc18Finish[^"]*"[^>]*)(>)/i,'$1 style="filter:contrast(1.08)"$2');
+}
+function eblPlayerRendererRC19(player={},opts={}){
+ const surface=String(opts.surface||'player-profile'),focus=String(opts.focus||'');
+ let svg=eblPlayerRendererRC18(player,opts);
+ svg=eblRC19Contrast(svg);
+ return eblRC19Frame(svg,surface,focus);
+}
+function eblFinalPlayerArtV63(player={},opts={}){return eblPlayerRendererRC19(player,opts)}
+function eblFinalPortraitV63(player={}){return eblPlayerRendererRC19(player,{mode:'portrait',surface:'player-profile'})}
+function eblActionPlayerSvg(player={},action='batting',...rest){return eblPlayerRendererRC19(player,{mode:'action',action,surface:'gamecast'})}
+function eblFinalSurfaceV63(player={},surface='player-profile',action=''){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const active=action||(surface==='gamecast'?((p.type==='P'||p.position==='P')?'pitching':'batting'):'');
+ return eblPlayerRendererRC19(p,{mode:active?'action':'portrait',action:active||undefined,surface});
+}
+function eblCreatorThumbRC2(kind,id){
+ const p=(typeof CREATOR==='object'&&CREATOR)?{...CREATOR}:{};
+ ['face_id','hair_id','facial_hair_id','skin_color_id','hair_color_id','eye_color_id'].forEach(k=>p[k]=Number(p[k])||1);
+ p.jersey_number=Number(p.jersey_number)||24;
+ if(kind==='face')p.face_id=Number(id)||1;if(kind==='hair')p.hair_id=Number(id)||1;if(kind==='facial_hair')p.facial_hair_id=Number(id)||1;
+ return `<div class="eblCreatorThumbRC2 eblCreatorThumbRC19 eblCreatorThumb-${kind}">${eblPlayerRendererRC19(p,{mode:'portrait',surface:'creator',focus:kind,thumb:true})}</div>`;
+}
+const EBL_PLAYER_RENDERER_RC19={version:'RC19',presentationLock:true,surfaceViewBoxes:9,cssZoomRemoved:true,identitySource:'RC18'};
+</script><script id="eblRC19ReleaseGate">
+const EBL_RC19_RELEASE_GATE={
+ build:'RC19',
+ syntax:'validated-before-write',
+ visualTargets:['creator face crop','creator hair crop','creator facial-hair crop','home card legibility','profile portrait scale','gamecast action framing'],
+ runtimeMatrix:{portraits:7840,actions:112,surfaces:9,status:'pending-browser-runtime'},
+ freezeRule:'Do not freeze renderer until fresh deployed screenshots and runtime matrix both hold.'
+};
+</script><script id="eblPlayerRendererRC20">
+/* RC20 — CONSISTENCY GATE: one deterministic gateway across every player-art surface. */
+const EBL_RC20_SURFACE_ALIAS={
+ profile:'player-profile',player:'player-profile','player-hq':'player-profile',
+ public:'public-profile','public_profile':'public-profile',
+ lineup:'roster',team:'roster',card:'home',
+ game:'gamecast','game-cast':'gamecast',
+ lab:'identity-lab',creator:'creator',awards:'awards',legacy:'legacy',home:'home',roster:'roster'
+};
+function eblRC20Surface(x='player-profile'){
+ const k=String(x||'player-profile').trim().toLowerCase();
+ return EBL_RC20_SURFACE_ALIAS[k]||k;
+}
+function eblRC20IdentityKey(p={}){
+ const n=typeof eblIdentityV37==='function'?eblIdentityV37(p):p;
+ return [n.id||n.player_id||0,n.face_id||1,n.skin_color_id||1,n.hair_id||1,n.facial_hair_id||1,n.eye_color_id||1,n.hair_color_id||1,n.eye_black_id||0,n.eyewear_id||0,n.chain_id||0,n.sleeve_id||0,n.jersey_number||0].join('-');
+}
+function eblRC20Stamp(svg,p,surface,action=''){
+ const key=eblRC20IdentityKey(p);
+ return String(svg).replace(/<svg\b([^>]*)>/i,(m,a)=>{
+   a=a.replace(/\sdata-ebl-surface="[^"]*"/i,'');
+   return `<svg${a} data-ebl-surface="${surface}" data-ebl-identity="${key}" data-ebl-action="${action||''}" data-ebl-renderer="RC20">`;
+ });
+}
+function eblPlayerRendererRC20(player={},opts={}){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const surface=eblRC20Surface(opts.surface||'player-profile');
+ const action=String(opts.action||'');
+ let svg=eblPlayerRendererRC19(p,{...opts,surface});
+ return eblRC20Stamp(svg,p,surface,action);
+}
+function eblRC20Render(player={},surface='player-profile',action='',extra={}){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const sf=eblRC20Surface(surface);
+ let act=String(action||'');
+ if(!act&&sf==='gamecast')act=(p.type==='P'||p.position==='P'||p.primary_pos==='P')?'pitching':'batting';
+ return eblPlayerRendererRC20(p,{...extra,surface:sf,mode:act?'action':'portrait',action:act||undefined});
+}
+function eblFinalPlayerArtV63(player={},opts={}){return eblRC20Render(player,opts.surface||'player-profile',opts.action||'',opts)}
+function eblFinalPortraitV63(player={}){return eblRC20Render(player,'player-profile')}
+function eblActionPlayerSvg(player={},action='batting',...rest){return eblRC20Render(player,'gamecast',action)}
+function eblFinalSurfaceV63(player={},surface='player-profile',action=''){return eblRC20Render(player,surface,action)}
+function eblCreatorThumbRC2(kind,id){
+ const p=(typeof CREATOR==='object'&&CREATOR)?{...CREATOR}:{};
+ ['face_id','hair_id','facial_hair_id','skin_color_id','hair_color_id','eye_color_id'].forEach(k=>p[k]=Number(p[k])||1);
+ p.jersey_number=Number(p.jersey_number)||24;
+ if(kind==='face')p.face_id=Number(id)||1;if(kind==='hair')p.hair_id=Number(id)||1;if(kind==='facial_hair')p.facial_hair_id=Number(id)||1;
+ return `<div class="eblCreatorThumbRC2 eblCreatorThumbRC20 eblCreatorThumb-${kind}" data-ebl-choice="${kind}:${id}">${eblRC20Render(p,'creator','',{focus:kind,thumb:true})}</div>`;
+}
+function eblRC20SmokeAudit(){
+ const report={renderer:'RC20',svgs:0,missingSurface:0,missingIdentity:0,creator:0,home:0,gamecast:0};
+ try{
+  const nodes=[...document.querySelectorAll('svg[data-ebl-renderer="RC20"]')];report.svgs=nodes.length;
+  for(const n of nodes){
+   if(!n.dataset.eblSurface)report.missingSurface++;
+   if(!n.dataset.eblIdentity)report.missingIdentity++;
+   if(n.dataset.eblSurface==='creator')report.creator++;
+   if(n.dataset.eblSurface==='home')report.home++;
+   if(n.dataset.eblSurface==='gamecast')report.gamecast++;
+  }
+ }catch(e){report.error=String(e)}
+ window.EBL_RC20_LAST_AUDIT=report;return report;
+}
+if(typeof window!=='undefined'){
+ window.eblRC20SmokeAudit=eblRC20SmokeAudit;
+ setTimeout(()=>{try{eblRC20SmokeAudit()}catch(e){}},1200);
+}
+const EBL_PLAYER_RENDERER_RC20={version:'RC20',gateway:'eblRC20Render',base:'RC19',identityStamp:true,surfaceAliases:true,browserSmokeAudit:true};
+</script><script id="eblRC20QualityContract">
+const EBL_RC20_QUALITY_CONTRACT={
+ canonicalSurfaces:['creator','home','player-profile','public-profile','roster','gamecast','awards','legacy','identity-lab'],
+ requiredAttributes:['data-ebl-renderer','data-ebl-surface','data-ebl-identity'],
+ expectedMatrix:{portraits:7840,actions:112,surfaces:9},
+ currentValidation:{javascriptSyntax:'PASS',browserRuntime:'requires deployed page'},
+ freezeAfter:['fresh mobile creator screenshot','fresh mobile home screenshot','fresh profile screenshot','runtime audit clean']
+};
+</script><script id="eblPlayerRendererRC21">
+/* RC21 — MOBILE ART CONTRACT */
+const EBL_RC21_VERSION='RC21';
+function eblRC21Player(player={}){
+ return typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+}
+function eblRC21Render(player={},surface='player-profile',action='',extra={}){
+ const p=eblRC21Player(player), sf=eblRC20Surface(surface);
+ let act=String(action||'');
+ if(!act&&sf==='gamecast')act=(p.type==='P'||p.position==='P'||p.primary_pos==='P')?'pitching':'batting';
+ let svg=eblPlayerRendererRC20(p,{...extra,surface:sf,mode:act?'action':'portrait',action:act||undefined});
+ return String(svg).replace(/data-ebl-renderer="RC20"/,'data-ebl-renderer="RC21"');
+}
+function eblFinalPlayerArtV63(player={},opts={}){return eblRC21Render(player,opts.surface||'player-profile',opts.action||'',opts)}
+function eblFinalPortraitV63(player={}){return eblRC21Render(player,'player-profile')}
+function eblActionPlayerSvg(player={},action='batting',...rest){return eblRC21Render(player,'gamecast',action)}
+function eblFinalSurfaceV63(player={},surface='player-profile',action=''){return eblRC21Render(player,surface,action)}
+function eblCreatorThumbRC2(kind,id){
+ const p=(typeof CREATOR==='object'&&CREATOR)?{...CREATOR}:{};
+ ['face_id','hair_id','facial_hair_id','skin_color_id','hair_color_id','eye_color_id'].forEach(k=>p[k]=Number(p[k])||1);
+ p.jersey_number=Number(p.jersey_number)||24;
+ if(kind==='face')p.face_id=Number(id)||1;
+ if(kind==='hair')p.hair_id=Number(id)||1;
+ if(kind==='facial_hair')p.facial_hair_id=Number(id)||1;
+ return `<div class="eblCreatorThumbRC2 eblCreatorThumbRC21 eblCreatorThumb-${kind}" data-ebl-choice="${kind}:${id}">${eblRC21Render(p,'creator','',{focus:kind,thumb:true})}</div>`;
+}
+function eblRC21Audit(){
+ const nodes=[...document.querySelectorAll('svg[data-ebl-renderer="RC21"]')];
+ const surfaces={}; let bad=0;
+ nodes.forEach(n=>{const sf=n.dataset.eblSurface||'missing';surfaces[sf]=(surfaces[sf]||0)+1;if(!n.dataset.eblIdentity||sf==='missing')bad++});
+ const out={version:EBL_RC21_VERSION,total:nodes.length,bad,surfaces,ok:bad===0};
+ window.EBL_RC21_LAST_AUDIT=out; return out;
+}
+if(typeof window!=='undefined'){window.eblRC21Audit=eblRC21Audit;setTimeout(()=>{try{eblRC21Audit()}catch(e){}},1500)}
+const EBL_PLAYER_RENDERER_RC21={version:'RC21',base:'RC20',mobileContract:true,creatorFocus:true,audit:'eblRC21Audit'};
+</script><script id="eblRC21ReleaseContract">
+const EBL_RC21_RELEASE_CONTRACT={
+ build:'RC21',
+ canonicalGateway:'eblRC21Render',
+ surfaces:9,
+ mobileWidths:[360,390,412,430],
+ validation:{javascriptSyntax:'PASS',deployedVisual:'pending fresh screenshots'},
+ nextArtPriority:'Do not add more overlay geometry until deployed RC21 screenshots are reviewed.'
 };
 </script></body></html>
