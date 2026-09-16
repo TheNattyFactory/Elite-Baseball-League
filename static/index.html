@@ -588,6 +588,10 @@ dialog{
 .eblPlayerArtV24--xs{width:34px;height:34px;border-radius:9px}.eblPlayerArtV24--sm{width:48px;height:48px;border-radius:12px}.eblPlayerArtV24--md{width:76px;height:76px;border-radius:16px}.eblPlayerArtV24--lg{width:min(100%,260px);aspect-ratio:4/5;border-radius:22px}
 .eblPlayerLineV24{display:flex;align-items:center;gap:10px;min-width:0}.eblPlayerLineV24__text{min-width:0}.eblPlayerLineV24__text b,.eblPlayerLineV24__text small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.eblPlayerLineV24__text small{opacity:.68;font-size:.72rem;margin-top:2px}
 </style>
+
+<style id="eblSportsCartoonV25Css">
+.eblPlayerBylineV25{display:flex;align-items:center;gap:10px;min-width:0}.eblPlayerBylineV25__copy{min-width:0;line-height:1.08}.eblPlayerBylineV25__copy strong,.eblPlayerBylineV25__copy span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eblPlayerBylineV25__copy span{font-size:.7rem;opacity:.68;margin-top:3px}
+</style>
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -4642,6 +4646,31 @@ function eblPlayerLineV24(raw={},opts={}){
 function eblIdentityKeyV24(raw={}){
   const p=typeof eblIdentityCompatV22==='function'?eblIdentityCompatV22(raw):raw;
   return [p.face_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.jersey_number,p.franchise_id??'FA'].join(':');
+}
+</script>
+
+<script id="eblSportsCartoonV25">
+/* V25 — hydrate thin stats/award/game rows with a full persistent identity. */
+function eblHydrateIdentityV25(row={},full={}){
+ const merged={...(full||{}),...(row||{})};
+ merged.appearance={...((full&&full.appearance)||{}),...((row&&row.appearance)||{})};
+ return typeof eblIdentityCompatV22==='function'?eblIdentityCompatV22(merged):merged;
+}
+function eblFindPlayerIdentityV25(id,username=''){
+ const pid=Number(id||0),user=String(username||''),pool=[];
+ if(typeof PLAYER!=='undefined'&&PLAYER)pool.push(PLAYER);
+ if(typeof LEAGUE!=='undefined'&&LEAGUE){
+   if(Array.isArray(LEAGUE.players))pool.push(...LEAGUE.players);
+   if(Array.isArray(LEAGUE.roster))pool.push(...LEAGUE.roster);
+   if(Array.isArray(LEAGUE.teams))LEAGUE.teams.forEach(t=>{if(Array.isArray(t.players))pool.push(...t.players);if(Array.isArray(t.roster))pool.push(...t.roster)});
+ }
+ return pool.find(p=>(pid&&Number(p.id||p.player_id||0)===pid)||(user&&String(p.username||'')===user))||null;
+}
+function eblPlayerBylineV25(row={},opts={}){
+ const full=eblFindPlayerIdentityV25(row.id||row.player_id,row.username)||{};
+ const p=eblHydrateIdentityV25(row,full);
+ const sub=opts.subtitle||[p.primary_pos,p.jersey_number?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+ return `<span class="eblPlayerBylineV25">${eblPlayerArtV24(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${escapeHtml(p.name||p.player_name||'Player')}</strong>${sub?`<span>${escapeHtml(sub)}</span>`:''}</span></span>`;
 }
 </script>
 </body></html>
