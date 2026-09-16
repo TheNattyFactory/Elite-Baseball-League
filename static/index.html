@@ -1090,6 +1090,11 @@ svg[data-ebl-renderer="RC22"][data-ebl-surface="creator"]{filter:drop-shadow(0 3
 .eblPulse28Grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:11px}.eblPulse28Item{padding:10px;border-radius:12px;border:1px solid #27475e;background:#09253a}.eblPulse28Item small{display:block;font-size:8px;color:#7f99aa;text-transform:uppercase}.eblPulse28Item strong{display:block;font-size:12px;margin-top:4px}
 .eblPulse28Feed{margin-top:11px;border-top:1px solid rgba(61,94,117,.35)}.eblPulse28Event{display:flex;gap:9px;padding:9px 2px;border-bottom:1px solid rgba(61,94,117,.25)}.eblPulse28Dot{width:7px;height:7px;border-radius:50%;background:#d4b546;margin-top:4px;flex:0 0 auto}.eblPulse28Event b{display:block;font-size:10px}.eblPulse28Event small{display:block;color:#879fae;font-size:9px;margin-top:2px;line-height:1.35}
 @media(max-width:540px){.eblPulse28Grid{grid-template-columns:repeat(2,1fr)}}
+</style><style id="eblIllustratedPlayerRC29Css">
+svg.eblRC29{display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 8px 12px rgba(0,0,0,.18))}
+.eblCreatorThumbRC22 svg.eblRC29,.appearance-option svg.eblRC29{width:100%;height:118px;object-fit:contain}
+[data-ebl-player-art] svg.eblRC29,.player-avatar svg.eblRC29{max-height:360px}
+@media(max-width:560px){.eblCreatorThumbRC22 svg.eblRC29,.appearance-option svg.eblRC29{height:112px}.eblRC29Portrait{max-height:300px}}
 </style></head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -8430,4 +8435,139 @@ const EBL_RENDERER_HOTFIX_RC28={
  fixes:['creator appearance crash','blank player portraits caused by RC22→RC21 name mismatch'],
  screenshotError:'eblPlayerRendererRC21 is not a function'
 };
+</script><script id="eblIllustratedPlayerRC29">
+(function(){
+const SKINS=['#f2c59d','#e7b58d','#dca47b','#c98c68','#bd7c57','#8d573e','#754733','#633c2e'];
+const HAIR=['#17120f','#3a2419','#6a4228','#8b5a2b','#b9783d','#d2a05e','#d8c3a1','#7b2422','#3d2a20'];
+const EYES=['#493225','#5c3b24','#2f5b78','#3d704e','#62747c','#2f2725'];
+const TEAM=[['#173a5e','#d7b64a'],['#8e2331','#e9e4d6'],['#204d37','#d8c05d'],['#412b61','#d8c35d'],['#1d4d67','#e6e6e6'],['#7b3425','#e5b64c']];
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=(v,d=1)=>{v=Number(v);return Number.isFinite(v)?v:d};
+function norm(p={}){
+ const q=typeof eblV37Normalize==='function'?eblV37Normalize(p):{...p};
+ const get=(a,b,d)=>num(q[a]??q[b],d);
+ return {...q,
+  face_id:get('face_id','faceId',1),skin_color_id:get('skin_color_id','skinColorId',3),
+  hair_id:get('hair_id','hairId',1),facial_hair_id:get('facial_hair_id','facialHairId',1),
+  eye_color_id:get('eye_color_id','eyeColorId',1),hair_color_id:get('hair_color_id','hairColorId',1),
+  eye_black_id:get('eye_black_id','eyeBlackId',0),eyewear_id:get('eyewear_id','eyewearId',0),
+  chain_id:get('chain_id','chainId',0),sleeve_id:get('sleeve_id','sleeveId',0),
+  jersey_number:q.jersey_number??q.number??1
+ };
+}
+function colors(p){
+ let skin=SKINS[(p.skin_color_id-1)%SKINS.length]||SKINS[2];
+ let hair=HAIR[(p.hair_color_id-1)%HAIR.length]||HAIR[0];
+ let eye=EYES[(p.eye_color_id-1)%EYES.length]||EYES[0];
+ let t=TEAM[Math.abs(Number(p.franchise_id||p.team_id||1)-1)%TEAM.length];
+ return {skin,hair,eye,primary:p.primary_color||p.team_primary||t[0],accent:p.secondary_color||p.team_secondary||t[1]};
+}
+function facePath(id){
+ const a=(id-1)%10;
+ return [
+ 'M110 75 Q150 52 190 75 L187 137 Q180 174 150 184 Q120 174 113 137Z',
+ 'M108 78 Q150 57 192 78 L187 143 Q174 177 150 182 Q126 177 113 143Z',
+ 'M112 72 Q150 50 188 72 L191 130 Q184 170 150 186 Q116 170 109 130Z',
+ 'M105 82 Q150 56 195 82 L186 145 Q174 180 150 185 Q126 180 114 145Z',
+ 'M114 69 Q150 53 186 69 L193 128 Q182 169 150 188 Q118 169 107 128Z',
+ 'M109 74 Q150 48 191 74 L188 139 Q177 176 150 184 Q123 176 112 139Z',
+ 'M106 76 Q150 55 194 76 L190 135 Q181 166 150 181 Q119 166 110 135Z',
+ 'M113 78 Q150 58 187 78 L185 142 Q174 172 150 180 Q126 172 115 142Z',
+ 'M110 70 Q150 51 190 70 L194 132 Q183 174 150 187 Q117 174 106 132Z',
+ 'M107 80 Q150 52 193 80 L187 147 Q173 178 150 183 Q127 178 113 147Z'
+ ][a];
+}
+function hair(p,c){
+ const id=(p.hair_id-1)%14;
+ const paths=[
+ `M108 88Q115 50 151 48Q188 49 194 86Q170 70 111 91Z`,
+ `M111 83Q120 57 151 56Q182 58 190 82L179 70Q144 65 112 88Z`,
+ `M108 84Q116 51 140 53L151 39L160 55L178 43L190 82Q151 67 108 91Z`,
+ `M106 89Q109 49 146 47Q190 47 195 90L184 72Q168 83 151 66Q130 83 108 72Z`,
+ `M109 85Q119 55 151 52Q180 53 191 81Q161 64 110 91Z`,
+ `M111 75Q127 56 150 55Q174 56 189 76Q153 68 111 80Z`,
+ `M104 87Q108 48 148 44Q190 47 197 90L188 109L180 78Q147 64 112 80L110 110Z`,
+ `M108 86Q113 50 150 48Q188 49 193 86L185 97Q151 70 109 94Z`,
+ `M111 82Q121 56 151 54Q181 56 190 81L178 70Q151 63 113 87Z`,
+ `M109 86Q117 48 151 45Q185 48 193 86Q174 68 110 93Z`,
+ `M106 88Q110 45 146 44Q187 43 196 88L186 105Q174 75 150 68Q124 75 110 104Z`,
+ `M109 83Q119 53 151 51Q181 53 191 82Q161 71 109 91Z`,
+ `M113 77Q127 59 150 57Q174 58 187 78Q153 69 113 83Z`,
+ `M112 72Q128 59 150 58Q173 59 188 73L183 78Q151 70 116 80Z`
+ ][id];
+ return `<path d="${paths}" fill="${c.hair}" stroke="#07121c" stroke-width="5" stroke-linejoin="round"/>`;
+}
+function facial(p,c){
+ const id=(p.facial_hair_id-1)%14;if(id===0)return '';
+ if(id<=3)return `<path d="M126 145Q150 ${160+id*2} 174 145Q170 174 150 179Q130 174 126 145Z" fill="${c.hair}" opacity=".88"/>`;
+ if(id<=6)return `<path d="M132 145Q150 137 168 145Q159 153 150 150Q141 153 132 145Z" fill="${c.hair}"/><path d="M143 151L157 151L160 171Q150 178 140 171Z" fill="${c.hair}" opacity=".9"/>`;
+ if(id<=9)return `<path d="M128 145Q150 137 172 145Q160 155 150 151Q140 155 128 145Z" fill="${c.hair}"/>`;
+ return `<path d="M120 139Q126 173 150 181Q174 173 180 139L170 151Q150 166 130 151Z" fill="${c.hair}" opacity=".9"/>`;
+}
+function portrait(player={},opts={}){
+ const p=norm(player),c=colors(p),f=(p.face_id-1)%10;
+ const browY=104+(f%3), eyeY=119+(f%2), mouthY=151+(f%4);
+ const number=esc(p.jersey_number);
+ return `<svg class="eblRC29 eblRC29Portrait" data-ebl-renderer="RC29" viewBox="0 0 300 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(p.name||'EBL player')} illustrated baseball portrait">
+ <defs><linearGradient id="j29${f}" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${c.primary}"/><stop offset="1" stop-color="${c.primary}" stop-opacity=".72"/></linearGradient></defs>
+ <path d="M55 325L62 247Q67 213 104 199L125 190H175L196 199Q233 213 238 247L245 325Z" fill="url(#j29${f})" stroke="#07121c" stroke-width="7"/>
+ <path d="M121 187Q150 204 179 187L192 204Q150 229 108 204Z" fill="#f5f1e8" stroke="#07121c" stroke-width="5"/>
+ <path d="M126 187Q150 201 174 187L179 207Q150 221 121 207Z" fill="${c.accent}" stroke="#07121c" stroke-width="4"/>
+ <path d="${facePath(p.face_id)}" fill="${c.skin}" stroke="#07121c" stroke-width="6" stroke-linejoin="round"/>
+ <ellipse cx="111" cy="126" rx="7" ry="14" fill="${c.skin}" stroke="#07121c" stroke-width="4"/><ellipse cx="189" cy="126" rx="7" ry="14" fill="${c.skin}" stroke="#07121c" stroke-width="4"/>
+ ${hair(p,c)}
+ <path d="M119 ${browY}Q132 ${browY-7} 142 ${browY}" fill="none" stroke="${c.hair}" stroke-width="5" stroke-linecap="round"/><path d="M158 ${browY}Q169 ${browY-7} 181 ${browY}" fill="none" stroke="${c.hair}" stroke-width="5" stroke-linecap="round"/>
+ <ellipse cx="133" cy="${eyeY}" rx="${7+(f%2)}" ry="8" fill="#fff" stroke="#07121c" stroke-width="3"/><ellipse cx="167" cy="${eyeY}" rx="${7+((f+1)%2)}" ry="8" fill="#fff" stroke="#07121c" stroke-width="3"/>
+ <circle cx="134" cy="${eyeY}" r="4" fill="${c.eye}"/><circle cx="168" cy="${eyeY}" r="4" fill="${c.eye}"/><circle cx="135" cy="${eyeY-2}" r="1.4" fill="#fff"/><circle cx="169" cy="${eyeY-2}" r="1.4" fill="#fff"/>
+ <path d="M150 122L${147+(f%5)} 141L155 143" fill="none" stroke="#8d5d43" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+ <path d="M133 ${mouthY}Q150 ${mouthY+8-(f%3)*4} 168 ${mouthY}" fill="none" stroke="#522f29" stroke-width="4" stroke-linecap="round"/>
+ ${facial(p,c)}
+ ${p.eye_black_id?`<path d="M117 130L128 134M172 134L183 130" stroke="#17202a" stroke-width="${p.eye_black_id>1?5:3}" stroke-linecap="round"/>`:''}
+ ${p.eyewear_id?`<path d="M117 112H145L148 128Q133 137 119 126ZM155 112H183L181 126Q167 137 152 128Z" fill="none" stroke="#263d50" stroke-width="4"/><path d="M145 116H155" stroke="#263d50" stroke-width="4"/>`:''}
+ <path d="M105 68Q114 37 150 31Q188 33 198 67L191 79Q151 62 109 81Z" fill="${c.primary}" stroke="#07121c" stroke-width="6"/><path d="M108 78Q158 63 218 82Q211 96 184 94L144 87L108 91Z" fill="${c.primary}" stroke="#07121c" stroke-width="5"/>
+ <path d="M145 47L155 47L155 62L145 62Z" fill="${c.accent}" rx="2"/>
+ <text x="150" y="282" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="50" fill="#f5f1e8" stroke="#07121c" stroke-width="2">${number}</text>
+ ${p.chain_id?`<path d="M125 205Q150 225 175 205" fill="none" stroke="${p.chain_id==1?'#e1b94b':'#d7dde3'}" stroke-width="3"/>`:''}
+ </svg>`;
+}
+function action(player={},action='batting',opts={}){
+ const p=norm(player),c=colors(p),head=portrait(p,opts).match(/<path d="M110 75[\s\S]*?<\/svg>/);
+ // Full-body sports silhouette uses the same palette/identity; portrait remains the canonical face source.
+ const pose=String(action||'batting').toLowerCase();
+ const limbs=pose.includes('pitch')?
+ `<path d="M137 212L96 176L73 132M166 211L211 180L235 202M137 278L96 333M170 278L205 337" fill="none" stroke="${c.primary}" stroke-width="24" stroke-linecap="round"/>`
+ :pose.includes('field')?
+ `<path d="M134 214L86 238L53 220M169 215L218 237M136 279L98 334M171 279L211 331" fill="none" stroke="${c.primary}" stroke-width="24" stroke-linecap="round"/>`
+ :pose.includes('run')?
+ `<path d="M135 214L92 190M169 216L212 191M137 279L94 318M171 279L215 307" fill="none" stroke="${c.primary}" stroke-width="24" stroke-linecap="round"/>`
+ :`<path d="M136 214L95 190M169 213L207 177M138 279L108 337M170 279L203 335" fill="none" stroke="${c.primary}" stroke-width="24" stroke-linecap="round"/><path d="M199 183L244 92" stroke="#b78a58" stroke-width="9" stroke-linecap="round"/>`;
+ return `<svg class="eblRC29 eblRC29Action" data-ebl-renderer="RC29" viewBox="0 0 300 370" xmlns="http://www.w3.org/2000/svg">
+ ${limbs}<path d="M115 190Q150 174 185 190L181 282Q150 297 119 282Z" fill="${c.primary}" stroke="#07121c" stroke-width="7"/>
+ <circle cx="150" cy="124" r="55" fill="${c.skin}" stroke="#07121c" stroke-width="7"/>${hair(p,c)}
+ <ellipse cx="132" cy="122" rx="7" ry="8" fill="#fff" stroke="#07121c" stroke-width="3"/><ellipse cx="168" cy="122" rx="7" ry="8" fill="#fff" stroke="#07121c" stroke-width="3"/><circle cx="133" cy="122" r="4" fill="${c.eye}"/><circle cx="169" cy="122" r="4" fill="${c.eye}"/>
+ <path d="M134 151Q150 158 167 151" fill="none" stroke="#522f29" stroke-width="4" stroke-linecap="round"/>${facial(p,c)}
+ <path d="M101 88Q116 51 151 48Q187 50 200 87Q151 70 101 92Z" fill="${c.primary}" stroke="#07121c" stroke-width="6"/><path d="M108 88Q166 76 226 94" fill="none" stroke="${c.primary}" stroke-width="13" stroke-linecap="round"/>
+ <text x="150" y="251" text-anchor="middle" font-family="Arial" font-weight="900" font-size="38" fill="#f5f1e8">${esc(p.jersey_number)}</text></svg>`;
+}
+function surface(player={},surface='player-profile',actionName='',opts={}){
+ const a=String(actionName||'').toLowerCase();
+ return ['batting','pitching','fielding','running'].includes(a)?action(player,a,opts):portrait(player,{...opts,surface});
+}
+window.eblIllustratedPlayerRC29=portrait;
+window.eblIllustratedActionRC29=action;
+window.eblIllustratedSurfaceRC29=surface;
+/* Hard route every known final gateway to the clean RC29 renderer. */
+window.eblFinalPlayerArtV63=(p,o={})=>portrait(p,o);
+window.eblFinalPortraitV63=(p,o={})=>portrait(p,o);
+window.eblActionPlayerSvg=(p,a='batting',o={})=>action(p,a,o);
+window.eblFinalSurfaceV63=(p,surfaceName='player-profile',a='',o={})=>surface(p,surfaceName,a,o);
+window.eblPlayerRendererRC22=(p,o={})=>portrait(p,o);
+window.eblRC22Render=(p,surfaceName='player-profile',a='',o={})=>surface(p,surfaceName,a,o);
+window.eblPlayerRendererRC21=(p,o={})=>portrait(p,o);
+window.eblCreatorThumbRC2=function(p,kind,id){
+ const q={...p}; if(kind==='face')q.face_id=id;if(kind==='hair')q.hair_id=id;if(kind==='facial_hair')q.facial_hair_id=id;
+ return portrait(q,{surface:'creator',focus:kind});
+};
+window.EBL_ILLUSTRATED_PLAYER_RC29={version:'RC29',architecture:'clean standalone renderer',faces:20,hairStyles:28,facialHair:14,skins:8,routes:['creator','home','player-profile','public-profile','roster','gamecast','awards','legacy','identity-lab']};
+})();
 </script></body></html>
