@@ -1037,6 +1037,59 @@ svg[data-ebl-renderer="RC22"][data-ebl-surface="creator"]{filter:drop-shadow(0 3
  .eblCreatorThumbRC22{height:120px!important;min-height:120px!important}
  svg[data-ebl-renderer="RC22"][data-ebl-surface="home"]{min-width:104px!important;min-height:142px!important}
 }
+</style><style id="eblLaunchPolishRC23Css">
+/* RC23 — launch-facing mobile/player polish */
+#playerView .card,#homeView .card{overflow:hidden}
+.eblLaunchIdentityStrip{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;margin:12px 0;padding:12px 14px;border:1px solid rgba(85,132,170,.32);border-radius:16px;background:linear-gradient(135deg,rgba(14,43,67,.94),rgba(7,26,43,.94))}
+.eblLaunchIdentityStrip .kicker{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#d7b64c;font-weight:900}
+.eblLaunchIdentityStrip .line{margin-top:4px;font-size:14px;color:#d8e4ed}
+.eblLaunchIdentityStrip .badge{white-space:nowrap;border:1px solid rgba(215,182,76,.58);border-radius:999px;padding:7px 10px;font-size:11px;font-weight:900;color:#f1d36b}
+.eblLaunchMeter{height:6px;margin-top:9px;border-radius:99px;background:#061725;overflow:hidden}.eblLaunchMeter>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#d6b64d,#e12f3b)}
+.eblCreatorThumbRC22 svg{width:100%!important;height:100%!important;max-width:none!important}
+#playerView svg[data-ebl-renderer="RC22"],#homeView svg[data-ebl-renderer="RC22"]{overflow:visible}
+@media(max-width:720px){
+ .eblLaunchIdentityStrip{grid-template-columns:1fr;gap:8px}
+ .eblLaunchIdentityStrip .badge{justify-self:start}
+ #playerView .tabs,#playerView .tab-row{display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+ #playerView .tabs::-webkit-scrollbar,#playerView .tab-row::-webkit-scrollbar{display:none}
+ #playerView .tabs .btn,#playerView .tab-row .btn{flex:0 0 auto}
+}
+</style><style id="eblPlayerHQRC24Css">
+.eblHQ24{margin:14px 0 18px;border:1px solid rgba(71,116,151,.34);border-radius:18px;padding:15px;background:linear-gradient(145deg,rgba(8,29,47,.98),rgba(11,39,61,.96));box-shadow:0 12px 28px rgba(0,0,0,.18)}
+.eblHQ24Top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.eblHQ24Title{font-weight:950;font-size:18px;letter-spacing:.02em}.eblHQ24Sub{color:#9fb2c1;font-size:12px;margin-top:3px}
+.eblHQ24State{border:1px solid rgba(215,182,76,.52);color:#f0cf61;border-radius:999px;padding:6px 9px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+.eblHQ24Grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:13px}
+.eblHQ24Stat{min-width:0;border:1px solid rgba(70,112,146,.28);border-radius:13px;padding:10px;background:rgba(5,22,36,.55)}
+.eblHQ24Stat b{display:block;font-size:18px;color:#f5f8fa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eblHQ24Stat span{display:block;margin-top:2px;color:#8fa6b8;font-size:9px;text-transform:uppercase;letter-spacing:.09em;font-weight:800}
+.eblHQ24Actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.eblHQ24Actions button{border:1px solid #315a79;background:#102f49;color:#edf5fa;border-radius:10px;padding:8px 11px;font-weight:850;font-size:11px}
+.eblHQ24Actions button.primary{border-color:#c7a83c;color:#f4d66b}
+@media(max-width:560px){.eblHQ24Grid{grid-template-columns:repeat(2,1fr)}.eblHQ24Top{align-items:center}.eblHQ24{padding:13px}}
+</style><style id="eblCareerLoopRC25Css">
+.eblLoop25{margin:0 0 18px;border:1px solid rgba(69,111,144,.3);border-radius:18px;padding:14px;background:rgba(5,22,36,.72)}
+.eblLoop25Head{display:flex;justify-content:space-between;gap:10px;align-items:center}.eblLoop25Head b{font-size:13px}.eblLoop25Head span{font-size:10px;color:#91a8ba;text-transform:uppercase;letter-spacing:.08em}
+.eblLoop25Track{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:11px}.eblLoop25Step{position:relative;padding:10px 8px;border-radius:12px;border:1px solid #284b66;background:#0a263c;min-height:58px}.eblLoop25Step strong{display:block;font-size:11px}.eblLoop25Step small{display:block;color:#8fa7b9;font-size:9px;margin-top:4px;line-height:1.25}.eblLoop25Step.active{border-color:#d0ae3f;box-shadow:inset 0 0 0 1px rgba(208,174,63,.15)}.eblLoop25Step.active strong{color:#f1d266}
+.eblLoop25Bar{height:5px;border-radius:99px;background:#112f46;margin-top:11px;overflow:hidden}.eblLoop25Bar i{display:block;height:100%;background:linear-gradient(90deg,#b99428,#efd363);border-radius:inherit}
+.eblLoop25Note{font-size:10px;color:#9eb1c0;margin-top:8px}
+@media(max-width:560px){.eblLoop25Track{grid-template-columns:repeat(2,1fr)}}
+</style><style id="eblPlayerNextActionRC26Css">
+.eblNext26{margin:0 0 18px;padding:15px;border-radius:18px;border:1px solid rgba(209,177,64,.42);background:linear-gradient(135deg,rgba(18,48,70,.92),rgba(6,24,39,.95));box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.eblNext26Top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.eblNext26K{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#d6b84c;font-weight:800}.eblNext26 h3{margin:4px 0 3px;font-size:18px}.eblNext26 p{margin:0;color:#a9bbc8;font-size:11px;line-height:1.45}.eblNext26Badge{white-space:nowrap;border:1px solid #34556c;border-radius:999px;padding:6px 9px;font-size:9px;color:#bfd0dc}
+.eblNext26Actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.eblNext26Btn{border:1px solid #45647a;background:#0e3049;color:#fff;border-radius:11px;padding:9px 12px;font-weight:800;font-size:10px;cursor:pointer}.eblNext26Btn.primary{border-color:#d0ad38;color:#f3d86b}
+.eblNext26Meta{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.eblNext26Meta div{padding:8px;border-radius:10px;background:rgba(5,18,30,.52);border:1px solid #203e54}.eblNext26Meta small{display:block;color:#7893a6;font-size:8px;text-transform:uppercase}.eblNext26Meta b{display:block;font-size:10px;margin-top:3px;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:520px){.eblNext26Meta{grid-template-columns:1fr}.eblNext26Top{align-items:center}}
+</style><style id="eblContractCenterRC27Css">
+.eblContract27{margin:0 0 18px;padding:15px;border:1px solid rgba(66,105,135,.34);border-radius:18px;background:linear-gradient(145deg,#0a263b,#071d2e)}
+.eblContract27Head{display:flex;justify-content:space-between;gap:12px;align-items:center}.eblContract27Head h3{margin:0;font-size:16px}.eblContract27Head span{font-size:9px;color:#e6c653;border:1px solid rgba(230,198,83,.45);padding:6px 8px;border-radius:999px}
+.eblContract27Grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.eblContract27Cell{border:1px solid #27485f;border-radius:12px;padding:10px;background:rgba(4,19,31,.5)}.eblContract27Cell small{display:block;font-size:8px;color:#7f9aab;text-transform:uppercase;letter-spacing:.08em}.eblContract27Cell b{display:block;margin-top:4px;font-size:11px}
+.eblContract27Offers{margin-top:11px}.eblContract27Offer{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid rgba(57,89,111,.35);padding:9px 2px}.eblContract27Offer:first-child{border-top:0}.eblContract27Offer strong{font-size:11px}.eblContract27Offer small{display:block;color:#8da4b4;font-size:9px;margin-top:2px}.eblContract27Empty{font-size:10px;color:#8ea5b5;padding-top:10px}
+@media(max-width:520px){.eblContract27Grid{grid-template-columns:1fr 1fr}.eblContract27Grid .wide{grid-column:1/-1}}
+</style><style id="eblCareerPulseRC28Css">
+.eblPulse28{margin:0 0 18px;padding:15px;border:1px solid rgba(57,100,132,.35);border-radius:18px;background:rgba(5,22,36,.74)}
+.eblPulse28Head{display:flex;justify-content:space-between;gap:10px;align-items:center}.eblPulse28Head b{font-size:14px}.eblPulse28Head span{font-size:9px;color:#8da7b8;text-transform:uppercase;letter-spacing:.09em}
+.eblPulse28Grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:11px}.eblPulse28Item{padding:10px;border-radius:12px;border:1px solid #27475e;background:#09253a}.eblPulse28Item small{display:block;font-size:8px;color:#7f99aa;text-transform:uppercase}.eblPulse28Item strong{display:block;font-size:12px;margin-top:4px}
+.eblPulse28Feed{margin-top:11px;border-top:1px solid rgba(61,94,117,.35)}.eblPulse28Event{display:flex;gap:9px;padding:9px 2px;border-bottom:1px solid rgba(61,94,117,.25)}.eblPulse28Dot{width:7px;height:7px;border-radius:50%;background:#d4b546;margin-top:4px;flex:0 0 auto}.eblPulse28Event b{display:block;font-size:10px}.eblPulse28Event small{display:block;color:#879fae;font-size:9px;margin-top:2px;line-height:1.35}
+@media(max-width:540px){.eblPulse28Grid{grid-template-columns:repeat(2,1fr)}}
 </style></head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -8113,4 +8166,256 @@ const EBL_RC22_MEANINGFUL_PUSH={
  deliberate:['hair chooser hides face to emphasize hair','facial-hair chooser hides face to emphasize beard shape'],
  next:['verify RC22 screenshots','then stop renderer churn and return to launch systems']
 };
+</script><script id="eblLaunchPolishRC23">
+/* RC23 — useful launch polish layered on stable RC22 */
+function eblRC23StatusText(p={}){
+ const st=String(p.status||p.player_status||'').replaceAll('_',' ').trim();
+ const team=p.team_name||p.franchise_name||'';
+ return team?team:(st||'Free Agent');
+}
+function eblRC23IdentityStrip(p={}){
+ const name=p.name||p.player_name||'EBL Player';
+ const pos=p.primary_pos||p.position||p.position_group||'—';
+ const num=Number(p.jersey_number??p.number??0);
+ const xp=Number(p.xp_pool??p.xp??0)||0;
+ const status=eblRC23StatusText(p);
+ const pct=Math.max(4,Math.min(100,Math.round((xp%10)*10)));
+ return `<div class="eblLaunchIdentityStrip" data-ebl-launch-identity>
+   <div><div class="kicker">EBL Player Identity</div><div class="line">${typeof eblEscRC20==='function'?eblEscRC20(name):name}${num?` #${num}`:''} · ${typeof eblEscRC20==='function'?eblEscRC20(pos):pos} · ${typeof eblEscRC20==='function'?eblEscRC20(status):status}</div><div class="eblLaunchMeter" title="Current XP"><i style="width:${pct}%"></i></div></div>
+   <div class="badge">${xp.toFixed(3)} XP</div>
+ </div>`;
+}
+function eblRC23InjectIdentity(){
+ const root=document.getElementById('playerView'); if(!root||!window.PLAYER)return;
+ if(root.querySelector('[data-ebl-launch-identity]'))return;
+ const target=root.querySelector('.player-hero,.playerHero,.player-head,.playerHead')||root.querySelector('.card');
+ if(target)target.insertAdjacentHTML('afterend',eblRC23IdentityStrip(PLAYER));
+}
+function eblRC23Refresh(){
+ try{eblRC23InjectIdentity()}catch(e){}
+ document.querySelectorAll('svg[data-ebl-renderer="RC22"]').forEach(svg=>{
+   svg.setAttribute('role','img');
+   if(!svg.getAttribute('aria-label'))svg.setAttribute('aria-label','EBL player illustration');
+ });
+}
+const EBL_LAUNCH_POLISH_RC23={
+ version:'RC23',
+ scope:['mobile player HQ','identity/status readability','creator thumbnail sizing','SVG accessibility'],
+ renderer:'RC22-stable'
+};
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(eblRC23Refresh,120)});
+const eblRC23Observer=new MutationObserver(()=>{clearTimeout(window.__eblRC23t);window.__eblRC23t=setTimeout(eblRC23Refresh,50)});
+document.addEventListener('DOMContentLoaded',()=>eblRC23Observer.observe(document.body,{childList:true,subtree:true}));
+</script><script id="eblPlayerHQRC24">
+function ebl24Esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function ebl24Num(v,d=0){const n=Number(v);return Number.isFinite(n)?n.toFixed(d):'0'}
+function ebl24Ovr(p={}){
+ if(Number.isFinite(Number(p.ovr)))return Math.round(Number(p.ovr));
+ const a=p.attributes||{}; const vals=Object.values(a).map(Number).filter(Number.isFinite);
+ return vals.length?Math.round(vals.reduce((x,y)=>x+y,0)/vals.length):0;
+}
+function ebl24PlayerHQ(p={}){
+ const pos=p.primary_pos||p.position||p.position_group||'—';
+ const age=p.age||18, ovr=ebl24Ovr(p), xp=Number(p.xp_pool??p.xp??0)||0;
+ const team=p.team_name||p.franchise_name||'Free Agent';
+ const status=String(p.status||p.player_status||'FREE_AGENT').replaceAll('_',' ');
+ const season=p.season_stats||p.stats||{};
+ const isPitch=/PITCH|SP|RP|CP/.test(String(pos).toUpperCase());
+ const cards=isPitch
+  ? [[season.w??0,'W'],[season.so??season.k??0,'SO'],[season.era??'0.00','ERA'],[season.sv??0,'SV']]
+  : [[season.h??season.hits??0,'H'],[season.hr??0,'HR'],[season.rbi??0,'RBI'],[season.sb??0,'SB']];
+ return `<section class="eblHQ24" data-ebl-hq24>
+  <div class="eblHQ24Top"><div><div class="eblHQ24Title">Career Command Center</div><div class="eblHQ24Sub">${ebl24Esc(team)} · ${ebl24Esc(pos)} · Age ${ebl24Esc(age)}</div></div><div class="eblHQ24State">${ebl24Esc(status)}</div></div>
+  <div class="eblHQ24Grid">
+   <div class="eblHQ24Stat"><b>${ovr}</b><span>Overall</span></div>
+   <div class="eblHQ24Stat"><b>${ebl24Num(xp,3)}</b><span>Available XP</span></div>
+   ${cards.slice(0,2).map(x=>`<div class="eblHQ24Stat"><b>${ebl24Esc(x[0])}</b><span>Season ${x[1]}</span></div>`).join('')}
+  </div>
+  <div class="eblHQ24Actions">
+   <button class="primary" onclick="ebl24OpenPlayerTab('ATTRIBUTES & XP')">Train Player</button>
+   <button onclick="ebl24OpenPlayerTab('SEASON STATS')">Season Stats</button>
+   <button onclick="ebl24OpenPlayerTab('CONTRACTS')">Contracts</button>
+   <button onclick="ebl24OpenPlayerTab('CAREER')">Career</button>
+  </div>
+ </section>`;
+}
+function ebl24OpenPlayerTab(label){
+ const root=document.getElementById('playerView')||document;
+ const candidates=[...root.querySelectorAll('button,.btn')];
+ const b=candidates.find(x=>String(x.textContent||'').trim().toUpperCase()===label);
+ if(b)b.click();
+}
+function ebl24Mount(){
+ const root=document.getElementById('playerView'); if(!root||!window.PLAYER)return;
+ if(root.querySelector('[data-ebl-hq24]'))return;
+ const strip=root.querySelector('[data-ebl-launch-identity]');
+ const anchor=strip||root.querySelector('.player-hero,.playerHero,.player-head,.playerHead')||root.querySelector('.card');
+ if(anchor)anchor.insertAdjacentHTML('afterend',ebl24PlayerHQ(PLAYER));
+}
+const EBL_PLAYER_HQ_RC24={version:'RC24',features:['career command center','season snapshot','XP/OVR snapshot','one-tap HQ navigation'],mobile:true};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(ebl24Mount,180));
+const ebl24Observer=new MutationObserver(()=>{clearTimeout(window.__ebl24t);window.__ebl24t=setTimeout(ebl24Mount,80)});
+document.addEventListener('DOMContentLoaded',()=>ebl24Observer.observe(document.body,{subtree:true,childList:true}));
+</script><script id="eblCareerLoopRC25">
+function ebl25Phase(){
+ const raw=String(window.LEAGUE?.phase||window.LEAGUE?.state?.phase||'REGULAR').toUpperCase();
+ if(raw.includes('OFF'))return {i:3,n:'Offseason'};
+ if(raw.includes('PLAY'))return {i:2,n:'Playoffs'};
+ if(raw.includes('FREE'))return {i:3,n:'Free Agency'};
+ return {i:1,n:'Regular Season'};
+}
+function ebl25Contract(p={}){
+ const c=p.contract||p.current_contract||{};
+ const yrs=c.years_remaining??c.years??p.contract_years_remaining;
+ const sal=c.salary??p.salary;
+ if(yrs!=null||sal!=null)return `${yrs??'—'} yr${Number(yrs)==1?'':'s'} · ${sal!=null?Number(sal).toFixed(2)+' XP/game':'salary pending'}`;
+ return (p.franchise_id||p.team_id)?'Under team control':'Eligible for offers';
+}
+function ebl25CareerLoop(p={}){
+ const ph=ebl25Phase(), xp=Number(p.xp_pool??p.xp??0)||0;
+ const hasTeam=!!(p.franchise_id||p.team_id||p.team_name);
+ const steps=[
+  ['Build','Spend XP to shape your player'],
+  ['Compete','Play the 81-game season'],
+  ['Chase','Playoffs, awards and records'],
+  ['Decide','Contracts, free agency, next season']
+ ];
+ const progress=[10,38,72,92][ph.i]||38;
+ return `<section class="eblLoop25" data-ebl-loop25>
+  <div class="eblLoop25Head"><b>Career Loop</b><span>${ph.n}</span></div>
+  <div class="eblLoop25Track">${steps.map((x,i)=>`<div class="eblLoop25Step ${i===ph.i?'active':''}"><strong>${i+1}. ${x[0]}</strong><small>${x[1]}</small></div>`).join('')}</div>
+  <div class="eblLoop25Bar"><i style="width:${progress}%"></i></div>
+  <div class="eblLoop25Note">${hasTeam?'Contract: '+ebl25Contract(p):'Free agent: your next contract determines where the career continues.'} · ${xp.toFixed(3)} XP available.</div>
+ </section>`;
+}
+function ebl25Mount(){
+ const root=document.getElementById('playerView'); if(!root||!window.PLAYER)return;
+ if(root.querySelector('[data-ebl-loop25]'))return;
+ const hq=root.querySelector('[data-ebl-hq24]');
+ if(hq)hq.insertAdjacentHTML('afterend',ebl25CareerLoop(PLAYER));
+}
+const EBL_CAREER_LOOP_RC25={version:'RC25',seasonGames:81,stages:['build','regular season','playoffs','offseason'],connects:['XP','team status','contracts','career progression']};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(ebl25Mount,220));
+const ebl25Obs=new MutationObserver(()=>{clearTimeout(window.__ebl25t);window.__ebl25t=setTimeout(ebl25Mount,90)});
+document.addEventListener('DOMContentLoaded',()=>ebl25Obs.observe(document.body,{childList:true,subtree:true}));
+</script><script id="eblPlayerNextActionRC26">
+function ebl26Go(tab){
+ const map={train:'attributes',stats:'season',contracts:'contracts',career:'career'};
+ const target=map[tab]||tab;
+ if(typeof window.ebl24OpenHQ==='function'){window.ebl24OpenHQ(target);return}
+ const buttons=[...document.querySelectorAll('#playerView button')];
+ const hit=buttons.find(b=>String(b.textContent||'').toLowerCase().includes(target));
+ if(hit)hit.click();
+}
+function ebl26Context(p={}){
+ const xp=Number(p.xp_pool??p.xp??0)||0, team=!!(p.franchise_id||p.team_id||p.team_name);
+ const phase=typeof ebl25Phase==='function'?ebl25Phase():{n:'Regular Season'};
+ const offers=Number(p.contract_offers_count??p.offers_count??(Array.isArray(p.contract_offers)?p.contract_offers.length:0))||0;
+ if(xp>0)return {title:'Spend your earned XP',body:`You have ${xp.toFixed(3)} XP ready. Improve the build before your next stretch of games.`,action:'train',label:'Train Player',badge:'XP READY'};
+ if(!team && offers>0)return {title:'Review your contract offers',body:`${offers} offer${offers===1?' is':'s are'} waiting. Your decision determines the next team chapter.`,action:'contracts',label:'View Offers',badge:'DECISION'};
+ if(!team)return {title:'Build your value as a free agent',body:'Your player is available to EBL clubs. Track offers and keep your career record ready for coaches.',action:'contracts',label:'Contract Center',badge:'FREE AGENT'};
+ if(String(phase.n).toLowerCase().includes('off'))return {title:'Prepare for the next season',body:'Review your contract, career history and offseason decisions before Opening Day.',action:'contracts',label:'Offseason Center',badge:'OFFSEASON'};
+ if(String(phase.n).toLowerCase().includes('play'))return {title:'The postseason is here',body:'Follow the playoff run and see what this season adds to your player legacy.',action:'stats',label:'Season Stats',badge:'PLAYOFFS'};
+ return {title:'Keep building the season',body:'Track your current production, XP and team status as the 81-game schedule moves forward.',action:'stats',label:'Season Stats',badge:'IN SEASON'};
+}
+function ebl26Card(p={}){
+ const c=ebl26Context(p), xp=Number(p.xp_pool??p.xp??0)||0;
+ const team=p.team_name||p.franchise_name||(p.franchise_id||p.team_id?'Rostered':'Free Agent');
+ const ovr=p.ovr??p.overall??'—';
+ return `<section class="eblNext26" data-ebl-next26>
+  <div class="eblNext26Top"><div><div class="eblNext26K">Your next move</div><h3>${c.title}</h3><p>${c.body}</p></div><span class="eblNext26Badge">${c.badge}</span></div>
+  <div class="eblNext26Actions"><button class="eblNext26Btn primary" onclick="ebl26Go('${c.action}')">${c.label}</button><button class="eblNext26Btn" onclick="ebl26Go('career')">Career Record</button></div>
+  <div class="eblNext26Meta"><div><small>OVR</small><b>${ovr}</b></div><div><small>XP</small><b>${xp.toFixed(3)}</b></div><div><small>Club</small><b>${team}</b></div></div>
+ </section>`;
+}
+function ebl26Mount(){
+ const root=document.getElementById('playerView'); if(!root||!window.PLAYER)return;
+ if(root.querySelector('[data-ebl-next26]'))return;
+ const loop=root.querySelector('[data-ebl-loop25]'), hq=root.querySelector('[data-ebl-hq24]');
+ const anchor=loop||hq;
+ if(anchor)anchor.insertAdjacentHTML('afterend',ebl26Card(PLAYER));
+}
+const EBL_PLAYER_NEXT_ACTION_RC26={version:'RC26',purpose:'turn Player HQ into an actionable career dashboard',states:['xp-ready','free-agent-offers','free-agent','regular-season','playoffs','offseason']};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(ebl26Mount,300));
+const ebl26Observer=new MutationObserver(()=>{clearTimeout(window.__ebl26t);window.__ebl26t=setTimeout(ebl26Mount,100)});
+document.addEventListener('DOMContentLoaded',()=>ebl26Observer.observe(document.body,{subtree:true,childList:true}));
+</script><script id="eblContractCenterRC27">
+function ebl27Money(v){
+ if(v===null||v===undefined||v==='')return '—';
+ const n=Number(v); return Number.isFinite(n)?`${n.toFixed(2)} XP/game`:String(v);
+}
+function ebl27Offers(p={}){
+ const a=p.contract_offers||p.offers||[];
+ return Array.isArray(a)?a:[];
+}
+function ebl27Center(p={}){
+ const c=p.contract||p.current_contract||{};
+ const team=c.team_name||p.team_name||p.franchise_name||(p.franchise_id||p.team_id?'Current Club':'Free Agent');
+ const salary=c.salary??p.salary;
+ const years=c.years_remaining??c.years??p.contract_years_remaining;
+ const offers=ebl27Offers(p);
+ const state=(p.franchise_id||p.team_id||p.team_name)?'ROSTERED':'FREE AGENT';
+ return `<section class="eblContract27" data-ebl-contract27>
+  <div class="eblContract27Head"><h3>Contract Center</h3><span>${state}</span></div>
+  <div class="eblContract27Grid">
+   <div class="eblContract27Cell wide"><small>Current Club</small><b>${team}</b></div>
+   <div class="eblContract27Cell"><small>Salary</small><b>${ebl27Money(salary)}</b></div>
+   <div class="eblContract27Cell"><small>Term</small><b>${years==null?'—':years+' season'+(Number(years)===1?'':'s')}</b></div>
+  </div>
+  <div class="eblContract27Offers">${offers.length?offers.slice(0,4).map(o=>`<div class="eblContract27Offer"><div><strong>${o.team_name||o.franchise_name||'EBL Club'}</strong><small>${ebl27Money(o.salary)} · ${o.years??1} season${Number(o.years??1)===1?'':'s'}</small></div><span>Offer</span></div>`).join(''):`<div class="eblContract27Empty">${state==='FREE AGENT'?'No active offers are currently loaded. Coaches can change that.':'You are under contract. New decisions will appear here when your contract situation changes.'}</div>`}</div>
+ </section>`;
+}
+function ebl27Mount(){
+ const root=document.getElementById('playerView'); if(!root||!window.PLAYER)return;
+ if(root.querySelector('[data-ebl-contract27]'))return;
+ const next=root.querySelector('[data-ebl-next26]'), loop=root.querySelector('[data-ebl-loop25]');
+ const anchor=next||loop;
+ if(anchor)anchor.insertAdjacentHTML('afterend',ebl27Center(PLAYER));
+}
+const EBL_CONTRACT_CENTER_RC27={version:'RC27',readsExistingPayload:true,features:['club','salary','term','offer preview','free-agent state']};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(ebl27Mount,340));
+const ebl27Obs=new MutationObserver(()=>{clearTimeout(window.__ebl27t);window.__ebl27t=setTimeout(ebl27Mount,110)});
+document.addEventListener('DOMContentLoaded',()=>ebl27Obs.observe(document.body,{subtree:true,childList:true}));
+</script><script id="eblCareerPulseRC28">
+function ebl28Events(p={}){
+ const out=[];
+ const team=p.team_name||p.franchise_name;
+ const season=p.season||window.LEAGUE?.season||1;
+ if(team)out.push(['Roster status',`${team} · Season ${season}`]);
+ const c=p.contract||p.current_contract||{};
+ if(c.salary!=null||p.salary!=null)out.push(['Contract active',`${Number(c.salary??p.salary).toFixed(2)} XP/game${(c.years_remaining??c.years??p.contract_years_remaining)!=null?' · '+(c.years_remaining??c.years??p.contract_years_remaining)+' season(s) remaining':''}`]);
+ const awards=p.awards||p.career?.awards||[];
+ if(Array.isArray(awards)&&awards.length){const a=awards[awards.length-1];out.push(['Latest honor',typeof a==='string'?a:(a.name||a.award||'EBL award')])}
+ const rec=p.records||p.career?.records||[];
+ if(Array.isArray(rec)&&rec.length){const r=rec[rec.length-1];out.push(['Record book',typeof r==='string'?r:(r.name||r.record||'Career record')])}
+ if(!out.length)out.push(['Career started','Your EBL story is ready for its first chapter.']);
+ return out.slice(0,4);
+}
+function ebl28Pulse(p={}){
+ const career=p.career||p.career_totals||{};
+ const seasons=p.seasons_played??career.seasons??(p.season?1:0);
+ const awards=p.awards||career.awards||[];
+ const titles=p.championships||career.championships||[];
+ const games=career.g??career.games??p.career_games??0;
+ return `<section class="eblPulse28" data-ebl-pulse28>
+  <div class="eblPulse28Head"><b>Career Pulse</b><span>Legacy in progress</span></div>
+  <div class="eblPulse28Grid">
+   <div class="eblPulse28Item"><small>Seasons</small><strong>${seasons||0}</strong></div>
+   <div class="eblPulse28Item"><small>Career Games</small><strong>${games||0}</strong></div>
+   <div class="eblPulse28Item"><small>Awards</small><strong>${Array.isArray(awards)?awards.length:Number(awards)||0}</strong></div>
+   <div class="eblPulse28Item"><small>Titles</small><strong>${Array.isArray(titles)?titles.length:Number(titles)||0}</strong></div>
+  </div>
+  <div class="eblPulse28Feed">${ebl28Events(p).map(e=>`<div class="eblPulse28Event"><i class="eblPulse28Dot"></i><div><b>${e[0]}</b><small>${e[1]}</small></div></div>`).join('')}</div>
+ </section>`;
+}
+function ebl28Mount(){
+ const root=document.getElementById('playerView'); if(!root||!window.PLAYER)return;
+ if(root.querySelector('[data-ebl-pulse28]'))return;
+ const c=root.querySelector('[data-ebl-contract27]')||root.querySelector('[data-ebl-next26]');
+ if(c)c.insertAdjacentHTML('afterend',ebl28Pulse(PLAYER));
+}
+const EBL_CAREER_PULSE_RC28={version:'RC28',features:['career snapshot','legacy counters','career event feed'],usesExistingData:true};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(ebl28Mount,380));
+const ebl28Obs=new MutationObserver(()=>{clearTimeout(window.__ebl28t);window.__ebl28t=setTimeout(ebl28Mount,120)});
+document.addEventListener('DOMContentLoaded',()=>ebl28Obs.observe(document.body,{childList:true,subtree:true}));
 </script></body></html>
