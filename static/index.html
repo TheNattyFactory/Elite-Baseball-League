@@ -1095,6 +1095,31 @@ svg.eblRC29{display:block;width:100%;height:auto;overflow:visible;filter:drop-sh
 .eblCreatorThumbRC22 svg.eblRC29,.appearance-option svg.eblRC29{width:100%;height:118px;object-fit:contain}
 [data-ebl-player-art] svg.eblRC29,.player-avatar svg.eblRC29{max-height:360px}
 @media(max-width:560px){.eblCreatorThumbRC22 svg.eblRC29,.appearance-option svg.eblRC29{height:112px}.eblRC29Portrait{max-height:300px}}
+</style><style id="eblAvatarRefineRC30Css">
+/* RC30 screenshot refinement */
+.eblCreatorThumbRC22 svg.eblRC29,.appearance-option svg.eblRC29{
+  height:132px!important;
+  transform:scale(1.14);
+  transform-origin:50% 28%;
+}
+.eblCreatorThumbRC22,.appearance-option{overflow:hidden}
+.player-avatar svg.eblRC29,.ebl-player-avatar svg.eblRC29{filter:drop-shadow(0 7px 10px rgba(0,0,0,.2))}
+@media(max-width:560px){
+ .eblCreatorThumbRC22 svg.eblRC29,.appearance-option svg.eblRC29{height:124px!important;transform:scale(1.18);transform-origin:50% 26%}
+}
+</style><style id="eblCoachCenterRC31Css">
+.eblCoach31{margin:16px 0;border:1px solid #294d68;border-radius:18px;padding:15px;background:linear-gradient(145deg,#0b2940,#071d2e)}
+.eblCoach31 h3{margin:0;font-size:18px}.eblCoach31 p{color:#9eb1c0;font-size:11px;line-height:1.45}
+.eblCoach31Grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:12px}.eblCoach31Card{border:1px solid #294a62;border-radius:13px;padding:11px;background:rgba(5,19,31,.55)}.eblCoach31Card b{display:block;font-size:12px}.eblCoach31Card small{display:block;color:#839dad;font-size:9px;margin-top:4px;line-height:1.35}
+.eblCoach31Btn{border:1px solid #47677d;background:#10334d;color:#fff;border-radius:10px;padding:9px 12px;font-weight:850;font-size:10px}.eblCoach31Btn.gold{border-color:#c8aa3d;color:#f0d264}
+.eblCoach31Form{display:grid;gap:9px;margin-top:12px}.eblCoach31Form input,.eblCoach31Form textarea,.eblCoach31Form select{width:100%;box-sizing:border-box;background:#071d2d;border:1px solid #31526a;color:#eef4f8;border-radius:10px;padding:10px;font:inherit}.eblCoach31Form textarea{min-height:86px;resize:vertical}
+.eblCoach31Status{margin-top:10px;padding:9px;border-radius:10px;background:#081f31;color:#a9bdca;font-size:10px}.eblCoach31Tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:560px){.eblCoach31Grid{grid-template-columns:1fr}}
+</style><style id="eblCreatorFinishRC32Css">
+/* RC32 — creator finish: fewer meaningful hair choices + one portrait at every creator step */
+#creatorStage .presetGrid.eblHairCurated32{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:620px){#creatorStage .presetGrid.eblHairCurated32{grid-template-columns:repeat(4,minmax(0,1fr))}}
+#creatorStage .avatarPreview svg.eblRC29{width:100%;height:auto;max-height:460px;display:block}
 </style></head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -8569,5 +8594,262 @@ window.eblCreatorThumbRC2=function(p,kind,id){
  return portrait(q,{surface:'creator',focus:kind});
 };
 window.EBL_ILLUSTRATED_PLAYER_RC29={version:'RC29',architecture:'clean standalone renderer',faces:20,hairStyles:28,facialHair:14,skins:8,routes:['creator','home','player-profile','public-profile','roster','gamecast','awards','legacy','identity-lab']};
+})();
+</script><script id="eblAvatarRefineRC30">
+(function(){
+const oldPortrait=window.eblIllustratedPlayerRC29;
+if(typeof oldPortrait!=='function')return;
+
+function rc30Patch(svg,p={}){
+ const face=(Number(p.face_id||p.faceId||1)-1)%10;
+ const hair=(Number(p.hair_id||p.hairId||1)-1)%14;
+ const eyewear=Number(p.eyewear_id??p.eyewearId??0);
+ const expressions=[
+  ['M132 151Q150 161 168 151','M119 103Q131 96 142 102','M158 102Q170 96 181 103'],
+  ['M133 153Q150 153 167 153','M118 101Q130 98 142 103','M158 103Q170 98 182 101'],
+  ['M132 150Q150 164 169 149','M120 104Q132 94 142 101','M158 101Q170 94 180 104'],
+  ['M131 153Q150 158 170 151','M117 105Q130 96 143 102','M158 102Q171 96 183 105'],
+  ['M133 150Q150 159 167 150','M119 100Q131 92 143 100','M157 100Q169 92 181 100'],
+  ['M134 154Q150 148 166 154','M118 104Q130 100 142 105','M158 105Q170 100 182 104'],
+  ['M130 152Q150 156 170 152','M116 102Q130 94 143 101','M157 101Q171 94 184 102'],
+  ['M134 151Q150 163 166 151','M121 104Q132 99 142 103','M158 103Q169 99 179 104'],
+  ['M131 150Q150 160 169 150','M118 99Q131 95 143 102','M157 102Q169 95 182 99'],
+  ['M132 154Q150 151 168 154','M117 103Q130 97 143 104','M157 104Q170 97 183 103']
+ ][face];
+
+ // Add final expressive geometry after the RC29 base art.
+ let add=`<g class="rc30FaceFinish">
+   <path d="${expressions[1]}" fill="none" stroke="#513429" stroke-width="4" stroke-linecap="round"/>
+   <path d="${expressions[2]}" fill="none" stroke="#513429" stroke-width="4" stroke-linecap="round"/>
+   <path d="${expressions[0]}" fill="none" stroke="#6a3b31" stroke-width="4" stroke-linecap="round"/>
+ </g>`;
+
+ // Eyewear from the screenshot was too dominant. Redraw a lighter sports frame
+ // over it so eyes/face remain the focal point.
+ if(eyewear){
+   add+=`<g class="rc30Eyewear" opacity=".82">
+    <rect x="117" y="111" width="29" height="24" rx="9" fill="rgba(255,255,255,.08)" stroke="#48677d" stroke-width="3"/>
+    <rect x="154" y="111" width="29" height="24" rx="9" fill="rgba(255,255,255,.08)" stroke="#48677d" stroke-width="3"/>
+    <path d="M146 118Q150 115 154 118" fill="none" stroke="#48677d" stroke-width="3"/>
+   </g>`;
+ }
+
+ // Extra hairstyle accents make adjacent creator choices read more distinctly
+ // even under the baseball cap.
+ const accents=[
+ '', 'M118 79Q130 66 143 72', 'M126 72L140 55L149 72', 'M111 84Q125 62 143 67',
+ 'M119 75Q145 58 177 72', 'M125 72Q150 60 181 75', 'M111 82Q121 61 137 57',
+ 'M114 79Q128 55 149 64', 'M123 72Q151 56 181 69', 'M115 80Q135 58 158 63',
+ 'M110 83Q123 54 143 60', 'M121 74Q145 56 176 70', 'M128 70Q151 59 177 72',
+ 'M118 76Q145 63 182 75'
+ ];
+ if(accents[hair]) add+=`<path d="${accents[hair]}" fill="none" stroke="#251711" stroke-width="5" stroke-linecap="round"/>`;
+ return svg.replace('</svg>',add+'</svg>');
+}
+function portrait(p={},o={}){
+ return rc30Patch(oldPortrait(p,o),p);
+}
+function action(p={},a='batting',o={}){
+ // Preserve RC29's full-body action renderer; identity palette remains shared.
+ return window.eblIllustratedActionRC29(p,a,o);
+}
+function surface(p={},surf='player-profile',a='',o={}){
+ const act=String(a||'').toLowerCase();
+ return ['batting','pitching','fielding','running'].includes(act)?action(p,act,o):portrait(p,{...o,surface:surf});
+}
+
+window.eblIllustratedPlayerRC30=portrait;
+window.eblFinalPlayerArtV63=(p,o={})=>portrait(p,o);
+window.eblFinalPortraitV63=(p,o={})=>portrait(p,o);
+window.eblFinalSurfaceV63=(p,surf='player-profile',a='',o={})=>surface(p,surf,a,o);
+window.eblPlayerRendererRC22=(p,o={})=>portrait(p,o);
+window.eblRC22Render=(p,surf='player-profile',a='',o={})=>surface(p,surf,a,o);
+window.eblPlayerRendererRC21=(p,o={})=>portrait(p,o);
+window.eblCreatorThumbRC2=function(p,kind,id){
+ const q={...p};
+ if(kind==='face')q.face_id=id;
+ if(kind==='hair')q.hair_id=id;
+ if(kind==='facial_hair')q.facial_hair_id=id;
+ return portrait(q,{surface:'creator',focus:kind});
+};
+window.EBL_AVATAR_REFINE_RC30={
+ version:'RC30',
+ basedOn:'deployed RC29 screenshots',
+ improvements:['stronger face differentiation','hair accent differentiation','lighter eyewear','tighter creator thumbnail framing'],
+ foundation:'RC29-frozen'
+};
+})();
+</script><script id="eblCoachCenterRC31">
+(function(){
+function role(){return String(window.ME?.role||'').toUpperCase()}
+function coachRoot(){
+ return document.getElementById('coachView')||document.getElementById('teamView')||document.getElementById('communityView');
+}
+async function coachReq(path,opts={}){
+ if(typeof window.api==='function')return window.api(path,opts);
+ const r=await fetch(path,{credentials:'include',headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});
+ let j={};try{j=await r.json()}catch{}
+ if(!r.ok)throw Object.assign(new Error(j.error||'REQUEST_FAILED'),{status:r.status,data:j});
+ return j;
+}
+function applyUI(){
+ return `<section class="eblCoach31" data-ebl-coach31>
+ <h3>Become an EBL Coach</h3><p>Coaches run one franchise: build the roster, set lineups and pitching roles, negotiate contracts, and guide the club through the season. Coach applications go to the Commissioner for approval.</p>
+ <div class="eblCoach31Grid"><div class="eblCoach31Card"><b>One franchise</b><small>Each approved coach controls a single EBL organization.</small></div><div class="eblCoach31Card"><b>Competitive integrity</b><small>Coaches cannot sign their own created players.</small></div></div>
+ <form class="eblCoach31Form" onsubmit="return ebl31Apply(event)">
+  <input id="ebl31Team" maxlength="80" placeholder="Preferred franchise or city (optional)">
+  <textarea id="ebl31Why" maxlength="800" required placeholder="Why do you want to coach in the EBL?"></textarea>
+  <textarea id="ebl31Plan" maxlength="800" placeholder="What kind of team would you like to build?"></textarea>
+  <button class="eblCoach31Btn gold" type="submit">Submit Coach Application</button>
+ </form><div class="eblCoach31Status" id="ebl31Status">Applications are reviewed by the EBL Commissioner.</div></section>`;
+}
+function hud(){
+ return `<section class="eblCoach31" data-ebl-coach31><h3>Coach HQ</h3><p>Your franchise command center. The existing Coach Hub remains the source of roster data; this launch layer makes the core jobs easy to reach.</p>
+ <div class="eblCoach31Grid">
+ <div class="eblCoach31Card"><b>Roster Management</b><small>Review active players, depth and open roster slots.</small></div>
+ <div class="eblCoach31Card"><b>Lineup & Rotation</b><small>Set batting order, starters, relievers, setup roles and closer.</small></div>
+ <div class="eblCoach31Card"><b>Contracts</b><small>Make offers while respecting team budget and league rules.</small></div>
+ <div class="eblCoach31Card"><b>Clubhouse</b><small>Team communication, upcoming games and season status.</small></div>
+ </div><div class="eblCoach31Tools"><button class="eblCoach31Btn gold" onclick="ebl31OpenExistingCoach()">Open Full Coach Hub</button><button class="eblCoach31Btn" onclick="ebl31RefreshCoach()">Refresh Club</button></div></section>`;
+}
+window.ebl31Apply=async function(ev){
+ ev.preventDefault();const st=document.getElementById('ebl31Status');st.textContent='Submitting…';
+ const body={preferred_team:document.getElementById('ebl31Team')?.value.trim()||'',reason:document.getElementById('ebl31Why')?.value.trim()||'',team_plan:document.getElementById('ebl31Plan')?.value.trim()||''};
+ try{
+  await coachReq('/api/coach/application',{method:'POST',body:JSON.stringify(body)});
+  st.textContent='Application submitted. The Commissioner can now review it.'; ev.target.querySelector('button').disabled=true;
+ }catch(e){
+  if(e.status===404)st.textContent='The Coach application screen is ready, but the server application route is not deployed yet.';
+  else if(e.status===409)st.textContent='You already have a coach application on file.';
+  else st.textContent='Application could not be submitted: '+(e.data?.error||e.message||'unknown error');
+ }
+ return false;
+};
+window.ebl31OpenExistingCoach=function(){
+ const b=[...document.querySelectorAll('button,a')].find(x=>/coach hub|coach hq/i.test(x.textContent||'')&&!x.closest('[data-ebl-coach31]'));
+ if(b){b.click();return} if(typeof window.loadCoachHub==='function')window.loadCoachHub();
+};
+window.ebl31RefreshCoach=function(){if(typeof window.loadCoachHub==='function')window.loadCoachHub()};
+function mount(){
+ const root=coachRoot();if(!root||root.querySelector('[data-ebl-coach31]'))return;
+ const r=role();const html=(r==='COACH'||r==='COMMISSIONER')?hud():applyUI();
+ root.insertAdjacentHTML('afterbegin',html);
+}
+window.eblCoachCenterRC31Mount=mount;
+document.addEventListener('DOMContentLoaded',()=>setTimeout(mount,450));
+const ob=new MutationObserver(()=>{clearTimeout(window.__ebl31t);window.__ebl31t=setTimeout(mount,140)});
+document.addEventListener('DOMContentLoaded',()=>ob.observe(document.body,{childList:true,subtree:true}));
+window.EBL_COACH_CENTER_RC31={version:'RC31',flows:['application','commissioner-review-ready','coach-hud-entry'],rules:['one-team-max','no-self-signing']};
+})();
+</script><script id="eblCreatorFinishRC32">
+(function(){
+const CURATED_HAIR32=new Set([1,2,3,4,5,6,7,10]);
+
+function raw(p,k,alt,d=0){const v=Number(p?.[k]??p?.[alt]);return Number.isFinite(v)?v:d}
+function cosmetic32(p={}){
+ const q={...p};
+ // Creator option IDs are 1-based: 1=None. RC29 treated any nonzero value
+ // as equipped, which made "None" draw glasses/eye black/a chain.
+ q.eyewear_id=Math.max(0,raw(p,'eyewear_id','eyewearId',1)-1);
+ q.eye_black_id=Math.max(0,raw(p,'eye_black_id','eyeBlackId',1)-1);
+ q.chain_id=Math.max(0,raw(p,'chain_id','chainId',1)-1);
+ return q;
+}
+function hairColor32(p={}){
+ const colors=['#17120f','#3a2419','#6a4228','#8b5a2b','#b9783d','#d2a05e','#d8c3a1','#7b2422','#3d2a20'];
+ return colors[(Math.max(1,raw(p,'hair_color_id','hairColorId',1))-1)%colors.length]||colors[0];
+}
+function alignedFacial32(p={}){
+ const id=Math.max(1,raw(p,'facial_hair_id','facialHairId',1));
+ if(id===1)return '';
+ const c=hairColor32(p);
+ // All facial hair is anchored to the RC29 nose/mouth/chin coordinate system.
+ // Keeping the top edge at y145 prevents moustaches from floating into the nose
+ // and keeps beards inside the jaw.
+ const must=`<path d="M130 146Q140 140 150 146Q160 140 170 146Q160 154 150 150Q140 154 130 146Z" fill="${c}" stroke="#07121c" stroke-width="1.5"/>`;
+ const goatee=`<path d="M143 153Q150 158 157 153L159 169Q150 176 141 169Z" fill="${c}" opacity=".94"/>`;
+ const stubble=`<path d="M125 149Q150 164 175 149Q171 170 150 177Q129 170 125 149Z" fill="${c}" opacity=".28"/>`;
+ const short=`<path d="M123 147Q150 164 177 147L172 166Q162 178 150 180Q138 178 128 166Z" fill="${c}" opacity=".92"/>`;
+ const full=`<path d="M120 143Q125 174 150 183Q175 174 180 143L171 151Q150 166 129 151Z" fill="${c}" opacity=".94"/>`;
+ const handle=`<path d="M128 146Q139 138 150 146Q161 138 172 146Q165 151 157 150Q164 156 174 153Q165 161 150 151Q135 161 126 153Q136 156 143 150Q135 151 128 146Z" fill="${c}" stroke="#07121c" stroke-width="1.2"/>`;
+ switch(id){
+  case 2:return stubble;
+  case 3:return must+goatee;
+  case 4:return full;
+  case 5:return must;
+  case 6:return stubble.replace('opacity=".28"','opacity=".48"');
+  case 7:return short;
+  case 8:return short+must;
+  case 9:return full+must;
+  case 10:return must+goatee;
+  case 11:return goatee;
+  case 12:return must.replace('stroke-width="1.5"','stroke-width="1"');
+  case 13:return handle;
+  case 14:return full+must;
+  default:return '';
+ }
+}
+const base30=window.eblIllustratedPlayerRC30||window.eblFinalPortraitV63;
+const baseAction=window.eblIllustratedActionRC29;
+
+function portrait32(p={},o={}){
+ const original={...p};
+ const q=cosmetic32({...p,facial_hair_id:1,facialHairId:1});
+ let svg=base30(q,o);
+ const beard=alignedFacial32(original);
+ if(beard)svg=svg.replace('</svg>',`<g class="eblFacial32">${beard}</g></svg>`);
+ return svg.replace('data-ebl-renderer="RC29"','data-ebl-renderer="RC32"');
+}
+function action32(p={},a='batting',o={}){
+ // Correct 1-based cosmetic semantics in GameCast as well.
+ return typeof baseAction==='function'?baseAction(cosmetic32(p),a,o):portrait32(p,o);
+}
+function surface32(p={},surf='player-profile',a='',o={}){
+ const act=String(a||'').toLowerCase();
+ return ['batting','pitching','fielding','running'].includes(act)?action32(p,act,o):portrait32(p,{...o,surface:surf});
+}
+window.eblIllustratedPlayerRC32=portrait32;
+window.eblFinalPlayerArtV63=(p,o={})=>portrait32(p,o);
+window.eblFinalPortraitV63=(p,o={})=>portrait32(p,o);
+window.eblFinalSurfaceV63=(p,s='player-profile',a='',o={})=>surface32(p,s,a,o);
+window.eblPlayerRendererRC22=(p,o={})=>portrait32(p,o);
+window.eblPlayerRendererRC21=(p,o={})=>portrait32(p,o);
+window.eblRC22Render=(p,s='player-profile',a='',o={})=>surface32(p,s,a,o);
+window.avatarMarkup=function(){return portrait32(window.CREATOR||{}, {surface:'creator-review'})};
+window.eblCreatorThumbRC2=function(p,kind,id){
+ const q={...p};if(kind==='face')q.face_id=id;if(kind==='hair')q.hair_id=id;if(kind==='facial_hair')q.facial_hair_id=id;
+ return portrait32(q,{surface:'creator',focus:kind});
+};
+
+function curate32(){
+ const stage=document.getElementById('creatorStage');if(!stage)return;
+ const hs=[...stage.querySelectorAll('h3')].find(h=>h.textContent.trim()==='HAIR STYLE');
+ if(hs){
+   const grid=hs.nextElementSibling;
+   if(grid?.classList.contains('presetGrid')&&!grid.dataset.rc32){
+    grid.dataset.rc32='1';grid.classList.add('eblHairCurated32');
+    [...grid.children].forEach((card,i)=>{if(!CURATED_HAIR32.has(i+1))card.remove()});
+   }
+ }
+ // Review used the legacy cartoonAvatarSvg. Replace it with the same renderer
+ // used by the live preview/Home/Profile so the final confirmation cannot jump styles.
+ const review=stage.querySelector('.avatarPreview');
+ if(review && !review.dataset.rc32){
+   review.dataset.rc32='1';review.innerHTML=portrait32(window.CREATOR||{},{surface:'creator-review'});
+ }
+}
+const oldAppearance=window.creatorAppearance;
+if(typeof oldAppearance==='function')window.creatorAppearance=function(){oldAppearance();requestAnimationFrame(curate32)};
+const oldReview=window.creatorReview;
+if(typeof oldReview==='function')window.creatorReview=function(){oldReview();requestAnimationFrame(curate32)};
+document.addEventListener('DOMContentLoaded',()=>setTimeout(curate32,350));
+new MutationObserver(()=>{clearTimeout(window.__rc32);window.__rc32=setTimeout(curate32,80)}).observe(document.documentElement,{childList:true,subtree:true});
+
+window.EBL_CREATOR_FINISH_RC32={
+ version:'RC32',
+ fixes:['None eyewear no longer draws glasses','None eye black no longer draws eye black','None chain no longer draws chain','facial hair aligned to mouth/chin','creator review uses live portrait','hair chooser reduced to 8 cap-visible choices'],
+ curatedHair:[1,2,3,4,5,6,7,10],
+ renderer:'RC32'
+};
 })();
 </script></body></html>
