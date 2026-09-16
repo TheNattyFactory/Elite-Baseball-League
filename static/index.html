@@ -1023,6 +1023,20 @@ svg[data-ebl-renderer="RC21"][data-ebl-surface="creator"]{overflow:visible}
 @media(max-width:390px){
  .eblCreatorThumbRC21{height:114px!important;min-height:114px!important}
 }
+</style><style id="eblPlayerRendererRC22Css">
+.rc22Final{pointer-events:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.rc22Brow{fill:none;stroke:#101820;stroke-width:3.5}.rc22Eye{fill:var(--rc22eye,#385a72);stroke:#0a1118;stroke-width:2.4}.rc22Catch{fill:#fff;opacity:.75}
+.rc22Nose,.rc22Mouth{fill:none;stroke:#101820;stroke-width:3.1}.rc22EyeBlack{fill:none;stroke:#101820;stroke-width:4.2}
+.rc22Specs rect{fill:rgba(30,55,72,.35);stroke:#a9c2d4;stroke-width:2}.rc22Specs path{stroke:#a9c2d4;stroke-width:2}
+.rc22Shoulder,.rc22Collar,.rc22Hem{fill:none;stroke:rgba(225,237,246,.42);stroke-width:4}
+svg[data-ebl-renderer="RC22"]{filter:drop-shadow(0 6px 11px rgba(0,0,0,.30)) contrast(1.10) brightness(1.10)!important}
+svg[data-ebl-renderer="RC22"][data-ebl-surface="home"]{filter:drop-shadow(0 5px 9px rgba(0,0,0,.34)) contrast(1.16) brightness(1.16)!important}
+svg[data-ebl-renderer="RC22"][data-ebl-surface="creator"]{filter:drop-shadow(0 3px 6px rgba(0,0,0,.22)) contrast(1.08) brightness(1.10)!important}
+.eblCreatorThumbRC22{height:118px!important;min-height:118px!important}
+@media(max-width:720px){
+ .eblCreatorThumbRC22{height:120px!important;min-height:120px!important}
+ svg[data-ebl-renderer="RC22"][data-ebl-surface="home"]{min-width:104px!important;min-height:142px!important}
+}
 </style></head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -8026,5 +8040,77 @@ const EBL_RC21_RELEASE_CONTRACT={
  mobileWidths:[360,390,412,430],
  validation:{javascriptSyntax:'PASS',deployedVisual:'pending fresh screenshots'},
  nextArtPriority:'Do not add more overlay geometry until deployed RC21 screenshots are reviewed.'
+};
+</script><script id="eblPlayerRendererRC22">
+/* RC22 — FACE RESTORATION + DARK KIT LEGIBILITY */
+function eblRC22FaceVariant(p={}){
+ const f=(Number(p.face_id)||1)-1, v=((f%20)+20)%20;
+ const brow=[
+  ['M132 96q7-5 14 0','M158 96q7-5 14 0'],['M131 97l15-2','M158 95l15 2'],
+  ['M132 94q7 3 14 0','M158 94q7 3 14 0'],['M131 96q8-7 15-1','M158 95q8-6 15 1'],
+  ['M132 95l14 1','M158 96l14-1']
+ ][v%5];
+ const mouth=[
+  'M139 122Q152 130 166 121','M140 123Q152 119 165 123','M140 120Q152 128 164 120',
+  'M141 123Q152 126 164 122','M140 122Q152 132 166 121'
+ ][v%5];
+ const nose=['M151 101q-4 11 1 17','M152 101l-2 16 5 2','M151 101q-2 9 2 16','M152 100l-1 18','M150 101q-3 10 3 17'][v%5];
+ return {brow,mouth,nose};
+}
+function eblRC22Face(p={},opts={}){
+ const skin=(typeof eblRC9Palette==='function'?eblRC9Palette(p).skin:null)||'var(--skin)';
+ const V=eblRC22FaceVariant(p);
+ const eye=String((typeof eblRC9Palette==='function'?eblRC9Palette(p).eye:null)||'var(--eye)');
+ const eyewear=Number(p.eyewear_id)||0, black=Number(p.eye_black_id)||0;
+ let x=`<g class="rc22Face" style="--rc22skin:${skin};--rc22eye:${eye}">
+   <path d="${V.brow[0]}" class="rc22Brow"/><path d="${V.brow[1]}" class="rc22Brow"/>
+   <ellipse cx="139" cy="103" rx="4.2" ry="5.2" class="rc22Eye"/><ellipse cx="165" cy="103" rx="4.2" ry="5.2" class="rc22Eye"/>
+   <circle cx="140" cy="102" r="1.35" class="rc22Catch"/><circle cx="166" cy="102" r="1.35" class="rc22Catch"/>
+   <path d="${V.nose}" class="rc22Nose"/><path d="${V.mouth}" class="rc22Mouth"/>`;
+ if(black===2)x+='<path d="M126 108l13 3M165 111l13-3" class="rc22EyeBlack"/>';
+ if(black>=3)x+='<path d="M125 107l14 3M125 112l13 3M165 110l14-3M166 115l13-3" class="rc22EyeBlack"/>';
+ if(eyewear>=2)x+='<g class="rc22Specs"><rect x="128" y="96" width="21" height="14" rx="6"/><rect x="155" y="96" width="21" height="14" rx="6"/><path d="M149 101h6"/></g>';
+ return x+'</g>';
+}
+function eblRC22Kit(p={}){
+ return `<g class="rc22Kit"><path d="M111 171Q124 158 137 155" class="rc22Shoulder"/><path d="M193 171Q180 158 167 155" class="rc22Shoulder"/><path d="M130 151Q152 162 174 151" class="rc22Collar"/><path d="M126 221Q152 229 179 221" class="rc22Hem"/></g>`;
+}
+function eblRC22ShouldShowFace(opts={}){
+ /* Hair and facial-hair chooser cards are silhouette comparisons. Face cards and
+    every actual player surface must show a real face. */
+ return !(opts.surface==='creator'&&(opts.focus==='hair'||opts.focus==='facial_hair'));
+}
+function eblPlayerRendererRC22(player={},opts={}){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ let svg=eblPlayerRendererRC21(p,opts);
+ const foreground=(eblRC22ShouldShowFace(opts)?eblRC22Face(p,opts):'')+eblRC22Kit(p);
+ svg=svg.replace(/data-ebl-renderer="RC21"/,'data-ebl-renderer="RC22"');
+ return svg.replace('</svg>',`<g class="rc22Final">${foreground}</g></svg>`);
+}
+function eblRC22Render(player={},surface='player-profile',action='',extra={}){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const sf=eblRC20Surface(surface);let act=String(action||'');
+ if(!act&&sf==='gamecast')act=(p.type==='P'||p.position==='P'||p.primary_pos==='P')?'pitching':'batting';
+ return eblPlayerRendererRC22(p,{...extra,surface:sf,mode:act?'action':'portrait',action:act||undefined});
+}
+function eblFinalPlayerArtV63(player={},opts={}){return eblRC22Render(player,opts.surface||'player-profile',opts.action||'',opts)}
+function eblFinalPortraitV63(player={}){return eblRC22Render(player,'player-profile')}
+function eblActionPlayerSvg(player={},action='batting',...rest){return eblRC22Render(player,'gamecast',action)}
+function eblFinalSurfaceV63(player={},surface='player-profile',action=''){return eblRC22Render(player,surface,action)}
+function eblCreatorThumbRC2(kind,id){
+ const p=(typeof CREATOR==='object'&&CREATOR)?{...CREATOR}:{};
+ ['face_id','hair_id','facial_hair_id','skin_color_id','hair_color_id','eye_color_id'].forEach(k=>p[k]=Number(p[k])||1);
+ p.jersey_number=Number(p.jersey_number)||24;
+ if(kind==='face')p.face_id=Number(id)||1;if(kind==='hair')p.hair_id=Number(id)||1;if(kind==='facial_hair')p.facial_hair_id=Number(id)||1;
+ return `<div class="eblCreatorThumbRC2 eblCreatorThumbRC22 eblCreatorThumb-${kind}" data-ebl-choice="${kind}:${id}">${eblRC22Render(p,'creator','',{focus:kind,thumb:true})}</div>`;
+}
+const EBL_PLAYER_RENDERER_RC22={version:'RC22',fixes:['actual-player-face-restored','dark-kit-separation','creator-category-focus'],base:'RC21'};
+</script><script id="eblRC22MeaningfulPush">
+const EBL_RC22_MEANINGFUL_PUSH={
+ screenshots:'2026-09-16 deployed RC21',
+ observed:['live preview face missing','home/profile player face missing','black kit lost against navy','creator facial hair now distinguishable','hair silhouettes improving'],
+ corrected:['foreground facial features on actual player','face chooser retains facial features','dark uniform edge separation','small-card brightness'],
+ deliberate:['hair chooser hides face to emphasize hair','facial-hair chooser hides face to emphasize beard shape'],
+ next:['verify RC22 screenshots','then stop renderer churn and return to launch systems']
 };
 </script></body></html>
