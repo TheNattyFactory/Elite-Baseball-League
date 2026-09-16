@@ -631,6 +631,17 @@ dialog{
 /* V32 — structural sports-cartoon anatomy pass. */
 .eblPlayerArtV24 svg{overflow:visible}
 </style>
+<style id="eblSportsCartoonV34Css">
+/* V34 — fitted-cap rule: hair supports identity without overpowering the baseball silhouette. */
+.eblPlayerArtV24 svg,.playerPreview svg{shape-rendering:geometricPrecision}
+</style>
+
+<style id="eblSportsCartoonV35Css">
+.eblIdentityLinkV35{display:inline-flex;align-items:center;gap:7px;max-width:100%;border:0;background:transparent;color:inherit;padding:0;font:inherit;text-align:left;cursor:pointer;vertical-align:middle}
+.eblIdentityLinkV35:hover strong,.eblIdentityLinkV35:focus-visible strong{text-decoration:underline}
+.eblIdentityLinkV35:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:7px}
+.eblIdentityLinkV35 .eblPlayerBylineV25{gap:7px}.eblIdentityLinkV35 .eblPlayerBylineV25__copy span{display:none}
+</style>
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -695,6 +706,23 @@ dialog{
 <section id="admin" class="page">
   <div class="card">
     <h1>Commissioner / Admin</h1>
+
+    <div class="offer" style="margin-bottom:14px">
+      <h2 style="margin-top:0">League Size</h2>
+      <p class="muted">Choose how many franchises are active in Genesis. EBL supports any even league size from 8 up to the available franchise pool. Changing the current Genesis size performs a Day 0 league reset while keeping accounts and player identities.</p>
+      <div class="grid" style="grid-template-columns:minmax(180px,280px) auto;align-items:end">
+        <label>Active Teams<select id="leagueTeamCount"></select></label>
+        <button class="btn" onclick="applyGenesisLeagueSize()">Set League Size & Reset</button>
+      </div>
+      <div id="leagueSizeOut" class="muted" style="margin-top:8px"></div>
+    </div>
+
+    <div class="offer" style="margin-bottom:14px">
+      <h2 style="margin-top:0">Coach Applications</h2>
+      <p class="muted">Any signed-in EBL account can apply. Review applications here before assigning an approved coach to a franchise.</p>
+      <button class="btn" onclick="loadCoachApplications()">Refresh Coach Applications</button>
+      <div id="coachApplicationsOut" style="margin-top:10px"></div>
+    </div>
 
     <div class="offer" style="margin-bottom:14px">
       <h2 style="margin-top:0">Coach Assignments</h2>
@@ -1196,7 +1224,7 @@ async function refresh(){
  }
  accountTag.innerHTML=`<span class="notifWrap"><button class="btn notifBell" onclick="toggleNotifications()" aria-label="Notifications">🔔<span id="notifCount" class="notifCount hidden">0</span></button></span> <button id="pmShortcut" class="btn pmShortcut" onclick="openMessagesPage()" aria-label="Private messages">💬 Messages <span id="pmCount" class="pmCount hidden">0</span></button> ${ME.username} • ${ME.role} &nbsp; <button class="btn" onclick="logout()">Logout</button><div id="notifBackdrop" class="notifBackdrop hidden" onclick="closeNotifications()"></div><div id="notifPanel" class="notifPanel hidden"></div>`;
  loginCard.classList.add('hidden');dashboard.classList.remove('hidden');adminNav.classList.toggle('hidden',ME.role!=='COMMISSIONER');coachNav.classList.remove('hidden');
- await Promise.all([loadLeague(),loadSchedule(),loadAnalytics(),loadAwards(),loadPlayer(),loadNews(),loadReadiness(),loadCommunity(),loadDMContacts(),loadDMUnread(),loadPlayoffs()]);await loadCoachPortal();
+ await Promise.all([loadLeague(),loadSchedule(),loadAnalytics(),loadAwards(),loadPlayer(),loadNews(),loadReadiness(),loadCommunity(),loadDMContacts(),loadDMUnread(),loadPlayoffs()]);await loadCoachPortal();if(ME.role==='COMMISSIONER')await Promise.all([loadLeagueSizeAdmin(),loadCoachApplications(),loadCoachAssignments()]);
  await Promise.all([loadChat('EBL'),loadChat('TEAM')]);
  renderHome();
  startDMPoll();
@@ -3045,7 +3073,7 @@ async function loadAwards(){
  fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`${teamName(x.team)} • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
  if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${a.award_name}</b> — ${leaguePlayerName(a)} <span class="gold">+${a.xp_awarded} XP</span><div class="muted">Season ${a.season} • ${String(a.period).replaceAll('_',' ')}</div></div>`).join('')}`}
 }
-function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span>${x?.face_id?`<div class="raceIdentity">${eblPublicPortraitV28(x,'sm')}<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div></div>`:`<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div>`}<span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
+function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span>${x?.face_id?`<div class="raceIdentity">${eblPublicPortraitV28(x,'sm')}<div><b>${eblIdentityLinkV35(x,{size:"xs"})}</b><div class="muted">${detail(x)}</div></div></div>`:`<div><b>${eblIdentityLinkV35(x,{size:"xs"})}</b><div class="muted">${detail(x)}</div></div>`}<span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
 function dismissOnboarding(){
  try{localStorage.setItem('ebl_onboarding_dismissed','1')}catch{}
  if(window.onboardingCard)onboardingCard.classList.add('hidden');
@@ -3089,7 +3117,8 @@ function renderHome(){
  }
 }
 async function loadChat(ch){try{let j=await api('/api/chat/'+ch+(ch==='TEAM'&&PLAYER?.id?'?player_id='+encodeURIComponent(PLAYER.id):''));let box=ch==='EBL'?eblChat:teamChat;box.innerHTML=j.messages.map(m=>`<div class="chatmsg"><b><button class="clickableName" onclick="openUserProfile('${jsq(m.username)}')">@${escapeHtml(m.username)}</button></b> <span class="muted">${m.created_at}</span><br>${escapeHtml(m.message)}</div>`).join('');box.scrollTop=box.scrollHeight}catch{}}
-function escapeHtml(x){return x.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function escapeHtml(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function esc(x){return escapeHtml(x)}
 async function sendChat(ch){let input=ch==='EBL'?eblMsg:teamMsg,msg=input.value.trim();if(!msg)return;try{await api('/api/chat/send',{method:'POST',body:JSON.stringify({channel:ch,message:msg,player_id:PLAYER?.id})});input.value='';loadChat(ch)}catch(e){alert(e.error)}}
 
 
@@ -3223,6 +3252,9 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
  p=eblAppearancePlayer(p||{});
  const face=Math.max(1,Math.min(20,Number(p.face_id)||1));
  const hairId=Math.max(1,Math.min(28,Number(p.hair_id)||1));
+ const longHair=[7,20,21,26,27,28].includes(hairId);
+ const texturedHair=[3,4,10,18,21,22,23].includes(hairId);
+
  const facial=Math.max(1,Math.min(14,Number(p.facial_hair_id)||1));
  const eyeId=Math.max(1,Math.min(6,Number(p.eye_color_id)||6));
  const hairColorId=Math.max(1,Math.min(9,Number(p.hair_color_id)||3));
@@ -3340,6 +3372,10 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
    <path d="M126 62 Q149 72 174 61 M150 55 L150 99" fill="none" stroke="${t3}" stroke-width="2" opacity=".30"/>
    <circle cx="150" cy="55" r="4.5" fill="${t2}" stroke-width="2"/>
    <path d="M148 99 Q190 93 220 111 Q186 121 149 110Z" fill="${t2}" stroke-width="5"/>
+   <!-- V34 fitted-cap cleanup: hairstyle reads at the sides/back, not across the cap/forehead -->
+   <path d="M106 108 Q150 96 194 108 L190 126 Q150 116 110 126Z" fill="${skin}" stroke="none"/>
+   ${longHair?`<path d="M105 112 Q96 140 102 174" fill="none" stroke="${hairs}" stroke-width="8" stroke-linecap="round"/><path d="M195 112 Q204 140 198 174" fill="none" stroke="${hairs}" stroke-width="8" stroke-linecap="round"/>`:''}
+   ${texturedHair?`<path d="M109 113 Q103 125 106 138 M191 113 Q197 125 194 138" fill="none" stroke="${hairs}" stroke-width="6" stroke-linecap="round"/>`:''}
    <text x="150" y="91" text-anchor="middle" fill="${t3}" font-size="18" font-weight="900" font-family="Arial Black,Arial" stroke="none">${initials}</text>
    <!-- Sports Cartoon V8: illustrated face construction -->
    <path d="M${cx-rx+8} ${cy+13} Q${cx-rx+18} ${cy+ry-8} ${cx} ${cy+ry-4} Q${cx+rx-18} ${cy+ry-8} ${cx+rx-8} ${cy+13}"
@@ -3563,26 +3599,22 @@ async function saveBranding(){
  }catch(e){alert(e.error)}
 }
 async function loadCoachPortal(){
-  if(!ME){return}
-  if(['COACH','COMMISSIONER'].includes(ME.role)){
-    return loadCoachHub();
-  }
+  if(!ME)return;
+  if(ME.role==='COMMISSIONER')return loadCoachHub();
   coachHub.innerHTML='<p class="muted">Loading coaching status...</p>';
   try{
     const j=await api('/api/coach/application');
     const a=j.application||null;
+    if(j.assigned_team)return loadCoachHub();
     if(a?.status==='PENDING'){
-      coachHub.innerHTML=`<div class="card" style="border-left:4px solid var(--silver)"><h2>Application Under Review</h2><p>Your EBL coaching application has been sent to the Commissioner.</p><p class="muted">Submitted ${escapeHtml(a.created_at||'recently')}. You can keep playing normally while the application is reviewed.</p></div>`;
-      return;
+      coachHub.innerHTML=`<div class="card" style="border-left:4px solid var(--silver)"><h2>Application Under Review</h2><p>Your EBL coaching application has been sent to the Commissioner.</p><p class="muted">Submitted ${escapeHtml(a.created_at||'recently')}. You can keep playing normally while it is reviewed.</p></div>`;return;
     }
-    if(a?.status==='APPROVED'){
-      coachHub.innerHTML=`<div class="card" style="border-left:4px solid var(--red)"><h2>Approved EBL Coach</h2><p>Your coaching application has been approved.</p><p class="muted">You are currently waiting for a franchise assignment. When the Commissioner assigns you a club, your full Franchise Operations HUD will unlock here.</p></div>`;
-      return;
+    if(j.approved||a?.status==='APPROVED'){
+      coachHub.innerHTML=`<div class="card" style="border-left:4px solid var(--red)"><h2>Approved EBL Coach</h2><p>Your coaching application has been approved.</p><p class="muted">You are waiting for a franchise assignment. Once the Commissioner assigns a club, the full Franchise Operations HUD unlocks here.</p></div>`;return;
     }
     renderCoachApplication(a);
   }catch(e){
-    // Backward-compatible launch state while the server application endpoints are deployed.
-    renderCoachApplication(null);
+    coachHub.innerHTML=`<div class="card"><h2>Coach Applications Temporarily Unavailable</h2><p class="muted">${escapeHtml(e?.error||e?.message||'Could not load coaching status.')}</p></div>`;
   }
 }
 function renderCoachApplication(previous){
@@ -3597,7 +3629,7 @@ async function submitCoachApplication(){
   if(!why||!philosophy){out.textContent='Please complete both coaching questions.';return}
   if(!document.getElementById('coachApplyRules')?.checked){out.textContent='Please acknowledge the coaching rules.';return}
   try{
-    await api('/api/coach/apply',{method:'POST',body:JSON.stringify({preferred_franchise_id:document.getElementById('coachApplyTeam')?.value||null,experience:document.getElementById('coachApplyExperience')?.value.trim()||'',why,philosophy})});
+    await api('/api/coach/apply',{method:'POST',body:JSON.stringify({preferred_franchise_id:document.getElementById('coachApplyTeam')?.value||null,experience:document.getElementById('coachApplyExperience')?.value.trim()||'',reason:why,philosophy,rules_ack:true})});
     await loadCoachPortal();
   }catch(e){out.textContent=e?.error||e?.message||'Application could not be submitted.'}
 }
@@ -3852,6 +3884,43 @@ async function advanceSeason(){
 }
 
 
+async function loadLeagueSizeAdmin(){
+  const sel=document.getElementById('leagueTeamCount'),out=document.getElementById('leagueSizeOut');
+  if(!sel||ME?.role!=='COMMISSIONER')return;
+  try{
+    const j=await api('/api/commish/season-membership');
+    const max=(j.franchises||[]).length,min=Number(j.minimum_active_teams||8),current=Number(j.current_active||min);
+    sel.innerHTML='';
+    for(let n=min;n<=max;n+=2){const o=document.createElement('option');o.value=n;o.textContent=`${n} teams`;if(n===current)o.selected=true;sel.appendChild(o)}
+    out.textContent=`Current league: ${current} active teams. ${max} franchise brands are available.`;
+  }catch(e){out.textContent='Could not load league-size controls: '+(e?.error||e?.message||'Unknown error')}
+}
+async function applyGenesisLeagueSize(){
+  const n=Number(document.getElementById('leagueTeamCount')?.value||0),out=document.getElementById('leagueSizeOut');
+  if(!n)return;
+  if(!confirm(`Reset Genesis to ${n} active teams? Current Season 1 results and standings will reset to Day 0.`))return;
+  if(!confirm('Accounts and player identities remain, but current-season results are erased. Continue?'))return;
+  try{
+    out.textContent=`Building ${n}-team Genesis league...`;
+    const j=await api('/api/commish/reset-league',{method:'POST',body:JSON.stringify({team_count:n})});
+    out.textContent=`Genesis reset complete: ${j.active_team_count||n} teams • ${j.games_created||0} games scheduled.`;
+    await refresh();
+    await loadLeagueSizeAdmin();
+  }catch(e){out.textContent='League-size update failed: '+(e?.error||e?.message||'Unknown error')}
+}
+async function loadCoachApplications(){
+  const out=document.getElementById('coachApplicationsOut');if(!out||ME?.role!=='COMMISSIONER')return;
+  out.innerHTML='<span class="muted">Loading applications...</span>';
+  try{
+    const j=await api('/api/commish/coach-applications'),apps=j.applications||[];
+    if(!apps.length){out.innerHTML='<p class="muted">No coaching applications yet.</p>';return}
+    out.innerHTML=apps.map(a=>`<div class="offer"><b>${esc(a.username||'Account')}</b> <span class="newsBadge">${esc(a.status||'PENDING')}</span><div class="muted">Preferred franchise: ${esc(a.preferred_franchise_name||'Any available franchise')} • Submitted ${esc(a.created_at||'')}</div><p><b>Why coach:</b> ${esc(a.reason||'')}</p><p><b>Management philosophy:</b> ${esc(a.philosophy||'')}</p>${a.experience?`<p><b>Experience:</b> ${esc(a.experience)}</p>`:''}${a.status==='PENDING'?`<label>Commissioner note<input id="coachReviewNote${a.id}" maxlength="500" placeholder="Optional review note"></label><button class="btn" onclick="reviewCoachApplication(${a.id},'approve')">Approve</button> <button class="btn ghost" onclick="reviewCoachApplication(${a.id},'deny')">Deny</button>`:`<div class="muted">${a.assigned_franchise_name?'Assigned: '+esc(a.assigned_franchise_name):a.status==='APPROVED'?'Approved — awaiting franchise assignment':''}</div>`}</div>`).join('');
+  }catch(e){out.textContent='Could not load coach applications: '+(e?.error||e?.message||'Unknown error')}
+}
+async function reviewCoachApplication(id,decision){
+  const note=document.getElementById(`coachReviewNote${id}`)?.value.trim()||'';
+  try{await api(`/api/commish/coach-application/${decision}`,{method:'POST',body:JSON.stringify({application_id:id,review_note:note})});await Promise.all([loadCoachApplications(),loadCoachAssignments()])}catch(e){alert(e?.error||e?.message||'Coach application review failed')}
+}
 async function loadCoachAssignments(){
   const out=document.getElementById('coachAssignmentOut');
   if(!out)return;
@@ -4812,5 +4881,28 @@ function eblVisibleIdentityAuditV31(){
 
 <script id="eblSportsCartoonV32">
 const EBL_SPORTS_CARTOON_V32={anatomy:'athletic',eyes:'human-proportioned',neck:'shorter-thicker',cap:'skull-wrapped',shoulders:'wider'};
+</script>
+<script id="eblSportsCartoonV34">
+function eblCanonicalIdentityV34(raw={}){
+ const p=typeof eblGetIdentityV26==='function'?eblGetIdentityV26(raw):raw;
+ return typeof eblIdentityCompatV22==='function'?eblIdentityCompatV22(p):p;
+}
+function eblIdentityParityAuditV34(raw={}){
+ const p=eblCanonicalIdentityV34(raw);
+ const keys=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
+ const missing=keys.filter(k=>p[k]===undefined||p[k]===null||p[k]==='');
+ return {ok:missing.length===0,missing};
+}
+</script>
+
+<script id="eblSportsCartoonV35">
+function eblIdentityLinkV35(raw={},opts={}){
+ const p=typeof eblCanonicalIdentityV34==='function'?eblCanonicalIdentityV34(raw):(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(raw):raw);
+ const pid=Number(p.id||p.player_id||p.holder_player_id||0), user=String(p.username||'');
+ const body=typeof eblPlayerBylineV25==='function'?eblPlayerBylineV25(p,{size:opts.size||'xs',action:opts.action||'portrait',subtitle:opts.subtitle||''}):escapeHtml(String(p.name||p.player_name||p.holder_name||'Player'));
+ if(user){const u=user.replace(/\\/g,'\\\\').replace(/'/g,"\\'");return `<button class="eblIdentityLinkV35" type="button" onclick="openUserProfile('${u}')">${body}</button>`;}
+ if(pid)return `<button class="eblIdentityLinkV35" type="button" onclick="openPlayerCard(${pid})">${body}</button>`;
+ return body;
+}
 </script>
 </body></html>
