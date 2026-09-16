@@ -8944,4 +8944,98 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureSkin33,300));
 new MutationObserver(()=>{clearTimeout(window.__rc33);window.__rc33=setTimeout(ensureSkin33,90)}).observe(document.documentElement,{childList:true,subtree:true});
 window.EBL_AVATAR_POLISH_RC33={version:'RC33',skinTones:8,identity:['facial hair','eye black','eyewear','chain','sleeves'],surfaces:['creator','review','home','player HQ','profiles','rosters','awards','legacy']};
 })();
-</script></body></html>
+</script>
+<style id="eblIdentityLockRC34Css">
+.eblSkinToneRC34{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 18px}
+.eblSkinToneRC34 button{min-height:64px;border:1px solid #284760;border-radius:14px;background:#0b2235;color:#dce7ef;font-weight:800;padding:8px}
+.eblSkinToneRC34 button.selected{outline:2px solid #d6b63f;border-color:#d6b63f}
+.eblSkinToneRC34 .sw{display:block;width:30px;height:30px;border-radius:50%;margin:0 auto 5px;border:2px solid rgba(255,255,255,.32)}
+</style>
+<script id="eblIdentityLockRC34">
+(function(){
+const TONES=[
+ ['Fair','#f2c59d'],['Light','#e7b58d'],['Warm','#dca47b'],['Tan','#c98c68'],
+ ['Medium','#bd7c57'],['Deep','#8d573e'],['Rich','#754733'],['Dark','#633c2e']
+];
+const KEYS=['face_id','skin_color_id','hair_id','facial_hair_id','eye_color_id','hair_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number','bats','throws','position','position_group'];
+function normalize34(p={}){
+ const q={...p};
+ // One canonical identity schema; old camelCase values are accepted only as migration inputs.
+ const aliases={skin_color_id:'skinColorId',hair_color_id:'hairColorId',facial_hair_id:'facialHairId',eye_color_id:'eyeColorId',eye_black_id:'eyeBlackId',eyewear_id:'eyewearId',chain_id:'chainId',sleeve_id:'sleeveId',face_id:'faceId',hair_id:'hairId'};
+ for(const [k,a] of Object.entries(aliases)){
+   if(q[k]==null && q[a]!=null)q[k]=q[a];
+   if(q[k]!=null)q[a]=q[k];
+ }
+ q.skin_color_id=Math.min(8,Math.max(1,Number(q.skin_color_id||1)));
+ q.skinColorId=q.skin_color_id;
+ return q;
+}
+function identity34(p={}){const q=normalize34(p),r={};KEYS.forEach(k=>r[k]=q[k]);return r}
+function signature34(p={}){return KEYS.map(k=>String(normalize34(p)[k]??'')).join('|')}
+window.eblNormalizeIdentityRC34=normalize34;
+window.eblIdentitySignatureRC34=signature34;
+
+const base=window.eblIllustratedPlayerRC33||window.eblFinalPortraitV63;
+function portrait34(p={},o={}){
+ const q=normalize34(p);
+ let svg=base(q,o);
+ return svg.replace('<svg ','<svg data-ebl-identity="'+signature34(q).replace(/"/g,'')+'" ');
+}
+window.eblIllustratedPlayerRC34=portrait34;
+window.eblFinalPlayerArtV63=(p,o={})=>portrait34(p,o);
+window.eblFinalPortraitV63=(p,o={})=>portrait34(p,o);
+window.eblPlayerRendererRC22=(p,o={})=>portrait34(p,o);
+window.eblPlayerRendererRC21=(p,o={})=>portrait34(p,o);
+window.avatarMarkup=()=>portrait34(normalize34(window.CREATOR||{}),{surface:'creator-review'});
+
+// Lock final surface portraits to the same identity object. Action poses may change pose,
+// never face/skin/hair/facial hair/accessory identity.
+const priorSurface=window.eblFinalSurfaceV63;
+window.eblFinalSurfaceV63=function(p={},surface='player-profile',action='',opts={}){
+ const q=normalize34(p);
+ const a=String(action||'').toLowerCase();
+ if(['batting','pitching','fielding','running'].includes(a) && typeof window.eblIllustratedActionRC29==='function')
+   return window.eblIllustratedActionRC29(q,a,opts);
+ return portrait34(q,{...opts,surface});
+};
+
+function setSkin34(i){
+ i=Math.min(8,Math.max(1,Number(i)||1));
+ if(window.CREATOR){CREATOR.skin_color_id=i;CREATOR.skinColorId=i}
+ // refresh through the creator's own renderer rather than creating a parallel preview.
+ try{if(typeof window.renderCreator==='function')window.renderCreator()}catch(e){}
+ try{if(typeof window.renderAppearance==='function')window.renderAppearance()}catch(e){}
+}
+window.eblSetSkinToneRC34=setSkin34;
+
+function installSkin34(){
+ const stage=document.getElementById('creatorStage');if(!stage||!window.CREATOR)return;
+ // If the page already has a skin-tone section, normalize its buttons.
+ let buttons=[...stage.querySelectorAll('button')].filter(b=>TONES.some(t=>t[0].toLowerCase()===b.textContent.trim().toLowerCase()));
+ if(buttons.length){
+   buttons.forEach((b,i)=>{
+     b.onclick=()=>setSkin34(i+1);
+     b.classList.toggle('selected',Number(CREATOR.skin_color_id||CREATOR.skinColorId||1)===i+1);
+   });
+   return;
+ }
+ // Add the missing control immediately before Hair Style when the legacy creator omitted it.
+ const headings=[...stage.querySelectorAll('h2,h3,h4')];
+ const hair=headings.find(h=>/hair style/i.test(h.textContent));
+ if(!hair||stage.querySelector('.eblSkinToneRC34'))return;
+ const wrap=document.createElement('div');wrap.className='eblSkinToneRC34';
+ TONES.forEach((t,i)=>{
+   const b=document.createElement('button');b.type='button';
+   b.innerHTML=`<span class="sw" style="background:${t[1]}"></span>${t[0]}`;
+   b.classList.toggle('selected',Number(CREATOR.skin_color_id||CREATOR.skinColorId||1)===i+1);
+   b.onclick=()=>setSkin34(i+1);wrap.appendChild(b);
+ });
+ const title=document.createElement('h3');title.textContent='SKIN TONE';
+ hair.parentNode.insertBefore(title,hair);hair.parentNode.insertBefore(wrap,hair);
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(installSkin34,250));
+new MutationObserver(()=>{clearTimeout(window.__rc34);window.__rc34=setTimeout(installSkin34,80)}).observe(document.documentElement,{childList:true,subtree:true});
+window.EBL_IDENTITY_LOCK_RC34={version:'RC34',skinTones:8,rule:'one saved identity across every portrait surface',keys:KEYS};
+})();
+</script>
+</body></html>
