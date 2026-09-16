@@ -8135,7 +8135,7 @@ function eblRC22ShouldShowFace(opts={}){
 }
 function eblPlayerRendererRC22(player={},opts={}){
  const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
- let svg=eblPlayerRendererRC21(p,opts);
+ let svg=eblRC21Render(p,opts.surface||'player-profile',opts.action||'',opts);
  const foreground=(eblRC22ShouldShowFace(opts)?eblRC22Face(p,opts):'')+eblRC22Kit(p);
  svg=svg.replace(/data-ebl-renderer="RC21"/,'data-ebl-renderer="RC22"');
  return svg.replace('</svg>',`<g class="rc22Final">${foreground}</g></svg>`);
@@ -8418,4 +8418,16 @@ const EBL_CAREER_PULSE_RC28={version:'RC28',features:['career snapshot','legacy 
 document.addEventListener('DOMContentLoaded',()=>setTimeout(ebl28Mount,380));
 const ebl28Obs=new MutationObserver(()=>{clearTimeout(window.__ebl28t);window.__ebl28t=setTimeout(ebl28Mount,120)});
 document.addEventListener('DOMContentLoaded',()=>ebl28Obs.observe(document.body,{childList:true,subtree:true}));
+</script><script id="eblRendererHotfixRC28">
+/* RC28 — deployed screenshot hotfix: RC22 referenced a renderer name RC21 never exported. */
+if(typeof window!=='undefined' && typeof window.eblPlayerRendererRC21!=='function'){
+ window.eblPlayerRendererRC21=function(player={},opts={}){
+   return eblRC21Render(player,opts.surface||'player-profile',opts.action||'',opts);
+ };
+}
+const EBL_RENDERER_HOTFIX_RC28={
+ version:'RC28',
+ fixes:['creator appearance crash','blank player portraits caused by RC22→RC21 name mismatch'],
+ screenshotError:'eblPlayerRendererRC21 is not a function'
+};
 </script></body></html>
