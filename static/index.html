@@ -592,6 +592,45 @@ dialog{
 <style id="eblSportsCartoonV25Css">
 .eblPlayerBylineV25{display:flex;align-items:center;gap:10px;min-width:0}.eblPlayerBylineV25__copy{min-width:0;line-height:1.08}.eblPlayerBylineV25__copy strong,.eblPlayerBylineV25__copy span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eblPlayerBylineV25__copy span{font-size:.7rem;opacity:.68;margin-top:3px}
 </style>
+
+<style id="eblSportsCartoonV26Css">
+.eblIdentityLinkV26{display:inline-flex;align-items:center;max-width:100%;border:0;background:none;color:inherit;padding:0;text-align:left;font:inherit;cursor:pointer}
+.eblIdentityLinkV26:hover .eblPlayerBylineV25__copy strong,.eblIdentityLinkV26:focus-visible .eblPlayerBylineV25__copy strong{text-decoration:underline}
+.eblIdentityLinkV26:focus-visible{outline:2px solid currentColor;outline-offset:4px;border-radius:8px}
+</style>
+
+<style id="eblSportsCartoonV27Css">
+/* V27 — Player HQ now uses the same canonical identity art as league surfaces. */
+.playerPortraitV27{display:grid;place-items:center;overflow:hidden;padding:0;background:transparent}
+.playerPortraitV27 .eblPlayerArtV24--lg{width:100%;height:100%;border:0;border-radius:inherit}
+</style>
+
+<style id="eblSportsCartoonV28Css">
+/* V28 — public/player-card portraits share the same baseball-card framing as Player HQ. */
+.profileHero .eblPlayerArtV24--lg,.profilePlayer .eblPlayerArtV24--lg{width:112px;height:136px;flex:0 0 112px}
+@media(max-width:720px){.profileHero .eblPlayerArtV24--lg,.profilePlayer .eblPlayerArtV24--lg{width:94px;height:116px;flex-basis:94px}}
+</style>
+
+<style id="eblSportsCartoonV29Css">
+/* V29 — canonical portraits keep dense league rows compact. */
+.leagueIdentity .eblPlayerArtV24--xs,.leagueIdentity .eblPlayerArtV24--sm{flex:none}
+</style>
+
+<style id="eblSportsCartoonV30Css">
+/* V30 — consistent crop for canonical player art in compact navigation/home surfaces. */
+.eblPlayerArtV24--xs svg,.eblPlayerArtV24--sm svg{transform-origin:50% 25%}
+</style>
+
+<style id="eblSportsCartoonV31Css">
+/* V31 — feature and hero identity surfaces now share canonical sports-card art. */
+.eblPlayerFeature>.eblPlayerArtV24--md{flex:0 0 76px}
+.playerIdentityRow>.eblPlayerArtV24--xs{flex:0 0 34px}
+</style>
+
+<style id="eblSportsCartoonV32Css">
+/* V32 — structural sports-cartoon anatomy pass. */
+.eblPlayerArtV24 svg{overflow:visible}
+</style>
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -1508,7 +1547,7 @@ async function loadMyTeam(){
       ? `<button class="btn" disabled>✓ Practice Complete • +${Number(practice.reward||.25).toFixed(2)} XP</button>`
       : `<button class="btn" onclick="joinTeamPractice()">Join Today's Practice • +${Number(practice.reward||.25).toFixed(2)} XP</button>`;
     const attendanceList=attendance.length?attendance.map(a=>`<span class="legacyBadge">✓ ${escapeHtml(String(a.name||a.username||'Player'))}</span>`).join(' '):'<span class="muted">Be the first teammate at practice today.</span>';
-    const rosterRows=TEAM_ROSTER.map(p=>`<tr><td><div class="rosterIdentity">${eblAvatarHtml(p,'mini')}<div>${teamPlayerLink(p)}</div></div></td><td>${escapeHtml(String(p.primary_pos||''))}</td><td>#${Number(p.jersey_number??0)}</td><td>${Number(p.overall||0)}</td><td>${p.user_id?'HUMAN':'CPU'}</td></tr>`).join('');
+    const rosterRows=TEAM_ROSTER.map(p=>`<tr><td><div class="rosterIdentity">${eblPublicPortraitV28(p,'sm')}<div>${teamPlayerLink(p)}</div></div></td><td>${escapeHtml(String(p.primary_pos||''))}</td><td>#${Number(p.jersey_number??0)}</td><td>${Number(p.overall||0)}</td><td>${p.user_id?'HUMAN':'CPU'}</td></tr>`).join('');
     const next=j.next_game?`Day ${j.next_game.league_day} • ${j.next_game.away_id===team.id?'at':'vs'} ${escapeHtml(teamName(j.next_game.away_id===team.id?j.next_game.home_id:j.next_game.away_id))}`:'No game currently scheduled';
     teamPage.innerHTML=`
       <div class="identity">${logo}<div><span class="gold">${escapeHtml(String(j.division||''))} Division</span><h1 style="margin:4px 0"><button class="clickableName" onclick="openTeam('${jsq(team.id)}')">${escapeHtml(display)}</button></h1><div class="big">${Number(team.wins||0)}-${Number(team.losses||0)}</div><div class="muted">Next: ${next}</div></div></div>
@@ -1624,7 +1663,7 @@ function profilePlayerCard(p){
   const contractHistory=(c.contract_history||[]).map(x=>`<div class="recordCard"><b>${escapeHtml(String(x.team_name||x.franchise_id||'Team'))}</b><div class="muted">${Number(x.salary||0).toFixed(2)} XP/game • ${Number(x.years||0)} season${Number(x.years||0)===1?'':'s'}${Number(x.bonus||0)?` • ${Number(x.bonus).toFixed(2)} XP bonus`:''}</div></div>`).join('');
   return `<div class="profilePlayer">
     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-      ${eblAvatarHtml(p,'card')}
+      ${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(p):p,'lg','portrait'):eblAvatarHtml(p,'card')}
       <div style="flex:1;min-width:210px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h3 style="margin:0">${escapeHtml(String(p.name||'Player'))} <span class="gold">${escapeHtml(String(p.primary_pos||''))}</span></h3><div class="muted">${team} • #${Number(p.jersey_number??0)} • Age ${Number(p.age||18)} • ${status}</div>${contractLine}</div><span class="legacyBadge">${p.type==='P'?'Pitcher':'Position Player'}</span></div>
       ${p.active?`<div class="recordCard" style="margin-top:8px"><span class="label">CURRENT SEASON</span><div>${escapeHtml(currentLine||'Season underway')}</div></div>`:''}</div>
     </div>
@@ -2070,7 +2109,7 @@ function renderPlayer(){
                         <div><span class="newsMeta">PLAYER AVATAR</span><h3 style="margin:2px 0 0">${escapeHtml(p.name)}</h3></div>
                         <span class="pill">#${Number(p.jersey_number??24)}</span>
                     </div>
-                    ${eblAvatarHtml(p,'hero')}
+                    ${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(p):p,'lg','portrait'):eblAvatarHtml(p,'hero')}
                     <div class="muted" style="margin-top:7px">Your EBL illustrated player avatar uses your saved face, hair, facial hair, eyes, game-day cosmetics, jersey number, handedness, position, and team colors.</div>
                 </div>
 
@@ -2962,19 +3001,27 @@ function eblAvatarHtml(player,size='card'){
  return `<div class="eblIdentityPortrait eblIdentityPortrait--${safe}">${stationaryPlayerSvg(model,safe==='mini')}</div>`;
 }
 function eblPlayerIdentityHtml(player,size='mini'){
- const name=escapeHtml(String(player?.name||player?.player_name||'Player'));
- return `<div class="playerIdentityRow">${eblAvatarHtml(player,size)}<div class="playerIdentityText">${name}</div></div>`;
+ const q=typeof eblGetIdentityV26==='function'?eblGetIdentityV26(player||{}):(player||{});
+ const mapped=size==='hero'?'lg':size==='card'?'md':'xs';
+ if(typeof eblIdentityLinkV26==='function') return eblIdentityLinkV26(q,{size:mapped});
+ const name=escapeHtml(String(q?.name||q?.player_name||'Player'));
+ return `<div class="playerIdentityRow">${eblAvatarHtml(q,size)}<div class="playerIdentityText">${name}</div></div>`;
 }
 function eblPlayerFeatureHtml(player,kicker='EBL PLAYER'){
  const name=leaguePlayerName(player);
  const team=escapeHtml(String(player?.team_name||player?.team||teamName(player?.franchise_id)||'EBL'));
  const pos=escapeHtml(String(player?.primary_pos||player?.position||''));
  const num=Number(player?.jersey_number||0);
- return `<div class="eblPlayerFeature">${eblAvatarHtml(player,'card')}<div class="eblPlayerFeatureCopy"><span class="eblPlayerFeatureKicker">${escapeHtml(kicker)}</span><strong>${name}</strong><span>${team}${pos?` • ${pos}`:''}${num?` • #${num}`:''}</span></div></div>`;
+ return `<div class="eblPlayerFeature">${eblPublicPortraitV28(player,'lg')}<div class="eblPlayerFeatureCopy"><span class="eblPlayerFeatureKicker">${escapeHtml(kicker)}</span><strong>${name}</strong><span>${team}${pos?` • ${pos}`:''}${num?` • #${num}`:''}</span></div></div>`;
 }
 function leaguePlayerIdentity(x,size='mini'){
- const link=leaguePlayerName(x);
- return x?.face_id?`<span class="leagueIdentity">${eblAvatarHtml(x,size)}<span class="leagueIdentityName">${link}</span></span>`:link;
+ const q=typeof eblGetIdentityV26==='function'?eblGetIdentityV26(x||{}):(x||{});
+ if(typeof eblIdentityLinkV26==='function'){
+   const mapped=size==='card'?'md':size==='mini'?'xs':'sm';
+   return eblIdentityLinkV26(q,{size:mapped});
+ }
+ const link=leaguePlayerName(q);
+ return q?.face_id?`<span class="leagueIdentity">${eblAvatarHtml(q,size)}<span class="leagueIdentityName">${link}</span></span>`:link;
 }
 function leaguePlayerName(x){
  const name=escapeHtml(String(x?.name||x?.player_name||x?.holder_name||'Player'));
@@ -2998,7 +3045,7 @@ async function loadAwards(){
  fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`${teamName(x.team)} • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
  if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${a.award_name}</b> — ${leaguePlayerName(a)} <span class="gold">+${a.xp_awarded} XP</span><div class="muted">Season ${a.season} • ${String(a.period).replaceAll('_',' ')}</div></div>`).join('')}`}
 }
-function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span>${x?.face_id?`<div class="raceIdentity">${eblAvatarHtml(x,'mini')}<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div></div>`:`<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div>`}<span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
+function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span>${x?.face_id?`<div class="raceIdentity">${eblPublicPortraitV28(x,'sm')}<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div></div>`:`<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div>`}<span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
 function dismissOnboarding(){
  try{localStorage.setItem('ebl_onboarding_dismissed','1')}catch{}
  if(window.onboardingCard)onboardingCard.classList.add('hidden');
@@ -3025,7 +3072,7 @@ function renderHome(){
   }else onboardingCard.classList.add('hidden');
  }
  if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
- let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap">${eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
+ let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap">${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(p):p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
  homeTeam.innerHTML=t?`<div class="identity">${teamMark(p.franchise_id)}<div><span class="muted">MY TEAM</span><h2><button class="clickableName" onclick="openTeam('${p.franchise_id}')">${t.name}</button></h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div></div></div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Enter the CPU market from the Player tab.</p>`;
  let ng=p.franchise_id?SCHEDULE.find(g=>g.status==='SCHEDULED'&&(g.away_id===p.franchise_id||g.home_id===p.franchise_id)&&g.league_day>=(LEAGUE?.day||0)):null;
  nextGame.innerHTML=ng?`<span class="muted">NEXT GAME • DAY ${ng.league_day}</span><h2>${teamName(ng.away_id)} @ ${teamName(ng.home_id)}</h2><p>${ng.away_id===p.franchise_id?'Road game':'Home game'}</p>`:`<h2>Next Game</h2><p class="muted">${p.franchise_id?'No upcoming game found.':'Sign a contract to join the schedule.'}</p>`;
@@ -3266,16 +3313,16 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
  <g filter="url(#softShadow)" stroke="#111820" stroke-linejoin="round" stroke-linecap="round">
    <!-- clean baseball-card background -->
    <circle cx="150" cy="158" r="116" fill="${t1}" opacity=".20" stroke="none"/>
-   <path d="M52 330 Q55 237 112 215 Q150 202 188 215 Q245 237 248 330Z" fill="${t1}" stroke-width="6"/>
+   <path d="M38 330 Q44 246 102 219 Q125 208 150 208 Q175 208 198 219 Q256 246 262 330Z" fill="${t1}" stroke-width="6"/>
    ${sleeves}
    <path d="M112 216 Q150 239 188 216" fill="none" stroke="${t2}" stroke-width="8"/>
    <path d="M121 216 Q150 232 179 216" fill="none" stroke="${t3}" stroke-width="3"/>
    <!-- neck -->
-   <path d="M132 178 L132 221 Q150 233 168 221 L168 178Z" fill="${skin}" stroke-width="5"/>
+   <path d="M128 174 Q132 194 129 214 Q139 224 150 225 Q161 224 171 214 Q168 194 172 174Z" fill="${skin}" stroke-width="5"/>
    <!-- ears and head -->
-   <ellipse cx="${cx-rx+1}" cy="139" rx="14" ry="19" fill="${skin}" stroke-width="5"/>
-   <ellipse cx="${cx+rx-1}" cy="139" rx="14" ry="19" fill="${skin}" stroke-width="5"/>
-   <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${skin}" stroke-width="6"/>
+   <ellipse cx="${cx-rx+2}" cy="${cy+4}" rx="10" ry="15" fill="${skin}" stroke-width="4"/>
+   <ellipse cx="${cx+rx-2}" cy="${cy+4}" rx="10" ry="15" fill="${skin}" stroke-width="4"/>
+   <path d="M${cx-rx} ${cy-12} Q${cx-rx+2} ${cy-ry+8} ${cx} ${cy-ry+3} Q${cx+rx-2} ${cy-ry+8} ${cx+rx} ${cy-12} L${cx+rx-3} ${cy+20} Q${cx+rx-8} ${cy+ry-9} ${cx+22} ${cy+ry-2} Q${cx} ${cy+ry+9} ${cx-22} ${cy+ry-2} Q${cx-rx+8} ${cy+ry-9} ${cx-rx+3} ${cy+20}Z" fill="${skin}" stroke-width="6"/>
    <!-- integrated hair -->
    ${hairPaths?`<path d="${hairPaths}" fill="${hairs}" stroke-width="5"/>`:''}
    ${hairPaths?`<g fill="none" stroke="${hairs}" stroke-width="2.2" opacity=".42">
@@ -3289,10 +3336,10 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
    <!-- cel-style cheek / jaw shade -->
    <path d="M111 151 Q119 181 146 193 Q127 191 116 179 Q108 168 111 151Z" fill="#7c493c" opacity=".10" stroke="none"/>
       <!-- cap behind/over hair -->
-   <path d="M103 111 Q107 67 150 63 Q193 67 197 111 Q173 97 150 98 Q127 97 103 111Z" fill="${t1}" stroke-width="6"/>
-   <path d="M149 64 Q150 82 150 98" fill="none" stroke="${t3}" stroke-width="2" opacity=".35"/>
-   <circle cx="150" cy="64" r="4.5" fill="${t2}" stroke-width="2"/>
-   <path d="M151 98 Q192 91 220 111 Q184 118 151 109Z" fill="${t2}" stroke-width="5"/>
+   <path d="M102 113 Q104 74 126 62 Q148 49 174 61 Q196 73 198 113 Q177 99 150 99 Q123 99 102 113Z" fill="${t1}" stroke-width="6"/>
+   <path d="M126 62 Q149 72 174 61 M150 55 L150 99" fill="none" stroke="${t3}" stroke-width="2" opacity=".30"/>
+   <circle cx="150" cy="55" r="4.5" fill="${t2}" stroke-width="2"/>
+   <path d="M148 99 Q190 93 220 111 Q186 121 149 110Z" fill="${t2}" stroke-width="5"/>
    <text x="150" y="91" text-anchor="middle" fill="${t3}" font-size="18" font-weight="900" font-family="Arial Black,Arial" stroke="none">${initials}</text>
    <!-- Sports Cartoon V8: illustrated face construction -->
    <path d="M${cx-rx+8} ${cy+13} Q${cx-rx+18} ${cy+ry-8} ${cx} ${cy+ry-4} Q${cx+rx-18} ${cy+ry-8} ${cx+rx-8} ${cy+13}"
@@ -3306,16 +3353,16 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
    <path d="M${cx+rx-34} ${cy+25} Q${cx+rx-25} ${cy+31} ${cx+rx-16} ${cy+25}"
          fill="none" stroke="#9b5f50" stroke-width="2" opacity=".20"/>
       <!-- natural-sized eyes -->
-   <ellipse cx="124" cy="139" rx="11" ry="12" fill="#fff" stroke-width="3"/>
-   <ellipse cx="176" cy="139" rx="11" ry="12" fill="#fff" stroke-width="3"/>
-   <circle cx="125" cy="140" r="6" fill="${eyes}" stroke-width="2"/><circle cx="175" cy="140" r="6" fill="${eyes}" stroke-width="2"/>
-   <circle cx="125" cy="140" r="2.5" fill="#111820" stroke="none"/><circle cx="175" cy="140" r="2.5" fill="#111820" stroke="none"/>
-   <path d="M114 137 Q124 130 135 137 M165 137 Q176 130 187 137" fill="none" stroke="#111820" stroke-width="2.4"/>
-   <circle cx="127" cy="137" r="1.4" fill="#fff" stroke="none"/><circle cx="177" cy="137" r="1.4" fill="#fff" stroke="none"/>
-   <path d="M111 123 Q124 117 137 123 M163 123 Q176 117 189 123" fill="none" stroke="${hairs}" stroke-width="5"/>
+   <path d="M113 138 Q124 131 136 138 Q124 146 113 138Z" fill="#fff" stroke-width="2.6"/>
+   <path d="M164 138 Q176 131 187 138 Q176 146 164 138Z" fill="#fff" stroke-width="2.6"/>
+   <circle cx="125" cy="138" r="4.8" fill="${eyes}" stroke-width="1.7"/><circle cx="175" cy="138" r="4.8" fill="${eyes}" stroke-width="1.7"/>
+   <circle cx="125" cy="138" r="2.1" fill="#111820" stroke="none"/><circle cx="175" cy="138" r="2.1" fill="#111820" stroke="none"/>
+   <circle cx="126.5" cy="136.5" r="1.1" fill="#fff" stroke="none"/><circle cx="176.5" cy="136.5" r="1.1" fill="#fff" stroke="none"/>
+   <path d="M111 123 Q124 117 138 124 M162 124 Q176 117 190 123" fill="none" stroke="${hairs}" stroke-width="4.5"/>
    <!-- simple nose and controlled smile -->
-   <path d="M150 142 Q145 151 146 158 Q150 162 155 158" fill="none" stroke="#875448" stroke-width="3"/>
-   <path d="M143 161 Q150 165 157 161" fill="none" stroke="#875448" stroke-width="2" opacity=".55"/>
+   <path d="M150 141 Q145 151 146 158 Q150 161 155 158" fill="none" stroke="#875448" stroke-width="2.7"/>
+   <path d="M143 161 Q150 164 157 161" fill="none" stroke="#875448" stroke-width="1.8" opacity=".48"/>
+   <path d="M126 181 Q150 193 174 181" fill="none" stroke="#875448" stroke-width="1.6" opacity=".20"/>
    ${(()=>{
      const mouths=[
        '', 'M132 173 Q150 185 168 173 Q164 190 150 193 Q136 190 132 173Z',
@@ -3498,13 +3545,12 @@ function eblActionArtHtml(p,action='batting',cls=''){
  return `<div class="eblActionArt ${escapeHtml(cls)}">${eblActionPlayerSvg(p,action)}</div>`;
 }
 function playerPortraitMarkup(p,pose='auto'){
- const face=Math.max(1,Math.min(10,Number(p?.face_id||1))),hair=Math.max(1,Math.min(10,Number(p?.hair_id||1)));
- const facial=Math.max(1,Math.min(5,Number(p?.facial_hair_id||1)));
- const eyeId=Math.max(1,Math.min(6,Number(p?.eye_color_id||6)));
- const eye=(EYE_COLORS[eyeId-1]||EYE_COLORS[5]).color;
- const team=(LEAGUE?.teams||[]).find(x=>x.id===p?.franchise_id)||p?.team||{};
- const t1=team.primary_color||'#071A31',t2=team.secondary_color||'#D7262E',t3=team.accent_color||'#D9E0E8';
- return `<div class="playerPortrait" data-pos="#${Number(p?.jersey_number??24)} • ${escapeHtml(p?.primary_pos||'EBL')}" style="--team1:${t1};--team2:${t2};--team3:${t3};border-color:${t2}">${eblAvatarHtml(p,'mini')}</div>`;
+ const q=typeof eblGetIdentityV26==='function'?eblGetIdentityV26(p||{}):(typeof eblIdentityCompatV22==='function'?eblIdentityCompatV22(p||{}):(p||{}));
+ const action=(pose&&pose!=='auto'&&pose!=='portrait')?pose:'portrait';
+ if(typeof eblPlayerArtV24==='function'){
+   return `<div class="playerPortrait playerPortraitV27" data-pos="#${Number(q?.jersey_number??24)} • ${escapeHtml(q?.primary_pos||'EBL')}">${eblPlayerArtV24(q,'lg',action)}</div>`;
+ }
+ return `<div class="playerPortrait" data-pos="#${Number(q?.jersey_number??24)} • ${escapeHtml(q?.primary_pos||'EBL')}">${stationaryPlayerSvg(q)}</div>`;
 }
 function updateBrandPreview(){
  if(!window.brandPreview)return;
@@ -4672,5 +4718,99 @@ function eblPlayerBylineV25(row={},opts={}){
  const sub=opts.subtitle||[p.primary_pos,p.jersey_number?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
  return `<span class="eblPlayerBylineV25">${eblPlayerArtV24(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${escapeHtml(p.name||p.player_name||'Player')}</strong>${sub?`<span>${escapeHtml(sub)}</span>`:''}</span></span>`;
 }
+</script>
+
+<script id="eblSportsCartoonV26">
+/* V26 — fast identity cache + one clickable identity wrapper everywhere. */
+const EBL_IDENTITY_CACHE_V26=new Map();
+function eblIdentityCacheKeyV26(raw={}){
+ const id=Number(raw.id||raw.player_id||0),user=String(raw.username||'').trim().toLowerCase();
+ return id?`id:${id}`:user?`user:${user}`:'';
+}
+function eblPrimeIdentityCacheV26(items=[]){
+ (Array.isArray(items)?items:[items]).filter(Boolean).forEach(raw=>{
+   const key=eblIdentityCacheKeyV26(raw);
+   if(key) EBL_IDENTITY_CACHE_V26.set(key,eblHydrateIdentityV25(raw,EBL_IDENTITY_CACHE_V26.get(key)||{}));
+ });
+}
+function eblGetIdentityV26(raw={}){
+ const key=eblIdentityCacheKeyV26(raw);
+ const cached=key?EBL_IDENTITY_CACHE_V26.get(key):null;
+ const found=typeof eblFindPlayerIdentityV25==='function'?eblFindPlayerIdentityV25(raw.id||raw.player_id,raw.username):null;
+ const p=eblHydrateIdentityV25(raw,found||cached||{});
+ if(key) EBL_IDENTITY_CACHE_V26.set(key,p);
+ return p;
+}
+function eblIdentityLinkV26(raw={},opts={}){
+ const p=eblGetIdentityV26(raw),pid=Number(p.id||p.player_id||0),user=String(p.username||'');
+ const body=eblPlayerBylineV25(p,opts);
+ if(user){
+   const u=user.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+   return `<button class="eblIdentityLinkV26" type="button" onclick="openUserProfile('${u}')">${body}</button>`;
+ }
+ if(pid) return `<button class="eblIdentityLinkV26" type="button" onclick="openPlayerCard(${pid})">${body}</button>`;
+ return body;
+}
+function eblPrimeLeagueIdentityV26(){
+ const rows=[];
+ if(typeof PLAYER!=='undefined'&&PLAYER) rows.push(PLAYER);
+ if(typeof LEAGUE!=='undefined'&&LEAGUE){
+   if(Array.isArray(LEAGUE.players)) rows.push(...LEAGUE.players);
+   if(Array.isArray(LEAGUE.roster)) rows.push(...LEAGUE.roster);
+   if(Array.isArray(LEAGUE.teams)) LEAGUE.teams.forEach(t=>{
+     if(Array.isArray(t.players)) rows.push(...t.players);
+     if(Array.isArray(t.roster)) rows.push(...t.roster);
+   });
+ }
+ eblPrimeIdentityCacheV26(rows);
+ return rows.length;
+}
+</script>
+
+<script id="eblSportsCartoonV27">
+/* V27 marker — legacy Player HQ and league identity entry points are routed into V24–V26. */
+const EBL_IDENTITY_PIPELINE_V27={playerHQ:'eblPlayerArtV24',leagueRows:'eblIdentityLinkV26',hydration:'eblGetIdentityV26'};
+</script>
+
+<script id="eblSportsCartoonV28">
+/* V28 — canonical portrait helper for public profile/player-card surfaces. */
+function eblPublicPortraitV28(raw={},size='lg'){
+ const p=typeof eblGetIdentityV26==='function'?eblGetIdentityV26(raw):raw;
+ return typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,size,'portrait'):eblAvatarHtml(p,size==='lg'?'card':'mini');
+}
+</script>
+
+<script id="eblSportsCartoonV29">
+/* V29 — identity migration audit for future surface cleanup. */
+function eblIdentityAuditV29(){
+ const source=document.documentElement.innerHTML;
+ return {pipeline:'V29',canonical:typeof eblPlayerArtV24==='function',cache:typeof eblGetIdentityV26==='function',publicPortrait:typeof eblPublicPortraitV28==='function',legacyAvatarReferences:(source.match(/eblAvatarHtml\(/g)||[]).length};
+}
+</script>
+
+<script id="eblSportsCartoonV30">
+/* V30 — canonical identity diagnostics without touching intentional legacy fallbacks. */
+function eblIdentityHealthV30(raw={}){
+ const p=typeof eblGetIdentityV26==='function'?eblGetIdentityV26(raw):raw;
+ const required=['face_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
+ const missing=required.filter(k=>p?.[k]===undefined||p?.[k]===null||p?.[k]==='');
+ return {ok:missing.length===0,missing,key:typeof eblIdentityKeyV24==='function'?eblIdentityKeyV24(p):'',player:p?.name||p?.player_name||'Player'};
+}
+</script>
+
+<script id="eblSportsCartoonV31">
+/* V31 — reports whether visible identity helpers are on the canonical pipeline. */
+function eblVisibleIdentityAuditV31(){
+ return {
+  pipeline:'V31',
+  playerIdentityCanonical:/eblIdentityLinkV26/.test(eblPlayerIdentityHtml.toString()),
+  playerFeatureCanonical:/eblPlayerArtV24/.test(eblPlayerFeatureHtml.toString()),
+  playerHQCanonical:/eblPlayerArtV24/.test(playerPortraitMarkup.toString())
+ };
+}
+</script>
+
+<script id="eblSportsCartoonV32">
+const EBL_SPORTS_CARTOON_V32={anatomy:'athletic',eyes:'human-proportioned',neck:'shorter-thicker',cap:'skull-wrapped',shoulders:'wider'};
 </script>
 </body></html>
