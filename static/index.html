@@ -642,6 +642,91 @@ dialog{
 .eblIdentityLinkV35:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:7px}
 .eblIdentityLinkV35 .eblPlayerBylineV25{gap:7px}.eblIdentityLinkV35 .eblPlayerBylineV25__copy span{display:none}
 </style>
+
+<style id="eblSportsCartoonV36Css">
+/* V36 — canonical identity remains readable in dense league cards and on mobile. */
+.recordCard .eblIdentityLinkV35,.raceIdentity .eblIdentityLinkV35{max-width:190px}
+@media(max-width:640px){
+ .recordCard .eblIdentityLinkV35,.raceIdentity .eblIdentityLinkV35{max-width:145px}
+ .recordCard .eblPlayerArtV24--xs,.raceIdentity .eblPlayerArtV24--xs{flex-basis:28px;width:28px;height:28px}
+}
+</style>
+
+<style id="eblSportsCartoonV37Css">
+/* V37 — one normalized identity payload for every player-art surface. */
+[data-ebl-player-art]{contain:layout paint}
+</style>
+<style id="eblSportsCartoonV38Css">
+/* V38 — profile/HQ hero and compact identity rows share the same normalized appearance payload. */
+.playerIdentityRow .eblIdentityLinkV35{min-width:0}
+</style>
+<style id="eblSportsCartoonV39Css">
+/* V39 — action poses inherit the same persistent appearance as portraits. */
+.eblActionPlayerArt svg{shape-rendering:geometricPrecision}
+</style>
+
+<style id="eblSportsCartoonV40Css">
+.eblPoseStripV40{display:grid;grid-template-columns:repeat(5,minmax(92px,1fr));gap:10px;margin-top:12px}
+.eblPoseV40{min-width:0;padding:9px;border:1px solid var(--line,#26354a);border-radius:12px;background:rgba(255,255,255,.025);text-align:center}
+.eblPoseV40__art{height:116px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.eblPoseV40__art svg{width:100%;height:100%;display:block}
+.eblPoseV40__label{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;opacity:.72;margin-top:5px}
+@media(max-width:700px){.eblPoseStripV40{grid-template-columns:repeat(2,minmax(0,1fr))}.eblPoseV40:first-child{grid-column:1/-1}.eblPoseV40__art{height:138px}}
+</style>
+
+<style id="eblSportsCartoonV41Css">
+#eblIdentityLabV41{margin-top:14px}
+#eblIdentityLabV41 .eblIdentityLabV41__head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+#eblIdentityLabV41 .eblIdentityLabV41__title{font-size:13px;font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
+#eblIdentityLabV41 .eblIdentityLabV41__sub{font-size:11px;opacity:.66;margin-top:3px}
+#eblIdentityLabV41 .pill{white-space:nowrap}
+</style>
+<style id="eblSportsCartoonV42Css">
+.playerPreview svg,.eblPoseV40__art svg{filter:drop-shadow(0 5px 7px rgba(0,0,0,.16))}
+.eblPlayerArtV24--lg svg{filter:drop-shadow(0 8px 12px rgba(0,0,0,.18))}
+</style><style id="eblSportsCartoonV43Css">
+.eblPoseV40[data-pose="batting"] svg,.eblPoseV40[data-pose="fielding"] svg,.eblPoseV40[data-pose="pitching"] svg,.eblPoseV40[data-pose="running"] svg{overflow:visible}
+</style><style id="eblSportsCartoonV44Css">
+.eblPoseV40__art svg{transform:scale(1.025);transform-origin:center bottom}
+@media(max-width:700px){.eblPoseV40__art svg{transform:scale(1.04)}}
+</style><style id="eblSportsCartoonV45Css">
+/* V45 — keep limb ink crisp at small roster/Gamecast sizes. */
+.eblPoseV40__art .eblV45Anatomy{vector-effect:non-scaling-stroke}
+</style><style id="eblSportsCartoonV46Css">.eblPoseV40__art .eblV46Silhouette{vector-effect:non-scaling-stroke}</style><style id="eblSportsCartoonV47Css">
+.eblPoseV40__art .eblV47Hands{vector-effect:non-scaling-stroke}
+</style><style id="eblSportsCartoonV48Css">
+.eblPoseV40__art .eblV48Mechanics{vector-effect:non-scaling-stroke}
+</style><style id="eblSportsCartoonV49Css">
+.eblPoseV40__art .eblV49Orientation{vector-effect:non-scaling-stroke}
+</style><style id="eblSportsCartoonV50Css">
+.eblPoseV40__art .eblV50Pose{vector-effect:non-scaling-stroke}
+</style><style id="eblSportsCartoonV51Css">
+.eblPoseV40__art .eblV51Volume{vector-effect:non-scaling-stroke}
+</style><style id="eblSportsCartoonV52Css">
+.eblPoseV40__art .eblV52Equipment{vector-effect:non-scaling-stroke}
+</style><style id="eblSportsCartoonV53Css">
+.eblPoseV40__art .eblV53Head{vector-effect:non-scaling-stroke}
+</style>
+<style id="eblSportsCartoonV57Css">
+.eblPoseV40__art .eblV57Finish{vector-effect:non-scaling-stroke;pointer-events:none}
+.eblPoseV40__art svg{filter:drop-shadow(0 3px 2px rgba(15,24,32,.10))}
+@media(max-width:700px){.eblPoseV40__art .eblV57Contour{stroke-width:4.7}}
+</style>
+
+<style id="eblSportsCartoonV58Css">
+.eblPoseV40__art .eblV58Anatomy{fill:none;stroke:#101820;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none}
+.eblPoseV40__art .eblV58Anatomy .skinLine{stroke-width:4}
+.eblPoseV40__art .eblV58Anatomy .joint{fill:#101820;stroke:none;opacity:.72}
+.eblPoseV40__art .eblV58Anatomy .cleat{stroke-width:4.2;fill:#202a35;fill-opacity:.16}
+</style>
+
+<style id="eblSportsCartoonV59Css">
+.eblPoseV40__art .eblV59Contact{vector-effect:non-scaling-stroke;pointer-events:none}
+</style>
+
+<style id="eblSportsCartoonV60Css">
+.eblPoseV40__art .eblV60Proportion{vector-effect:non-scaling-stroke;pointer-events:none}
+</style>
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -2137,7 +2222,7 @@ function renderPlayer(){
                         <div><span class="newsMeta">PLAYER AVATAR</span><h3 style="margin:2px 0 0">${escapeHtml(p.name)}</h3></div>
                         <span class="pill">#${Number(p.jersey_number??24)}</span>
                     </div>
-                    ${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(p):p,'lg','portrait'):eblAvatarHtml(p,'hero')}
+                    ${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(typeof eblIdentityV37==='function'?eblIdentityV37(p):(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(p):p),'lg','portrait'):eblAvatarHtml(p,'hero')}
                     <div class="muted" style="margin-top:7px">Your EBL illustrated player avatar uses your saved face, hair, facial hair, eyes, game-day cosmetics, jersey number, handedness, position, and team colors.</div>
                 </div>
 
@@ -3029,17 +3114,19 @@ function eblAvatarHtml(player,size='card'){
  return `<div class="eblIdentityPortrait eblIdentityPortrait--${safe}">${stationaryPlayerSvg(model,safe==='mini')}</div>`;
 }
 function eblPlayerIdentityHtml(player,size='mini'){
- const q=typeof eblGetIdentityV26==='function'?eblGetIdentityV26(player||{}):(player||{});
+ const q=typeof eblIdentityV37==='function'?eblIdentityV37(player||{}):(player||{});
  const mapped=size==='hero'?'lg':size==='card'?'md':'xs';
+ if(typeof eblIdentityLinkV35==='function') return eblIdentityLinkV35(q,{size:mapped});
  if(typeof eblIdentityLinkV26==='function') return eblIdentityLinkV26(q,{size:mapped});
  const name=escapeHtml(String(q?.name||q?.player_name||'Player'));
  return `<div class="playerIdentityRow">${eblAvatarHtml(q,size)}<div class="playerIdentityText">${name}</div></div>`;
 }
 function eblPlayerFeatureHtml(player,kicker='EBL PLAYER'){
- const name=leaguePlayerName(player);
- const team=escapeHtml(String(player?.team_name||player?.team||teamName(player?.franchise_id)||'EBL'));
- const pos=escapeHtml(String(player?.primary_pos||player?.position||''));
- const num=Number(player?.jersey_number||0);
+ const q=typeof eblCanonicalIdentityV34==='function'?eblCanonicalIdentityV34(player||{}):(player||{});
+ const name=eblIdentityLinkV35(q,{size:'sm'});
+ const team=escapeHtml(String(q?.team_name||q?.team||teamName(q?.franchise_id)||'EBL'));
+ const pos=escapeHtml(String(q?.primary_pos||q?.position||''));
+ const num=Number(q?.jersey_number||0);
  return `<div class="eblPlayerFeature">${eblPublicPortraitV28(player,'lg')}<div class="eblPlayerFeatureCopy"><span class="eblPlayerFeatureKicker">${escapeHtml(kicker)}</span><strong>${name}</strong><span>${team}${pos?` • ${pos}`:''}${num?` • #${num}`:''}</span></div></div>`;
 }
 function leaguePlayerIdentity(x,size='mini'){
@@ -3048,7 +3135,7 @@ function leaguePlayerIdentity(x,size='mini'){
    const mapped=size==='card'?'md':size==='mini'?'xs':'sm';
    return eblIdentityLinkV26(q,{size:mapped});
  }
- const link=leaguePlayerName(q);
+ const link=typeof eblIdentityLinkV35==='function'?eblIdentityLinkV35(q,{size:size==='card'?'md':'xs'}):leaguePlayerName(q);
  return q?.face_id?`<span class="leagueIdentity">${eblAvatarHtml(q,size)}<span class="leagueIdentityName">${link}</span></span>`:link;
 }
 function leaguePlayerName(x){
@@ -3071,7 +3158,7 @@ async function loadAwards(){
  pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`${teamName(x.team)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`${teamName(x.team)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
  sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`${teamName(x.team)} • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
  fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`${teamName(x.team)} • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
- if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${a.award_name}</b> — ${leaguePlayerName(a)} <span class="gold">+${a.xp_awarded} XP</span><div class="muted">Season ${a.season} • ${String(a.period).replaceAll('_',' ')}</div></div>`).join('')}`}
+ if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${a.award_name}</b> — ${eblIdentityLinkV35(a,{size:"xs"})} <span class="gold">+${a.xp_awarded} XP</span><div class="muted">Season ${a.season} • ${String(a.period).replaceAll('_',' ')}</div></div>`).join('')}`}
 }
 function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span>${x?.face_id?`<div class="raceIdentity">${eblPublicPortraitV28(x,'sm')}<div><b>${eblIdentityLinkV35(x,{size:"xs"})}</b><div class="muted">${detail(x)}</div></div></div>`:`<div><b>${eblIdentityLinkV35(x,{size:"xs"})}</b><div class="muted">${detail(x)}</div></div>`}<span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
 function dismissOnboarding(){
@@ -3432,10 +3519,17 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
    <text x="150" y="277" text-anchor="middle" fill="${t3}" font-size="39" font-weight="900" font-family="Arial Black,Arial" stroke="#111820" stroke-width="2" paint-order="stroke">${jersey}</text>
    <text x="150" y="304" text-anchor="middle" fill="${t3}" font-size="13" font-weight="900" font-family="Arial" letter-spacing="2" stroke="none">${initials}</text>
    <text x="76" y="299" fill="${t3}" font-size="12" font-weight="900" font-family="Arial" stroke="none">${pos}</text>
+
+   <!-- V42 sports-cartoon finish: stronger facial ink and uniform depth -->
+   <path d="M121 130 Q130 124 139 130 M161 130 Q170 124 179 130" fill="none" stroke="#111820" stroke-width="2.2" stroke-linecap="round" opacity=".72"/>
+   <path d="M148 136 Q143 150 149 154 Q154 154 158 151" fill="none" stroke="#111820" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>
+   <path d="M137 164 Q150 169 163 164" fill="none" stroke="#111820" stroke-width="2" stroke-linecap="round" opacity=".68"/>
+   <path d="M109 171 Q150 190 191 171" fill="none" stroke="#111820" stroke-width="2.4" stroke-linecap="round" opacity=".52"/>
+   <path d="M116 184 Q150 199 184 184" fill="none" stroke="${t3}" stroke-width="2.2" stroke-linecap="round" opacity=".52"/>
  </g></svg>`;
 }
 
-function eblActionPlayerSvg(p,action='batting'){
+function eblActionPlayerSvgV39Core(p,action='batting'){
  p=eblAppearancePlayer(p||{});
  const a=String(action||'batting').toLowerCase();
  const team=teamPalette(p.franchise_id), t1=team[0]||'#123a5a',t2=team[1]||'#d92832',t3=team[2]||'#f5f7fa';
@@ -4904,5 +4998,633 @@ function eblIdentityLinkV35(raw={},opts={}){
  if(pid)return `<button class="eblIdentityLinkV35" type="button" onclick="openPlayerCard(${pid})">${body}</button>`;
  return body;
 }
+</script>
+
+<script id="eblSportsCartoonV36">
+function eblVisibleIdentityAuditV36(){
+ const source={
+  feature:typeof eblPlayerFeatureHtml==='function'?eblPlayerFeatureHtml.toString():'',
+  awards:typeof loadAwardHistory==='function'?loadAwardHistory.toString():'',
+  legacy:typeof eblPlayerIdentityHtml==='function'?eblPlayerIdentityHtml.toString():''
+ };
+ return {
+  pipeline:'V36',
+  featureCanonical:/eblIdentityLinkV35/.test(source.feature),
+  awardsCanonical:/eblIdentityLinkV35/.test(source.awards),
+  legacyCanonical:/eblIdentityLinkV26|eblIdentityLinkV35/.test(source.legacy)
+ };
+}
+</script>
+
+<script id="eblSportsCartoonV37">
+function eblIdentityV37(raw={}){
+ const p=typeof eblCanonicalIdentityV34==='function'?eblCanonicalIdentityV34(raw):(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(raw):raw);
+ const a=p?.appearance||{};
+ const pick=(k,d)=>p?.[k]??a?.[k]??d;
+ return {...p,
+  face_id:Number(pick('face_id',1)),skin_color_id:Number(pick('skin_color_id',1)),
+  hair_id:Number(pick('hair_id',1)),hair_color_id:Number(pick('hair_color_id',3)),
+  facial_hair_id:Number(pick('facial_hair_id',1)),eye_color_id:Number(pick('eye_color_id',6)),
+  eye_black_id:Number(pick('eye_black_id',1)),eyewear_id:Number(pick('eyewear_id',1)),
+  chain_id:Number(pick('chain_id',1)),sleeve_id:Number(pick('sleeve_id',1)),
+  jersey_number:Number(pick('jersey_number',24))
+ };
+}
+function eblIdentityParityV37(raw={}){
+ const p=eblIdentityV37(raw);
+ const keys=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
+ return {ok:keys.every(k=>p[k]!==undefined&&p[k]!==null),identity:p};
+}
+</script>
+<script id="eblSportsCartoonV38">
+function eblIdentitySurfaceAuditV38(){
+ const id=typeof eblPlayerIdentityHtml==='function'?eblPlayerIdentityHtml.toString():'';
+ const hero=typeof playerPortraitMarkup==='function'?playerPortraitMarkup.toString():'';
+ return {pipeline:'V38',identityNormalized:/eblIdentityV37/.test(id),identityLinked:/eblIdentityLinkV35/.test(id),heroNormalized:/eblIdentityV37/.test(hero)};
+}
+</script>
+
+<script id="eblSportsCartoonV39">
+/* V39 — portrait/action parity: one saved player identity, every baseball pose. */
+function eblActionPlayerSvg(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblActionPlayerSvgV39Core(p,action,...rest);
+}
+function eblPlayerArtV39(player={},size='sm',action='portrait'){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ if(action && action!=='portrait' && typeof eblActionPlayerSvg==='function') return eblActionPlayerSvg(p,action);
+ if(typeof eblPlayerArtV24==='function') return eblPlayerArtV24(p,size,'portrait');
+ return typeof stationaryPlayerSvg==='function'?stationaryPlayerSvg(p,false,'portrait'):'';
+}
+function eblArtParityAuditV39(player={}){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const portrait=typeof stationaryPlayerSvg==='function'?stationaryPlayerSvg(p,false,'portrait'):'';
+ const actions=['batting','pitching','fielding','running'].map(a=>eblActionPlayerSvg(p,a));
+ return {pipeline:'V39',portrait:!!portrait,actions:actions.every(Boolean),skinColorId:p.skin_color_id,hairId:p.hair_id,faceId:p.face_id};
+}
+</script>
+
+<script id="eblSportsCartoonV40">
+/* V40 — visual identity QA: one player, every canonical baseball pose. */
+function eblPoseStripV40(raw={}){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(raw):raw;
+ const poses=[['Portrait','portrait'],['Batting','batting'],['Pitching','pitching'],['Fielding','fielding'],['Running','running']];
+ return `<div class="eblPoseStripV40">${poses.map(([label,action])=>{
+   const art=action==='portrait'
+     ? (typeof stationaryPlayerSvg==='function'?stationaryPlayerSvg(p,false,'portrait'):'')
+     : (typeof eblActionPlayerSvg==='function'?eblActionPlayerSvg(p,action):'');
+   return `<div class="eblPoseV40" data-pose="${action}"><div class="eblPoseV40__art">${art}</div><div class="eblPoseV40__label">${label}</div></div>`;
+ }).join('')}</div>`;
+}
+function eblVisualIdentityAuditV40(raw={}){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(raw):raw;
+ const parity=typeof eblArtParityAuditV39==='function'?eblArtParityAuditV39(p):{};
+ return {...parity,previewHtml:eblPoseStripV40(p)};
+}
+</script>
+
+<script id="eblSportsCartoonV41">
+/* V41 — commissioner identity lab: inspect the same player across every canonical pose in Player HQ. */
+function eblIdentityLabV41(){
+ if(!PLAYER || typeof eblPoseStripV40!=='function')return '';
+ const audit=typeof eblIdentityParityV37==='function'?eblIdentityParityV37(PLAYER):{ok:true};
+ return `<section id="eblIdentityLabV41" class="card">
+   <div class="eblIdentityLabV41__head">
+     <div><div class="eblIdentityLabV41__title">Player Identity Lab</div><div class="eblIdentityLabV41__sub">One saved identity across portrait, batting, pitching, fielding and running.</div></div>
+     <span class="pill">${audit.ok?'IDENTITY SYNCED':'CHECK IDENTITY'}</span>
+   </div>
+   ${eblPoseStripV40(PLAYER)}
+ </section>`;
+}
+function eblMountIdentityLabV41(){
+ if(!PLAYER || !ME || !['COMMISSIONER'].includes(ME.role))return;
+ if(document.getElementById('eblIdentityLabV41'))return;
+ const host=document.getElementById('playerCard')||document.getElementById('playerContent')||document.querySelector('#player .card:last-child')||document.querySelector('[data-page="player"]');
+ if(host)host.insertAdjacentHTML('beforeend',eblIdentityLabV41());
+}
+(function(){
+ const oldRender=typeof renderPlayer==='function'?renderPlayer:null;
+ if(oldRender){
+   window.renderPlayer=function(...args){const out=oldRender.apply(this,args);setTimeout(eblMountIdentityLabV41,0);return out;};
+ }
+})();
+</script>
+<script id="eblSportsCartoonV42">
+const EBL_SPORTS_CARTOON_V42={art:'ink-and-uniform-depth',identity:'preserved',qa:'pose-lab'};
+</script>
+<script id="eblSportsCartoonV43">
+/* V43 — action-art finish: clearer baseball equipment and motion, same canonical identity. */
+function eblActionFinishV43(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ let svg=typeof eblActionPlayerSvgV39Core==='function'
+   ? eblActionPlayerSvgV39Core(p,action,...rest)
+   : '';
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ let extra='';
+ if(a==='batting') extra=`<g fill="none" stroke="#171b22" stroke-linecap="round"><path d="M218 82 L274 35" stroke-width="8"/><path d="M219 82 L274 35" stroke="#c99552" stroke-width="5"/></g>`;
+ else if(a==='fielding') extra=`<g><path d="M63 142 Q38 126 29 148 Q27 172 55 177 Q73 168 75 150Z" fill="#a96f3d" stroke="#171b22" stroke-width="4"/><path d="M39 145 Q51 153 61 169 M48 138 Q58 150 68 158" fill="none" stroke="#704523" stroke-width="2"/></g>`;
+ else if(a==='pitching') extra=`<g><circle cx="239" cy="89" r="8" fill="#f7f7f2" stroke="#171b22" stroke-width="2"/><path d="M234 85 Q239 89 244 84 M234 93 Q239 89 244 94" fill="none" stroke="#b72a32" stroke-width="1.4"/></g>`;
+ else if(a==='running') extra=`<g fill="none" stroke="#171b22" stroke-linecap="round" opacity=".28"><path d="M28 226 H74" stroke-width="4"/><path d="M20 239 H61" stroke-width="3"/><path d="M37 252 H82" stroke-width="2.5"/></g>`;
+ return extra?svg.replace('</svg>',extra+'</svg>'):svg;
+}
+function eblActionPlayerSvg(player={},action='batting',...rest){
+ return eblActionFinishV43(player,action,...rest);
+}
+const EBL_SPORTS_CARTOON_V43={actionArt:'equipment-and-motion',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV44">
+/* V44 — athletic silhouette + uniform finish, built directly on V43's safe action core. */
+function eblActionPlayerSvg(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ let svg=typeof eblActionFinishV43==='function'?eblActionFinishV43(p,action,...rest):'';
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ const uniform=`<g class="eblV44UniformInk" fill="none" stroke="#171b22" stroke-linecap="round" opacity=".30">
+   <path d="M133 170 Q150 178 167 170" stroke-width="2"/>
+   <path d="M150 172 L150 220" stroke-width="1.8"/>
+   <path d="M122 210 Q150 218 178 210" stroke-width="1.6"/>
+ </g>`;
+ const ground=a==='running'
+   ? `<ellipse cx="151" cy="276" rx="104" ry="9" fill="#171b22" opacity=".10"/>`
+   : `<ellipse cx="150" cy="278" rx="84" ry="7" fill="#171b22" opacity=".08"/>`;
+ const motion=a==='batting'
+   ? `<path d="M236 57 Q260 75 269 103" fill="none" stroke="#171b22" stroke-width="2" stroke-dasharray="5 7" opacity=".20"/>`
+   : a==='pitching'
+     ? `<path d="M241 89 Q266 78 282 58" fill="none" stroke="#171b22" stroke-width="2" stroke-dasharray="4 6" opacity=".20"/>`
+     : '';
+ return svg.replace('</svg>',uniform+ground+motion+'</svg>');
+}
+function eblActionSilhouetteAuditV44(player={}){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const poses=['batting','pitching','fielding','running'];
+ return {pipeline:'V44',poses:poses.map(action=>({action,ok:eblActionPlayerSvg(p,action).includes('eblV44UniformInk')})),identity:typeof eblIdentityParityV37==='function'?eblIdentityParityV37(p).ok:true};
+}
+</script>
+
+<script id="eblSportsCartoonV45">
+/* V45 — articulated sports anatomy: joint definition, cleat contact and pose-specific limb energy. */
+function eblAnatomyFinishV45(svg='',action=''){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ let anatomy=`<g class="eblV45Anatomy" fill="none" stroke="#171b22" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M105 219 Q99 234 104 247" stroke-width="2.2" opacity=".32"/>
+   <path d="M194 219 Q201 234 196 247" stroke-width="2.2" opacity=".32"/>
+   <path d="M91 267 Q105 272 119 267" stroke-width="2.6" opacity=".42"/>
+   <path d="M181 267 Q195 272 209 267" stroke-width="2.6" opacity=".42"/>
+ </g>`;
+ if(a==='batting') anatomy+=`<g fill="none" stroke="#171b22" stroke-linecap="round"><path d="M116 128 Q102 143 105 159" stroke-width="3" opacity=".36"/><path d="M184 128 Q198 142 195 158" stroke-width="3" opacity=".36"/></g>`;
+ if(a==='pitching') anatomy+=`<g fill="none" stroke="#171b22" stroke-linecap="round"><path d="M183 126 Q207 117 226 96" stroke-width="3" opacity=".34"/><path d="M116 130 Q101 147 106 165" stroke-width="3" opacity=".28"/></g>`;
+ if(a==='fielding') anatomy+=`<g fill="none" stroke="#171b22" stroke-linecap="round"><path d="M113 132 Q91 143 72 157" stroke-width="3" opacity=".34"/><path d="M187 132 Q203 147 210 165" stroke-width="3" opacity=".30"/></g>`;
+ if(a==='running') anatomy+=`<g fill="none" stroke="#171b22" stroke-linecap="round"><path d="M115 131 Q94 145 82 162" stroke-width="3" opacity=".32"/><path d="M185 131 Q204 143 217 158" stroke-width="3" opacity=".32"/></g>`;
+ return svg.replace('</svg>',anatomy+'</svg>');
+}
+function eblActionPlayerSvgV45Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ let svg=typeof eblActionFinishV43==='function'?eblActionFinishV43(p,action,...rest):'';
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ const uniform=`<g class="eblV44UniformInk" fill="none" stroke="#171b22" stroke-linecap="round" opacity=".30"><path d="M133 170 Q150 178 167 170" stroke-width="2"/><path d="M150 172 L150 220" stroke-width="1.8"/><path d="M122 210 Q150 218 178 210" stroke-width="1.6"/></g>`;
+ const ground=a==='running'?`<ellipse cx="151" cy="276" rx="104" ry="9" fill="#171b22" opacity=".10"/>`:`<ellipse cx="150" cy="278" rx="84" ry="7" fill="#171b22" opacity=".08"/>`;
+ const motion=a==='batting'?`<path d="M236 57 Q260 75 269 103" fill="none" stroke="#171b22" stroke-width="2" stroke-dasharray="5 7" opacity=".20"/>`:a==='pitching'?`<path d="M241 89 Q266 78 282 58" fill="none" stroke="#171b22" stroke-width="2" stroke-dasharray="4 6" opacity=".20"/>`:'';
+ return eblAnatomyFinishV45(svg.replace('</svg>',uniform+ground+motion+'</svg>'),a);
+}
+const EBL_SPORTS_CARTOON_V45={art:'articulated-anatomy',equipment:'V43',uniform:'V44',identity:'V37'};
+</script>
+
+<script id="eblSportsCartoonV46">
+/* V46 — athletic silhouette pass: shoulder/hip rhythm and pose-specific lower-body mechanics. */
+function eblSilhouetteFinishV46(svg='',action=''){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ let ink=`<g class="eblV46Silhouette" fill="none" stroke="#111820" stroke-linecap="round" stroke-linejoin="round"><path d="M112 121 Q150 105 188 121" stroke-width="3.4" opacity=".36"/><path d="M119 205 Q150 218 181 205" stroke-width="3" opacity=".30"/></g>`;
+ if(a==='batting') ink+=`<g fill="none" stroke="#111820" stroke-linecap="round"><path d="M124 211 Q108 236 92 264" stroke-width="4" opacity=".30"/><path d="M176 211 Q191 236 211 262" stroke-width="4" opacity=".30"/></g>`;
+ else if(a==='pitching') ink+=`<g fill="none" stroke="#111820" stroke-linecap="round"><path d="M126 210 Q108 236 86 261" stroke-width="4" opacity=".30"/><path d="M176 210 Q202 228 224 253" stroke-width="4" opacity=".32"/></g>`;
+ else if(a==='fielding') ink+=`<g fill="none" stroke="#111820" stroke-linecap="round"><path d="M124 211 Q104 232 88 258" stroke-width="4" opacity=".32"/><path d="M176 211 Q198 232 214 258" stroke-width="4" opacity=".32"/></g>`;
+ else if(a==='running') ink+=`<g fill="none" stroke="#111820" stroke-linecap="round"><path d="M126 210 Q99 226 73 249" stroke-width="4.2" opacity=".34"/><path d="M176 210 Q202 233 231 253" stroke-width="4.2" opacity=".34"/></g>`;
+ return svg.replace('</svg>',ink+'</svg>');
+}
+function eblActionPlayerSvgV46Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblSilhouetteFinishV46(eblActionPlayerSvgV45Core(p,action,...rest),action);
+}
+const EBL_SPORTS_CARTOON_V46={art:'athletic-silhouette',anatomy:'V45',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV47">
+/* V47 — baseball hands + contact mechanics: hands connect to equipment and action. */
+function eblHandsFinishV47(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const skin=(typeof SKIN_COLORS!=='undefined' && SKIN_COLORS[(Number(p.skin_color_id)||1)-1]?.hex)||'#dca47b';
+ let hands='';
+ if(a==='batting') hands=`<g class="eblV47Hands" stroke="#111820" stroke-width="2.4"><ellipse cx="213" cy="86" rx="8" ry="7" fill="${skin}"/><ellipse cx="222" cy="79" rx="8" ry="7" fill="${skin}"/><path d="M207 88 L226 74" fill="none" stroke-linecap="round"/></g>`;
+ else if(a==='pitching') hands=`<g class="eblV47Hands" stroke="#111820" stroke-width="2.4"><ellipse cx="231" cy="94" rx="8" ry="7" fill="${skin}"/><path d="M224 100 Q232 92 240 90" fill="none" stroke-linecap="round"/></g>`;
+ else if(a==='fielding') hands=`<g class="eblV47Hands" stroke="#111820" stroke-width="2.4"><ellipse cx="73" cy="155" rx="8" ry="7" fill="${skin}"/><path d="M80 153 Q91 147 101 143" fill="none" stroke-linecap="round"/></g>`;
+ else if(a==='running') hands=`<g class="eblV47Hands" stroke="#111820" stroke-width="2.4"><ellipse cx="78" cy="163" rx="7" ry="7" fill="${skin}"/><ellipse cx="219" cy="158" rx="7" ry="7" fill="${skin}"/></g>`;
+ return hands?svg.replace('</svg>',hands+'</svg>'):svg;
+}
+function eblActionPlayerSvgV47Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblHandsFinishV47(eblActionPlayerSvgV46Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V47={art:'hands-and-contact',silhouette:'V46',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV48">
+/* V48 — dynamic body mechanics: torso lean/rotation + clearer leg drive by baseball action. */
+function eblMechanicsFinishV48(svg='',action=''){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ let g='';
+ if(a==='running') g=`<g class="eblV48Mechanics" fill="none" stroke="#0f1720" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M121 118 Q147 108 177 125" stroke-width="4.4" opacity=".42"/>
+   <path d="M126 124 Q143 150 151 187" stroke-width="3.2" opacity=".30"/>
+   <path d="M127 207 Q98 222 68 246" stroke-width="5" opacity=".40"/>
+   <path d="M174 208 Q203 230 236 252" stroke-width="5" opacity=".40"/>
+   <path d="M63 247 Q77 252 91 249" stroke-width="3.2" opacity=".42"/>
+   <path d="M228 254 Q243 260 257 256" stroke-width="3.2" opacity=".42"/>
+ </g>`;
+ else if(a==='batting') g=`<g class="eblV48Mechanics" fill="none" stroke="#0f1720" stroke-linecap="round">
+   <path d="M116 121 Q149 108 187 126" stroke-width="4.2" opacity=".40"/>
+   <path d="M122 128 Q151 151 178 166" stroke-width="3.1" opacity=".28"/>
+   <path d="M123 208 Q109 234 91 264 M177 208 Q193 235 213 263" stroke-width="4.8" opacity=".38"/>
+ </g>`;
+ else if(a==='pitching') g=`<g class="eblV48Mechanics" fill="none" stroke="#0f1720" stroke-linecap="round">
+   <path d="M113 124 Q151 104 191 124" stroke-width="4.4" opacity=".40"/>
+   <path d="M123 132 Q151 154 179 166" stroke-width="3.1" opacity=".28"/>
+   <path d="M127 209 Q104 233 82 260 M175 209 Q204 225 231 251" stroke-width="5" opacity=".40"/>
+ </g>`;
+ else if(a==='fielding') g=`<g class="eblV48Mechanics" fill="none" stroke="#0f1720" stroke-linecap="round">
+   <path d="M111 127 Q150 112 190 127" stroke-width="4.2" opacity=".38"/>
+   <path d="M120 205 Q150 219 181 205" stroke-width="3.4" opacity=".34"/>
+   <path d="M123 210 Q101 232 84 260 M178 210 Q201 232 218 260" stroke-width="5" opacity=".40"/>
+ </g>`;
+ return g?svg.replace('</svg>',g+'</svg>'):svg;
+}
+function eblActionPlayerSvgV48Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblMechanicsFinishV48(eblActionPlayerSvgV47Core(p,action,...rest),action);
+}
+const EBL_SPORTS_CARTOON_V48={art:'dynamic-body-mechanics',hands:'V47',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV49">
+/* V49 — action orientation: side-profile running and directional head/torso read. */
+function eblOrientationFinishV49(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const skin=(typeof SKIN_COLORS!=='undefined' && SKIN_COLORS[(Number(p.skin_color_id)||1)-1]?.hex)||'#dca47b';
+ let ink='';
+ if(a==='running') ink=`<g class="eblV49Orientation" stroke="#111820" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M129 104 Q153 93 177 108 Q166 118 143 119 Q132 115 129 104Z" fill="${skin}" stroke-width="2.8" opacity=".94"/>
+   <path d="M157 104 Q174 106 184 114" fill="none" stroke-width="3" opacity=".72"/>
+   <path d="M138 123 Q159 132 176 149" fill="none" stroke-width="4" opacity=".42"/>
+   <path d="M126 160 Q151 170 178 181" fill="none" stroke-width="3.2" opacity=".28"/>
+   <path d="M61 245 Q75 240 91 246" fill="none" stroke-width="4" opacity=".44"/>
+   <path d="M229 252 Q246 249 260 257" fill="none" stroke-width="4" opacity=".44"/>
+ </g>`;
+ else if(a==='batting') ink=`<g class="eblV49Orientation" fill="none" stroke="#111820" stroke-linecap="round"><path d="M131 111 Q151 102 174 111" stroke-width="3.4" opacity=".32"/><path d="M130 126 Q154 139 176 154" stroke-width="3.2" opacity=".34"/></g>`;
+ else if(a==='pitching') ink=`<g class="eblV49Orientation" fill="none" stroke="#111820" stroke-linecap="round"><path d="M129 111 Q151 101 175 111" stroke-width="3.4" opacity=".32"/><path d="M126 126 Q151 143 181 151" stroke-width="3.2" opacity=".34"/></g>`;
+ else if(a==='fielding') ink=`<g class="eblV49Orientation" fill="none" stroke="#111820" stroke-linecap="round"><path d="M130 113 Q150 105 171 113" stroke-width="3.2" opacity=".30"/><path d="M126 139 Q150 148 177 139" stroke-width="3" opacity=".28"/></g>`;
+ return ink?svg.replace('</svg>',ink+'</svg>'):svg;
+}
+function eblActionPlayerSvgV49Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblOrientationFinishV49(eblActionPlayerSvgV48Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V49={art:'action-orientation',running:'side-profile-read',mechanics:'V48',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV50">
+/* V50 — milestone pose rebuild: full-body action silhouette overlays with baseball-specific weight transfer. */
+function eblPoseRebuildV50(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const skin=(typeof SKIN_COLORS!=='undefined' && SKIN_COLORS[(Number(p.skin_color_id)||1)-1]?.hex)||'#dca47b';
+ let body='';
+ if(a==='running') body=`<g class="eblV50Pose" stroke="#0e1620" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M128 126 Q149 119 171 132 Q184 151 179 181 Q157 193 132 181 Q121 153 128 126Z" fill="rgba(255,255,255,.07)" stroke-width="3.6"/>
+   <path d="M132 181 Q112 207 83 229 Q68 240 55 252" fill="none" stroke-width="8" opacity=".54"/>
+   <path d="M171 181 Q190 207 217 231 Q233 244 249 253" fill="none" stroke-width="8" opacity=".54"/>
+   <path d="M127 137 Q103 145 83 163" fill="none" stroke-width="7" opacity=".48"/>
+   <path d="M171 138 Q197 144 219 159" fill="none" stroke-width="7" opacity=".48"/>
+   <ellipse cx="78" cy="164" rx="7" ry="6" fill="${skin}" stroke-width="2.2"/>
+   <ellipse cx="222" cy="159" rx="7" ry="6" fill="${skin}" stroke-width="2.2"/>
+ </g>`;
+ else if(a==='batting') body=`<g class="eblV50Pose" fill="none" stroke="#0e1620" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M115 124 Q149 106 188 126" stroke-width="6" opacity=".48"/>
+   <path d="M124 135 Q149 154 179 163" stroke-width="4.5" opacity=".38"/>
+   <path d="M124 203 Q107 232 91 264 M178 203 Q195 233 214 263" stroke-width="7" opacity=".48"/>
+   <path d="M111 140 Q142 124 179 131" stroke-width="3.5" opacity=".28"/>
+ </g>`;
+ else if(a==='pitching') body=`<g class="eblV50Pose" fill="none" stroke="#0e1620" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M112 124 Q150 104 191 124" stroke-width="6" opacity=".48"/>
+   <path d="M123 136 Q151 157 182 164" stroke-width="4.5" opacity=".38"/>
+   <path d="M126 204 Q101 232 80 261" stroke-width="7" opacity=".50"/>
+   <path d="M177 204 Q206 222 235 250" stroke-width="7" opacity=".50"/>
+   <path d="M186 128 Q214 116 239 93" stroke-width="6" opacity=".46"/>
+ </g>`;
+ else if(a==='fielding') body=`<g class="eblV50Pose" fill="none" stroke="#0e1620" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M109 128 Q149 109 191 128" stroke-width="6" opacity=".46"/>
+   <path d="M119 198 Q150 216 183 198" stroke-width="5" opacity=".42"/>
+   <path d="M122 205 Q99 232 82 261 M180 205 Q204 232 221 261" stroke-width="7" opacity=".50"/>
+   <path d="M112 139 Q91 145 70 158" stroke-width="6" opacity=".46"/>
+ </g>`;
+ return body?svg.replace('</svg>',body+'</svg>'):svg;
+}
+function eblActionPlayerSvgV50Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblPoseRebuildV50(eblActionPlayerSvgV49Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V50={milestone:true,art:'full-body-pose-rebuild',orientation:'V49',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV51">
+/* V51 — illustrated volume: filled limbs, uniform folds, and equipment integration. */
+function eblIllustratedFinishV51(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const skin=(typeof SKIN_COLORS!=='undefined' && SKIN_COLORS[(Number(p.skin_color_id)||1)-1]?.hex)||'#dca47b';
+ const ink='#101820';
+ let art='';
+ if(a==='running') art=`<g class="eblV51Volume" stroke="${ink}" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M128 132 Q149 120 173 135 L178 179 Q154 194 131 181Z" fill="rgba(255,255,255,.13)" stroke-width="2.8"/>
+   <path d="M131 181 Q111 205 82 226 L65 246 Q72 252 84 251 L101 236 Q126 218 143 198Z" fill="rgba(255,255,255,.11)" stroke-width="2.6"/>
+   <path d="M163 190 Q185 211 211 232 L231 250 Q242 255 251 251 L229 226 Q203 199 177 180Z" fill="rgba(255,255,255,.11)" stroke-width="2.6"/>
+   <path d="M128 142 Q105 148 83 164 L75 172 Q80 178 89 175 L111 160 Q124 154 136 153Z" fill="${skin}" stroke-width="2.4"/>
+   <path d="M171 143 Q194 146 217 160 L226 168 Q222 176 213 174 L190 161 Q178 156 165 155Z" fill="${skin}" stroke-width="2.4"/>
+   <path d="M137 151 Q151 157 168 151 M139 169 Q153 175 170 168" fill="none" stroke-width="1.8" opacity=".45"/>
+ </g>`;
+ else if(a==='batting') art=`<g class="eblV51Volume" stroke="${ink}" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M119 130 Q150 111 184 130 L180 198 Q150 211 122 198Z" fill="rgba(255,255,255,.13)" stroke-width="2.8"/>
+   <path d="M124 199 Q109 225 94 258 L84 268 Q91 273 101 268 L119 242 Q134 220 145 204Z" fill="rgba(255,255,255,.11)" stroke-width="2.6"/>
+   <path d="M158 204 Q174 222 190 247 L205 267 Q216 272 222 264 L207 239 Q193 216 180 198Z" fill="rgba(255,255,255,.11)" stroke-width="2.6"/>
+   <path d="M131 150 Q150 158 171 150 M130 176 Q150 184 173 176" fill="none" stroke-width="1.8" opacity=".46"/>
+ </g>`;
+ else if(a==='pitching') art=`<g class="eblV51Volume" stroke="${ink}" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M118 130 Q151 109 187 128 L182 197 Q151 211 123 198Z" fill="rgba(255,255,255,.13)" stroke-width="2.8"/>
+   <path d="M125 198 Q104 224 84 254 L75 265 Q82 271 92 266 L111 243 Q132 219 145 204Z" fill="rgba(255,255,255,.11)" stroke-width="2.6"/>
+   <path d="M160 203 Q183 214 207 233 L229 253 Q240 258 247 251 L225 226 Q201 202 180 196Z" fill="rgba(255,255,255,.11)" stroke-width="2.6"/>
+   <path d="M181 139 Q205 124 229 101 L240 91 Q246 96 242 104 L219 127 Q201 145 180 153Z" fill="${skin}" stroke-width="2.4"/>
+   <path d="M133 153 Q151 161 172 152 M132 178 Q151 185 174 177" fill="none" stroke-width="1.8" opacity=".46"/>
+ </g>`;
+ else if(a==='fielding') art=`<g class="eblV51Volume" stroke="${ink}" stroke-linejoin="round" stroke-linecap="round">
+   <path d="M116 133 Q150 114 187 133 L181 196 Q151 210 121 197Z" fill="rgba(255,255,255,.13)" stroke-width="2.8"/>
+   <path d="M124 197 Q102 220 86 253 L78 265 Q85 271 95 266 L112 243 Q129 220 145 204Z" fill="rgba(255,255,255,.11)" stroke-width="2.6"/>
+   <path d="M158 204 Q177 221 193 247 L207 266 Q218 271 224 263 L209 238 Q194 215 179 197Z" fill="rgba(255,255,255,.11)" stroke-width="2.6"/>
+   <path d="M122 145 Q101 149 80 160 L69 168 Q73 176 82 174 L105 164 Q120 159 134 158Z" fill="${skin}" stroke-width="2.4"/>
+   <path d="M132 155 Q151 163 172 154 M130 179 Q151 187 174 178" fill="none" stroke-width="1.8" opacity=".46"/>
+ </g>`;
+ return art?svg.replace('</svg>',art+'</svg>'):svg;
+}
+function eblActionPlayerSvgV51Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblIllustratedFinishV51(eblActionPlayerSvgV50Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V51={art:'illustrated-volume',fills:'limbs-uniform-folds',pose:'V50',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV52">
+/* V52 — equipment integration + dimensional action ink. */
+function eblEquipmentFinishV52(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const skin=(typeof SKIN_COLORS!=='undefined' && SKIN_COLORS[(Number(p.skin_color_id)||1)-1]?.hex)||'#dca47b';
+ const ink='#101820';
+ let art='';
+ if(a==='batting') art=`<g class="eblV52Equipment" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M205 92 L269 36" fill="none" stroke-width="9"/><path d="M205 92 L269 36" fill="none" stroke="#c99552" stroke-width="5.2"/>
+   <ellipse cx="207" cy="91" rx="8.5" ry="7.5" fill="${skin}" stroke-width="2.3"/><ellipse cx="216" cy="83" rx="8" ry="7" fill="${skin}" stroke-width="2.3"/>
+   <path d="M197 101 Q208 95 221 80" fill="none" stroke-width="3.4"/>
+   <path d="M126 188 Q150 197 178 188" fill="none" stroke-width="2" opacity=".42"/>
+ </g>`;
+ else if(a==='fielding') art=`<g class="eblV52Equipment" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M71 149 Q45 132 31 149 Q27 170 51 181 Q72 178 82 159 Q82 151 71 149Z" fill="#a96f3d" stroke-width="3.2"/>
+   <path d="M40 149 Q53 157 66 174 M49 141 Q61 151 74 160 M36 162 Q52 164 70 171" fill="none" stroke="#704523" stroke-width="1.8"/>
+   <path d="M78 156 Q92 151 107 150" fill="none" stroke-width="4"/>
+   <ellipse cx="80" cy="156" rx="7.5" ry="6.5" fill="${skin}" stroke-width="2"/>
+ </g>`;
+ else if(a==='pitching') art=`<g class="eblV52Equipment" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <circle cx="241" cy="90" r="8.2" fill="#f8f7f1" stroke-width="2.2"/>
+   <path d="M236 86 Q241 90 246 85 M236 94 Q241 90 246 95" fill="none" stroke="#b72a32" stroke-width="1.4"/>
+   <ellipse cx="230" cy="99" rx="8" ry="7" fill="${skin}" stroke-width="2.2"/>
+   <path d="M221 108 Q231 101 239 94" fill="none" stroke-width="3.6"/>
+   <path d="M92 146 Q73 137 61 151 Q58 168 75 176 Q91 171 99 157Z" fill="#a96f3d" stroke-width="3"/>
+ </g>`;
+ else if(a==='running') art=`<g class="eblV52Equipment" fill="none" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M62 246 Q76 251 92 247 L103 253 Q89 262 67 258 Q57 255 62 246Z" fill="rgba(255,255,255,.18)" stroke-width="2.5"/>
+   <path d="M229 249 Q244 254 259 253 L268 259 Q251 267 231 261 Q223 257 229 249Z" fill="rgba(255,255,255,.18)" stroke-width="2.5"/>
+   <path d="M133 182 Q150 189 169 182" stroke-width="2" opacity=".42"/>
+ </g>`;
+ return art?svg.replace('</svg>',art+'</svg>'):svg;
+}
+function eblActionPlayerSvgV52Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblEquipmentFinishV52(eblActionPlayerSvgV51Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V52={art:'equipment-integration',volume:'V51',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV53">
+/* V53 — action head direction: cap/face perspective cues follow the play. */
+function eblHeadDirectionV53(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const skin=(typeof SKIN_COLORS!=='undefined' && SKIN_COLORS[(Number(p.skin_color_id)||1)-1]?.hex)||'#dca47b';
+ const ink='#101820';
+ let art='';
+ if(a==='running') art=`<g class="eblV53Head" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M129 102 Q149 89 173 99 Q183 105 187 116 Q173 123 151 121 Q135 118 129 102Z" fill="${skin}" stroke-width="2.8"/>
+   <path d="M126 100 Q149 82 176 94 Q187 98 193 106 Q172 107 151 106 Q137 106 126 100Z" fill="rgba(255,255,255,.16)" stroke-width="3"/>
+   <path d="M177 105 Q196 105 207 111 Q194 117 179 115Z" fill="rgba(255,255,255,.12)" stroke-width="2.6"/>
+   <path d="M166 108 Q174 106 180 110" fill="none" stroke-width="2.2"/>
+   <path d="M181 113 Q186 116 180 119" fill="none" stroke-width="1.7"/>
+   <path d="M158 121 Q168 125 177 121" fill="none" stroke-width="1.8" opacity=".7"/>
+ </g>`;
+ else if(a==='batting') art=`<g class="eblV53Head" fill="none" stroke="${ink}" stroke-linecap="round">
+   <path d="M132 101 Q150 91 171 100" stroke-width="3.2" opacity=".48"/>
+   <path d="M166 108 Q174 107 180 111" stroke-width="2.2"/>
+   <path d="M177 119 Q169 123 160 121" stroke-width="1.8" opacity=".68"/>
+   <path d="M126 99 Q151 84 178 96 Q187 99 193 106" stroke-width="3.2" opacity=".48"/>
+ </g>`;
+ else if(a==='pitching') art=`<g class="eblV53Head" fill="none" stroke="${ink}" stroke-linecap="round">
+   <path d="M130 101 Q151 89 174 100" stroke-width="3.2" opacity=".48"/>
+   <path d="M168 108 Q176 107 182 111" stroke-width="2.2"/>
+   <path d="M179 119 Q170 123 161 121" stroke-width="1.8" opacity=".68"/>
+   <path d="M127 98 Q151 83 179 96 Q188 99 195 106" stroke-width="3.2" opacity=".48"/>
+ </g>`;
+ else if(a==='fielding') art=`<g class="eblV53Head" fill="none" stroke="${ink}" stroke-linecap="round">
+   <path d="M132 103 Q150 94 170 103" stroke-width="3" opacity=".44"/>
+   <path d="M142 110 Q149 108 155 111 M163 110 Q170 108 176 111" stroke-width="2"/>
+   <path d="M144 121 Q151 125 160 121" stroke-width="1.8" opacity=".65"/>
+   <path d="M128 100 Q150 86 176 98" stroke-width="3" opacity=".44"/>
+ </g>`;
+ return art?svg.replace('</svg>',art+'</svg>'):svg;
+}
+function eblActionPlayerSvgV53Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblHeadDirectionV53(eblActionPlayerSvgV52Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V53={art:'action-head-direction',cap:'perspective-cues',equipment:'V52',identity:'canonical'};
+</script>
+
+
+<script id="eblSportsCartoonV57">
+/* V57 — consolidation: one clean finishing pass over the illustrated V53 action core. */
+function eblUnifiedFinishV57(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase(), ink='#101820';
+ let pose='';
+ if(a==='running') pose=`<path d="M126 126 Q150 111 176 128 Q185 153 178 184 Q192 210 219 235 Q239 253 258 257"/>
+ <path d="M143 198 Q119 220 95 240 Q78 253 63 257"/><path d="M125 140 Q103 147 81 166 M175 140 Q198 146 222 163"/>`;
+ else if(a==='batting') pose=`<path d="M117 130 Q150 108 185 129 Q188 161 180 198 Q177 217 204 264"/>
+ <path d="M143 204 Q122 227 99 266"/><path d="M119 141 Q148 121 181 133"/>`;
+ else if(a==='pitching') pose=`<path d="M116 130 Q150 107 188 128 Q189 161 181 198 Q199 209 220 228 Q237 243 250 253"/>
+ <path d="M145 204 Q121 226 90 264"/><path d="M184 139 Q208 124 239 96"/>`;
+ else pose=`<path d="M114 132 Q150 111 188 132 Q188 163 181 198 Q199 220 219 264"/>
+ <path d="M144 204 Q120 228 91 264"/><path d="M117 144 Q95 149 74 161"/>`;
+ const detail=`<g class="eblV57Finish" fill="none" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <g class="eblV57Contour" stroke-width="4.35">${pose}</g>
+   <path d="M127 183 Q150 192 175 183" stroke-width="3" opacity=".58"/>
+   <path d="M150 132 L150 182" stroke-width="1.6" opacity=".35"/>
+   <path d="M134 190 L134 197 M165 190 L165 197" stroke-width="2" opacity=".48"/>
+   <path d="M129 138 Q143 127 158 130" stroke="#fff" stroke-width="4" opacity=".11"/>
+   <path d="M176 141 Q181 158 177 174" stroke-width="5" opacity=".10"/>
+ </g>`;
+ return svg.replace('</svg>',detail+'</svg>');
+}
+function eblActionPlayerSvgV57Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblUnifiedFinishV57(eblActionPlayerSvgV53Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V57={renderer:'consolidated',core:'V53',finish:'single-pass',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV58">
+/* V58 — anatomy polish: stronger joints, hands, cleats, and action-specific body flow. */
+function eblAnatomyPolishV58(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase(), ink='#101820';
+ let anatomy='';
+ if(a==='running') anatomy=`<g class="eblV58Anatomy">
+   <path d="M82 166 Q91 176 101 183 Q111 188 119 181" class="skinLine"/>
+   <path d="M220 162 Q212 174 203 181 Q194 187 187 180" class="skinLine"/>
+   <path d="M93 238 Q79 247 63 257 Q71 263 88 259" class="cleat"/>
+   <path d="M220 235 Q240 250 258 257 Q250 264 231 258" class="cleat"/>
+   <circle cx="100" cy="183" r="4.3" class="joint"/><circle cx="203" cy="181" r="4.3" class="joint"/>
+ </g>`;
+ else if(a==='batting') anatomy=`<g class="eblV58Anatomy">
+   <path d="M176 133 Q193 120 207 105 Q214 97 221 87" class="skinLine"/>
+   <path d="M166 139 Q183 128 197 113 Q204 105 211 96" class="skinLine"/>
+   <circle cx="211" cy="96" r="5.2" class="joint"/><circle cx="221" cy="87" r="5.2" class="joint"/>
+   <path d="M98 257 Q88 265 82 270 Q96 273 108 266 M204 258 Q215 266 223 269 Q211 274 198 267" class="cleat"/>
+ </g>`;
+ else if(a==='pitching') anatomy=`<g class="eblV58Anatomy">
+   <path d="M184 139 Q204 126 220 111 Q232 100 239 96" class="skinLine"/>
+   <circle cx="220" cy="111" r="4.5" class="joint"/>
+   <path d="M89 257 Q78 265 72 269 Q87 273 99 265 M232 244 Q243 251 251 254 Q243 261 229 257" class="cleat"/>
+   <path d="M118 150 Q103 159 91 174" class="skinLine"/>
+ </g>`;
+ else anatomy=`<g class="eblV58Anatomy">
+   <path d="M117 145 Q97 150 80 160 Q71 166 64 174" class="skinLine"/>
+   <circle cx="80" cy="160" r="4.5" class="joint"/>
+   <path d="M90 258 Q80 266 74 270 Q89 273 101 266 M218 258 Q228 266 235 269 Q223 273 211 266" class="cleat"/>
+   <path d="M181 148 Q197 156 210 169" class="skinLine"/>
+ </g>`;
+ return svg.replace('</svg>',anatomy+'</svg>');
+}
+function eblActionPlayerSvgV58Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblAnatomyPolishV58(eblActionPlayerSvgV57Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V58={art:'anatomy-polish',joints:'connected',hands:'defined',cleats:'action-specific',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV59">
+/* V59 — baseball contact polish: hands connect to equipment and neck connects head to torso. */
+function eblContactPolishV59(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase();
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ const skin=(typeof SKIN_COLORS!=='undefined' && SKIN_COLORS[(Number(p.skin_color_id)||1)-1]?.hex)||'#dca47b';
+ const ink='#101820';
+ let contact=`<g class="eblV59Contact" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M137 121 Q143 128 145 136 L157 136 Q159 128 166 121" fill="${skin}" stroke-width="2.8"/>
+   <path d="M138 132 Q150 138 163 132" fill="none" stroke-width="2" opacity=".34"/>
+ </g>`;
+ if(a==='batting') contact+=`<g class="eblV59Contact" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <ellipse cx="211" cy="96" rx="7.4" ry="5.8" fill="${skin}" stroke-width="2.5" transform="rotate(-38 211 96)"/>
+   <ellipse cx="220" cy="87" rx="7.2" ry="5.6" fill="${skin}" stroke-width="2.5" transform="rotate(-38 220 87)"/>
+   <path d="M207 98 L218 88 M215 92 L224 83" fill="none" stroke-width="3"/>
+   <path d="M216 91 L270 42" fill="none" stroke="#c99552" stroke-width="5.2"/>
+   <path d="M216 91 L270 42" fill="none" stroke="${ink}" stroke-width="8.2" opacity=".26"/>
+ </g>`;
+ else if(a==='fielding') contact+=`<g class="eblV59Contact" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M62 171 Q48 165 39 153 Q34 144 42 137 Q54 129 66 139 Q76 149 72 162 Q69 169 62 171Z" fill="#a96f3d" stroke-width="3.2"/>
+   <path d="M44 143 Q54 151 64 165 M51 137 Q60 148 69 155" fill="none" stroke="#704523" stroke-width="1.8"/>
+   <path d="M72 160 Q78 160 83 158" fill="none" stroke-width="4"/>
+ </g>`;
+ else if(a==='pitching') contact+=`<g class="eblV59Contact" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <ellipse cx="239" cy="96" rx="6.6" ry="5.2" fill="${skin}" stroke-width="2.4" transform="rotate(-20 239 96)"/>
+   <circle cx="248" cy="88" r="7" fill="#f7f7f2" stroke-width="2.2"/>
+   <path d="M243 85 Q248 89 253 84 M243 92 Q248 88 253 93" fill="none" stroke="#b72a32" stroke-width="1.3"/>
+ </g>`;
+ else contact+=`<g class="eblV59Contact" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <ellipse cx="119" cy="181" rx="6.4" ry="5" fill="${skin}" stroke-width="2.3"/>
+   <ellipse cx="187" cy="180" rx="6.4" ry="5" fill="${skin}" stroke-width="2.3"/>
+ </g>`;
+ return svg.replace('</svg>',contact+'</svg>');
+}
+function eblActionPlayerSvgV59Core(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblContactPolishV59(eblActionPlayerSvgV58Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V59={art:'contact-polish',hands:'equipment-connected',neck:'integrated',identity:'canonical'};
+</script>
+
+<script id="eblSportsCartoonV60">
+/* V60 — athletic proportion pass: shoulder/hip rhythm, knee articulation, and pose balance. */
+function eblProportionPolishV60(svg='',action='',player={}){
+ if(!svg || !svg.includes('</svg>'))return svg;
+ const a=String(action||'').toLowerCase(), ink='#101820';
+ let art=`<g class="eblV60Proportion" fill="none" stroke="${ink}" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M121 137 Q150 124 181 138" stroke-width="3.4" opacity=".55"/>
+   <path d="M130 188 Q150 196 172 188" stroke-width="3.1" opacity=".52"/>
+ </g>`;
+ if(a==='running') art+=`<g class="eblV60Proportion" fill="none" stroke="${ink}" stroke-linecap="round">
+   <path d="M140 199 Q123 211 108 226 Q98 236 92 245" stroke-width="4.3"/>
+   <path d="M165 199 Q183 210 199 225 Q213 238 224 246" stroke-width="4.3"/>
+   <path d="M107 226 Q101 231 98 237 M199 225 Q205 231 209 237" stroke-width="2.3" opacity=".55"/>
+ </g>`;
+ else if(a==='batting') art+=`<g class="eblV60Proportion" fill="none" stroke="${ink}" stroke-linecap="round">
+   <path d="M137 198 Q122 218 110 239 Q103 251 99 263" stroke-width="4.2"/>
+   <path d="M165 198 Q181 217 192 238 Q199 251 204 263" stroke-width="4.2"/>
+   <path d="M111 238 Q106 244 104 250 M191 238 Q196 244 198 250" stroke-width="2.2" opacity=".55"/>
+ </g>`;
+ else if(a==='pitching') art+=`<g class="eblV60Proportion" fill="none" stroke="${ink}" stroke-linecap="round">
+   <path d="M139 199 Q120 218 104 239 Q95 251 90 262" stroke-width="4.25"/>
+   <path d="M166 198 Q184 207 201 220 Q216 232 230 244" stroke-width="4.25"/>
+   <path d="M104 239 Q99 245 97 251 M201 220 Q207 225 211 231" stroke-width="2.2" opacity=".55"/>
+ </g>`;
+ else art+=`<g class="eblV60Proportion" fill="none" stroke="${ink}" stroke-linecap="round">
+   <path d="M138 199 Q120 219 105 240 Q97 252 92 263" stroke-width="4.2"/>
+   <path d="M166 199 Q184 218 198 240 Q207 252 213 263" stroke-width="4.2"/>
+   <path d="M105 240 Q100 246 98 252 M198 240 Q203 246 205 252" stroke-width="2.2" opacity=".55"/>
+ </g>`;
+ return svg.replace('</svg>',art+'</svg>');
+}
+function eblActionPlayerSvg(player={},action='batting',...rest){
+ const p=typeof eblIdentityV37==='function'?eblIdentityV37(player):player;
+ return eblProportionPolishV60(eblActionPlayerSvgV59Core(p,action,...rest),action,p);
+}
+const EBL_SPORTS_CARTOON_V60={art:'athletic-proportions',shoulders:'balanced',hips:'grounded',knees:'articulated',identity:'canonical'};
 </script>
 </body></html>
