@@ -197,7 +197,6 @@ def init_db():
       status TEXT NOT NULL DEFAULT 'FREE_AGENT',
       active INTEGER NOT NULL DEFAULT 1,
       face_id INTEGER NOT NULL DEFAULT 1,
-      skin_color_id INTEGER NOT NULL DEFAULT 1,
       hair_id INTEGER NOT NULL DEFAULT 1,
       facial_hair_id INTEGER NOT NULL DEFAULT 1,
       eye_color_id INTEGER NOT NULL DEFAULT 6,
@@ -565,8 +564,6 @@ def init_db():
         c.execute("UPDATE players SET facial_hair_id=3 WHERE face_id IN (5,10)")
     if "eye_color_id" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN eye_color_id INTEGER NOT NULL DEFAULT 6")
-    if "skin_color_id" not in player_cols:
-        c.execute("ALTER TABLE players ADD COLUMN skin_color_id INTEGER NOT NULL DEFAULT 1")
     if "hair_color_id" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN hair_color_id INTEGER NOT NULL DEFAULT 3")
     if "eye_black_id" not in player_cols:
@@ -1091,10 +1088,20 @@ def ensure_season_membership(c,season):
         ).fetchall()
     ]
     if not participants:
+        # Fresh/rebuilt seasons honor the Commissioner-selected league size.
+        # Fall back to the Original Eight only when no preference has been saved.
+        pref=c.execute("SELECT v FROM league_config WHERE k='active_team_count'").fetchone()
+        try:
+            desired=int(pref["v"]) if pref else MIN_ACTIVE_TEAMS
+        except (TypeError,ValueError):
+            desired=MIN_ACTIVE_TEAMS
+        total=c.execute("SELECT COUNT(*) n FROM franchises").fetchone()["n"]
+        desired=max(MIN_ACTIVE_TEAMS,min(desired,total))
+        if desired%2: desired-=1
         participants=[
             r["id"] for r in c.execute(
                 "SELECT id FROM franchises ORDER BY id LIMIT ?",
-                (MIN_ACTIVE_TEAMS,)
+                (desired,)
             ).fetchall()
         ]
 
@@ -3846,7 +3853,7 @@ class H(BaseHTTPRequestHandler):
             roster=[]
             for row in c.execute(
                 """SELECT p.id,p.user_id,p.name,p.type,p.primary_pos,p.bats,p.throws,p.xp_wallet,
-                          p.season_json,p.attributes_json,p.status,p.active,p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,
+                          p.season_json,p.attributes_json,p.status,p.active,p.face_id,p.hair_id,p.hair_color_id,
                           p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.jersey_number,u.username
                    FROM players p LEFT JOIN users u ON u.id=p.user_id
                    WHERE p.franchise_id=? AND p.active=1
@@ -4464,7 +4471,7 @@ class H(BaseHTTPRequestHandler):
             for pid,line in raw_box.get("hitters",{}).items():
                 player=c.execute(
                     """
-                    SELECT id,name,franchise_id,face_id,skin_color_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number,primary_pos,bats,throws
+                    SELECT id,name,franchise_id,face_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number,primary_pos,bats,throws
                     FROM players
                     WHERE id=?
                     """,
@@ -4480,7 +4487,7 @@ class H(BaseHTTPRequestHandler):
                     "player_id":int(pid),
                     "name":player["name"],
                     "team_id":player["franchise_id"],
-                    "face_id":player["face_id"],"skin_color_id":player["skin_color_id"],"hair_id":player["hair_id"],"hair_color_id":player["hair_color_id"],
+                    "face_id":player["face_id"],"hair_id":player["hair_id"],"hair_color_id":player["hair_color_id"],
                     "facial_hair_id":player["facial_hair_id"],"eye_color_id":player["eye_color_id"],
                     "eye_black_id":player["eye_black_id"],"eyewear_id":player["eyewear_id"],
                     "chain_id":player["chain_id"],"sleeve_id":player["sleeve_id"],
@@ -4505,7 +4512,7 @@ class H(BaseHTTPRequestHandler):
 
                     player=c.execute(
                         """
-                        SELECT name,face_id,skin_color_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number,primary_pos,bats,throws
+                        SELECT name,face_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number,primary_pos,bats,throws
                         FROM players
                         WHERE id=?
                         """,
@@ -4518,7 +4525,6 @@ class H(BaseHTTPRequestHandler):
                         "name":player["name"] if player else f"Player {pid}",
                         "team_id":team_id,
                         "face_id":player["face_id"] if player else 1,
-                        "skin_color_id":player["skin_color_id"] if player else 1,
                         "hair_id":player["hair_id"] if player else 1,
                         "facial_hair_id":player["facial_hair_id"] if player else 1,
                         "eye_color_id":player["eye_color_id"] if player else 6,
@@ -5107,19 +5113,19 @@ class H(BaseHTTPRequestHandler):
                 if not name or len(name)>40 or group not in POSITION_GROUPS or pos not in valid_pos.get(group,set()) or bats not in ["R","L","S"] or throws not in ["R","L"] or set(attrs)!=set(valid) or sum(attrs.values())!=50 or any(type(v) is not int or v<0 or v>50 for v in attrs.values()) or (pos!="C" and float(attrs.get("CALL",0) or 0)!=0):
                     c.rollback();return self.out({"error":"INVALID_50_XP_BUILD"},400)
                 season={k:0 for k in (["G","GS","OUTS","H","ER","BB","SO","W","L","SV"] if ptype=="P" else ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"])}
-                face_id=int(d.get("face_id",1));skin_color_id=int(d.get("skin_color_id",1));hair_id=int(d.get("hair_id",1))
+                face_id=int(d.get("face_id",1));hair_id=int(d.get("hair_id",1))
                 facial_hair_id=int(d.get("facial_hair_id",1));eye_color_id=int(d.get("eye_color_id",6))
                 hair_color_id=int(d.get("hair_color_id",3));eye_black_id=int(d.get("eye_black_id",1))
                 eyewear_id=int(d.get("eyewear_id",1));chain_id=int(d.get("chain_id",1));sleeve_id=int(d.get("sleeve_id",1))
                 jersey_number=int(d.get("jersey_number",24))
-                if (face_id not in range(1,21) or skin_color_id not in range(1,9) or hair_id not in range(1,29) or facial_hair_id not in range(1,15)
+                if (face_id not in range(1,21) or hair_id not in range(1,29) or facial_hair_id not in range(1,15)
                     or eye_color_id not in range(1,7) or hair_color_id not in range(1,10)
                     or eye_black_id not in range(1,4) or eyewear_id not in range(1,3)
                     or chain_id not in range(1,4) or sleeve_id not in range(1,5)
                     or jersey_number not in range(0,100)):
                     c.rollback();return self.out({"error":"INVALID_APPEARANCE"},400)
-                cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number)
-                                 VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?,?,?,?,?,?,?,?,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number))
+                cur=c.execute("""INSERT INTO players(user_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,hair_id,facial_hair_id,eye_color_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number)
+                                 VALUES(?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?,?,?,?,?,?,?,?,?)""",(u["id"],name,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,hair_id,facial_hair_id,eye_color_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number))
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid})))
                 c.commit()
                 return self.out({"player":player_obj(c,cur.lastrowid)})
@@ -6298,8 +6304,27 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/commish/reset-league":
             u=self.auth(["COMMISSIONER"])
             if not u:return
+            d=self.body()
+            requested_team_count=d.get("team_count")
             c=conn()
             try:
+                # Optional Commissioner-controlled Genesis league size.
+                # Supported sizes are even numbers from 8 through the available franchise pool.
+                total_franchises=c.execute("SELECT COUNT(*) n FROM franchises").fetchone()["n"]
+                if requested_team_count is None:
+                    team_count=len(active_franchise_ids(c,1))
+                else:
+                    try:
+                        team_count=int(requested_team_count)
+                    except (TypeError,ValueError):
+                        return self.out({"error":"INVALID_TEAM_COUNT"},400)
+                if team_count<MIN_ACTIVE_TEAMS:
+                    return self.out({"error":"MINIMUM_8_TEAMS","minimum":MIN_ACTIVE_TEAMS},400)
+                if team_count%2:
+                    return self.out({"error":"EVEN_TEAM_COUNT_REQUIRED"},400)
+                if team_count>total_franchises:
+                    return self.out({"error":"TEAM_COUNT_EXCEEDS_AVAILABLE_FRANCHISES","available":total_franchises},400)
+
                 # Genesis reset: return the closed-alpha league to Season 1, Day 0.
                 # Accounts, player identity/attributes, friendships and contracts stay intact.
                 # Earned XP, XP ledger history and temporary public/team chat are reset.
@@ -6333,15 +6358,21 @@ class H(BaseHTTPRequestHandler):
                         stats={"G":0,"GS":0,"OUTS":0,"H":0,"ER":0,"BB":0,"SO":0,"W":0,"L":0,"SV":0}
                     c.execute("UPDATE players SET season_json=? WHERE id=?",(json.dumps(stats),pl["id"]))
 
-                # Build a completely clean Season 1 schedule using the
-                # configured active franchise pool (minimum eight).
-                if not c.execute("SELECT 1 FROM franchise_seasons WHERE season=1 LIMIT 1").fetchone():
-                    set_season_membership(
-                        c,1,[r["id"] for r in c.execute(
-                            "SELECT id FROM franchises ORDER BY id LIMIT ?",
-                            (MIN_ACTIVE_TEAMS,)
-                        ).fetchall()]
-                    )
+                # Rebuild Season 1 membership from the Commissioner-selected league size,
+                # then generate the 81-game schedule for exactly those active clubs.
+                c.execute("DELETE FROM franchise_seasons WHERE season=1")
+                selected_ids=[r["id"] for r in c.execute(
+                    "SELECT id FROM franchises ORDER BY id LIMIT ?",
+                    (team_count,)
+                ).fetchall()]
+                set_season_membership(c,1,selected_ids)
+                # Persist the Commissioner's choice so no later initialization or
+                # season-membership repair can silently snap the league back to 8.
+                c.execute(
+                    "INSERT INTO league_config(k,v) VALUES('active_team_count',?) "
+                    "ON CONFLICT(k) DO UPDATE SET v=excluded.v",
+                    (str(team_count),)
+                )
                 generate_season_schedule(c,1)
 
                 for key,value in (("season","1"),("league_day","0"),("phase","REGULAR"),("playoff_round",""),("champion","")):
@@ -6354,12 +6385,18 @@ class H(BaseHTTPRequestHandler):
                 )
 
                 c.commit()
+                actual_active=c.execute(
+                    "SELECT COUNT(*) n FROM franchise_seasons WHERE season=1 AND status='ACTIVE'"
+                ).fetchone()["n"]
+                if actual_active!=team_count:
+                    return self.out({"error":"LEAGUE_SIZE_NOT_PERSISTED","requested":team_count,"active":actual_active},500)
                 return self.out({
                     "ok":True,
                     "season":1,
                     "day":0,
                     "phase":"REGULAR",
                     "games_created":c.execute("SELECT COUNT(*) n FROM games WHERE season=1").fetchone()["n"],
+                    "active_team_count":actual_active,
                     "rivalries_reset":True,
                     "history_reset":True
                 })
