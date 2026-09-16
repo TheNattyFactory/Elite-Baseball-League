@@ -20,7 +20,9 @@ HITTER_ATTRS=["CON","POW","VIS","DISC","TIM","SPD","BRIQ","LEAD","FLD","ARM","AC
 PITCHER_ATTRS=["STA","PCLT","CTRL","CMD","VEL","BRK","MOV","DEC","SEQ","FLD","ARM","ACC","REAC"]
 SALARY_MIN=0.30
 SALARY_MAX=0.40
-BONUS_CAP=100.0
+BONUS_CAP=91.2
+REGULAR_SEASON_GAMES=81
+ACTIVE_ROSTER_SIZE=16
 TEAM_BUDGET=480.0
 REVENUE_UPGRADE_COSTS=[50,65,80,100,125]
 FINISH_REWARD_MAX=30.0
@@ -906,6 +908,33 @@ def development_cost(value,seasons_completed):
 
 def annual_team_budget(fr):
     return round(TEAM_BUDGET + 5*int(fr.get("revenue_level",0) or 0),3)
+
+def signing_pool_state(c, fid, exclude_offer_id=None):
+    """Protect enough annual XP to pay a full 16-player roster at league minimum.
+
+    The base reserve is 16 * .30 * 81 = 388.8 XP, leaving 91.2 XP from
+    the standard 480 allocation for signing bonuses and salary premiums.
+    Open/held offers reserve their bonus plus only the salary amount above
+    league minimum, because the minimum salary is already protected.
+    """
+    fr=c.execute("SELECT xp_budget FROM franchises WHERE id=?",(fid,)).fetchone()
+    budget=float(fr["xp_budget"] if fr else TEAM_BUDGET)
+    base_minimum=ACTIVE_ROSTER_SIZE*SALARY_MIN*REGULAR_SEASON_GAMES
+    pool=max(0.0,budget-base_minimum)
+    signed=c.execute("""SELECT COALESCE(SUM(CASE WHEN salary>? THEN (salary-?)*? ELSE 0 END),0) x
+                        FROM contracts WHERE franchise_id=?""",
+                     (SALARY_MIN,SALARY_MIN,REGULAR_SEASON_GAMES,fid)).fetchone()
+    signed_premium=float(signed["x"] or 0)
+    q="""SELECT COALESCE(SUM(bonus + CASE WHEN salary>? THEN (salary-?)*? ELSE 0 END),0) x
+         FROM offers WHERE franchise_id=? AND status IN ('OPEN','HELD')"""
+    args=[SALARY_MIN,SALARY_MIN,REGULAR_SEASON_GAMES,fid]
+    if exclude_offer_id is not None:
+        q += " AND id<>?"; args.append(int(exclude_offer_id))
+    offered=c.execute(q,tuple(args)).fetchone()
+    reserved=float(offered["x"] or 0)
+    available=max(0.0,pool-signed_premium-reserved)
+    return {"pool":round(pool,3),"signed_premium":round(signed_premium,3),
+            "reserved":round(reserved,3),"available":round(available,3)}
 
 def reserve_cap(fr):
     return float("inf")
@@ -5360,8 +5389,10 @@ class H(BaseHTTPRequestHandler):
             pl=c.execute("SELECT * FROM players WHERE id=?",(pid,)).fetchone()
             if not pl or pl["status"]!="FREE_AGENT":c.close();return self.out({"error":"PLAYER_NOT_FREE_AGENT"},400)
             if pl["user_id"]==u["id"]:c.close();return self.out({"error":"CANNOT_SIGN_OWN_PLAYER"},403)
-            reserved=c.execute("SELECT COALESCE(SUM(bonus),0) x FROM offers WHERE franchise_id=? AND status IN ('OPEN','HELD')",(f["id"],)).fetchone()["x"]
-            if bonus>f["xp_budget"]-f["xp_spent"]-reserved:c.close();return self.out({"error":"INSUFFICIENT_TEAM_XP"},400)
+            pool=signing_pool_state(c,f["id"])
+            offer_cost=round(bonus + max(0.0,salary-SALARY_MIN)*REGULAR_SEASON_GAMES,3)
+            if offer_cost>pool["available"]+1e-9:
+                c.close();return self.out({"error":"SIGNING_POOL_EXCEEDED","signing_pool":pool,"offer_cost":offer_cost},400)
             cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,?,'OPEN')",(f["id"],pid,bonus,salary,years))
             owner=c.execute("SELECT user_id,name FROM players WHERE id=?",(pid,)).fetchone()
             if owner and owner["user_id"]:
@@ -5406,8 +5437,10 @@ class H(BaseHTTPRequestHandler):
                 if not f:
                     c.rollback();return self.out({"error":"FRANCHISE_NOT_FOUND"},404)
 
-                if float(f["xp_spent"] or 0)+float(off["bonus"] or 0)>float(f["xp_budget"] or 0):
-                    c.rollback();return self.out({"error":"TEAM_BUDGET_CHANGED"},400)
+                pool=signing_pool_state(c,f["id"],exclude_offer_id=oid)
+                accept_cost=round(float(off["bonus"] or 0)+max(0.0,float(off["salary"] or 0)-SALARY_MIN)*REGULAR_SEASON_GAMES,3)
+                if accept_cost>pool["available"]+1e-9:
+                    c.rollback();return self.out({"error":"SIGNING_POOL_EXCEEDED","signing_pool":pool,"offer_cost":accept_cost},400)
 
                 allowed=eligible_roster_slot_groups(dict(pl))
                 marks=",".join("?" for _ in allowed)
@@ -5464,7 +5497,7 @@ class H(BaseHTTPRequestHandler):
                              VALUES(?,?,?,?,?)""",
                           (pl["id"],off["franchise_id"],off["bonus"],off["salary"],off["years"]))
 
-                assigned_number=assign_team_jersey_number(c,off["franchise_id"],pl["id"],pl.get("jersey_number",24))
+                assigned_number=assign_team_jersey_number(c,off["franchise_id"],pl["id"],pl["jersey_number"] if pl["jersey_number"] is not None else 24)
                 c.execute("""UPDATE players
                              SET franchise_id=?,status='SIGNED',xp_wallet=xp_wallet+?,jersey_number=?
                              WHERE id=?""",
