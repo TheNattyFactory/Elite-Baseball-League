@@ -4916,4 +4916,124 @@ const EBL_SPORTS_CARTOON_V32={anatomy:'athletic',eyes:'human-proportioned',neck:
 </script>
 
 <script id="eblIdentityUnificationRC35">window.EBL_IDENTITY_UNIFICATION_RC35={version:'RC35',skinTones:8,renderer:'stationaryPlayerSvg',surfaces:['creator','home','player-hq','profiles','rosters'],fixes:['blank-player-hq','skin-tone-independent-of-face','canonical-avatarMarkup']};</script>
+
+<style id="eblAvatarRecoveryRC36Css">
+/* RC36 — force the canonical saved-player SVG to occupy every identity surface. */
+.eblPlayerArtV24{display:inline-grid!important;place-items:center!important;overflow:hidden!important}
+.eblPlayerArtV24>svg{display:block!important;width:100%!important;height:100%!important;min-width:1px!important;min-height:1px!important;opacity:1!important;visibility:visible!important}
+.eblPlayerArtV24--lg{width:min(100%,300px)!important;aspect-ratio:300/330!important;height:auto!important}
+.playerPortraitV27{display:grid!important;place-items:center!important;overflow:hidden!important}
+.playerPortraitV27>.eblPlayerArtV24--lg{width:100%!important;height:100%!important;aspect-ratio:auto!important}
+.homeAvatarWrap .eblPlayerArtV24,.identity .eblPlayerArtV24{opacity:1!important;visibility:visible!important}
+</style>
+
+<script id="eblAvatarRecoveryRC36">
+/*
+ RC36 — saved identity recovery.
+ The creator was rendering correctly while saved-player surfaces could go blank.
+ This deliberately bypasses the older V11/V20 identity normalization chain for art,
+ because that chain dropped skin_color_id and did not parse appearance_json.
+*/
+function eblSavedIdentityRC36(raw={}){
+  let saved={};
+  try{
+    if(typeof raw.appearance_json==='string' && raw.appearance_json.trim()){
+      saved=JSON.parse(raw.appearance_json);
+    }else if(raw.appearance_json && typeof raw.appearance_json==='object'){
+      saved=raw.appearance_json;
+    }
+  }catch(_){ saved={}; }
+
+  const appearance=(raw.appearance && typeof raw.appearance==='object')?raw.appearance:{};
+  const avatar=(raw.avatar && typeof raw.avatar==='object')?raw.avatar:{};
+  const merged={...saved,...appearance,...avatar,...raw};
+
+  const pick=(...xs)=>xs.find(v=>v!==undefined&&v!==null&&v!=='');
+  const n=(fallback,...xs)=>{
+    const v=Number(pick(...xs,fallback));
+    return Number.isFinite(v)?v:fallback;
+  };
+
+  return {
+    ...merged,
+    name:String(pick(raw.name,raw.player_name,merged.name,'EBL Player')),
+    primary_pos:String(pick(raw.primary_pos,raw.position,merged.primary_pos,merged.position,'UTIL')).toUpperCase(),
+    position_group:pick(raw.position_group,merged.position_group,raw.type==='P'?'PITCHER':'INF'),
+    bats:String(pick(raw.bats,merged.bats,'R')).toUpperCase(),
+    throws:String(pick(raw.throws,merged.throws,'R')).toUpperCase(),
+    franchise_id:pick(raw.franchise_id,raw.team_id,merged.franchise_id,merged.team_id,null),
+    jersey_number:n(24,raw.jersey_number,raw.number,merged.jersey_number),
+    face_id:n(1,raw.face_id,merged.face_id),
+    skin_color_id:n(1,raw.skin_color_id,merged.skin_color_id),
+    hair_id:n(1,raw.hair_id,merged.hair_id),
+    hair_color_id:n(3,raw.hair_color_id,merged.hair_color_id),
+    facial_hair_id:n(1,raw.facial_hair_id,merged.facial_hair_id),
+    eye_color_id:n(6,raw.eye_color_id,merged.eye_color_id),
+    eye_black_id:n(1,raw.eye_black_id,merged.eye_black_id),
+    eyewear_id:n(1,raw.eyewear_id,raw.goggles_id,merged.eyewear_id,merged.goggles_id),
+    chain_id:n(1,raw.chain_id,merged.chain_id),
+    sleeve_id:n(1,raw.sleeve_id,merged.sleeve_id)
+  };
+}
+
+function eblPlayerArtV24(raw={},size='md',action='portrait'){
+  const p=eblSavedIdentityRC36(raw||{});
+  const safeSize=['xs','sm','md','lg'].includes(size)?size:'md';
+  let art='';
+  try{
+    art=(action && action!=='portrait' && typeof eblActionPlayerSvg==='function')
+      ? eblActionPlayerSvg(p,action)
+      : stationaryPlayerSvg(p,false,'portrait');
+  }catch(err){
+    console.error('EBL RC36 avatar render failed',err,p);
+    try{
+      art=stationaryPlayerSvg(eblSavedIdentityRC36({
+        ...p,
+        franchise_id:null
+      }),false,'portrait');
+    }catch(err2){
+      console.error('EBL RC36 avatar fallback failed',err2);
+    }
+  }
+  return `<span class="eblPlayerArtV24 eblPlayerArtV24--${safeSize}" data-ebl-avatar="RC36" data-ebl-skin="${Number(p.skin_color_id||1)}">${art}</span>`;
+}
+
+function playerPortraitMarkup(p,pose='auto'){
+  const q=eblSavedIdentityRC36(p||{});
+  const action=(pose&&pose!=='auto'&&pose!=='portrait')?pose:'portrait';
+  return `<div class="playerPortrait playerPortraitV27" data-pos="#${Number(q.jersey_number??24)} • ${escapeHtml(q.primary_pos||'EBL')}">${eblPlayerArtV24(q,'lg',action)}</div>`;
+}
+
+/* Keep all public portrait helpers on the same saved identity. */
+function eblPublicPortraitV28(raw={},size='lg'){
+  return eblPlayerArtV24(eblSavedIdentityRC36(raw||{}),size,'portrait');
+}
+
+/* Health check can be run from the console without changing UI. */
+function eblAvatarHealthRC36(raw){
+  const p=eblSavedIdentityRC36(raw || (typeof PLAYER!=='undefined' ? PLAYER : {}));
+  let svg='';
+  try{ svg=stationaryPlayerSvg(p,false,'portrait'); }catch(e){ return {ok:false,error:String(e),player:p}; }
+  return {
+    ok:/<svg\b/.test(svg) && svg.length>1000,
+    bytes:svg.length,
+    player:p.name,
+    skin_color_id:p.skin_color_id,
+    face_id:p.face_id,
+    hair_id:p.hair_id,
+    facial_hair_id:p.facial_hair_id,
+    eyewear_id:p.eyewear_id,
+    chain_id:p.chain_id,
+    sleeve_id:p.sleeve_id
+  };
+}
+
+window.EBL_AVATAR_RECOVERY_RC36={
+  version:'RC36',
+  renderer:'stationaryPlayerSvg',
+  normalization:'appearance_json + appearance + avatar + top-level',
+  fixes:['blank-saved-player-art','skin-color-persistence','same-portrait-entry-point','forced-svg-layout']
+};
+</script>
+
 </body></html>
