@@ -1689,7 +1689,7 @@ function profilePlayerCard(p){
   const contractHistory=(c.contract_history||[]).map(x=>`<div class="recordCard"><b>${escapeHtml(String(x.team_name||x.franchise_id||'Team'))}</b><div class="muted">${Number(x.salary||0).toFixed(2)} XP/game • ${Number(x.years||0)} season${Number(x.years||0)===1?'':'s'}${Number(x.bonus||0)?` • ${Number(x.bonus).toFixed(2)} XP bonus`:''}</div></div>`).join('');
   return `<div class="profilePlayer">
     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-      ${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(p):p,'lg','portrait'):eblAvatarHtml(p,'card')}
+      ${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'card')}
       <div style="flex:1;min-width:210px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h3 style="margin:0">${escapeHtml(String(p.name||'Player'))} <span class="gold">${escapeHtml(String(p.primary_pos||''))}</span></h3><div class="muted">${team} • #${Number(p.jersey_number??0)} • Age ${Number(p.age||18)} • ${status}</div>${contractLine}</div><span class="legacyBadge">${p.type==='P'?'Pitcher':'Position Player'}</span></div>
       ${p.active?`<div class="recordCard" style="margin-top:8px"><span class="label">CURRENT SEASON</span><div>${escapeHtml(currentLine||'Season underway')}</div></div>`:''}</div>
     </div>
@@ -2135,7 +2135,7 @@ function renderPlayer(){
                         <div><span class="newsMeta">PLAYER AVATAR</span><h3 style="margin:2px 0 0">${escapeHtml(p.name)}</h3></div>
                         <span class="pill">#${Number(p.jersey_number??24)}</span>
                     </div>
-                    ${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(p):p,'lg','portrait'):eblAvatarHtml(p,'hero')}
+                    ${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'hero')}
                     <div class="muted" style="margin-top:7px">Your EBL illustrated player avatar uses your saved face, hair, facial hair, eyes, game-day cosmetics, jersey number, handedness, position, and team colors.</div>
                 </div>
 
@@ -3096,7 +3096,7 @@ function renderHome(){
   }else onboardingCard.classList.add('hidden');
  }
  if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
- let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap">${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(p):p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
+ let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap">${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
  homeTeam.innerHTML=t?`<div class="identity">${teamMark(p.franchise_id)}<div><span class="muted">MY TEAM</span><h2><button class="clickableName" onclick="openTeam('${p.franchise_id}')">${t.name}</button></h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div></div></div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Enter the CPU market from the Player tab.</p>`;
  let ng=p.franchise_id?SCHEDULE.find(g=>g.status==='SCHEDULED'&&(g.away_id===p.franchise_id||g.home_id===p.franchise_id)&&g.league_day>=(LEAGUE?.day||0)):null;
  nextGame.innerHTML=ng?`<span class="muted">NEXT GAME • DAY ${ng.league_day}</span><h2>${teamName(ng.away_id)} @ ${teamName(ng.home_id)}</h2><p>${ng.away_id===p.franchise_id?'Road game':'Home game'}</p>`:`<h2>Next Game</h2><p class="muted">${p.franchise_id?'No upcoming game found.':'Sign a contract to join the schedule.'}</p>`;
@@ -5033,6 +5033,262 @@ window.EBL_AVATAR_RECOVERY_RC36={
   renderer:'stationaryPlayerSvg',
   normalization:'appearance_json + appearance + avatar + top-level',
   fixes:['blank-saved-player-art','skin-color-persistence','same-portrait-entry-point','forced-svg-layout']
+};
+</script>
+
+
+<style id="eblAvatarEverywhereRC37Css">
+/* RC37 — every saved-player surface uses the same visible SVG contract. */
+.eblIdentityPortrait,.eblIdentityMiniV22__art,.eblPlayerBylineV25__art,
+.playerPortrait,.homeAvatarWrap,.profileHero,.profilePlayer{
+  --ebl-avatar-visible:1;
+}
+.eblIdentityPortrait svg,.eblIdentityMiniV22__art svg,
+.playerPortrait svg,.homeAvatarWrap svg,.profileHero svg,.profilePlayer svg{
+  opacity:1!important;visibility:visible!important;
+}
+</style>
+
+<script id="eblAvatarEverywhereRC37">
+/* RC37 — one identity gateway for Player HQ, profiles, roster/bylines, awards and GameCast. */
+function eblFullSavedPlayerRC37(raw={}){
+  let full={};
+  const pid=Number(raw.id||raw.player_id||0);
+  const user=String(raw.username||'');
+
+  try{
+    if(typeof PLAYER!=='undefined' && PLAYER &&
+       ((pid && Number(PLAYER.id||PLAYER.player_id||0)===pid) ||
+        (!pid && raw.name && PLAYER.name===raw.name))) full=PLAYER;
+  }catch(_){}
+
+  try{
+    if(typeof eblFindPlayerIdentityV25==='function'){
+      const found=eblFindPlayerIdentityV25(pid,user);
+      if(found) full={...full,...found};
+    }
+  }catch(_){}
+
+  return eblSavedIdentityRC36({...full,...raw});
+}
+
+/* Preserve the complete saved payload instead of shrinking it through old appearance adapters. */
+function eblGetIdentityV26(raw={}){
+  const p=eblFullSavedPlayerRC37(raw||{});
+  try{
+    const key=typeof eblIdentityCacheKeyV26==='function'?eblIdentityCacheKeyV26(raw):'';
+    if(key && typeof EBL_IDENTITY_CACHE_V26!=='undefined') EBL_IDENTITY_CACHE_V26.set(key,p);
+  }catch(_){}
+  return p;
+}
+
+function eblIdentityCompatV22(raw={}){ return eblFullSavedPlayerRC37(raw||{}); }
+function eblCanonicalPlayerV20(raw={}){ return eblFullSavedPlayerRC37(raw||{}); }
+
+function eblPortraitV20(raw,cls=''){
+  const p=eblFullSavedPlayerRC37(raw||{});
+  return `<div class="eblIdentityPortrait ${typeof escapeHtml==='function'?escapeHtml(cls):cls}">${eblPlayerArtV24(p,'lg','portrait')}</div>`;
+}
+function eblPlayerPortraitV11(raw,cls=''){
+  const p=eblFullSavedPlayerRC37(raw||{});
+  return `<div class="eblIdentityPortrait ${typeof escapeHtml==='function'?escapeHtml(cls):cls}">${eblPlayerArtV24(p,'lg','portrait')}</div>`;
+}
+function eblIdentityMiniV22(raw={},subtitle=''){
+  const p=eblFullSavedPlayerRC37(raw);
+  const sub=subtitle||[p.primary_pos,p.jersey_number?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+  return `<span class="eblIdentityMiniV22"><span class="eblIdentityMiniV22__art">${eblPlayerArtV24(p,'sm','portrait')}</span><span class="eblIdentityMiniV22__copy"><b>${escapeHtml(p.name||'Player')}</b><small>${escapeHtml(sub)}</small></span></span>`;
+}
+function eblPlayerBylineV25(raw={},opts={}){
+  const p=eblFullSavedPlayerRC37(raw);
+  const sub=opts.subtitle||[p.primary_pos,p.jersey_number?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+  return `<span class="eblPlayerBylineV25">${eblPlayerArtV24(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${escapeHtml(p.name||p.player_name||'Player')}</strong>${sub?`<span>${escapeHtml(sub)}</span>`:''}</span></span>`;
+}
+function eblPublicPortraitV28(raw={},size='lg'){
+  return eblPlayerArtV24(eblFullSavedPlayerRC37(raw||{}),size,'portrait');
+}
+
+/* Repaint surfaces that may have been built before the final renderer script loaded. */
+function eblRepaintSavedPlayersRC37(){
+  try{ if(typeof renderHome==='function') renderHome(); }catch(e){ console.warn('RC37 home repaint',e); }
+  try{ if(typeof renderPlayer==='function') renderPlayer(); }catch(e){ console.warn('RC37 player repaint',e); }
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(eblRepaintSavedPlayersRC37,80),{once:true});
+}else{
+  setTimeout(eblRepaintSavedPlayersRC37,80);
+}
+setTimeout(eblRepaintSavedPlayersRC37,650);
+
+window.EBL_AVATAR_EVERYWHERE_RC37={
+  version:'RC37',
+  gateway:'eblFullSavedPlayerRC37',
+  surfaces:['home','player-hq','public-profile','player-card','roster','awards','gamecast','legacy'],
+  fixes:['late-load-repaint','remove-pre-normalization','legacy-helper-routing','saved-payload-hydration']
+};
+</script>
+
+
+<style id="eblAvatarEverywhereRC38Css">
+/* RC38 — final saved-player portrait contract. One renderer, explicit dimensions, no blank HQ cards. */
+.eblPlayerArtV24{
+  display:inline-grid!important;
+  place-items:center!important;
+  overflow:hidden!important;
+  position:relative!important;
+  background:radial-gradient(circle at 50% 28%,rgba(38,92,132,.34),rgba(4,22,39,.86) 74%)!important;
+}
+.eblPlayerArtV24>svg{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  opacity:1!important;
+  visibility:visible!important;
+}
+.eblPlayerArtV24--lg{width:min(100%,300px)!important;height:330px!important;aspect-ratio:auto!important}
+.eblPlayerArtV24--md{width:76px!important;height:84px!important}
+.eblPlayerArtV24--sm{width:48px!important;height:54px!important}
+.eblPlayerArtV24--xs{width:34px!important;height:38px!important}
+.playerPortraitV27>.eblPlayerArtV24--lg{width:100%!important;height:100%!important}
+.homeAvatarWrap .eblPlayerArtV24--lg{width:128px!important;height:142px!important}
+.eblIdentityPortrait>.eblPlayerArtV24{width:100%!important;height:100%!important}
+@media(max-width:720px){
+  .eblPlayerArtV24--lg{width:min(100%,280px)!important;height:308px!important}
+  .homeAvatarWrap .eblPlayerArtV24--lg{width:112px!important;height:124px!important}
+}
+</style>
+
+<script id="eblAvatarEverywhereRC38">
+/*
+ RC38 — canonical avatar everywhere.
+ Important: thin Home/roster/award rows are hydrated from PLAYER + ACTIVE_PLAYERS + league pools
+ BEFORE rendering. The same complete saved identity is then used on every surface.
+*/
+function eblRC38AppearanceObject(raw={}){
+  let j={};
+  try{
+    if(typeof raw.appearance_json==='string' && raw.appearance_json.trim()) j=JSON.parse(raw.appearance_json)||{};
+    else if(raw.appearance_json && typeof raw.appearance_json==='object') j=raw.appearance_json;
+  }catch(_){ j={}; }
+  return {
+    ...j,
+    ...((raw.appearance&&typeof raw.appearance==='object')?raw.appearance:{}),
+    ...((raw.avatar&&typeof raw.avatar==='object')?raw.avatar:{})
+  };
+}
+function eblRC38Richness(raw={}){
+  const a=eblRC38AppearanceObject(raw);
+  const keys=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id'];
+  return keys.reduce((s,k)=>s+((raw[k]!==undefined&&raw[k]!==null)||(a[k]!==undefined&&a[k]!==null)?1:0),0);
+}
+function eblRC38Pools(){
+  const pool=[];
+  const add=x=>{ if(x&&typeof x==='object') pool.push(x); };
+  try{ if(typeof PLAYER!=='undefined') add(PLAYER); }catch(_){}
+  try{ if(typeof ACTIVE_PLAYERS!=='undefined'&&Array.isArray(ACTIVE_PLAYERS)) ACTIVE_PLAYERS.forEach(add); }catch(_){}
+  try{
+    if(typeof LEAGUE!=='undefined'&&LEAGUE){
+      if(Array.isArray(LEAGUE.players)) LEAGUE.players.forEach(add);
+      if(Array.isArray(LEAGUE.roster)) LEAGUE.roster.forEach(add);
+      if(Array.isArray(LEAGUE.teams)) LEAGUE.teams.forEach(t=>{
+        if(Array.isArray(t.players)) t.players.forEach(add);
+        if(Array.isArray(t.roster)) t.roster.forEach(add);
+      });
+    }
+  }catch(_){}
+  return pool;
+}
+function eblRC38SamePlayer(a={},b={}){
+  const ai=Number(a.id||a.player_id||0), bi=Number(b.id||b.player_id||0);
+  if(ai&&bi) return ai===bi;
+  const au=String(a.username||'').trim().toLowerCase(), bu=String(b.username||'').trim().toLowerCase();
+  if(au&&bu) return au===bu;
+  const an=String(a.name||a.player_name||'').trim().toLowerCase(), bn=String(b.name||b.player_name||'').trim().toLowerCase();
+  return !!an && an===bn;
+}
+function eblFullSavedPlayerRC38(raw={}){
+  const matches=eblRC38Pools().filter(x=>eblRC38SamePlayer(x,raw));
+  matches.sort((a,b)=>eblRC38Richness(a)-eblRC38Richness(b));
+  let merged={};
+  matches.forEach(x=>{
+    merged={...merged,...eblRC38AppearanceObject(x),...x};
+  });
+  merged={...merged,...eblRC38AppearanceObject(raw),...raw};
+  return eblSavedIdentityRC36(merged);
+}
+
+/* Make RC38 the only identity gateway used by all later helpers. */
+function eblFullSavedPlayerRC37(raw={}){ return eblFullSavedPlayerRC38(raw); }
+function eblIdentityCompatV22(raw={}){ return eblFullSavedPlayerRC38(raw); }
+function eblCanonicalPlayerV20(raw={}){ return eblFullSavedPlayerRC38(raw); }
+function eblGetIdentityV26(raw={}){
+  const p=eblFullSavedPlayerRC38(raw);
+  try{
+    const key=typeof eblIdentityCacheKeyV26==='function'?eblIdentityCacheKeyV26(raw):'';
+    if(key && typeof EBL_IDENTITY_CACHE_V26!=='undefined') EBL_IDENTITY_CACHE_V26.set(key,p);
+  }catch(_){}
+  return p;
+}
+
+function eblRC38Svg(p,action='portrait'){
+  let art='';
+  try{
+    art=(action&&action!=='portrait'&&typeof eblActionPlayerSvg==='function')
+      ? eblActionPlayerSvg(p,action)
+      : stationaryPlayerSvg(p,false,'portrait');
+  }catch(e){ console.warn('RC38 primary avatar render',e); }
+  if(!art || !/<svg\b/i.test(String(art))){
+    try{ art=stationaryPlayerSvg({...p,franchise_id:null},false,'portrait'); }
+    catch(e){ console.error('RC38 fallback avatar render',e); art=''; }
+  }
+  return art;
+}
+function eblPlayerArtV24(raw={},size='md',action='portrait'){
+  const p=eblFullSavedPlayerRC38(raw||{});
+  const safeSize=['xs','sm','md','lg'].includes(size)?size:'md';
+  const art=eblRC38Svg(p,action);
+  return `<span class="eblPlayerArtV24 eblPlayerArtV24--${safeSize}" data-ebl-avatar="RC38" data-ebl-player="${Number(p.id||p.player_id||0)}" data-ebl-skin="${Number(p.skin_color_id||1)}">${art}</span>`;
+}
+function playerPortraitMarkup(raw,pose='auto'){
+  const p=eblFullSavedPlayerRC38(raw||{});
+  const action=(pose&&pose!=='auto'&&pose!=='portrait')?pose:'portrait';
+  return `<div class="playerPortrait playerPortraitV27" data-pos="#${Number(p.jersey_number??24)} • ${escapeHtml(p.primary_pos||'EBL')}">${eblPlayerArtV24(p,'lg',action)}</div>`;
+}
+function eblPublicPortraitV28(raw={},size='lg'){ return eblPlayerArtV24(eblFullSavedPlayerRC38(raw),size,'portrait'); }
+function eblPortraitV20(raw,cls=''){
+  return `<div class="eblIdentityPortrait ${typeof escapeHtml==='function'?escapeHtml(cls):cls}">${eblPlayerArtV24(eblFullSavedPlayerRC38(raw||{}),'lg','portrait')}</div>`;
+}
+function eblPlayerPortraitV11(raw,cls=''){
+  return `<div class="eblIdentityPortrait ${typeof escapeHtml==='function'?escapeHtml(cls):cls}">${eblPlayerArtV24(eblFullSavedPlayerRC38(raw||{}),'lg','portrait')}</div>`;
+}
+function eblIdentityMiniV22(raw={},subtitle=''){
+  const p=eblFullSavedPlayerRC38(raw);
+  const sub=subtitle||[p.primary_pos,p.jersey_number?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+  return `<span class="eblIdentityMiniV22"><span class="eblIdentityMiniV22__art">${eblPlayerArtV24(p,'sm','portrait')}</span><span class="eblIdentityMiniV22__copy"><b>${escapeHtml(p.name||'Player')}</b><small>${escapeHtml(sub)}</small></span></span>`;
+}
+function eblPlayerBylineV25(raw={},opts={}){
+  const p=eblFullSavedPlayerRC38(raw);
+  const sub=opts.subtitle||[p.primary_pos,p.jersey_number?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+  return `<span class="eblPlayerBylineV25">${eblPlayerArtV24(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${escapeHtml(p.name||p.player_name||'Player')}</strong>${sub?`<span>${escapeHtml(sub)}</span>`:''}</span></span>`;
+}
+
+/* Repaint only after the page data has had a chance to load. */
+function eblRepaintSavedPlayersRC38(){
+  try{ if(typeof renderHome==='function') renderHome(); }catch(e){ console.warn('RC38 home repaint',e); }
+  try{ if(typeof renderPlayer==='function') renderPlayer(); }catch(e){ console.warn('RC38 player repaint',e); }
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(eblRepaintSavedPlayersRC38,160),{once:true});
+}else setTimeout(eblRepaintSavedPlayersRC38,160);
+setTimeout(eblRepaintSavedPlayersRC38,900);
+
+window.EBL_AVATAR_EVERYWHERE_RC38={
+  version:'RC38',
+  gateway:'eblFullSavedPlayerRC38',
+  surfaces:['creator','home','player-hq','public-profile','player-card','roster','awards','gamecast','legacy'],
+  appearance:['skin-tone','face','hair','hair-color','facial-hair','eyes','eye-black','eyewear','chain','sleeves','jersey-number'],
+  fixes:['hydrate-from-active-players','explicit-avatar-dimensions','same-saved-identity-everywhere','nonempty-svg-fallback']
 };
 </script>
 
