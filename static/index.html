@@ -5294,6 +5294,33 @@ window.EBL_AVATAR_EVERYWHERE_RC38={
 
 
 
+<!-- EBL Avatar Visibility RC40 — Android/Chrome SVG filter collision hotfix -->
+<style id="eblAvatarVisibilityRC40Style">
+.eblPlayerArtV24>svg,.faceThumbV12>svg,.avatar3dPreview svg,.playerPortrait svg{opacity:1!important;visibility:visible!important;display:block!important}
+</style>
+<script id="eblAvatarVisibilityRC40">
+/* RC40 — Chrome can blank repeated inline SVGs when many copies reuse the same filter id.
+   Strip the decorative shadow filter from generated player SVG markup; CSS drop-shadows remain. */
+(function(){
+  if(typeof stationaryPlayerSvg!=='function')return;
+  const base=stationaryPlayerSvg;
+  stationaryPlayerSvg=function(){
+    let svg=base.apply(this,arguments);
+    return String(svg||'')
+      .replace(/<defs><filter id="softShadow">[\s\S]*?<\/filter><\/defs>/g,'')
+      .replace(/\sfilter="url\(#softShadow\)"/g,'');
+  };
+  function repaint(){
+    try{if(typeof creatorAppearance==='function'&&document.getElementById('creatorStage')&&!document.getElementById('creatorStage').closest('.hidden'))creatorAppearance()}catch(e){console.warn('RC40 creator repaint',e)}
+    try{if(typeof renderHome==='function')renderHome()}catch(e){console.warn('RC40 home repaint',e)}
+    try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){console.warn('RC40 player repaint',e)}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,120),{once:true});
+  else setTimeout(repaint,120);
+  window.EBL_AVATAR_VISIBILITY_RC40={version:'RC40',fix:'unique-inline-svg-filter-collision-by-removal',androidChrome:true};
+})();
+</script>
+
 <!-- EBL Avatar Everywhere RC39 — 2026-09-17 -->
 <style id="eblAvatarEverywhereRC39Style">
 .eblAvatarEverywhereRow{display:flex;align-items:center;gap:9px;min-width:0}.eblAvatarEverywhereRow .eblPlayerArtV24{flex:0 0 auto}.gcLineupChip{display:flex!important;align-items:center;gap:6px;min-width:0}.gcLineupChip .eblPlayerArtV24{flex:0 0 auto}.depthMain .eblAvatarEverywhereRow{flex:1}.coachRecoveryIdentity{display:flex;align-items:center;justify-content:center;gap:7px}.roleRow .eblPlayerArtV24--xs{vertical-align:middle;margin-right:5px}@media(max-width:600px){.gcLineupChip .eblPlayerArtV24--xs{display:none}.eblAvatarEverywhereRow{gap:6px}}
