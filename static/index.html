@@ -5292,4 +5292,61 @@ window.EBL_AVATAR_EVERYWHERE_RC38={
 };
 </script>
 
+
+
+<!-- EBL Avatar Everywhere RC39 — 2026-09-17 -->
+<style id="eblAvatarEverywhereRC39Style">
+.eblAvatarEverywhereRow{display:flex;align-items:center;gap:9px;min-width:0}.eblAvatarEverywhereRow .eblPlayerArtV24{flex:0 0 auto}.gcLineupChip{display:flex!important;align-items:center;gap:6px;min-width:0}.gcLineupChip .eblPlayerArtV24{flex:0 0 auto}.depthMain .eblAvatarEverywhereRow{flex:1}.coachRecoveryIdentity{display:flex;align-items:center;justify-content:center;gap:7px}.roleRow .eblPlayerArtV24--xs{vertical-align:middle;margin-right:5px}@media(max-width:600px){.gcLineupChip .eblPlayerArtV24--xs{display:none}.eblAvatarEverywhereRow{gap:6px}}
+</style>
+<script id="eblAvatarEverywhereRC39">
+/* RC39 — Avatar Everywhere. Every player-facing surface uses the canonical saved identity renderer. */
+function eblAvatarEverywhereRC39(raw={},opts={}){
+  const p=typeof eblFullSavedPlayerRC37==='function'?eblFullSavedPlayerRC37(raw||{}):(typeof eblGetIdentityV26==='function'?eblGetIdentityV26(raw||{}):(raw||{}));
+  const size=opts.size||'xs';
+  const action=opts.action||'portrait';
+  const art=typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,size,action):'';
+  const name=escapeHtml(String(p.name||p.player_name||raw.name||raw.player_name||'Player'));
+  const pid=Number(p.id||p.player_id||raw.id||raw.player_id||0);
+  const username=p.username||raw.username||'';
+  const link=username?`<button class="clickableName" onclick="openUserProfile('${jsq(username)}')">${name}</button>`:(pid?`<button class="clickableName" onclick="openPlayerCard(${pid})">${name}</button>`:name);
+  return `<span class="eblAvatarEverywhereRow">${art}<span>${link}${opts.subtitle?`<small class="muted" style="display:block">${escapeHtml(String(opts.subtitle))}</small>`:''}</span></span>`;
+}
+
+/* Award races: do not require face_id to already be present in the thin API row; hydrate it first. */
+raceList=function(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span><div class="raceIdentity">${eblAvatarEverywhereRC39(x,{size:'sm',subtitle:detail(x)})}</div><span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'};
+
+/* Analytics/leaderboards: canonical compact portrait + clickable identity. */
+leaguePlayerIdentity=function(x,size='mini'){
+  const mapped=size==='card'?'md':size==='mini'?'xs':'sm';
+  return eblAvatarEverywhereRC39(x,{size:mapped});
+};
+
+/* GameCast batting-order strips now carry the same saved avatar as Home/Profile. */
+gamecastLineupStrip=function(fid,label){
+ const rows=(GG?.box?.hitter_rows||[]).filter(x=>x.team_id===fid);
+ return `<div class="gcLineup"><div class="gcLineupTitle"><b>${label}</b><span class="muted">BATTING ORDER</span></div><div class="gcLineupRow">${rows.slice(0,9).map((p,i)=>`<div class="gcLineupChip" data-gc-player="${Number(p.player_id)}"><span class="gold">${i+1}</span>${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(typeof eblFullSavedPlayerRC37==='function'?eblFullSavedPlayerRC37(p):p,'xs','portrait'):''}<b>#${Number(p.jersey_number??24)} ${escapeHtml(p.name||'Player')}</b><span class="muted">${escapeHtml(p.primary_pos||'')}</span></div>`).join('')}</div></div>`;
+};
+
+/* Legacy franchise depth chart was an older name-only surface. Decorate those rows after it opens. */
+const __eblOpenTeamLegacyRC39=typeof openTeamLegacy==='function'?openTeamLegacy:null;
+if(__eblOpenTeamLegacyRC39){
+ openTeamLegacy=async function(fid){
+   await __eblOpenTeamLegacyRC39(fid);
+   try{
+    const root=document.getElementById('gcontent'); if(!root)return;
+    root.querySelectorAll('.depthPlayer').forEach(row=>{
+      const btn=row.querySelector('.playerLink'); if(!btn||row.querySelector('.eblPlayerArtV24'))return;
+      const m=(btn.getAttribute('onclick')||'').match(/openPlayerCard\((\d+)\)/); if(!m)return;
+      const pid=Number(m[1]); const raw=(TEAM_ROSTER||[]).find(x=>Number(x.id)===pid); if(!raw)return;
+      btn.insertAdjacentHTML('beforebegin',eblPlayerArtV24(typeof eblFullSavedPlayerRC37==='function'?eblFullSavedPlayerRC37(raw):raw,'xs','portrait'));
+    });
+   }catch(e){console.warn('RC39 legacy roster avatar pass',e)}
+ };
+}
+
+/* Player HQ / Home / roster / profile repaint after RC39 loads. */
+setTimeout(()=>{try{renderHome()}catch{} try{renderPlayer()}catch{}},180);
+window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','public-profile','team-roster','legacy-roster','analytics','awards','gamecast-lineup','gamecast-matchup'],canonical:true};
+</script>
+
 </body></html>
