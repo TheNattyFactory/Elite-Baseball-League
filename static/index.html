@@ -583,9 +583,9 @@ dialog{
 
 <style id="eblSportsCartoonV24Css">
 /* V24 — shared identity surfaces scale cleanly from roster chip to profile card. */
-.eblPlayerArtV24{position:relative;overflow:hidden;background:radial-gradient(circle at 50% 28%,rgba(45,104,146,.34),rgba(4,22,39,.88) 72%);border:1px solid rgba(143,184,217,.18)}
+.eblPlayerArtV24{display:inline-block;vertical-align:middle;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 28%,rgba(45,104,146,.34),rgba(4,22,39,.88) 72%);border:1px solid rgba(143,184,217,.18)}
 .eblPlayerArtV24 svg{display:block;width:100%;height:100%;object-fit:contain}
-.eblPlayerArtV24--xs{width:34px;height:34px;border-radius:9px}.eblPlayerArtV24--sm{width:48px;height:48px;border-radius:12px}.eblPlayerArtV24--md{width:76px;height:76px;border-radius:16px}.eblPlayerArtV24--lg{width:min(100%,260px);aspect-ratio:4/5;border-radius:22px}
+.eblPlayerArtV24--xs{width:34px;height:34px;border-radius:9px}.eblPlayerArtV24--sm{width:48px;height:48px;border-radius:12px}.eblPlayerArtV24--md{width:76px;height:76px;border-radius:16px}.eblPlayerArtV24--lg{display:block;width:min(100%,260px);height:auto;aspect-ratio:4/5;border-radius:22px}
 .eblPlayerLineV24{display:flex;align-items:center;gap:10px;min-width:0}.eblPlayerLineV24__text{min-width:0}.eblPlayerLineV24__text b,.eblPlayerLineV24__text small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.eblPlayerLineV24__text small{opacity:.68;font-size:.72rem;margin-top:2px}
 </style>
 
@@ -2404,8 +2404,9 @@ function refreshChangePositions(){
 async function changePlayerPosition(){return onceAction('changePosition',async()=>{
  try{const group=changeGroup.value,position=changePos.value;await api('/api/player/change-position',{method:'POST',body:JSON.stringify({player_id:PLAYER?.id,position_group:group,position})});await loadPlayer(PLAYER?.id);renderHome();}catch(e){alert(e.error||'Could not change position')}})}
                 
-let CREATOR={name:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,hair_color_id:3,eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1,pool:50,attributes:{}};
+let CREATOR={name:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,skin_color_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,hair_color_id:3,eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1,pool:50,attributes:{}};
 let POSITION_DEMAND=[];
+const SKIN_TONES=[{name:'Fair',color:'#f2c59d'},{name:'Light',color:'#e7b58d'},{name:'Warm',color:'#dca47b'},{name:'Tan',color:'#c98c68'},{name:'Medium',color:'#bd7c57'},{name:'Deep',color:'#8d573e'},{name:'Rich',color:'#754733'},{name:'Dark',color:'#633c2e'}];
 const FACE_PRESETS=[
  {skin:'#f0c4a6',hair:'#4a2d20',eye:'#22313f',label:'Classic',radius:'48% 48% 44% 44%',beard:''},
  {skin:'#dca37c',hair:'#2a1b16',eye:'#1e2b35',label:'Square',radius:'43% 43% 37% 37%',beard:'stubble'},
@@ -2641,6 +2642,7 @@ function creatorAppearance(){
  creatorStage.innerHTML=`<div class="creatorHero"><div><span class="badge">PLAYER APPEARANCE</span><br><b>Build your EBL look</b><div class="muted">Choose a distinct face shape, hairstyle, hair color, facial hair and eye color. Your exact look follows your player across EBL.</div></div><div>⚾</div></div>
  <div class="appearanceGrid"><div class="appearancePanel">
  <h3>FACE</h3><div class="presetGrid">${FACE_PRESETS.map((f,i)=>`<div class="preset ${CREATOR.face_id===i+1?'selected':''}" onclick="pickFace(${i+1})">${faceThumbMarkup(f,CREATOR.hair_id)}<div class="presetLabel">${f.label}</div></div>`).join('')}</div>
+ <h3 style="margin-top:18px">SKIN TONE</h3><div class="colorChoices">${SKIN_TONES.map((x,i)=>`<button class="colorChoice ${Number(CREATOR.skin_color_id||1)===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" aria-label="${x.name}" onclick="pickSkinTone(${i+1})"></button>`).join('')}</div>
  <h3 style="margin-top:18px">HAIR STYLE</h3><div class="presetGrid">${HAIR_NAMES.map((n,i)=>`<div class="preset ${CREATOR.hair_id===i+1?'selected':''}" onclick="pickHair(${i+1})">${faceThumbMarkup(current,i+1)}<div class="presetLabel">${n}</div></div>`).join('')}</div>
  <h3 style="margin-top:18px">HAIR COLOR</h3><div class="colorChoices">${HAIR_COLORS.map((x,i)=>`<button class="colorChoice ${CREATOR.hair_color_id===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" aria-label="${x.name}" onclick="pickHairColor(${i+1})"></button>`).join('')}</div>
  <h3 style="margin-top:18px">FACIAL HAIR</h3><div class="presetGrid">${FACIAL_HAIR_NAMES.map((n,i)=>`<div class="preset ${CREATOR.facial_hair_id===i+1?'selected':''}" onclick="pickFacialHair(${i+1})">${faceThumbMarkup(current,CREATOR.hair_id,i+1,eye.color)}<div class="presetLabel">${n}</div></div>`).join('')}</div>
@@ -2654,12 +2656,8 @@ function creatorAppearance(){
  <div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(1)">BACK</button> <button class="btn" onclick="beginAttributes()">NEXT: ATTRIBUTES</button></div>`;
  requestAnimationFrame(()=>renderCreator3D('creator3dPreview'));
 }
-function avatarMarkup(){
- let f=FACE_PRESETS[CREATOR.face_id-1]||FACE_PRESETS[0];
- const eye=(EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5]).color;
- return cartoonAvatarSvg(CREATOR.face_id,CREATOR.hair_id,CREATOR.facial_hair_id,eye,'#0d3153','#d7262e','#f4f7fb',false,CREATOR.jersey_number,eblHairColor(CREATOR));
-}
-function pickFace(id){CREATOR.face_id=id;creatorAppearance()} function pickHair(id){CREATOR.hair_id=id;creatorAppearance()} function pickHairColor(id){CREATOR.hair_color_id=id;creatorAppearance()} function pickFacialHair(id){CREATOR.facial_hair_id=id;creatorAppearance()} function pickEyeColor(id){CREATOR.eye_color_id=id;creatorAppearance()} function pickEyeBlack(id){CREATOR.eye_black_id=id;creatorAppearance()} function pickEyewear(id){CREATOR.eyewear_id=id;creatorAppearance()} function pickChain(id){CREATOR.chain_id=id;creatorAppearance()} function pickSleeve(id){CREATOR.sleeve_id=id;creatorAppearance()}
+function avatarMarkup(){ return stationaryPlayerSvg({...CREATOR,primary_pos:CREATOR.position||'UTIL'}); }
+function pickFace(id){CREATOR.face_id=id;creatorAppearance()} function pickSkinTone(id){CREATOR.skin_color_id=Math.max(1,Math.min(8,Number(id)||1));creatorAppearance()} function pickHair(id){CREATOR.hair_id=id;creatorAppearance()} function pickHairColor(id){CREATOR.hair_color_id=id;creatorAppearance()} function pickFacialHair(id){CREATOR.facial_hair_id=id;creatorAppearance()} function pickEyeColor(id){CREATOR.eye_color_id=id;creatorAppearance()} function pickEyeBlack(id){CREATOR.eye_black_id=id;creatorAppearance()} function pickEyewear(id){CREATOR.eyewear_id=id;creatorAppearance()} function pickChain(id){CREATOR.chain_id=id;creatorAppearance()} function pickSleeve(id){CREATOR.sleeve_id=id;creatorAppearance()}
 function beginAttributes(){
  let pitcher=CREATOR.position_group==='PITCHER',names=pitcher?PA:HA;
  if(!CREATOR.attributes || Object.keys(CREATOR.attributes).join(',')!==names.join(',')){CREATOR.attributes=Object.fromEntries(names.map(x=>[x,0]));CREATOR.pool=50}
@@ -2902,7 +2900,7 @@ async function finishCreator(){return onceAction('finishCreator',async()=>{
  try{
    if(!String(CREATOR.name||'').trim())return alert('A player name is required. Go back to Basic Info and enter a name.');
    if(CREATOR.position!=='C' && CREATOR.attributes?.CALL){return alert('CALL is a catcher-only rating. Set CALL back to 0 or choose C as your preferred position.');}
-   let payload={name:CREATOR.name,position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
+   let payload={name:CREATOR.name,position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,skin_color_id:CREATOR.skin_color_id||1,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
    let created=await api('/api/player/create',{method:'POST',body:JSON.stringify(payload)});
    PLAYER_HQ_TAB='playerOverview';
    const newId=created?.player?.id||null;
@@ -3231,6 +3229,7 @@ function eblAppearancePlayer(p={}){
   ...p,
   jersey_number:p.jersey_number??a.jersey_number??24,
   face_id:p.face_id??a.face_id??1,
+  skin_color_id:p.skin_color_id??a.skin_color_id??1,
   hair_id:p.hair_id??a.hair_id??1,
   hair_color_id:p.hair_color_id??a.hair_color_id??3,
   facial_hair_id:p.facial_hair_id??a.facial_hair_id??1,
@@ -3263,7 +3262,8 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
  const team=teamPalette(p.franchise_id);
  const t1=team[0]||'#123a5a', t2=team[1]||'#d92832', t3=team[2]||'#f5f7fa';
 
- const skin=['','#f2c59d','#dca47b','#bd7c57','#8d573e','#633c2e','#e7b58d','#c98c68','#a96c4d','#754733','#efc7a6','#efbd98','#cd916d','#aa6d50','#7b4d39','#e7b38d','#bc7d5c','#925c43','#e9b994','#704536','#d59a74'][face];
+ const skinId=Math.max(1,Math.min(8,Number(p.skin_color_id)||1));
+ const skin=['','#f2c59d','#e7b58d','#dca47b','#c98c68','#bd7c57','#8d573e','#754733','#633c2e'][skinId];
  const eyes=['','#4b2d1f','#765133','#2f6690','#3d7b5a','#77736b','#4b2d1f'][eyeId];
  const hairs=['','#2b1a14','#4a2c20','#6b4028','#8a5b38','#b17b4e','#d9bd78','#d6c27b','#9a6a42','#171717'][hairColorId];
 
@@ -4714,7 +4714,7 @@ function eblActionV20(player,action='batting',cls=''){
 /* Stable identity payload helper for creator -> saved player -> league surfaces. */
 function eblIdentityPayloadV21(player){
  const p=eblCanonicalPlayerV20(player||{});
- return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),franchise_id:p.franchise_id??null};
+ return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),skin_color_id:Number(p.skin_color_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),franchise_id:p.franchise_id??null};
 }
 </script>
 
@@ -4729,6 +4729,7 @@ function eblIdentityCompatV22(raw={}){
    primary_pos:first(raw.primary_pos,raw.position,raw.pos,a.primary_pos,'UTIL'),
    jersey_number:first(raw.jersey_number,raw.number,a.jersey_number,24),
    face_id:first(raw.face_id,a.face_id,1),
+   skin_color_id:first(raw.skin_color_id,a.skin_color_id,1),
    hair_id:first(raw.hair_id,a.hair_id,1),
    hair_color_id:first(raw.hair_color_id,a.hair_color_id,3),
    facial_hair_id:first(raw.facial_hair_id,a.facial_hair_id,1),
@@ -4791,7 +4792,7 @@ function eblPlayerLineV24(raw={},opts={}){
 }
 function eblIdentityKeyV24(raw={}){
   const p=typeof eblIdentityCompatV22==='function'?eblIdentityCompatV22(raw):raw;
-  return [p.face_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.jersey_number,p.franchise_id??'FA'].join(':');
+  return [p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.jersey_number,p.franchise_id??'FA'].join(':');
 }
 </script>
 
@@ -4913,4 +4914,6 @@ function eblVisibleIdentityAuditV31(){
 <script id="eblSportsCartoonV32">
 const EBL_SPORTS_CARTOON_V32={anatomy:'athletic',eyes:'human-proportioned',neck:'shorter-thicker',cap:'skull-wrapped',shoulders:'wider'};
 </script>
+
+<script id="eblIdentityUnificationRC35">window.EBL_IDENTITY_UNIFICATION_RC35={version:'RC35',skinTones:8,renderer:'stationaryPlayerSvg',surfaces:['creator','home','player-hq','profiles','rosters'],fixes:['blank-player-hq','skin-tone-independent-of-face','canonical-avatarMarkup']};</script>
 </body></html>
