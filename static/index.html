@@ -6294,76 +6294,74 @@ window.EBL_PORTRAIT_V4={version:'V4',dynamic:true,direction:'sports card anatomy
 </script>
 
 
-<!-- EBL CARTOON PORTRAIT V8 — integrated head/jaw/hair/ears/cap/facial hair -->
-<style id="eblCartoonPortraitV8Style">
-.eblCartoonV8{display:inline-block;line-height:0;overflow:hidden;border-radius:inherit}
-.eblCartoonV8 svg{display:block;width:100%;height:100%}
-.eblPlayerArtV24--lg.eblCartoonV8{width:100%;height:100%}.eblPlayerArtV24--md.eblCartoonV8{width:92px;height:112px}.eblPlayerArtV24--sm.eblCartoonV8{width:54px;height:66px}.eblPlayerArtV24--xs.eblCartoonV8{width:34px;height:42px}
+<!-- EBL CARTOON PORTRAIT V9 — reference-proportion personality pass -->
+<style id="eblCartoonPortraitV9Style">
+.eblCartoonV9{display:inline-block;line-height:0;overflow:hidden;border-radius:inherit}
+.eblCartoonV9 svg{display:block;width:100%;height:100%}
+.eblPlayerArtV24--lg.eblCartoonV9{width:100%;height:100%}.eblPlayerArtV24--md.eblCartoonV9{width:92px;height:112px}.eblPlayerArtV24--sm.eblCartoonV9{width:54px;height:66px}.eblPlayerArtV24--xs.eblCartoonV9{width:34px;height:42px}
 </style>
-<script id="eblCartoonPortraitV8">
+<script id="eblCartoonPortraitV9">
 (function(){
  const skins=['#f3c49c','#e7ae82','#d79768','#bd7d55','#9c6244','#754632','#563325','#3d251d'];
  const hairs=['#171411','#2b1b15','#4a2c1d','#6b4128','#8a5b34','#b07842','#d3a060','#b9b6ad'];
  const eyes=['#34251d','#5a3822','#704f2d','#355b73','#4d6b42','#25364a','#6b4b3a','#3f5962'];
- const N=(v,d=1)=>Number.isFinite(+v)?+v:d, C=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const N=(v,d=1)=>Number.isFinite(+v)?+v:d,C=(v,a,b)=>Math.max(a,Math.min(b,v));
  function model(r){let p=r||{};try{if(typeof eblFullSavedPlayerRC38==='function')p=eblFullSavedPlayerRC38(p);else if(typeof eblAppearanceModel==='function')p=eblAppearanceModel(p)}catch(e){}return p}
  function pal(p){try{let t=p.team||(LEAGUE?.teams||[]).find(x=>x.id===p.franchise_id);if(typeof teamPalette==='function')return teamPalette(t)}catch(e){}let a=['#071a31','#d7262e','#f4f7fb'];a.primary=a[0];a.secondary=a[1];a.accent=a[2];return a}
  const faces=[
-  'M112 116Q113 84 150 79Q187 84 188 116L185 159Q181 187 163 199L150 205L137 199Q119 187 115 159Z',
-  'M108 117Q110 82 150 78Q190 82 192 117L189 158Q185 187 165 199Q150 207 135 199Q115 187 111 158Z',
-  'M116 112Q118 80 150 76Q182 80 184 112L182 160Q178 190 160 204L150 210L140 204Q122 190 118 160Z',
-  'M109 115Q111 82 150 77Q189 82 191 115L188 156Q185 181 170 195L150 203L130 195Q115 181 112 156Z',
-  'M111 114Q113 81 150 77Q187 81 189 114L187 160Q183 190 168 203L150 212L132 203Q117 190 113 160Z'
+  'M105 112Q106 79 125 66Q136 58 150 58Q164 58 175 66Q194 79 195 112L192 150Q188 174 171 188Q160 197 150 199Q140 197 129 188Q112 174 108 150Z',
+  'M101 113Q102 80 123 66Q135 58 150 58Q165 58 177 66Q198 80 199 113L196 149Q192 172 174 187Q162 196 150 198Q138 196 126 187Q108 172 104 149Z',
+  'M108 109Q109 76 126 63Q137 55 150 55Q163 55 174 63Q191 76 192 109L190 150Q186 176 169 191L150 202L131 191Q114 176 110 150Z',
+  'M102 111Q103 78 123 64Q136 56 150 56Q164 56 177 64Q197 78 198 111L194 147Q190 169 176 184Q164 195 150 198Q136 195 124 184Q110 169 106 147Z',
+  'M103 109Q104 76 123 62Q136 54 150 54Q164 54 177 62Q196 76 197 109L194 148Q191 174 175 190L160 200L150 204L140 200L125 190Q109 174 106 148Z'
  ];
  function hairStyle(id,c){let k=(N(id)-1)%3;return [
-  `<path d="M115 111Q117 84 130 75Q140 68 150 68Q162 68 173 76Q184 86 185 111Q171 103 150 103Q129 103 115 111Z" fill="${c}" stroke="#2a1712" stroke-width="2.5"/>`,
-  `<path d="M111 114Q112 82 130 72Q140 65 151 66Q166 66 178 77Q188 88 188 115L185 144Q180 130 177 114Q165 104 150 104Q134 104 123 114Q120 132 115 145Z" fill="${c}" stroke="#2a1712" stroke-width="2.5"/><path d="M114 127Q107 144 112 160Q118 153 121 140M186 127Q193 144 188 160Q182 153 179 140" fill="${c}" stroke="#2a1712" stroke-width="2"/>`,
-  `<path d="M108 116Q109 80 129 69Q140 61 151 63Q168 63 181 76Q191 89 191 117L188 164Q182 176 175 181L174 122Q164 105 150 105Q135 105 125 122L125 181Q117 176 112 164Z" fill="${c}" stroke="#2a1712" stroke-width="2.5"/><path d="M112 146Q104 166 115 183Q124 175 126 159M188 146Q196 166 185 183Q176 175 174 159" fill="${c}" stroke="#2a1712" stroke-width="2"/>`
+  `<path d="M108 108Q110 77 128 65Q139 58 151 58Q166 58 179 69Q190 81 191 110Q173 101 150 101Q127 101 108 108Z" fill="${c}" stroke="#2a1712" stroke-width="3"/><path d="M109 111Q116 102 126 100M191 111Q184 102 174 100" fill="none" stroke="${c}" stroke-width="7" stroke-linecap="round"/>`,
+  `<path d="M104 111Q106 75 127 61Q139 53 152 54Q169 54 182 68Q194 82 194 113L190 147Q184 136 180 115Q167 102 150 102Q132 102 120 115Q116 137 110 151Z" fill="${c}" stroke="#2a1712" stroke-width="3"/><path d="M109 126Q99 146 106 164Q116 157 120 142M191 126Q201 146 194 164Q184 157 180 142" fill="${c}" stroke="#2a1712" stroke-width="2.5"/>`,
+  `<path d="M101 113Q103 73 126 58Q139 49 152 51Q171 51 185 66Q198 81 198 115L194 166Q187 180 176 186L175 120Q165 102 150 102Q134 102 124 120L124 186Q112 180 106 166Z" fill="${c}" stroke="#2a1712" stroke-width="3"/><path d="M107 140Q96 165 108 187Q120 179 124 158M193 140Q204 165 192 187Q180 179 176 158" fill="${c}" stroke="#2a1712" stroke-width="2.5"/>`
  ][k]}
  function nose(id){return [
-  `<path d="M150 143Q146 157 147 164Q150 168 157 165" fill="none" stroke="#84513f" stroke-width="2.5" stroke-linecap="round"/>`,
-  `<path d="M149 143Q143 157 144 165Q149 170 157 166" fill="none" stroke="#84513f" stroke-width="2.6" stroke-linecap="round"/>`,
-  `<path d="M151 143L148 162Q148 168 155 168Q160 168 162 164" fill="none" stroke="#84513f" stroke-width="2.5" stroke-linecap="round"/>`,
-  `<path d="M150 143Q151 154 147 162Q146 167 151 169Q158 170 162 165" fill="none" stroke="#84513f" stroke-width="2.4" stroke-linecap="round"/>`,
-  `<path d="M150 143Q145 153 146 161Q145 167 150 170Q156 171 160 167" fill="none" stroke="#84513f" stroke-width="2.3" stroke-linecap="round"/>`
+  `<path d="M150 140Q145 154 147 161Q151 165 158 162" fill="none" stroke="#84513f" stroke-width="2.5" stroke-linecap="round"/>`,
+  `<path d="M148 140Q141 154 143 163Q149 168 158 163" fill="none" stroke="#84513f" stroke-width="2.7" stroke-linecap="round"/>`,
+  `<path d="M151 140L147 159Q147 166 154 167Q160 167 163 162" fill="none" stroke="#84513f" stroke-width="2.6" stroke-linecap="round"/>`,
+  `<path d="M150 140Q152 151 147 159Q145 165 151 168Q158 169 163 163" fill="none" stroke="#84513f" stroke-width="2.5" stroke-linecap="round"/>`,
+  `<path d="M150 140Q144 150 145 158Q144 165 150 168Q157 169 161 164" fill="none" stroke="#84513f" stroke-width="2.4" stroke-linecap="round"/>`
  ][(N(id)-1)%5]}
  function facial(id,c){let k=(N(id)-1)%6;return [
   '',
-  `<path d="M126 177Q150 187 174 177Q171 198 150 204Q129 198 126 177Z" fill="${c}" opacity=".22"/>`,
-  `<path d="M141 185Q150 190 159 185L158 201Q150 207 142 201Z" fill="${c}"/>`,
-  `<path d="M121 173Q124 199 137 208L150 214L163 208Q176 199 179 173L171 181Q168 198 150 205Q132 198 129 181Z" fill="${c}"/>`,
-  `<path d="M132 176Q141 171 150 176Q159 171 168 176Q162 183 150 181Q138 183 132 176Z" fill="${c}"/>`,
-  `<path d="M123 174Q126 197 137 206L150 211L163 206Q174 197 177 174L170 181Q166 195 150 201Q134 195 130 181Z" fill="${c}" opacity=".55"/>`
+  `<path d="M120 166Q124 191 137 199L150 204L163 199Q176 191 180 166" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" opacity=".42"/>`,
+  `<path d="M139 177Q150 183 161 177Q159 184 156 188L156 197Q150 202 144 197L144 188Q141 184 139 177Z" fill="${c}"/>`,
+  `<path d="M116 164Q119 193 135 205L150 211L165 205Q181 193 184 164L176 174Q172 193 150 202Q128 193 124 174Z" fill="${c}"/>`,
+  `<path d="M130 174Q140 168 150 174Q160 168 170 174Q163 182 150 180Q137 182 130 174Z" fill="${c}"/>`,
+  `<path d="M118 165Q122 190 136 201L150 207L164 201Q178 190 182 165L174 174Q169 190 150 198Q131 190 126 174Z" fill="${c}" opacity=".6"/>`
  ][k]}
  function svg(raw){
-  let p=model(raw),q=pal(p),pri=q.primary||q[0],sec=q.secondary||q[1],acc=q.accent||q[2];
-  let sk=p.skin_color||skins[C(N(p.skin_color_id,1),1,8)-1],hc=p.hair_color||hairs[C(N(p.hair_color_id,3),1,8)-1],ec=p.eye_color||eyes[C(N(p.eye_color_id,6),1,8)-1];
-  let f=(N(p.face_id)-1)%5,num=String(Math.max(0,N(p.jersey_number,0))).padStart(2,'0').slice(-2),u='v8'+Math.random().toString(36).slice(2,7);
-  let earY=[142,143,144,141,145][f],earX=[108,104,111,106,108][f],mouthY=[181,180,183,179,184][f];
-  return `<svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${u}s" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff" stop-opacity=".13"/><stop offset=".24" stop-color="${sk}"/><stop offset=".82" stop-color="${sk}"/><stop offset="1" stop-color="#000" stop-opacity=".11"/></linearGradient></defs>
-  <circle cx="150" cy="177" r="132" fill="${pri}" opacity=".12"/><text x="150" y="212" text-anchor="middle" font-size="112" font-weight="950" fill="${acc}" opacity=".025">EBL</text>
-  <path d="M45 360L50 307Q55 273 91 251Q112 238 128 236L172 236Q188 238 209 251Q245 273 250 307L255 360Z" fill="${acc}" stroke="#06101b" stroke-width="4"/>
-  <path d="M49 306Q73 271 111 252M251 306Q227 271 189 252" fill="none" stroke="${sec}" stroke-width="6"/><path d="M128 236Q150 253 172 236" fill="none" stroke="${pri}" stroke-width="14"/><path d="M128 236Q150 249 172 236" fill="none" stroke="${sec}" stroke-width="6"/><path d="M150 249V360" stroke="${pri}" stroke-width="4"/>
-  <text x="208" y="316" text-anchor="middle" font-size="39" font-weight="950" fill="${pri}">${num}</text><text x="95" y="305" text-anchor="middle" font-size="17" font-weight="950" fill="${pri}">EBL</text>
-  <path d="M132 195L130 232Q138 241 150 244Q162 241 170 232L168 195Z" fill="${sk}" stroke="#2a1712" stroke-width="3"/>
+  let p=model(raw),q=pal(p),pri=q.primary||q[0],sec=q.secondary||q[1],acc=q.accent||q[2],sk=p.skin_color||skins[C(N(p.skin_color_id,1),1,8)-1],hc=p.hair_color||hairs[C(N(p.hair_color_id,3),1,8)-1],ec=p.eye_color||eyes[C(N(p.eye_color_id,6),1,8)-1];
+  let f=(N(p.face_id)-1)%5,num=String(Math.max(0,N(p.jersey_number,0))).padStart(2,'0').slice(-2),u='v9'+Math.random().toString(36).slice(2,7),mouthY=[175,174,178,173,179][f],earY=[136,137,138,135,139][f],earX=[103,99,106,101,102][f];
+  return `<svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${u}s" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff" stop-opacity=".15"/><stop offset=".25" stop-color="${sk}"/><stop offset=".8" stop-color="${sk}"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient></defs>
+  <circle cx="150" cy="174" r="133" fill="${pri}" opacity=".12"/><text x="150" y="210" text-anchor="middle" font-size="112" font-weight="950" fill="${acc}" opacity=".025">EBL</text>
+  <path d="M39 360L45 309Q50 272 91 248Q111 237 128 234L172 234Q189 237 209 248Q250 272 255 309L261 360Z" fill="${acc}" stroke="#06101b" stroke-width="4"/>
+  <path d="M45 306Q71 269 111 249M255 306Q229 269 189 249" fill="none" stroke="${sec}" stroke-width="6"/><path d="M128 234Q150 250 172 234" fill="none" stroke="${pri}" stroke-width="14"/><path d="M128 234Q150 247 172 234" fill="none" stroke="${sec}" stroke-width="6"/><path d="M150 247V360" stroke="${pri}" stroke-width="4"/>
+  <text x="210" y="315" text-anchor="middle" font-size="39" font-weight="950" fill="${pri}">${num}</text><text x="92" y="304" text-anchor="middle" font-size="17" font-weight="950" fill="${pri}">EBL</text>
+  <path d="M134 190L133 229Q140 237 150 239Q160 237 167 229L166 190Z" fill="${sk}" stroke="#2a1712" stroke-width="3"/>
   ${hairStyle(p.hair_id,hc)}
-  <ellipse cx="${earX}" cy="${earY}" rx="9" ry="16" fill="${sk}" stroke="#2a1712" stroke-width="2.5"/><ellipse cx="${300-earX}" cy="${earY}" rx="9" ry="16" fill="${sk}" stroke="#2a1712" stroke-width="2.5"/><path d="M${earX-1} ${earY}q5-7 7 1M${301-earX} ${earY}q-5-7-7 1" fill="none" stroke="#8a5846" stroke-width="1.4" opacity=".55"/>
-  <path d="${faces[f]}" fill="url(#${u}s)" stroke="#2a1712" stroke-width="3.5"/>
-  <path d="M120 129Q130 123 140 128M160 128Q170 123 180 129" fill="none" stroke="${hc}" stroke-width="4.5" stroke-linecap="round"/>
-  <path d="M120 142Q130 136 141 142Q131 148 120 142ZM159 142Q170 136 180 142Q169 148 159 142Z" fill="#f7f4ef" stroke="#2a1712" stroke-width="1.8"/><ellipse cx="131" cy="142" rx="3.8" ry="4.1" fill="${ec}"/><ellipse cx="169" cy="142" rx="3.8" ry="4.1" fill="${ec}"/><circle cx="131" cy="142" r="1.6"/><circle cx="169" cy="142" r="1.6"/>
+  <ellipse cx="${earX}" cy="${earY}" rx="11" ry="17" fill="${sk}" stroke="#2a1712" stroke-width="2.6"/><ellipse cx="${300-earX}" cy="${earY}" rx="11" ry="17" fill="${sk}" stroke="#2a1712" stroke-width="2.6"/><path d="M${earX-2} ${earY}q7-8 9 2M${302-earX} ${earY}q-7-8-9 2" fill="none" stroke="#8a5846" stroke-width="1.6" opacity=".6"/>
+  <path d="${faces[f]}" fill="url(#${u}s)" stroke="#2a1712" stroke-width="3.8"/>
+  <path d="M116 125Q129 117 141 124M159 124Q171 117 184 125" fill="none" stroke="${hc}" stroke-width="5" stroke-linecap="round"/>
+  <path d="M116 139Q129 132 142 139Q130 147 116 139ZM158 139Q171 132 184 139Q170 147 158 139Z" fill="#f7f4ef" stroke="#2a1712" stroke-width="1.9"/><ellipse cx="130" cy="139" rx="4.3" ry="4.6" fill="${ec}"/><ellipse cx="170" cy="139" rx="4.3" ry="4.6" fill="${ec}"/><circle cx="130" cy="139" r="1.7"/><circle cx="170" cy="139" r="1.7"/><circle cx="131.2" cy="137.8" r=".8" fill="#fff"/><circle cx="171.2" cy="137.8" r=".8" fill="#fff"/>
   ${nose(p.nose_id||p.face_id)}
-  <path d="M135 ${mouthY}Q150 ${mouthY+5} 165 ${mouthY}" fill="none" stroke="#7b4842" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M134 ${mouthY}Q150 ${mouthY+6} 166 ${mouthY}" fill="none" stroke="#70413c" stroke-width="2.7" stroke-linecap="round"/>
   ${facial(p.facial_hair_id,hc)}
-  <path d="M112 111Q113 78 128 66Q139 56 150 56Q162 56 174 67Q187 80 188 111Q170 102 150 102Q130 102 112 111Z" fill="${pri}" stroke="#06101b" stroke-width="4"/><path d="M150 58V99" stroke="${acc}" stroke-opacity=".14" stroke-width="1.5"/><path d="M118 103Q150 96 182 103" fill="none" stroke="${sec}" stroke-width="4"/>
-  <path d="M113 109Q143 103 181 108Q203 111 218 120Q197 127 177 122Q146 114 113 115Z" fill="${pri}" stroke="#06101b" stroke-width="4"/><path d="M118 111Q165 106 211 120" fill="none" stroke="${sec}" stroke-width="3"/><text x="150" y="88" text-anchor="middle" font-size="22" font-weight="950" fill="${acc}">EBL</text>
+  <path d="M103 107Q104 68 126 52Q138 43 151 43Q167 43 181 56Q197 71 198 108Q175 97 150 98Q125 97 103 107Z" fill="${pri}" stroke="#06101b" stroke-width="4.5"/><path d="M150 47V94" stroke="${acc}" stroke-opacity=".16" stroke-width="1.7"/><path d="M108 99Q150 90 192 100" fill="none" stroke="${sec}" stroke-width="5"/>
+  <path d="M104 106Q142 98 184 104Q210 108 228 119Q202 130 176 123Q143 113 104 114Z" fill="${pri}" stroke="#06101b" stroke-width="4.5"/><path d="M109 108Q163 101 220 119" fill="none" stroke="${sec}" stroke-width="3.8"/><text x="150" y="80" text-anchor="middle" font-size="24" font-weight="950" fill="${acc}">EBL</text>
   </svg>`;
  }
- window.eblCartoonPortraitV8Svg=svg;
- window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){let p=model(raw),z=['xs','sm','md','lg'].includes(size)?size:'md';return `<span class="eblPlayerArtV24 eblCartoonV8 eblPlayerArtV24--${z}" data-ebl-avatar="CARTOON-V8">${svg(p)}</span>`};
+ window.eblCartoonPortraitV9Svg=svg;
+ window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){let p=model(raw),z=['xs','sm','md','lg'].includes(size)?size:'md';return `<span class="eblPlayerArtV24 eblCartoonV9 eblPlayerArtV24--${z}" data-ebl-avatar="CARTOON-V9">${svg(p)}</span>`};
  window.eblPublicPortraitV28=(r={},z='lg')=>window.eblPlayerArtV24(r,z,'portrait');
  function repaint(){try{renderHome()}catch(e){}try{renderPlayer()}catch(e){}try{if(typeof renderGamecastList==='function')renderGamecastList()}catch(e){}}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,100),{once:true});else setTimeout(repaint,100);setTimeout(repaint,650);
- window.EBL_CARTOON_PORTRAIT_V8={version:'V8',focus:['five distinct head/jaw silhouettes','three integrated hair lengths','ears seated to face','fitted EBL cap','facial hair follows jaw','five nose profiles'],locked:['eye scale','torso framing','saved colors and identity']};
+ window.EBL_CARTOON_PORTRAIT_V9={version:'V9',focus:['larger head','shorter neck','stronger cheeks and jaw','dimensional ears','hair wrapping from cap','chunkier curved cap','facial hair changes lower-face silhouette'],locked:['restrained eyes','no giant smile','torso framing','saved team colors and identity']};
 })();
 </script>
 </body></html>
