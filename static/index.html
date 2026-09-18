@@ -5539,4 +5539,73 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
 })();
 </script>
 
+
+<!-- EBL Appearance Renderer V6 / RC46 — core geometry redraw -->
+<style id="eblAppearanceV6RC46Style">
+.playerPortraitV27 .eblPlayerArtV24--lg>svg{transform:scale(1.045);transform-origin:50% 54%}
+</style>
+<script id="eblAppearanceV6RC46">
+(function(){
+ if(typeof stationaryPlayerSvg!=='function')return;
+ const prior=stationaryPlayerSvg;
+
+ stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+   const p=typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{});
+   let s=String(prior.call(this,p,compact,pose)||'');
+   if(!s.includes('<svg'))return s;
+
+   /* V6 is a geometry pass: cleaner adult proportions and less mascot-like silhouette. */
+   s=s.replace(/M18 330 Q29 253 88 220 Q116 203 150 204 Q184 203 212 220 Q271 253 282 330Z/g,
+               'M12 330 Q23 260 78 225 Q108 205 132 203 L150 215 L168 203 Q192 205 222 225 Q277 260 288 330Z');
+
+   /* Longer, athletic neck/trap transition. */
+   s=s.replace(/M132 190[^<]*?L168 190[^<]*?Z/g,
+               'M130 188 Q133 210 128 218 Q139 228 150 231 Q161 228 172 218 Q167 210 170 188Z');
+
+   /* Adult eye geometry: narrower almond shapes. */
+   s=s.replace(/M114 138 Q124 134 135 138 Q124 143 114 138Z/g,
+               'M113 138 Q124 134.5 136 138 Q124 142 113 138Z')
+      .replace(/M165 138 Q176 134 186 138 Q176 143 165 138Z/g,
+               'M164 138 Q176 134.5 187 138 Q176 142 164 138Z');
+
+   /* Remove the remaining RC45 face-plane overlay; V6 uses cleaner base geometry. */
+   s=s.replace(/<g class="eblV5FaceShade"[\s\S]*?<\/g>/g,'');
+
+   /* Cleaner nose bridge + nostril hint, no cheek construction lines. */
+   const anatomy=`<g class="eblV6Anatomy" fill="none" pointer-events="none" stroke-linecap="round">
+     <path d="M149 143 Q146 154 145 163 Q149 167 154 164" stroke="#6b4037" stroke-width="1.45" opacity=".58"/>
+     <path d="M146 166 Q150 168 155 165" stroke="#6b4037" stroke-width=".85" opacity=".32"/>
+     <path d="M139 178 Q150 181 161 178" stroke="#6b4037" stroke-width=".9" opacity=".18"/>
+   </g>`;
+   s=s.replace('<!-- Sports Cartoon V8: illustrated face construction -->',
+               anatomy+'\n<!-- Sports Cartoon V8: illustrated face construction -->');
+
+   /* Stronger shoulder seams and jersey paneling, still mobile-readable. */
+   const kit=`<g class="eblV6Kit" fill="none" pointer-events="none">
+      <path d="M77 226 Q105 207 130 207" stroke="#fff" stroke-width="1.25" opacity=".10"/>
+      <path d="M223 226 Q195 207 170 207" stroke="#fff" stroke-width="1.25" opacity=".10"/>
+      <path d="M92 329 L104 246 M208 329 L196 246" stroke="#fff" stroke-width="1" opacity=".065"/>
+   </g>`;
+   s=s.replace('<!-- jersey identity -->',kit+'\n<!-- jersey identity -->');
+
+   /* Keep cap front-facing and visually simple; team accent stays in small details. */
+   return s;
+ };
+
+ window.EBL_APPEARANCE_RENDERER_V6={
+   version:'RC46',
+   purpose:'core-geometry-redraw',
+   preserves:['saved appearance ids','avatar everywhere','mobile portraits'],
+   changes:['adult face proportions','narrower eyes','clean nose geometry','athletic neck and shoulders','baseball jersey silhouette','clean front-facing cap']
+ };
+
+ function repaint(){
+   try{if(typeof renderHome==='function')renderHome()}catch(e){}
+   try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true});
+ else setTimeout(repaint,180);
+})();
+</script>
+
 </body></html>
