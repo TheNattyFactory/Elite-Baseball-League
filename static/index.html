@@ -5350,7 +5350,7 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
   svg=svg.replace('<!-- jersey identity -->',uniform+'\n   <!-- jersey identity -->');
   svg=svg.replace(/stroke-width="6"/g,'stroke-width="5.2"');
   svg=svg.replace(/stroke-width="5"/g,'stroke-width="4.5"');
-  return svg.replace(/<defs><filter id="softShadow">[\\s\\S]*?<\\/filter><\\/defs>/g,'').replace(/\\sfilter="url\\(#softShadow\\)"/g,'');
+  return svg.replace(/<defs><filter id="softShadow">[\s\S]*?<\/filter><\/defs>/g,'').replace(/\sfilter="url\(#softShadow\)"/g,'');
  };
  window.EBL_APPEARANCE_RENDERER_V3={version:'RC42',renderer:'stationaryPlayerSvg',compatibility:'all-existing-appearance-ids',art:['refined-face-anatomy','cheek-and-jaw-definition','ear-detail','hair-highlights','uniform-panel-depth','lighter-linework'],fallback:'RC40-compatible'};
  function repaint(){try{if(typeof renderHome==='function')renderHome()}catch{} try{if(typeof renderPlayer==='function')renderPlayer()}catch{}}
@@ -6355,7 +6355,7 @@ window.EBL_PORTRAIT_V4={version:'V4',dynamic:true,direction:'sports card anatomy
  ][(N(id)-1)%5]}
  function facial(id,c){let k=(N(id)-1)%6;return [
   '',
-  `<path d="M120 166Q124 191 137 199L150 204L163 199Q176 191 180 166" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" opacity=".42"/>`,
+  `<path d="M111 126Q109 145 113 163Q116 172 121 177L126 169Q121 151 123 130Z" fill="${c}"/><path d="M189 126Q191 145 187 163Q184 172 179 177L174 169Q179 151 177 130Z" fill="${c}"/>`,
   `<path d="M139 177Q150 183 161 177Q159 184 156 188L156 197Q150 202 144 197L144 188Q141 184 139 177Z" fill="${c}"/>`,
   `<path d="M116 164Q119 193 135 205L150 211L165 205Q181 193 184 164L176 174Q172 193 150 202Q128 193 124 174Z" fill="${c}"/>`,
   `<path d="M130 174Q140 168 150 174Q160 168 170 174Q163 182 150 180Q137 182 130 174Z" fill="${c}"/>`,
@@ -6430,6 +6430,106 @@ window.EBL_PORTRAIT_V4={version:'V4',dynamic:true,direction:'sports card anatomy
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaintCreator,220),{once:true});else setTimeout(repaintCreator,220);
  window.EBL_CREATOR_PORTRAIT_SYNC_V14={version:'V14',canonicalRenderer:'eblPlayerArtV24',scope:['face thumbnails','hair thumbnails','facial-hair thumbnails','live player preview']};
+})();
+</script>
+
+
+<!-- EBL PLAYER APPEARANCE LOCK V15 — approved creator layout -->
+<style id="eblAppearanceLockV15Style">
+#creatorStage .appearanceGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,.95fr);gap:14px;align-items:start}
+#creatorStage .appearancePanel{min-width:0}
+#creatorStage .eblSimpleChoiceGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+#creatorStage .eblHairChoiceGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#creatorStage .eblChoiceCard{border:1px solid #24415d;border-radius:14px;padding:7px;background:#0a2037;cursor:pointer;text-align:center;overflow:hidden}
+#creatorStage .eblChoiceCard.selected{border:2px solid #e4bd3f;box-shadow:0 0 0 2px rgba(228,189,63,.12) inset}
+#creatorStage .eblChoiceCard .faceThumb{height:118px}
+#creatorStage .eblChoiceTitle{font-weight:850;margin-top:5px}
+#creatorStage .eblChoiceSub{font-size:12px;color:#9fb1c3;margin-top:2px}
+#creatorStage .eblPreviewPanel{position:sticky;top:88px}
+#creatorStage .eblPreviewMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+#creatorStage .eblPreviewMeta>div{padding:10px;border:1px solid #24415d;border-radius:10px;background:#071a2e}
+#creatorStage .eblPreviewMeta span{display:block;color:#91a5b8;font-size:11px;text-transform:uppercase}
+#creatorStage .eblPreviewMeta b{font-size:16px}
+#creatorStage .eblSaveLook{width:100%;margin-top:10px}
+@media(max-width:760px){
+ #creatorStage .appearanceGrid{grid-template-columns:1fr}
+ #creatorStage .eblPreviewPanel{position:static}
+ #creatorStage .eblSimpleChoiceGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #creatorStage .eblHairChoiceGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #creatorStage .eblChoiceCard .faceThumb{height:128px}
+}
+</style>
+<script id="eblAppearanceLockV15">
+(function(){
+ const FACE_CHOICES=[
+  {id:1,label:'Classic'},
+  {id:2,label:'Wide'},
+  {id:5,label:'Angular'},
+  {id:3,label:'Oval'},
+  {id:4,label:'Square'}
+ ];
+ const HAIR_CHOICES=[
+  {id:1,label:'Short',sub:'Hat only'},
+  {id:2,label:'Medium',sub:'A little hair'},
+  {id:3,label:'Long',sub:'Full hair visible'}
+ ];
+ const FACIAL_CHOICES=[
+  {id:1,label:'None'},
+  {id:5,label:'Mustache'},
+  {id:3,label:'Goatee'},
+  {id:4,label:'Beard'},
+  {id:2,label:'Sideburns'}
+ ];
+ const faceLabel=id=>(FACE_CHOICES.find(x=>x.id===Number(id))||FACE_CHOICES[0]).label;
+ const hairLabel=id=>(HAIR_CHOICES.find(x=>x.id===Number(id))||HAIR_CHOICES[0]).label;
+ const facialLabel=id=>(FACIAL_CHOICES.find(x=>x.id===Number(id))||FACIAL_CHOICES[0]).label;
+ function thumb(faceId,hairId,facialId){
+   const f=(window.FACE_PRESETS||[])[Math.max(0,Number(faceId)-1)]||(window.FACE_PRESETS||[])[0];
+   return typeof window.faceThumbMarkup==='function'
+     ? window.faceThumbMarkup(f,hairId,facialId)
+     : '';
+ }
+ window.creatorAppearance=function(){
+   const stage=document.getElementById('creatorStage');if(!stage)return;
+   if(!FACE_CHOICES.some(x=>x.id===Number(CREATOR.face_id)))CREATOR.face_id=1;
+   if(!HAIR_CHOICES.some(x=>x.id===Number(CREATOR.hair_id)))CREATOR.hair_id=1;
+   if(!FACIAL_CHOICES.some(x=>x.id===Number(CREATOR.facial_hair_id)))CREATOR.facial_hair_id=1;
+   const eye=(window.EYE_COLORS||[])[(CREATOR.eye_color_id||6)-1]||(window.EYE_COLORS||[])[0]||{name:'Dark',color:'#18232d'};
+   stage.innerHTML=`<div class="creatorHero"><div><span class="badge">PLAYER APPEARANCE</span><br><b>Build your look.</b><div class="muted">This is the same avatar used across EBL.</div></div><div>⚾</div></div>
+   <div class="appearanceGrid">
+    <div class="appearancePanel">
+     <h3>FACE SHAPE</h3>
+     <div class="eblSimpleChoiceGrid">${FACE_CHOICES.map(x=>`<div class="eblChoiceCard ${Number(CREATOR.face_id)===x.id?'selected':''}" onclick="pickFace(${x.id})">${thumb(x.id,CREATOR.hair_id,CREATOR.facial_hair_id)}<div class="eblChoiceTitle">${x.label}</div></div>`).join('')}</div>
+     <h3 style="margin-top:18px">SKIN TONE</h3><div class="colorChoices">${SKIN_TONES.map((x,i)=>`<button class="colorChoice ${Number(CREATOR.skin_color_id||1)===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" aria-label="${x.name}" onclick="pickSkinTone(${i+1})"></button>`).join('')}</div>
+     <h3 style="margin-top:18px">HAIR STYLE</h3>
+     <div class="eblHairChoiceGrid">${HAIR_CHOICES.map(x=>`<div class="eblChoiceCard ${Number(CREATOR.hair_id)===x.id?'selected':''}" onclick="pickHair(${x.id})">${thumb(CREATOR.face_id,x.id,CREATOR.facial_hair_id)}<div class="eblChoiceTitle">${x.label}</div><div class="eblChoiceSub">${x.sub}</div></div>`).join('')}</div>
+     <h3 style="margin-top:18px">HAIR COLOR</h3><div class="colorChoices">${HAIR_COLORS.map((x,i)=>`<button class="colorChoice ${Number(CREATOR.hair_color_id||3)===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" aria-label="${x.name}" onclick="pickHairColor(${i+1})"></button>`).join('')}</div>
+     <h3 style="margin-top:18px">FACIAL HAIR</h3>
+     <div class="eblSimpleChoiceGrid">${FACIAL_CHOICES.map(x=>`<div class="eblChoiceCard ${Number(CREATOR.facial_hair_id)===x.id?'selected':''}" onclick="pickFacialHair(${x.id})">${thumb(CREATOR.face_id,CREATOR.hair_id,x.id)}<div class="eblChoiceTitle">${x.label}</div></div>`).join('')}</div>
+     <h3 style="margin-top:18px">EYE COLOR</h3><div class="colorChoices">${EYE_COLORS.map((x,i)=>`<button class="colorChoice ${CREATOR.eye_color_id===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" aria-label="${x.name}" onclick="pickEyeColor(${i+1})"></button>`).join('')}</div>
+     <h3 style="margin-top:18px">GAME-DAY COSMETICS</h3>
+     <div class="presetGrid">${EYE_BLACK_NAMES.map((n,i)=>`<div class="preset ${CREATOR.eye_black_id===i+1?'selected':''}" onclick="pickEyeBlack(${i+1})"><div class="presetLabel">Eye Black<br><b>${n}</b></div></div>`).join('')}</div>
+     <div class="presetGrid" style="margin-top:8px">${EYEWEAR_NAMES.map((n,i)=>`<div class="preset ${CREATOR.eyewear_id===i+1?'selected':''}" onclick="pickEyewear(${i+1})"><div class="presetLabel">Eyewear<br><b>${n}</b></div></div>`).join('')}</div>
+     <div class="presetGrid" style="margin-top:8px">${CHAIN_NAMES.map((n,i)=>`<div class="preset ${CREATOR.chain_id===i+1?'selected':''}" onclick="pickChain(${i+1})"><div class="presetLabel">Chain<br><b>${n}</b></div></div>`).join('')}</div>
+     <div class="presetGrid" style="margin-top:8px">${SLEEVE_NAMES.map((n,i)=>`<div class="preset ${CREATOR.sleeve_id===i+1?'selected':''}" onclick="pickSleeve(${i+1})"><div class="presetLabel">Sleeves<br><b>${n}</b></div></div>`).join('')}</div>
+    </div>
+    <div class="eblPreviewPanel">
+     <h3>LIVE PLAYER PREVIEW</h3><div class="muted">This is exactly how you will look across EBL.</div>
+     <div id="creator3dPreview" class="avatar3dPreview"></div>
+     <div class="eblPreviewMeta">
+      <div><span>Name</span><b>${escapeHtml(CREATOR.name||'Your Player')}</b></div>
+      <div><span>Jersey #</span><b>${String(CREATOR.jersey_number||24).padStart(2,'0')}</b></div>
+      <div><span>Position</span><b>${escapeHtml(CREATOR.position||'EBL')}</b></div>
+      <div><span>Look</span><b>${hairLabel(CREATOR.hair_id)} • ${facialLabel(CREATOR.facial_hair_id)}</b></div>
+     </div>
+     <button class="btn eblSaveLook" onclick="beginAttributes()">SAVE APPEARANCE</button>
+     <div class="card" style="margin-top:10px"><b>SAME LOOK. EVERYWHERE.</b><div class="muted">Your saved appearance carries across Player HQ, EBL Home, team rosters, public profiles, and GameCast.</div></div>
+    </div>
+   </div>
+   <div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(1)">BACK</button></div>`;
+   requestAnimationFrame(()=>renderCreator3D('creator3dPreview'));
+ };
+ window.EBL_APPEARANCE_LOCK_V15={faces:FACE_CHOICES,hair:HAIR_CHOICES,facial:FACIAL_CHOICES};
 })();
 </script>
 
