@@ -5375,5 +5375,61 @@ if(__eblOpenTeamLegacyRC39){
 setTimeout(()=>{try{renderHome()}catch{} try{renderPlayer()}catch{}},180);
 window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','public-profile','team-roster','legacy-roster','analytics','awards','gamecast-lineup','gamecast-matchup'],canonical:true};
 </script>
+\n<!-- EBL Appearance Renderer V3 / RC42 — illustrated sports portrait polish -->
+<style id="eblAppearanceV3RC42Style">
+.eblPlayerArtV24>svg{shape-rendering:geometricPrecision;text-rendering:geometricPrecision}
+.eblPlayerArtV24--lg>svg{filter:drop-shadow(0 10px 18px rgba(0,0,0,.22))}
+.eblPlayerArtV24--md>svg{filter:drop-shadow(0 6px 11px rgba(0,0,0,.18))}
+</style>
+<script id="eblAppearanceV3RC42">
+/* V3 keeps every saved appearance ID compatible and upgrades only the art layer. */
+(function(){
+ if(typeof stationaryPlayerSvg!=='function')return;
+ const baseV3=stationaryPlayerSvg;
+ function v3Skin(raw){
+  const p=typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{});
+  const id=Math.max(1,Math.min(8,Number(p.skin_color_id)||1));
+  return ['','#f2c59d','#e7b58d','#dca47b','#c98c68','#bd7c57','#8d573e','#754733','#633c2e'][id];
+ }
+ function v3Hair(raw){
+  const p=raw||{},id=Math.max(1,Math.min(9,Number(p.hair_color_id)||3));
+  return ['','#2b1a14','#4a2c20','#6b4028','#8a5b38','#b17b4e','#d9bd78','#d6c27b','#9a6a42','#171717'][id];
+ }
+ stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+  const p=typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{});
+  let svg=String(baseV3.call(this,p,compact,pose)||'');
+  if(!svg.includes('<svg'))return svg;
+  const skin=v3Skin(p),hair=v3Hair(p);
+  const face=Math.max(1,Math.min(20,Number(p.face_id)||1));
+  const wide=[2,4,7,12,14,19,20].includes(face), narrow=[3,6,13,16,18].includes(face);
+  const cheekX=wide?20:narrow?14:17;
+  const jawY=[4,7,14,20].includes(face)?184:[8,10,11,17].includes(face)?179:182;
+  const detail=`
+   <!-- Appearance V3 facial anatomy -->
+   <g class="eblV3FaceDetail" fill="none" stroke-linecap="round" pointer-events="none">
+    <path d="M111 147 Q118 158 ${130-cheekX/4} 161" stroke="#7b4a40" stroke-width="1.8" opacity=".22"/>
+    <path d="M189 147 Q182 158 ${170+cheekX/4} 161" stroke="#7b4a40" stroke-width="1.8" opacity=".22"/>
+    <path d="M137 166 Q150 170 163 166" stroke="#7b4a40" stroke-width="1.5" opacity=".20"/>
+    <path d="M138 ${jawY} Q150 ${jawY+5} 162 ${jawY}" stroke="#7b4a40" stroke-width="1.5" opacity=".16"/>
+    <path d="M118 132 Q125 128 134 132 M166 132 Q175 128 182 132" stroke="#111820" stroke-width="1.5" opacity=".28"/>
+    <path d="M151 144 Q154 151 153 157" stroke="#fff" stroke-width="1.4" opacity=".18"/>
+   </g>
+   <g class="eblV3EarDetail" fill="none" stroke="#875448" stroke-width="1.8" opacity=".34" pointer-events="none">
+    <path d="M105 137 Q99 141 104 151"/><path d="M195 137 Q201 141 196 151"/>
+   </g>`;
+  svg=svg.replace('<!-- integrated hair -->',detail+'\n   <!-- integrated hair -->');
+  const hairLight=`<g class="eblV3HairLight" fill="none" stroke="#fff" stroke-width="1.5" opacity=".10" pointer-events="none"><path d="M119 91 Q137 78 153 82"/><path d="M145 78 Q166 76 181 91"/></g>`;
+  svg=svg.replace('<!-- Sports Cartoon V10: hairstyle texture -->',hairLight+'\n   <!-- Sports Cartoon V10: hairstyle texture -->');
+  const uniform=`<g class="eblV3UniformPanels" fill="none" pointer-events="none"><path d="M75 254 Q99 225 122 222" stroke="#fff" stroke-width="2" opacity=".10"/><path d="M225 254 Q201 225 178 222" stroke="#fff" stroke-width="2" opacity=".10"/><path d="M98 322 L110 238 M202 322 L190 238" stroke="#fff" stroke-width="1.4" opacity=".08"/></g>`;
+  svg=svg.replace('<!-- jersey identity -->',uniform+'\n   <!-- jersey identity -->');
+  svg=svg.replace(/stroke-width="6"/g,'stroke-width="5.2"');
+  svg=svg.replace(/stroke-width="5"/g,'stroke-width="4.5"');
+  return svg.replace(/<defs><filter id="softShadow">[\\s\\S]*?<\\/filter><\\/defs>/g,'').replace(/\\sfilter="url\\(#softShadow\\)"/g,'');
+ };
+ window.EBL_APPEARANCE_RENDERER_V3={version:'RC42',renderer:'stationaryPlayerSvg',compatibility:'all-existing-appearance-ids',art:['refined-face-anatomy','cheek-and-jaw-definition','ear-detail','hair-highlights','uniform-panel-depth','lighter-linework'],fallback:'RC40-compatible'};
+ function repaint(){try{if(typeof renderHome==='function')renderHome()}catch{} try{if(typeof renderPlayer==='function')renderPlayer()}catch{}}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,140),{once:true}); else setTimeout(repaint,140);
+})();
+</script>
 
 </body></html>
