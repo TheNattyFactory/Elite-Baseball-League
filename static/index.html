@@ -5857,4 +5857,33 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
 })();
 </script>
 
+
+<!-- EBL Appearance Renderer V10 / RC50 -->
+<script id="eblAppearanceV10RC50">
+(function(){
+if(typeof stationaryPlayerSvg!=='function')return;
+const previous=stationaryPlayerSvg;
+stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+ const p=typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{});
+ let s=String(previous.call(this,p,compact,pose)||''); if(!s.includes('<svg'))return s;
+ /* Lock RC49 eye size. Rebuild mouth, jaw, hair depth and brows. */
+ s=s.replace(/M134 179 Q150 184 166 179 Q160 187 150 188 Q140 187 134 179Z/g,
+ 'M136 180 Q150 184 164 180 Q158 186 150 186.5 Q142 186 136 180Z');
+ s=s.replace(/<g class="eblV9FacePolish"[\s\S]*?<\/g>/g,'');
+ const jaw=`<g class="eblV10Jaw" pointer-events="none" fill="none" stroke-linecap="round"><path d="M124 170 Q128 190 150 198 Q172 190 176 170" stroke="#4d332f" stroke-width=".9" opacity=".11"/><path d="M142 194 Q150 197 158 194" stroke="#4d332f" stroke-width=".65" opacity=".12"/></g>`;
+ s=s.replace('<!-- facial hair -->',jaw+'\n<!-- facial hair -->');
+ s=s.replace(/<g class="eblV8HairDepth"[\s\S]*?<\/g>/g,'');
+ const hair=`<g class="eblV10HairDepth" pointer-events="none" fill="none" stroke-linecap="round"><path d="M112 101 Q128 87 148 88 Q169 86 187 101" stroke="#fff" stroke-width="1.35" opacity=".08"/><path d="M119 105 Q135 94 150 95" stroke="#fff" stroke-width=".9" opacity=".055"/><path d="M154 94 Q171 94 182 105" stroke="#fff" stroke-width=".9" opacity=".055"/></g>`;
+ s=s.replace('<!-- Sports Cartoon V10: hairstyle texture -->',hair+'\n<!-- Sports Cartoon V10: hairstyle texture -->');
+ const brows=`<g class="eblV10Brows" pointer-events="none" fill="none" stroke-linecap="round"><path d="M111 128 Q123 122 136 127" stroke="#3b2924" stroke-width="2" opacity=".32"/><path d="M164 127 Q177 122 189 128" stroke="#3b2924" stroke-width="2" opacity=".32"/></g>`;
+ s=s.replace('<!-- Sports Cartoon V8: illustrated face construction -->',brows+'\n<!-- Sports Cartoon V8: illustrated face construction -->');
+ s=s.replace(/<text[^>]*>\s*A\s*<\/text>/gi,'');
+ return s;
+};
+window.EBL_APPEARANCE_RENDERER_V10={version:'RC50',locked:['RC49 eye size','athletic body','EBL-only branding'],rebuilt:['mouth','jaw/chin','hair depth','brows']};
+function repaint(){try{if(typeof renderHome==='function')renderHome()}catch(e){} try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true});else setTimeout(repaint,180);
+})();
+</script>
+
 </body></html>
