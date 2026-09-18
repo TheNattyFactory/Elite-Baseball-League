@@ -6032,4 +6032,252 @@ else setTimeout(repaint,200);
 })();
 </script>
 
+
+<!-- EBL APPEARANCE RC53 — ILLUSTRATION POLISH PASS -->
+<style id="eblRC53Style">
+.playerPortraitV27 .eblPlayerArtV24--lg{filter:drop-shadow(0 16px 24px rgba(0,0,0,.24))}
+</style>
+<script id="eblAppearanceRC53">
+(function(){
+if(typeof stationaryPlayerSvg!=='function')return;
+const base=stationaryPlayerSvg;
+stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+ let s=String(base.call(this,raw,compact,pose)||'');
+ if(!s.includes('<svg'))return s;
+
+ /* RC53 deliberately leaves eye geometry alone. */
+
+ /* Remove RC52's extra shoulder/chest line layer: cleaner professional card art. */
+ s=s.replace(/<g class="eblRC52UniformDepth"[\s\S]*?<\/g>/g,'');
+
+ /* Replace it with broad tonal modeling rather than visible construction lines. */
+ const uniform=`<g class="eblRC53Uniform" pointer-events="none">
+   <path d="M77 327 L79 239 Q102 218 128 212 L150 226 L172 212 Q198 218 221 239 L223 327Z"
+         fill="url(#eblRC52JerseyLight)" opacity=".42"/>
+   <path d="M84 251 Q103 228 126 219" fill="none" stroke="#fff" stroke-width="5" opacity=".025" stroke-linecap="round"/>
+   <path d="M216 251 Q197 228 174 219" fill="none" stroke="#000" stroke-width="7" opacity=".045" stroke-linecap="round"/>
+ </g>`;
+ s=s.replace('<!-- jersey identity -->',uniform+'\n<!-- jersey identity -->');
+
+ /* Face polish: restrained highlights/shadows instead of extra facial marks. */
+ const face=`<g class="eblRC53FacePolish" pointer-events="none">
+   <ellipse cx="137" cy="145" rx="14" ry="24" fill="#fff" opacity=".035"/>
+   <ellipse cx="169" cy="150" rx="9" ry="27" fill="#63352f" opacity=".035"/>
+   <path d="M143 165 Q150 169 157 165" fill="none" stroke="#5a3731" stroke-width=".7" opacity=".20" stroke-linecap="round"/>
+ </g>`;
+ s=s.replace('<!-- facial hair -->',face+'\n<!-- facial hair -->');
+
+ /* Cap now reads as fabric instead of a flat symbol. */
+ const cap=`<g class="eblRC53CapPolish" pointer-events="none">
+   <path d="M119 99 Q126 74 150 70 Q175 73 184 100" fill="none" stroke="#fff" stroke-width="1.2" opacity=".09"/>
+   <path d="M150 70 L150 101" fill="none" stroke="#fff" stroke-width=".8" opacity=".11"/>
+   <path d="M151 105 Q180 111 207 106" fill="none" stroke="#000" stroke-width="2.4" opacity=".15" stroke-linecap="round"/>
+ </g>`;
+ s=s.replace('<!-- Sports Cartoon V10: cap texture -->',cap+'\n<!-- Sports Cartoon V10: cap texture -->');
+
+ /* Add a subtle neck shadow to seat the head into the uniform. */
+ const neck=`<ellipse class="eblRC53NeckShadow" cx="150" cy="216" rx="22" ry="7" fill="#000" opacity=".08" pointer-events="none"/>`;
+ s=s.replace('<!-- jersey identity -->',neck+'\n<!-- jersey identity -->');
+
+ return s;
+};
+window.EBL_APPEARANCE_RC53={
+ version:'RC53',
+ goals:['cleaner silhouette','subtle depth','less line clutter','preserve eye geometry','preserve saved player identity']
+};
+function repaint(){
+ try{if(typeof renderHome==='function')renderHome()}catch(e){}
+ try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true});
+else setTimeout(repaint,180);
+})();
+</script>
+
+
+<!-- EBL RC54 — DISTINCT PLAYER SILHOUETTES -->
+<script id="eblAppearanceRC54">
+(function(){
+ if(typeof stationaryPlayerSvg!=='function')return;
+ const prev=stationaryPlayerSvg;
+ const hash=v=>{let h=2166136261;for(const c of String(v||'')){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+ stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+   let svg=String(prev.call(this,raw,compact,pose)||'');
+   if(!svg.includes('<svg'))return svg;
+   const p=raw||{}, seed=hash(p.id||p.player_id||p.name||'EBL');
+   const build=seed%4, face=(seed>>>3)%4;
+   const sx=[.94,1,1.055,1.10][face], sy=[1.025,.98,1.04,.955][face];
+   const shoulder=[.94,1,1.07,1.13][build];
+   /* Give every player a materially different head/torso silhouette without
+      changing saved cosmetic selections. */
+   svg=svg.replace(/(<g[^>]*(?:class="[^"]*(?:head|face)[^"]*"|id="[^"]*(?:head|face)[^"]*")[^>]*>)/i,
+     `$1<g class="eblRC54FaceShape" transform="translate(${150*(1-sx)} ${145*(1-sy)}) scale(${sx} ${sy})">`)
+     .replace(/(<!-- facial hair -->)/,'</g>$1');
+   /* If named groups are unavailable, use restrained jaw overlays. */
+   const skin=(p.skin_color||p.skinColor||'#efbd91');
+   const jaws=[
+    `<path d="M112 143 Q113 184 150 198 Q187 184 188 143 Q184 188 150 204 Q116 188 112 143Z" fill="${skin}" opacity=".16"/>`,
+    `<path d="M113 151 Q119 190 150 200 Q181 190 187 151 Q180 195 150 207 Q120 195 113 151Z" fill="${skin}" opacity=".13"/>`,
+    `<path d="M111 151 Q118 181 150 191 Q182 181 189 151 Q185 191 150 201 Q115 191 111 151Z" fill="${skin}" opacity=".14"/>`,
+    `<path d="M115 149 Q116 188 150 205 Q184 188 185 149 Q181 196 150 211 Q119 196 115 149Z" fill="${skin}" opacity=".12"/>`
+   ][face];
+   svg=svg.replace('<!-- facial hair -->',`<g class="eblRC54Jaw" pointer-events="none">${jaws}</g><!-- facial hair -->`);
+   const body=`<g class="eblRC54BodyIdentity" pointer-events="none" opacity=".10">
+     <path d="M${150-66*shoulder} 326 Q${150-64*shoulder} 252 ${150-38*shoulder} 228
+              Q150 217 ${150+38*shoulder} 228 Q${150+64*shoulder} 252 ${150+66*shoulder} 326"
+       fill="none" stroke="#fff" stroke-width="1.1"/>
+   </g>`;
+   svg=svg.replace('<!-- jersey identity -->',body+'<!-- jersey identity -->');
+   return svg;
+ };
+ window.EBL_APPEARANCE_RC54={version:'RC54',feature:'distinct silhouette system'};
+ function repaint(){try{renderHome()}catch(e){} try{renderPlayer()}catch(e){}}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true}); else setTimeout(repaint,180);
+})();
+</script>
+
+
+<!-- EBL RC55 — COMPLETE PLAYER IDENTITY SYSTEM -->
+<script id="eblAppearanceRC55">
+(function(){
+if(typeof stationaryPlayerSvg!=='function')return;
+const prev=stationaryPlayerSvg;
+const H=x=>{let h=2166136261;for(const c of String(x||'')){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+const get=(p,...ks)=>{for(const k of ks)if(p&&p[k]!=null&&p[k]!=='')return p[k];return''};
+stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+ const p=raw||{}, seed=H(get(p,'id','player_id','name')||'EBL');
+ let s=String(prev.call(this,p,compact,pose)||''); if(!s.includes('<svg'))return s;
+ const skin=get(p,'skin_color','skinColor','skin_tone','skinTone')||'#e7ad7e';
+ const hair=get(p,'hair_color','hairColor')||'#2a201c';
+ const style=String(get(p,'hair_style','hairStyle')||'classic').toLowerCase();
+ const facial=String(get(p,'facial_hair','facialHair')||'none').toLowerCase();
+ const f=seed%5,b=(seed>>>4)%4;
+ const faces=[
+  `M112 128 Q111 177 124 191 Q137 204 150 207 Q163 204 176 191 Q189 177 188 128`,
+  `M110 128 Q110 171 121 188 Q133 205 150 210 Q167 205 179 188 Q190 171 190 128`,
+  `M114 128 Q111 172 126 190 Q137 202 150 204 Q163 202 174 190 Q189 172 186 128`,
+  `M109 128 Q110 174 120 193 Q132 211 150 214 Q168 211 180 193 Q190 174 191 128`,
+  `M113 128 Q109 170 124 187 Q136 199 150 202 Q164 199 176 187 Q191 170 187 128`
+ ][f];
+ const faceLayer=`<g class="eblRC55FaceIdentity" pointer-events="none">
+   <path d="${faces}" fill="none" stroke="${skin}" stroke-width="${[5,7,4,8,5][f]}" opacity=".18" stroke-linecap="round"/>
+   <path d="M128 ${[145,148,143,150,146][f]} Q150 ${[151,148,154,147,150][f]} 172 ${[145,148,143,150,146][f]}" fill="none" stroke="#fff" stroke-width=".8" opacity=".035"/>
+ </g>`;
+ s=s.replace('<!-- facial hair -->',faceLayer+'<!-- facial hair -->');
+
+ /* Strong hairstyle identity around the cap: visible side/back silhouettes. */
+ let hp='';
+ if(/shaved|buzz/.test(style)) hp=`M112 126 Q113 105 121 96 L126 112 L123 139 Q116 136 112 126ZM188 126 Q187 105 179 96 L174 112 L177 139 Q184 136 188 126Z`;
+ else if(/afro|curl/.test(style)) hp=`M106 130 Q99 112 108 97 Q103 82 119 76 Q126 62 140 70 Q150 57 160 70 Q176 62 182 78 Q198 87 191 102 Q200 118 191 135 L180 121 Q177 104 150 100 Q123 104 120 121Z`;
+ else if(/medium|flow|wave/.test(style)) hp=`M108 132 Q104 104 118 88 Q128 75 143 80 Q155 69 171 82 Q191 92 192 119 L185 149 Q178 133 176 113 Q164 100 150 100 Q127 101 120 116 L116 150 Q108 143 108 132Z`;
+ else if(/fade/.test(style)) hp=`M110 132 Q111 105 121 94 L127 111 L122 142 Q113 139 110 132ZM190 132 Q189 105 179 94 L173 111 L178 142 Q187 139 190 132Z`;
+ else hp=`M109 132 Q108 105 120 92 L127 110 L122 143 Q113 139 109 132ZM191 132 Q192 105 180 92 L173 110 L178 143 Q187 139 191 132Z`;
+ s=s.replace('<!-- Sports Cartoon V10: hairstyle texture -->',
+ `<g class="eblRC55HairSilhouette" fill="${hair}" pointer-events="none"><path d="${hp}"/></g><!-- Sports Cartoon V10: hairstyle texture -->`);
+
+ /* Facial-hair detailing so beard choices read at thumbnail size. */
+ if(!/none|clean/.test(facial)){
+  const detail=/mustache/.test(facial)
+   ? `<path d="M132 177 Q141 170 150 176 Q159 170 168 177 Q159 180 150 179 Q141 180 132 177Z"/>`
+   : /goatee/.test(facial)
+   ? `<path d="M139 179 Q150 185 161 179 L158 197 Q150 203 142 197Z"/>`
+   : `<path d="M120 171 Q124 199 150 209 Q176 199 180 171 Q171 188 164 195 Q150 203 136 195 Q127 188 120 171Z"/>`;
+  s=s.replace('<!-- facial hair -->',`<g class="eblRC55FacialHairDepth" fill="${hair}" opacity=".18" pointer-events="none">${detail}</g><!-- facial hair -->`);
+ }
+
+ /* Four athletic builds: compact, balanced, broad, lanky. */
+ const body=[
+  `M88 326 Q91 251 126 224 M212 326 Q209 251 174 224`,
+  `M82 326 Q86 246 125 222 M218 326 Q214 246 175 222`,
+  `M75 326 Q78 242 123 219 M225 326 Q222 242 177 219`,
+  `M91 326 Q94 244 129 218 M209 326 Q206 244 171 218`
+ ][b];
+ s=s.replace('<!-- jersey identity -->',
+ `<g class="eblRC55Build" pointer-events="none"><path d="${body}" fill="none" stroke="#fff" stroke-width="1.4" opacity=".07"/></g><!-- jersey identity -->`);
+
+ /* Team-uniform polish remains generic/original: no MLB marks. */
+ s=s.replace('<!-- jersey identity -->',
+ `<g class="eblRC55UniformFit" pointer-events="none">
+   <path d="M129 218 Q150 232 171 218" fill="none" stroke="#fff" stroke-width="1.2" opacity=".12"/>
+   <path d="M150 231 L150 325" fill="none" stroke="#000" stroke-width="2" opacity=".08"/>
+ </g><!-- jersey identity -->`);
+ return s;
+};
+window.EBL_APPEARANCE_RC55={version:'RC55',systems:['face silhouettes','hair silhouettes','facial-hair identity','athletic builds','uniform fit','thumbnail readability']};
+function repaint(){try{renderHome()}catch(e){}try{renderPlayer()}catch(e){}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true});else setTimeout(repaint,180);
+})();
+</script>
+
+
+<!-- EBL RC56 — PLAYER IDENTITY OVERHAUL -->
+<style id="eblRC56CSS">
+.ebl-player-card svg,.player-card svg,.roster-card svg{filter:drop-shadow(0 7px 9px rgba(0,0,0,.16))}
+</style>
+<script id="eblAppearanceRC56">
+(function(){
+if(typeof stationaryPlayerSvg!=='function')return;
+const base=stationaryPlayerSvg;
+const hash=x=>{let h=1779033703;for(const c of String(x||'')){h=Math.imul(h^c.charCodeAt(0),3432918353);h=h<<13|h>>>19}return h>>>0};
+const val=(p,...k)=>{for(const x of k)if(p&&p[x]!=null&&p[x]!=='')return p[x];return''};
+stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+ const p=raw||{}, h=hash(val(p,'id','player_id','name')||'EBL');
+ let s=String(base.call(this,p,compact,pose)||''); if(!s.includes('<svg'))return s;
+ const skin=val(p,'skin_color','skinColor','skin_tone','skinTone')||'#e7ad7e',
+ hair=val(p,'hair_color','hairColor')||'#2a201c',
+ hs=String(val(p,'hair_style','hairStyle')||'classic').toLowerCase(),
+ fh=String(val(p,'facial_hair','facialHair')||'none').toLowerCase();
+ const face=h%6, build=(h>>>5)%5;
+ const jaw=[
+ 'M116 137 Q115 180 128 194 Q139 205 150 207 Q161 205 172 194 Q185 180 184 137',
+ 'M112 136 Q112 177 124 195 Q136 211 150 214 Q164 211 176 195 Q188 177 188 136',
+ 'M118 136 Q114 176 128 190 Q139 201 150 202 Q161 201 172 190 Q186 176 182 136',
+ 'M111 136 Q111 174 121 190 Q132 207 150 212 Q168 207 179 190 Q189 174 189 136',
+ 'M116 136 Q111 172 123 188 Q135 202 150 206 Q165 202 177 188 Q189 172 184 136',
+ 'M113 136 Q114 182 129 198 Q139 207 150 209 Q161 207 171 198 Q186 182 187 136'][face];
+ const cheeks=[
+  ['M120 170 Q127 174 132 171','M180 170 Q173 174 168 171'],
+  ['M118 169 Q126 176 133 173','M182 169 Q174 176 167 173'],
+  ['M121 168 Q127 171 132 169','M179 168 Q173 171 168 169'],
+  ['M117 171 Q126 178 134 174','M183 171 Q174 178 166 174'],
+  ['M120 172 Q127 176 134 172','M180 172 Q173 176 166 172'],
+  ['M119 168 Q126 173 132 171','M181 168 Q174 173 168 171']][face];
+ const identity=`<g class="rc56-face" pointer-events="none"><path d="${jaw}" fill="none" stroke="${skin}" stroke-width="4" opacity=".16"/><path d="${cheeks[0]}" fill="none" stroke="#4a2b25" stroke-width="1" opacity=".10"/><path d="${cheeks[1]}" fill="none" stroke="#4a2b25" stroke-width="1" opacity=".10"/></g>`;
+ s=s.replace('<!-- facial hair -->',identity+'<!-- facial hair -->');
+
+ let silhouette;
+ if(/buzz|shaved/.test(hs))silhouette='M111 139 Q108 112 122 96 L127 119 L122 146ZM189 139 Q192 112 178 96 L173 119 L178 146Z';
+ else if(/afro|curl/.test(hs))silhouette='M107 142 Q96 124 105 105 Q99 91 113 82 Q118 66 135 70 Q148 56 160 70 Q178 65 184 82 Q199 91 193 107 Q201 124 190 143 L179 122 Q171 101 150 99 Q129 101 121 122Z';
+ else if(/long|flow|wave/.test(hs))silhouette='M108 145 Q103 113 116 94 Q128 77 143 82 Q157 70 175 86 Q193 101 192 129 L184 160 Q176 140 176 117 Q165 101 150 101 Q128 101 121 119 L116 160 Q108 153 108 145Z';
+ else if(/fade/.test(hs))silhouette='M110 141 Q109 111 122 96 L128 117 L122 148 Q113 145 110 141ZM190 141 Q191 111 178 96 L172 117 L178 148 Q187 145 190 141Z';
+ else silhouette='M109 142 Q107 111 121 94 L128 117 L122 149 Q113 146 109 142ZM191 142 Q193 111 179 94 L172 117 L178 149 Q187 146 191 142Z';
+ s=s.replace('<!-- Sports Cartoon V10: hairstyle texture -->',`<g class="rc56-hair" fill="${hair}" pointer-events="none"><path d="${silhouette}"/></g><!-- Sports Cartoon V10: hairstyle texture -->`);
+
+ if(!/none|clean/.test(fh)){
+  let d=/mustache/.test(fh)?'M132 179 Q141 171 150 177 Q159 171 168 179 Q159 183 150 181 Q141 183 132 179Z':
+  /goatee/.test(fh)?'M140 182 Q150 188 160 182 L158 201 Q150 207 142 201Z':
+  /stubble/.test(fh)?'M120 177 Q128 199 150 204 Q172 199 180 177 Q173 199 150 210 Q127 199 120 177Z':
+  'M118 174 Q122 202 150 214 Q178 202 182 174 Q175 195 165 204 Q150 213 135 204 Q125 195 118 174Z';
+  s=s.replace('<!-- facial hair -->',`<g class="rc56-beard" fill="${hair}" opacity=".22" pointer-events="none"><path d="${d}"/></g><!-- facial hair -->`);
+ }
+
+ const bodies=[
+ ['M89 326 Q91 260 126 225','M211 326 Q209 260 174 225'],
+ ['M82 326 Q84 250 123 221','M218 326 Q216 250 177 221'],
+ ['M74 326 Q76 245 120 217','M226 326 Q224 245 180 217'],
+ ['M93 326 Q95 247 130 216','M207 326 Q205 247 170 216'],
+ ['M79 326 Q82 253 125 219','M221 326 Q218 253 175 219']][build];
+ s=s.replace('<!-- jersey identity -->',`<g class="rc56-build" pointer-events="none"><path d="${bodies[0]}" fill="none" stroke="#fff" stroke-width="2" opacity=".075"/><path d="${bodies[1]}" fill="none" stroke="#fff" stroke-width="2" opacity=".075"/></g><!-- jersey identity -->`);
+ s=s.replace('<!-- jersey identity -->',`<g class="rc56-uniform" pointer-events="none"><path d="M126 220 Q150 237 174 220" fill="none" stroke="#fff" stroke-width="1.4" opacity=".16"/><path d="M150 235V326" stroke="#000" stroke-width="2" opacity=".10"/><path d="M112 247 Q101 267 98 302 M188 247 Q199 267 202 302" fill="none" stroke="#fff" stroke-width="1.2" opacity=".055"/></g><!-- jersey identity -->`);
+
+ /* Small-card readability: subtly strengthen eyes/brows/hair without enlarging cartoon pupils. */
+ if(compact)s=s.replace('</svg>',`<g class="rc56-card-read" pointer-events="none"><path d="M124 151 Q133 146 141 150 M159 150 Q167 146 176 151" fill="none" stroke="${hair}" stroke-width="1.6" opacity=".22" stroke-linecap="round"/></g></svg>`);
+ return s;
+};
+window.EBL_APPEARANCE_RC56={version:'RC56',focus:['face shapes','hairstyles and hairlines','facial hair shapes','body builds','uniform fit','team identity','small-card portraits']};
+const redraw=()=>{for(const f of ['renderHome','renderPlayer','renderRoster','renderCoachHub'])try{typeof window[f]==='function'&&window[f]()}catch(e){}};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(redraw,220),{once:true});else setTimeout(redraw,220);
+})();
+</script>
+
 </body></html>
