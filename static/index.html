@@ -6588,4 +6588,48 @@ function repaint(){try{renderHome()}catch(e){}try{renderPlayer()}catch(e){}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,70),{once:true});else setTimeout(repaint,70);setTimeout(repaint,450);
 })();
 </script>
+
+<!-- EBL CARTOON AVATAR V5 — face polish pass -->
+<style>
+.eblCartoonV5{display:inline-block;overflow:hidden;line-height:0;border-radius:inherit}
+.eblCartoonV5 svg{display:block;width:100%;height:100%}
+.eblPlayerArtV24--lg.eblCartoonV5{width:100%;height:100%}.eblPlayerArtV24--md.eblCartoonV5{width:92px;height:112px}.eblPlayerArtV24--sm.eblCartoonV5{width:54px;height:66px}.eblPlayerArtV24--xs.eblCartoonV5{width:34px;height:42px}
+</style>
+<script id="eblCartoonAvatarV5">
+(function(){
+const old=window.eblCartoonAvatarSvg;
+if(!old)return;
+function polish(svg,raw){
+ let p=raw||{}, face=Math.max(1,Math.min(5,+p.face_id||1)), nose=Math.max(1,Math.min(5,+p.nose_id||face));
+ // Replace V4 eye construction with softer, reference-like eyes and lids.
+ svg=svg.replace(/<path d="M117 139Q128 133 140 139Q130 147 117 139Z" fill="#fff"\/>\s*<path d="M160 139Q172 133 183 139Q170 147 160 139Z" fill="#fff"\/>\s*<ellipse cx="130" cy="139" rx="4\.8" ry="6\.2" fill="#253039" stroke="none"\/><ellipse cx="170" cy="139" rx="4\.8" ry="6\.2" fill="#253039" stroke="none"\/>\s*<circle cx="131" cy="137\.5" r="1\.5" fill="#fff" stroke="none"\/><circle cx="171" cy="137\.5" r="1\.5" fill="#fff" stroke="none"\/>/,
+ `<path d="M117 139Q128 132 140 139Q129 146 117 139Z" fill="#fff"/>
+  <path d="M160 139Q172 132 183 139Q171 146 160 139Z" fill="#fff"/>
+  <path d="M117 139Q128 132 140 139M160 139Q172 132 183 139" fill="none" stroke="#111820" stroke-width="3"/>
+  <ellipse cx="130" cy="139" rx="4.2" ry="5.4" fill="#29343b" stroke="none"/><ellipse cx="170" cy="139" rx="4.2" ry="5.4" fill="#29343b" stroke="none"/>
+  <circle cx="131" cy="137.6" r="1.3" fill="#fff" stroke="none"/><circle cx="171" cy="137.6" r="1.3" fill="#fff" stroke="none"/>`);
+ // Soften the mouth further.
+ svg=svg.replace('<path d="M134 176Q150 181 166 176" fill="none" stroke="#713b38" stroke-width="3"/>',
+ '<path d="M136 177Q150 181 164 177" fill="none" stroke="#713b38" stroke-width="2.6"/>');
+ svg=svg.replace('<path d="M140 182Q150 185 160 182" fill="none" stroke="#b46c62" stroke-width="1.8"/>','');
+ // Add cheek planes / subtle cartoon dimension without photoreal shading.
+ const cheek=`<path d="M115 153Q119 166 128 173" fill="none" stroke="#9b6653" stroke-width="2" opacity=".28"/>
+ <path d="M185 153Q181 166 172 173" fill="none" stroke="#9b6653" stroke-width="2" opacity=".28"/>`;
+ svg=svg.replace('<!-- small relaxed expression -->',cheek+'<!-- small relaxed expression -->');
+ return svg;
+}
+function SVG(raw){return polish(old(raw),raw)}
+window.eblCartoonAvatarSvg=SVG;
+window.stationaryPlayerSvg=(p,compact=false,pose='auto')=>SVG(p);
+window.faceThumbMarkup=function(f,hairId=1,facialId=(window.CREATOR?.facial_hair_id||1)){
+ let presets=window.FACE_PRESETS||[],faceId=Math.max(1,Math.min(5,(presets.indexOf(f)+1)||1));
+ return `<div class="faceThumb faceThumbV12">${SVG({...window.CREATOR,face_id:faceId,hair_id:Math.max(1,Math.min(3,+hairId||1)),facial_hair_id:Math.max(1,Math.min(5,+facialId||1)),nose_id:faceId})}</div>`};
+window.renderCreator3D=async function(hostId='creator3dPreview',source=window.CREATOR||{},pose='auto'){let h=document.getElementById(hostId);if(h){h.classList.add('eblAvatarHost');h.innerHTML=`<div class="avatar3dBadge">EBL PLAYER</div>${SVG(source)}`}};
+window.eblPlayerArtV24=function(raw={},size='md'){let z=['xs','sm','md','lg'].includes(size)?size:'md';return `<span class="eblPlayerArtV24 eblCartoonV5 eblPlayerArtV24--${z}" data-ebl-avatar="CARTOON-V5">${SVG(raw)}</span>`};
+window.eblPublicPortraitV28=(r={},z='lg')=>window.eblPlayerArtV24(r,z);
+window.EBL_CARTOON_AVATAR_V5={version:'CARTOON-V5',target:'locked approved EBL cartoon reference',focus:'face polish'};
+function repaint(){try{renderHome()}catch(e){}try{renderPlayer()}catch(e){}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,70),{once:true});else setTimeout(repaint,70);setTimeout(repaint,450);
+})();
+</script>
 </body></html>
