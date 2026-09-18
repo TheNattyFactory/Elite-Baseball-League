@@ -5694,4 +5694,167 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
 })();
 </script>
 
+
+<!-- EBL Appearance Renderer V8 / RC48 — decisive face pass -->
+<script id="eblAppearanceV8RC48">
+(function(){
+ if(typeof stationaryPlayerSvg!=='function')return;
+ const previous=stationaryPlayerSvg;
+
+ stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+   const p=typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{});
+   let s=String(previous.call(this,p,compact,pose)||'');
+   if(!s.includes('<svg'))return s;
+
+   /* RC48 correction: stop shrinking the eyes. Restore an adult, readable size. */
+   s=s.replace(/M114 138 Q124 135\.4 135 138 Q124 141\.1 114 138Z/g,
+               'M112 138 Q124 133.8 137 138 Q124 143.0 112 138Z')
+    .replace(/M165 138 Q176 135\.4 186 138 Q176 141\.1 165 138Z/g,
+             'M163 138 Q176 133.8 188 138 Q176 143.0 163 138Z');
+
+   /* Restore balanced iris/pupil proportions for the larger eyes. */
+   s=s.replace(/r="2\.05"/g,'r="2.65"').replace(/r="\.78"/g,'r="1.05"');
+
+   /* Brows: slimmer and shaped rather than heavy cartoon bars. */
+   s=s.replace(/stroke-width="4\.4"/g,'stroke-width="3.65"');
+
+   /* Replace the oversized open white grin where the legacy mouth path matches. */
+   s=s.replace(
+     /M130 177 Q150 191 170 177 Q166 198 150 201 Q134 198 130 177Z/g,
+     'M132 179 Q150 186 168 179 Q162 190 150 191 Q138 190 132 179Z'
+   );
+
+   /* Remove V7's additive mouth plane; use a simple lip/underlip cue instead. */
+   s=s.replace(/<g class="eblV7Face"[\s\S]*?<\/g>/g,'');
+   const face=`<g class="eblV8Face" fill="none" pointer-events="none" stroke-linecap="round" stroke-linejoin="round">
+     <path d="M149 144 Q146 154 146 162 Q149 165 154 163" stroke="#674039" stroke-width="1.35" opacity=".58"/>
+     <path d="M147 165 Q150 166.5 154 164.5" stroke="#674039" stroke-width=".72" opacity=".32"/>
+     <path d="M136 180 Q150 184 164 180" stroke="#5b3934" stroke-width="1.05" opacity=".48"/>
+     <path d="M141 186 Q150 189 159 186" stroke="#5b3934" stroke-width=".7" opacity=".18"/>
+   </g>`;
+   s=s.replace('<!-- Sports Cartoon V8: illustrated face construction -->',
+               face+'\n<!-- Sports Cartoon V8: illustrated face construction -->');
+
+   /* Hair gets a cleaner crown/hairline highlight without facial clutter. */
+   const hair=`<g class="eblV8HairDepth" fill="none" pointer-events="none" stroke-linecap="round">
+     <path d="M118 96 Q135 86 151 87 Q169 86 183 97" stroke="#fff" stroke-width="1.15" opacity=".07"/>
+   </g>`;
+   s=s.replace('<!-- Sports Cartoon V10: hairstyle texture -->',
+               hair+'\n<!-- Sports Cartoon V10: hairstyle texture -->');
+
+   return s;
+ };
+
+ window.EBL_APPEARANCE_RENDERER_V8={
+   version:'RC48',
+   rule:'forward-only',
+   corrections:['restore readable eye size','balanced pupils','lighter brows','smaller natural smile','clean nose/lip structure','hair depth'],
+   keeps:['RC46 athletic body','RC47 face-shape system','saved appearance data','avatar everywhere']
+ };
+
+ function repaint(){
+   try{if(typeof renderHome==='function')renderHome()}catch(e){}
+   try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true});
+ else setTimeout(repaint,180);
+})();
+</script>
+
+
+<!-- EBL Appearance Renderer V9 / RC49 — original EBL player-card pass -->
+<script id="eblAppearanceV9RC49">
+(function(){
+  if(typeof stationaryPlayerSvg!=='function') return;
+  const previous = stationaryPlayerSvg;
+
+  stationaryPlayerSvg = function(raw, compact=false, pose='auto'){
+    const p = typeof eblFullSavedPlayerRC38==='function'
+      ? eblFullSavedPlayerRC38(raw||{})
+      : (raw||{});
+
+    let s = String(previous.call(this,p,compact,pose)||'');
+    if(!s.includes('<svg')) return s;
+
+    /*
+      RC49 goals:
+      - Keep the eyes readable; no more shrinking.
+      - Remove the contrasting red billboard-style cap brim.
+      - Use only EBL/team identity generated from league data.
+      - Improve the face with stronger adult proportions and softer features.
+    */
+
+    /* Eyes: settle at a readable medium size with proportionate iris/pupil. */
+    s = s.replace(
+      'M112 138 Q124 133.8 137 138 Q124 143.0 112 138Z',
+      'M112 138 Q124 133.2 137 138 Q124 143.6 112 138Z'
+    ).replace(
+      'M163 138 Q176 133.8 188 138 Q176 143.0 163 138Z',
+      'M163 138 Q176 133.2 188 138 Q176 143.6 163 138Z'
+    );
+
+    /* Cap: same-color crown + bill. Accent becomes restrained piping/underside. */
+    s = s.replace(
+      /<path d="M148 99 Q190 93 220 111 Q186 121 149 110Z" fill="[^"]+" stroke-width="5"\/>/g,
+      `<path d="M148 99 Q190 94 218 110 Q188 118 149 109Z" fill="${typeof teamPalette==='function' ? (teamPalette(p.franchise_id)?.[0]||'#123a5a') : '#123a5a'}" stroke-width="5"/>
+       <path d="M153 108 Q188 112 211 108" fill="none" stroke="${typeof teamPalette==='function' ? (teamPalette(p.franchise_id)?.[1]||'#d92832') : '#d92832'}" stroke-width="2.2" opacity=".72"/>`
+    );
+
+    /* Remove any accidental MLB-style letter-art overlays if one ever appears. */
+    s = s.replace(/<text[^>]*>\s*A\s*<\/text>/gi,'');
+
+    /* Softer adult mouth: defined lips, no giant white cartoon wedge. */
+    s = s.replace(
+      /M132 179 Q150 186 168 179 Q162 190 150 191 Q138 190 132 179Z/g,
+      'M134 179 Q150 184 166 179 Q160 187 150 188 Q140 187 134 179Z'
+    );
+
+    /* More natural brow weight and separation. */
+    s = s.replace(/stroke-width="3\.65"/g,'stroke-width="3.35"');
+
+    /* A restrained lower-lip/chin plane adds depth without old cheek lines. */
+    const polish = `<g class="eblV9FacePolish" pointer-events="none" fill="none" stroke-linecap="round">
+      <path d="M141 186 Q150 189 159 186" stroke="#5b3934" stroke-width=".72" opacity=".22"/>
+      <path d="M143 194 Q150 196 157 194" stroke="#5b3934" stroke-width=".62" opacity=".10"/>
+    </g>`;
+    s = s.replace('<!-- facial hair -->', polish + '\n<!-- facial hair -->');
+
+    /* Jersey reads more like a baseball top: shoulder yoke + subtle placket. */
+    const jersey = `<g class="eblV9JerseyPolish" pointer-events="none" fill="none">
+      <path d="M82 229 Q108 211 130 210" stroke="#fff" stroke-width="1.15" opacity=".10"/>
+      <path d="M218 229 Q192 211 170 210" stroke="#fff" stroke-width="1.15" opacity=".10"/>
+      <path d="M150 226 L150 327" stroke="#fff" stroke-width=".8" opacity=".075"/>
+    </g>`;
+    s = s.replace('<!-- jersey identity -->', jersey + '\n<!-- jersey identity -->');
+
+    return s;
+  };
+
+  window.EBL_APPEARANCE_RENDERER_V9 = {
+    version:'RC49',
+    direction:'original EBL illustrated player-card',
+    branding:'EBL and franchise identity only; no MLB marks',
+    changes:[
+      'readable medium eyes',
+      'balanced iris and pupil scale',
+      'team-color cap with restrained accent piping',
+      'natural mouth and lip treatment',
+      'lighter brows',
+      'subtle chin depth',
+      'baseball jersey polish'
+    ]
+  };
+
+  function repaint(){
+    try{ if(typeof renderHome==='function') renderHome(); }catch(e){}
+    try{ if(typeof renderPlayer==='function') renderPlayer(); }catch(e){}
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true});
+  } else {
+    setTimeout(repaint,180);
+  }
+})();
+</script>
+
 </body></html>
