@@ -3222,7 +3222,7 @@ function teamMark(fid,small=false){
  return `<span class="teamMark ${small?'sm':''}" style="--tm1:${p};--tm2:${s};--tm3:${a}" title="${escapeHtml(n)}">${teamAbbr(n)}</span>`;
 }
 
-// EBL_AVATAR_V10_IDENTITY_NORMALIZER
+// EBL_AVATAR_V13_SILHOUETTE_PERSONALITY_PASS
 function eblAppearancePlayer(p={}){
  const a=p.appearance||p.avatar||{};
  return {
@@ -3277,25 +3277,51 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
  'M108 120 Q111 84 150 80 Q189 84 192 120 L188 160 L176 188 L150 210 L124 188 L112 160Z',
  'M104 124 Q106 88 150 83 Q194 88 196 124 L191 160 L178 190 L150 206 L122 190 L109 160Z'
  ];
- const facePath=faces[((face-1)%10)+1];
+ const faceFamily=((face-1)%5)+1;
+ const facePaths={
+  1:'M106 124 Q107 88 150 83 Q193 88 194 124 L190 160 Q184 188 150 204 Q116 188 110 160Z',
+  2:'M101 125 Q102 90 150 84 Q198 90 199 125 L194 166 Q184 197 150 207 Q116 197 106 166Z',
+  3:'M112 119 Q116 82 150 78 Q184 82 188 119 L185 163 Q176 194 150 212 Q124 194 115 163Z',
+  4:'M103 123 Q105 88 150 82 Q195 88 197 123 L191 160 L176 190 L150 207 L124 190 L109 160Z',
+  5:'M108 119 Q112 83 150 79 Q188 83 192 119 L188 158 L173 190 L150 213 L127 190 L112 158Z'
+ };
+ const facePath=facePaths[faceFamily];
 
- const hairBack = hairId===6 ? '' :
-   hairId===7||hairId===21||hairId===22 ? `<path d="M101 128 Q94 88 116 70 Q133 53 150 62 Q170 48 187 69 Q207 87 199 132 L190 163 Q181 143 182 117 Q169 98 150 99 Q128 98 118 119 Q119 145 110 163Z" fill="${hair}"/>` :
-   hairId===20||hairId===26||hairId===27||hairId===28 ? `<path d="M103 125 Q98 78 126 66 Q169 50 199 105 L198 177 Q184 168 181 133 Q169 101 150 100 Q126 101 117 129 L112 177 Q99 167 103 125Z" fill="${hair}"/>` :
-   `<path d="M106 127 Q105 91 124 77 Q150 60 177 77 Q196 91 194 127 L185 143 L180 116 Q167 101 150 101 Q130 101 120 118 L115 143Z" fill="${hair}"/>`;
+ const hairGroup=((hairId-1)%9)+1;
+ const hairBack = hairGroup===6 ? '' :
+   hairGroup===1 ? `<path d="M105 128 Q104 90 123 76 Q150 60 178 77 Q197 92 195 129 L185 145 L181 116 Q168 101 150 101 Q130 101 119 118 L114 145Z" fill="${hair}"/>` :
+   hairGroup===2 ? `<path d="M107 127 Q108 92 127 78 Q150 66 176 79 Q193 92 193 126 L185 139 L180 115 Q165 103 150 103 Q131 103 120 117 L115 140Z" fill="${hair}"/>` :
+   hairGroup===3 ? `<path d="M101 130 Q98 88 119 70 Q140 54 158 67 Q183 55 199 92 L197 142 Q187 129 181 113 Q164 96 148 101 Q126 96 116 119 L112 151 Q101 143 101 130Z" fill="${hair}"/>` :
+   hairGroup===4 ? `<path d="M99 130 Q96 82 122 67 Q150 48 179 68 Q204 85 201 132 L194 171 Q181 160 180 126 Q167 99 149 101 Q126 99 116 126 L112 171 Q99 160 99 130Z" fill="${hair}"/>` :
+   hairGroup===5 ? `<path d="M104 129 Q102 88 124 72 Q148 58 178 74 Q197 90 196 129 L188 151 Q180 129 179 113 Q162 101 150 102 Q130 100 119 119 L113 151Z" fill="${hair}"/>` :
+   hairGroup===7 ? `<path d="M97 129 Q94 78 120 62 Q147 44 177 62 Q205 78 203 132 L196 183 Q183 173 179 128 Q166 98 149 100 Q125 98 115 128 L110 183 Q97 171 97 129Z" fill="${hair}"/>` :
+   hairGroup===8 ? `<path d="M104 126 Q103 87 130 69 Q161 52 191 82 L194 124 Q175 105 151 102 Q126 103 113 125 L111 146Z" fill="${hair}"/>` :
+   `<path d="M108 126 Q107 95 125 80 Q150 66 176 80 Q193 94 192 126 L184 140 L180 117 Q164 105 150 105 Q132 105 120 119 L115 140Z" fill="${hair}"/>`;
 
- const hairFront = hairId===6 ? '' :
-   hairId===3||hairId===17||hairId===18 ? `<path d="M108 113 Q117 74 146 72 Q177 65 193 104 Q169 91 148 97 Q129 91 108 113Z" fill="${hair}"/>` :
-   hairId===7||hairId===21||hairId===22 ? `<path d="M103 113 Q104 75 128 68 Q147 54 161 67 Q184 62 198 104 Q177 94 151 98 Q126 94 103 113Z" fill="${hair}"/>` :
-   `<path d="M108 112 Q118 81 149 79 Q180 80 193 108 Q172 99 150 101 Q128 99 108 112Z" fill="${hair}"/>`;
+ const hairFront = hairGroup===6 ? '' :
+   hairGroup===1 ? `<path d="M108 111 Q120 84 149 81 Q178 82 192 108 Q170 99 150 102 Q129 99 108 111Z" fill="${hair}"/>` :
+   hairGroup===2 ? `<path d="M112 108 Q124 88 151 86 Q177 87 188 107 Q168 101 150 103 Q130 101 112 108Z" fill="${hair}"/>` :
+   hairGroup===3 ? `<path d="M105 111 Q109 76 132 72 Q145 61 157 72 Q179 66 195 105 Q174 96 151 100 Q127 95 105 111Z" fill="${hair}"/>` :
+   hairGroup===4 ? `<path d="M102 112 Q104 74 128 67 Q147 52 163 67 Q187 62 198 104 Q175 95 151 99 Q126 94 102 112Z" fill="${hair}"/>` :
+   hairGroup===5 ? `<path d="M106 110 Q126 78 151 81 Q178 79 193 106 Q170 95 151 101 Q131 96 106 110Z" fill="${hair}"/>` :
+   hairGroup===7 ? `<path d="M101 111 Q101 69 128 62 Q149 46 165 63 Q190 58 200 103 Q176 94 151 98 Q125 93 101 111Z" fill="${hair}"/>` :
+   hairGroup===8 ? `<path d="M105 108 Q130 71 163 72 Q184 74 196 101 Q171 91 151 99 Q129 94 105 108Z" fill="${hair}"/>` :
+   `<path d="M111 108 Q123 89 150 87 Q176 88 189 108 Q169 101 150 103 Q130 101 111 108Z" fill="${hair}"/>`;
 
- const beard = facial===1?'': facial===3
-   ? `<path d="M138 179 Q150 187 162 179 L159 198 Q150 204 141 198Z" fill="${hair}"/>`
-   : facial===5||facial===12||facial===13
-   ? `<path d="M130 171 Q150 162 170 171" fill="none" stroke="${hair}" stroke-width="${facial===13?8:6}" stroke-linecap="round"/>`
-   : facial===2||facial===6
-   ? `<path d="M119 169 Q125 194 150 201 Q175 194 181 169 Q174 202 150 209 Q126 202 119 169Z" fill="${hair}" opacity="${facial===6?.55:.35}"/>`
-   : `<path d="M114 163 Q119 202 150 216 Q181 202 186 163 Q177 193 164 202 Q150 211 136 202 Q123 193 114 163Z" fill="${hair}"/><path d="M132 171 Q150 164 168 171" fill="none" stroke="${skin}" stroke-width="7"/>`;
+ const beard = facial===1 ? '' :
+   facial===2 ? `<path d="M121 169 Q127 193 150 200 Q173 193 179 169" fill="none" stroke="${hair}" stroke-width="4" stroke-dasharray="2 4" opacity=".45"/>` :
+   facial===3 ? `<path d="M137 181 Q150 188 163 181 L159 201 Q150 207 141 201Z" fill="${hair}"/><path d="M137 174 Q150 168 163 174" fill="none" stroke="${hair}" stroke-width="5" stroke-linecap="round"/>` :
+   facial===4 ? `<path d="M112 159 Q116 199 150 217 Q184 199 188 159 Q180 196 164 207 Q150 217 136 207 Q120 196 112 159Z" fill="${hair}"/><path d="M131 173 Q150 165 169 173" fill="none" stroke="${skin}" stroke-width="7"/>` :
+   facial===5 ? `<path d="M128 173 Q139 165 150 171 Q161 165 172 173 Q161 180 150 177 Q139 180 128 173Z" fill="${hair}"/>` :
+   facial===6 ? `<path d="M117 165 Q122 199 150 209 Q178 199 183 165" fill="none" stroke="${hair}" stroke-width="7" stroke-dasharray="2 3" opacity=".62"/>` :
+   facial===7 ? `<path d="M115 165 Q120 198 150 211 Q180 198 185 165 Q177 193 163 202 Q150 210 137 202 Q123 193 115 165Z" fill="${hair}"/><path d="M132 174 Q150 167 168 174" fill="none" stroke="${skin}" stroke-width="8"/>` :
+   facial===8 ? `<path d="M111 160 Q115 204 150 220 Q185 204 189 160 Q181 199 164 211 Q150 222 136 211 Q119 199 111 160Z" fill="${hair}"/><path d="M130 173 Q150 165 170 173" fill="none" stroke="${skin}" stroke-width="7"/>` :
+   facial===9 ? `<path d="M108 157 Q111 209 150 229 Q189 209 192 157 Q184 204 165 218 Q150 231 135 218 Q116 204 108 157Z" fill="${hair}"/><path d="M128 173 Q150 164 172 173" fill="none" stroke="${skin}" stroke-width="7"/>` :
+   facial===10 ? `<path d="M130 171 Q150 164 170 171" fill="none" stroke="${hair}" stroke-width="6" stroke-linecap="round"/><path d="M136 180 Q150 190 164 180 L160 201 Q150 208 140 201Z" fill="${hair}"/>` :
+   facial===11 ? `<path d="M144 187 Q150 192 156 187 L155 201 Q150 205 145 201Z" fill="${hair}"/>` :
+   facial===12 ? `<path d="M126 172 Q139 163 150 171 Q161 163 174 172 Q162 180 150 177 Q138 180 126 172Z" fill="${hair}"/>` :
+   facial===13 ? `<path d="M124 171 Q137 160 150 171 Q163 160 176 171 Q169 180 160 179 Q170 187 178 183 M140 179 Q130 187 122 183" fill="none" stroke="${hair}" stroke-width="6" stroke-linecap="round"/>` :
+   `<path d="M113 161 Q118 201 150 216 Q182 201 187 161 Q179 195 164 205 Q150 215 136 205 Q121 195 113 161Z" fill="${hair}"/><path d="M128 171 Q150 163 172 171" fill="none" stroke="${hair}" stroke-width="7" stroke-linecap="round"/><path d="M133 177 Q150 171 167 177" fill="none" stroke="${skin}" stroke-width="6"/>`;
 
  // Deliberate athletic proportions. Build selector can be wired later; V2 starts balanced.
  const shoulder=compact?54:67, torsoTop=220;
@@ -3323,7 +3349,7 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
    <ellipse cx="168" cy="145" rx="4.4" ry="5" fill="${eye}" stroke="none"/><circle cx="168" cy="145" r="2.1" fill="#111820" stroke="none"/>
    <circle cx="133" cy="143.5" r="1" fill="#fff" stroke="none"/><circle cx="169" cy="143.5" r="1" fill="#fff" stroke="none"/>
    <path d="M150 145 Q145 158 147 164 Q151 168 157 164" fill="none" stroke="#875448" stroke-width="2.2"/>
-   <path d="M132 177 Q150 188 168 177 Q164 191 150 194 Q136 191 132 177Z" fill="#fff" stroke-width="4"/>
+   <path d="M134 179 Q150 185 166 179" fill="none" stroke="#7b4242" stroke-width="3.2"/>
    ${beard}
 
    <path d="M132 199 L132 222 Q150 235 168 222 L168 199" fill="${skin}" stroke-width="5"/>
