@@ -4732,7 +4732,7 @@ class H(BaseHTTPRequestHandler):
                    WHERE season=? AND league_day>=? AND status='SCHEDULED' AND (away_id=? OR home_id=?)
                    ORDER BY league_day,id LIMIT 1""",(season,max(1,day),fid,fid)).fetchone()
             recent_games=[dict(r) for r in c.execute(
-                """SELECT id,league_day,away_id,home_id,away_score,home_score,status FROM games
+                """SELECT id,league_day,away_id,home_id,away_runs AS away_score,home_runs AS home_score,status FROM games
                    WHERE season=? AND status='FINAL' AND (away_id=? OR home_id=?)
                    ORDER BY league_day DESC,id DESC LIMIT 5""",(season,fid,fid))]
             out={"team":dict(team),"branding":dict(brand) if brand else None,"division":division_for(fid),
