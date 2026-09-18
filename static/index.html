@@ -3360,31 +3360,18 @@ function stationaryPlayerSvg(p,compact=false,pose='auto'){
    ${hairId===22?`<g fill="${hairs}" stroke="#111820" stroke-width="1.5"><circle cx="116" cy="84" r="8"/><circle cx="132" cy="73" r="8"/><circle cx="150" cy="70" r="8"/><circle cx="168" cy="74" r="8"/><circle cx="185" cy="86" r="8"/></g>`:''}
    ${hairId===23?`<path d="M116 65 L184 65 M116 78 L184 78" fill="none" stroke="${hairs}" stroke-width="4" opacity=".5"/>`:''}
    ${[24,25,26,27].includes(hairId)?`<g fill="none" stroke="#111820" stroke-width="2" opacity=".5"><path d="M118 83 Q126 91 118 100 Q110 109 118 118"/><path d="M145 71 Q153 80 145 90 Q137 100 145 111"/><path d="M174 75 Q182 84 174 94 Q166 104 174 114"/></g>`:''}
-   <!-- cel-style cheek / jaw shade -->
-   <path d="M111 151 Q119 181 146 193 Q127 191 116 179 Q108 168 111 151Z" fill="#7c493c" opacity=".10" stroke="none"/>
       <!-- cap behind/over hair -->
    <path d="M102 113 Q104 74 126 62 Q148 49 174 61 Q196 73 198 113 Q177 99 150 99 Q123 99 102 113Z" fill="${t1}" stroke-width="6"/>
    <path d="M126 62 Q149 72 174 61 M150 55 L150 99" fill="none" stroke="${t3}" stroke-width="2" opacity=".30"/>
    <circle cx="150" cy="55" r="4.5" fill="${t2}" stroke-width="2"/>
    <path d="M148 99 Q190 93 220 111 Q186 121 149 110Z" fill="${t2}" stroke-width="5"/>
    <text x="150" y="91" text-anchor="middle" fill="${t3}" font-size="18" font-weight="900" font-family="Arial Black,Arial" stroke="none">${initials}</text>
-   <!-- Sports Cartoon V8: illustrated face construction -->
-   <path d="M${cx-rx+8} ${cy+13} Q${cx-rx+18} ${cy+ry-8} ${cx} ${cy+ry-4} Q${cx+rx-18} ${cy+ry-8} ${cx+rx-8} ${cy+13}"
-         fill="none" stroke="#111820" stroke-width="2.2" opacity=".18"/>
-   <path d="M${cx-rx+4} ${cy-4} Q${cx-rx-5} ${cy+7} ${cx-rx+3} ${cy+17}"
-         fill="none" stroke="#8b5947" stroke-width="2.2" opacity=".45"/>
-   <path d="M${cx+rx-4} ${cy-4} Q${cx+rx+5} ${cy+7} ${cx+rx-3} ${cy+17}"
-         fill="none" stroke="#8b5947" stroke-width="2.2" opacity=".45"/>
-   <path d="M${cx-rx+16} ${cy+25} Q${cx-rx+25} ${cy+31} ${cx-rx+34} ${cy+25}"
-         fill="none" stroke="#9b5f50" stroke-width="2" opacity=".20"/>
-   <path d="M${cx+rx-34} ${cy+25} Q${cx+rx-25} ${cy+31} ${cx+rx-16} ${cy+25}"
-         fill="none" stroke="#9b5f50" stroke-width="2" opacity=".20"/>
       <!-- natural-sized eyes -->
    <path d="M113 138 Q124 131 136 138 Q124 146 113 138Z" fill="#fff" stroke-width="2.6"/>
    <path d="M164 138 Q176 131 187 138 Q176 146 164 138Z" fill="#fff" stroke-width="2.6"/>
-   <circle cx="125" cy="138" r="4.8" fill="${eyes}" stroke-width="1.7"/><circle cx="175" cy="138" r="4.8" fill="${eyes}" stroke-width="1.7"/>
-   <circle cx="125" cy="138" r="2.1" fill="#111820" stroke="none"/><circle cx="175" cy="138" r="2.1" fill="#111820" stroke="none"/>
-   <circle cx="126.5" cy="136.5" r="1.1" fill="#fff" stroke="none"/><circle cx="176.5" cy="136.5" r="1.1" fill="#fff" stroke="none"/>
+   <circle cx="125" cy="138" r="3.35" fill="${eyes}" stroke-width="1.7"/><circle cx="175" cy="138" r="3.35" fill="${eyes}" stroke-width="1.7"/>
+   <circle cx="125" cy="138" r="1.35" fill="#111820" stroke="none"/><circle cx="175" cy="138" r="1.35" fill="#111820" stroke="none"/>
+   <circle cx="126.1" cy="137.0" r=".65" fill="#fff" stroke="none"/><circle cx="176.1" cy="137.0" r=".65" fill="#fff" stroke="none"/>
    <path d="M111 123 Q124 117 138 124 M162 124 Q176 117 190 123" fill="none" stroke="${hairs}" stroke-width="4.5"/>
    <!-- simple nose and controlled smile -->
    <path d="M150 141 Q145 151 146 158 Q150 161 155 158" fill="none" stroke="#875448" stroke-width="2.7"/>
@@ -5404,20 +5391,8 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
   const wide=[2,4,7,12,14,19,20].includes(face), narrow=[3,6,13,16,18].includes(face);
   const cheekX=wide?20:narrow?14:17;
   const jawY=[4,7,14,20].includes(face)?184:[8,10,11,17].includes(face)?179:182;
-  const detail=`
-   <!-- Appearance V3 facial anatomy -->
-   <g class="eblV3FaceDetail" fill="none" stroke-linecap="round" pointer-events="none">
-    <path d="M111 147 Q118 158 ${130-cheekX/4} 161" stroke="#7b4a40" stroke-width="1.8" opacity=".22"/>
-    <path d="M189 147 Q182 158 ${170+cheekX/4} 161" stroke="#7b4a40" stroke-width="1.8" opacity=".22"/>
-    <path d="M137 166 Q150 170 163 166" stroke="#7b4a40" stroke-width="1.5" opacity=".20"/>
-    <path d="M138 ${jawY} Q150 ${jawY+5} 162 ${jawY}" stroke="#7b4a40" stroke-width="1.5" opacity=".16"/>
-    <path d="M118 132 Q125 128 134 132 M166 132 Q175 128 182 132" stroke="#111820" stroke-width="1.5" opacity=".28"/>
-    <path d="M151 144 Q154 151 153 157" stroke="#fff" stroke-width="1.4" opacity=".18"/>
-   </g>
-   <g class="eblV3EarDetail" fill="none" stroke="#875448" stroke-width="1.8" opacity=".34" pointer-events="none">
-    <path d="M105 137 Q99 141 104 151"/><path d="M195 137 Q201 141 196 151"/>
-   </g>`;
-  svg=svg.replace('<!-- integrated hair -->',detail+'\n   <!-- integrated hair -->');
+  /* RC44: facial crease overlays removed for a cleaner face. */
+
   const hairLight=`<g class="eblV3HairLight" fill="none" stroke="#fff" stroke-width="1.5" opacity=".10" pointer-events="none"><path d="M119 91 Q137 78 153 82"/><path d="M145 78 Q166 76 181 91"/></g>`;
   svg=svg.replace('<!-- Sports Cartoon V10: hairstyle texture -->',hairLight+'\n   <!-- Sports Cartoon V10: hairstyle texture -->');
   const uniform=`<g class="eblV3UniformPanels" fill="none" pointer-events="none"><path d="M75 254 Q99 225 122 222" stroke="#fff" stroke-width="2" opacity=".10"/><path d="M225 254 Q201 225 178 222" stroke="#fff" stroke-width="2" opacity=".10"/><path d="M98 322 L110 238 M202 322 L190 238" stroke="#fff" stroke-width="1.4" opacity=".08"/></g>`;
@@ -5455,16 +5430,11 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
   /* Reduce eye scale a touch for the large portrait while retaining eye color. */
   svg=svg.replace('M113 138 Q124 131 136 138 Q124 146 113 138Z','M114 138 Q124 133 135 138 Q124 144 114 138Z')
          .replace('M164 138 Q176 131 187 138 Q176 146 164 138Z','M165 138 Q176 133 186 138 Q176 144 165 138Z')
-         .replace('cx="125" cy="138" r="4.8"','cx="125" cy="138" r="4.2"')
-         .replace('cx="175" cy="138" r="4.8"','cx="175" cy="138" r="4.2"');
+         .replace('cx="125" cy="138" r="4.8"','cx="125" cy="138" r="3.35"')
+         .replace('cx="175" cy="138" r="4.8"','cx="175" cy="138" r="3.35"');
   const jaw=strong?'M119 169 Q124 191 150 200 Q176 191 181 169':narrow?'M121 170 Q128 193 150 202 Q172 193 179 170':round?'M117 168 Q122 188 150 197 Q178 188 183 168':'M119 169 Q125 190 150 199 Q175 190 181 169';
-  const v4=`<g class="eblV4PortraitDetail" fill="none" stroke-linecap="round" pointer-events="none">
-    <path d="${jaw}" stroke="#111820" stroke-width="1.35" opacity=".15"/>
-    <path d="M137 154 Q142 158 146 158 M154 158 Q158 158 163 154" stroke="#7e5045" stroke-width="1.15" opacity=".24"/>
-    <path d="M136 178 Q150 183 164 178" stroke="#5f3d37" stroke-width="1.2" opacity=".20"/>
-    <path d="M105 141 Q101 146 105 151 M195 141 Q199 146 195 151" stroke="#70483e" stroke-width="1.2" opacity=".24"/>
-   </g>`;
-  svg=svg.replace('<!-- integrated hair -->',v4+'\n   <!-- integrated hair -->');
+  /* RC44: V4 jaw/nose/mouth overlay lines removed. */
+
   /* Cap crown gets a subtle fabric panel highlight rather than a flat block. */
   const cap=`<g class="eblV4CapDetail" fill="none" pointer-events="none"><path d="M118 76 Q150 60 182 76" stroke="#fff" stroke-width="1.25" opacity=".10"/><path d="M150 61 L150 97" stroke="#fff" stroke-width="1" opacity=".08"/></g>`;
   svg=svg.replace('<!-- Sports Cartoon V8: illustrated face construction -->',cap+'\n   <!-- Sports Cartoon V8: illustrated face construction -->');
@@ -5475,4 +5445,6 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,160),{once:true}); else setTimeout(repaint,160);
 })();
 </script>\n
+
+<script id="eblAppearanceRC44Marker">window.EBL_APPEARANCE_RC44={version:'RC44',changes:['clean-face-lines','proportional-irises','smaller-pupils','smaller-eye-highlights']};</script>
 </body></html>
