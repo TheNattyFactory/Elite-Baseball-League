@@ -5447,4 +5447,96 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
 </script>\n
 
 <script id="eblAppearanceRC44Marker">window.EBL_APPEARANCE_RC44={version:'RC44',changes:['clean-face-lines','proportional-irises','smaller-pupils','smaller-eye-highlights']};</script>
+
+<!-- EBL Appearance Renderer V5 / RC45 -->
+<style id="eblAppearanceV5RC45Style">
+.eblPlayerArtV24--lg>svg{shape-rendering:geometricPrecision}
+.playerPortraitV27 .eblPlayerArtV24--lg>svg{transform:scale(1.035);transform-origin:50% 55%}
+</style>
+<script id="eblAppearanceV5RC45">
+(function(){
+  if(typeof stationaryPlayerSvg!=='function')return;
+  const baseV5=stationaryPlayerSvg;
+
+  stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+    const p=typeof eblFullSavedPlayerRC38==='function'
+      ? eblFullSavedPlayerRC38(raw||{})
+      : (raw||{});
+
+    let svg=String(baseV5.call(this,p,compact,pose)||'');
+    if(!svg.includes('<svg'))return svg;
+
+    /* RC45: stronger baseball-player torso without changing portrait footprint. */
+    svg=svg.replace(
+      'M25 330 Q34 249 94 218 Q121 204 150 205 Q179 204 206 218 Q266 249 275 330Z',
+      'M18 330 Q29 253 88 220 Q116 203 150 204 Q184 203 212 220 Q271 253 282 330Z'
+    );
+
+    /* Cleaner, slightly more natural eye openings. */
+    svg=svg.replace(
+      'M114 138 Q124 133 135 138 Q124 144 114 138Z',
+      'M114 138 Q124 134 135 138 Q124 143 114 138Z'
+    ).replace(
+      'M165 138 Q176 133 186 138 Q176 144 165 138Z',
+      'M165 138 Q176 134 186 138 Q176 143 165 138Z'
+    );
+
+    /* Subtle face planes: shading, not construction lines. */
+    const faceShade=`<g class="eblV5FaceShade" pointer-events="none">
+      <ellipse cx="121" cy="158" rx="17" ry="10" fill="#7b3f2a" opacity=".035"/>
+      <ellipse cx="179" cy="158" rx="17" ry="10" fill="#7b3f2a" opacity=".035"/>
+      <path d="M145 146 Q141 158 144 166 Q149 169 154 166" fill="none" stroke="#5b3328" stroke-width="1.15" opacity=".30" stroke-linecap="round"/>
+      <path d="M137 177 Q150 182 163 177" fill="none" stroke="#5b3328" stroke-width="1.05" opacity=".22" stroke-linecap="round"/>
+    </g>`;
+    svg=svg.replace('<!-- Sports Cartoon V8: illustrated face construction -->',
+      faceShade+'\n   <!-- Sports Cartoon V8: illustrated face construction -->');
+
+    /* Hair/facial-hair depth without adding face creases. */
+    const texture=`<g class="eblV5Texture" fill="none" stroke="#fff" stroke-linecap="round" pointer-events="none" opacity=".075">
+      <path d="M116 92 Q132 82 146 84" stroke-width="1.2"/>
+      <path d="M154 83 Q171 82 184 93" stroke-width="1.2"/>
+    </g>`;
+    svg=svg.replace('<!-- Sports Cartoon V10: hairstyle texture -->',
+      texture+'\n   <!-- Sports Cartoon V10: hairstyle texture -->');
+
+    /* Jersey panel depth and athletic seam placement. */
+    const jersey=`<g class="eblV5JerseyDepth" fill="none" pointer-events="none">
+      <path d="M88 225 Q111 211 132 211" stroke="#fff" stroke-width="1.4" opacity=".09"/>
+      <path d="M212 225 Q189 211 168 211" stroke="#fff" stroke-width="1.4" opacity=".09"/>
+      <path d="M101 326 L111 240 M199 326 L189 240" stroke="#fff" stroke-width="1.1" opacity=".07"/>
+    </g>`;
+    svg=svg.replace('<!-- jersey identity -->',
+      jersey+'\n   <!-- jersey identity -->');
+
+    /* Keep the straight-on cap clean: no large contrasting brim/side treatment added. */
+    return svg;
+  };
+
+  window.EBL_APPEARANCE_RENDERER_V5={
+    version:'RC45',
+    base:'RC44',
+    compatibility:'all-existing-appearance-ids',
+    art:[
+      'natural-eye-openings',
+      'subtle-face-plane-shading',
+      'cleaner-nose-mouth-structure',
+      'hair-depth',
+      'athletic-baseball-torso',
+      'jersey-depth',
+      'clean-straight-on-cap'
+    ]
+  };
+
+  function repaint(){
+    try{if(typeof renderHome==='function')renderHome()}catch{}
+    try{if(typeof renderPlayer==='function')renderPlayer()}catch{}
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true});
+  }else{
+    setTimeout(repaint,180);
+  }
+})();
+</script>
+
 </body></html>
