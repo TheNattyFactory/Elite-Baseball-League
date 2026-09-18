@@ -5432,4 +5432,47 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
 })();
 </script>
 
+\n<!-- EBL Appearance Renderer V4 / RC43 -->
+<style id="eblAppearanceV4RC43Style">
+.eblPlayerArtV24--lg>svg{filter:drop-shadow(0 12px 20px rgba(0,0,0,.24));}
+.playerPortraitV27 .eblPlayerArtV24--lg>svg{transform:scale(1.025);transform-origin:50% 54%;}
+</style>
+<script id="eblAppearanceV4RC43">
+/* V4 — more natural illustrated sports-card anatomy while preserving every saved appearance ID. */
+(function(){
+ if(typeof stationaryPlayerSvg!=='function')return;
+ const baseV4=stationaryPlayerSvg;
+ stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+  const p=typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{});
+  let svg=String(baseV4.call(this,p,compact,pose)||'');
+  if(!svg.includes('<svg'))return svg;
+  const face=Math.max(1,Math.min(20,Number(p.face_id)||1));
+  const strong=[4,7,12,14,19,20].includes(face), narrow=[3,6,13,16,18].includes(face), round=[8,10,11,17].includes(face);
+  /* Athletic torso: broaden shoulder line without increasing portrait footprint. */
+  svg=svg.replace('M38 330 Q44 246 102 219 Q125 208 150 208 Q175 208 198 219 Q256 246 262 330Z','M25 330 Q34 249 94 218 Q121 204 150 205 Q179 204 206 218 Q266 249 275 330Z');
+  /* More believable neck-to-trap transition. */
+  svg=svg.replace('M128 174 Q132 194 129 214 Q139 224 150 225 Q161 224 171 214 Q168 194 172 174Z','M126 174 Q131 193 127 211 Q135 219 143 222 L150 226 L157 222 Q165 219 173 211 Q169 193 174 174Z');
+  /* Reduce eye scale a touch for the large portrait while retaining eye color. */
+  svg=svg.replace('M113 138 Q124 131 136 138 Q124 146 113 138Z','M114 138 Q124 133 135 138 Q124 144 114 138Z')
+         .replace('M164 138 Q176 131 187 138 Q176 146 164 138Z','M165 138 Q176 133 186 138 Q176 144 165 138Z')
+         .replace('cx="125" cy="138" r="4.8"','cx="125" cy="138" r="4.2"')
+         .replace('cx="175" cy="138" r="4.8"','cx="175" cy="138" r="4.2"');
+  const jaw=strong?'M119 169 Q124 191 150 200 Q176 191 181 169':narrow?'M121 170 Q128 193 150 202 Q172 193 179 170':round?'M117 168 Q122 188 150 197 Q178 188 183 168':'M119 169 Q125 190 150 199 Q175 190 181 169';
+  const v4=`<g class="eblV4PortraitDetail" fill="none" stroke-linecap="round" pointer-events="none">
+    <path d="${jaw}" stroke="#111820" stroke-width="1.35" opacity=".15"/>
+    <path d="M137 154 Q142 158 146 158 M154 158 Q158 158 163 154" stroke="#7e5045" stroke-width="1.15" opacity=".24"/>
+    <path d="M136 178 Q150 183 164 178" stroke="#5f3d37" stroke-width="1.2" opacity=".20"/>
+    <path d="M105 141 Q101 146 105 151 M195 141 Q199 146 195 151" stroke="#70483e" stroke-width="1.2" opacity=".24"/>
+   </g>`;
+  svg=svg.replace('<!-- integrated hair -->',v4+'\n   <!-- integrated hair -->');
+  /* Cap crown gets a subtle fabric panel highlight rather than a flat block. */
+  const cap=`<g class="eblV4CapDetail" fill="none" pointer-events="none"><path d="M118 76 Q150 60 182 76" stroke="#fff" stroke-width="1.25" opacity=".10"/><path d="M150 61 L150 97" stroke="#fff" stroke-width="1" opacity=".08"/></g>`;
+  svg=svg.replace('<!-- Sports Cartoon V8: illustrated face construction -->',cap+'\n   <!-- Sports Cartoon V8: illustrated face construction -->');
+  return svg;
+ };
+ window.EBL_APPEARANCE_RENDERER_V4={version:'RC43',base:'RC42',compatibility:'all-existing-appearance-ids',art:['athletic-shoulder-silhouette','natural-neck-traps','smaller-eyes','face-specific-jaw-definition','subtle-nose-mouth-detail','cap-fabric-depth']};
+ function repaint(){try{if(typeof renderHome==='function')renderHome()}catch{} try{if(typeof renderPlayer==='function')renderPlayer()}catch{}}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,160),{once:true}); else setTimeout(repaint,160);
+})();
+</script>\n
 </body></html>
