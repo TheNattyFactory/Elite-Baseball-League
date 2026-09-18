@@ -5608,4 +5608,90 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
 })();
 </script>
 
+
+<!-- EBL Appearance Renderer V7 / RC47 — coherent face rebuild -->
+<style id="eblAppearanceV7RC47Style">
+.playerPortraitV27 .eblPlayerArtV24--lg>svg{transform:scale(1.035);transform-origin:50% 55%}
+</style>
+<script id="eblAppearanceV7RC47">
+(function(){
+ if(typeof stationaryPlayerSvg!=='function')return;
+ const previous=stationaryPlayerSvg;
+
+ function faceProfile(p){
+   const raw=String(p?.face_shape ?? p?.faceShape ?? p?.face ?? 'classic').toLowerCase();
+   if(raw.includes('square')) return {sx:.97,sy:1.00,chin:3};
+   if(raw.includes('oval')) return {sx:.91,sy:1.035,chin:0};
+   if(raw.includes('strong')) return {sx:.98,sy:1.00,chin:5};
+   if(raw.includes('angular')) return {sx:.94,sy:1.015,chin:4};
+   if(raw.includes('narrow')) return {sx:.87,sy:1.035,chin:1};
+   if(raw.includes('broad')) return {sx:1.01,sy:.99,chin:3};
+   if(raw.includes('round')) return {sx:.97,sy:.965,chin:-1};
+   if(raw.includes('chisel')) return {sx:.94,sy:1.01,chin:5};
+   return {sx:.94,sy:1.00,chin:1};
+ }
+
+ stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+   const p=typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{});
+   let s=String(previous.call(this,p,compact,pose)||'');
+   if(!s.includes('<svg'))return s;
+   const fp=faceProfile(p);
+
+   /* Keep RC46 body; make head a little smaller and more adult relative to shoulders. */
+   s=s.replace(
+     /(<g[^>]*class="[^"]*(?:head|face)[^"]*"[^>]*)(>)/i,
+     `$1 transform="translate(150 151) scale(${fp.sx} ${fp.sy}) translate(-150 -151)"$2`
+   );
+
+   /* New coherent eyes: almond lids, smaller iris/pupil, no oversized doll-eye effect. */
+   s=s.replace(/M113 138 Q124 134\.5 136 138 Q124 142 113 138Z/g,
+               'M114 138 Q124 135.4 135 138 Q124 141.1 114 138Z')
+    .replace(/M164 138 Q176 134\.5 187 138 Q176 142 164 138Z/g,
+             'M165 138 Q176 135.4 186 138 Q176 141.1 165 138Z');
+   s=s.replace(/r="2\.6"/g,'r="2.05"').replace(/r="1\.2"/g,'r=".78"');
+
+   /* Remove old additive anatomy overlays so the new face reads as one system. */
+   s=s.replace(/<g class="eblV6Anatomy"[\s\S]*?<\/g>/g,'');
+   s=s.replace(/<g class="eblV5Texture"[\s\S]*?<\/g>/g,'');
+
+   /* Coherent nose + mouth planes, restrained and line-clean. */
+   const anatomy=`<g class="eblV7Face" fill="none" pointer-events="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M149 143 Q146.5 153 146 162 Q149 165 153 163" stroke="#684038" stroke-width="1.25" opacity=".62"/>
+      <path d="M147.5 165 Q150 166.5 153.5 164.5" stroke="#684038" stroke-width=".7" opacity=".35"/>
+      <path d="M140 178 Q150 181 160 178" stroke="#684038" stroke-width=".82" opacity=".20"/>
+   </g>`;
+   s=s.replace('<!-- Sports Cartoon V8: illustrated face construction -->',
+               anatomy+'\n<!-- Sports Cartoon V8: illustrated face construction -->');
+
+   /* Slightly stronger adult brow placement without adding face clutter. */
+   s=s.replace(/stroke-width="5\.2"/g,'stroke-width="4.4"');
+
+   /* Cleaner ear scale if legacy ear ellipses are present. */
+   s=s.replace(/rx="9" ry="15"/g,'rx="7.5" ry="13"');
+
+   /* Chin/jaw cue varies with face selection but stays subtle. */
+   if(fp.chin>1){
+     const jaw=`<path class="eblV7JawCue" d="M126 181 Q150 ${194+fp.chin} 174 181" fill="none" stroke="#52342f" stroke-width=".8" opacity=".12" pointer-events="none"/>`;
+     s=s.replace('<!-- facial hair -->',jaw+'\n<!-- facial hair -->');
+   }
+
+   return s;
+ };
+
+ window.EBL_APPEARANCE_RENDERER_V7={
+   version:'RC47',
+   purpose:'coherent-face-rebuild',
+   keeps:'RC46 athletic body and all saved appearance data',
+   rebuilds:['head proportions','face-shape response','eyes','iris/pupils','nose','mouth planes','ears','brows']
+ };
+
+ function repaint(){
+   try{if(typeof renderHome==='function')renderHome()}catch(e){}
+   try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true});
+ else setTimeout(repaint,180);
+})();
+</script>
+
 </body></html>
