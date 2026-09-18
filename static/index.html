@@ -5886,4 +5886,150 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
+
+<!-- EBL APPEARANCE RC52 — MAJOR PLAYER CARD REDESIGN -->
+<style id="eblRC52Style">
+.playerPortraitV27 .eblPlayerArtV24--lg{
+  filter:drop-shadow(0 18px 22px rgba(0,0,0,.22));
+}
+</style>
+<script id="eblAppearanceRC52">
+(function(){
+if(typeof stationaryPlayerSvg!=='function')return;
+const previous=stationaryPlayerSvg;
+
+function val(p,...keys){
+ for(const k of keys) if(p && p[k]!==undefined && p[k]!==null && p[k]!=='') return p[k];
+ return '';
+}
+function hairKey(p){
+ return String(val(p,'hair_style','hairStyle','hair_style_id','hairStyleId')||'classic').toLowerCase();
+}
+function hairColor(p){
+ return String(val(p,'hair_color','hairColor')||'#2b211d');
+}
+function skinColor(p){
+ return String(val(p,'skin_tone','skinTone','skin_color','skinColor')||'#e7ad7e');
+}
+function hairstyleOverlay(p){
+ const k=hairKey(p), c=hairColor(p);
+ let d='';
+ if(/buzz|shaved/.test(k)){
+   d='M116 113 Q124 91 150 89 Q176 91 184 113 Q171 102 150 101 Q129 102 116 113Z';
+ }else if(/fade/.test(k)){
+   d='M113 116 Q119 88 150 86 Q181 88 187 116 Q176 101 161 98 Q141 94 122 105Z';
+ }else if(/curl|afro/.test(k)){
+   d='M107 116 Q104 91 119 79 Q128 66 143 72 Q154 61 166 72 Q184 70 190 88 Q199 100 190 119 Q177 102 150 101 Q124 101 107 116Z';
+ }else if(/slick/.test(k)){
+   d='M111 116 Q117 89 148 84 Q174 83 188 106 Q166 94 139 99 Q122 102 111 116Z';
+ }else if(/side/.test(k)){
+   d='M111 116 Q116 91 145 85 Q174 84 189 107 Q166 95 151 96 Q132 96 111 116Z';
+ }else if(/wave/.test(k)){
+   d='M109 116 Q112 91 132 82 Q148 73 164 83 Q184 85 190 110 Q171 96 150 98 Q128 97 109 116Z';
+ }else if(/medium|flow/.test(k)){
+   d='M108 118 Q108 91 128 80 Q148 69 170 82 Q192 92 191 121 Q180 106 171 103 Q177 119 173 131 Q164 115 150 103 Q129 101 108 118Z';
+ }else{
+   d='M111 116 Q116 90 148 85 Q177 86 189 109 Q170 97 150 98 Q129 98 111 116Z';
+ }
+ return `<g class="eblRC52Hair" pointer-events="none">
+   <path d="${d}" fill="${c}" opacity=".98"/>
+   <path d="${d}" fill="url(#eblRC52HairLight)" opacity=".22"/>
+   <path d="M120 104 Q136 92 151 94 Q167 91 181 104" fill="none" stroke="#fff" stroke-width="1.1" opacity=".10" stroke-linecap="round"/>
+ </g>`;
+}
+
+stationaryPlayerSvg=function(raw,compact=false,pose='auto'){
+ const p=typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{});
+ let s=String(previous.call(this,p,compact,pose)||'');
+ if(!s.includes('<svg'))return s;
+
+ /* One visual system from here forward: keep eyes/body size; improve depth and silhouette. */
+ const defs=`<defs class="eblRC52Defs">
+   <linearGradient id="eblRC52FaceLight" x1="0" y1="0" x2="1" y2="1">
+     <stop offset="0" stop-color="#fff" stop-opacity=".18"/>
+     <stop offset=".52" stop-color="#fff" stop-opacity=".025"/>
+     <stop offset="1" stop-color="#5b3029" stop-opacity=".14"/>
+   </linearGradient>
+   <linearGradient id="eblRC52HairLight" x1="0" y1="0" x2="0" y2="1">
+     <stop offset="0" stop-color="#fff" stop-opacity=".18"/>
+     <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+     <stop offset="1" stop-color="#000" stop-opacity=".18"/>
+   </linearGradient>
+   <linearGradient id="eblRC52JerseyLight" x1="0" y1="0" x2="1" y2="1">
+     <stop offset="0" stop-color="#fff" stop-opacity=".11"/>
+     <stop offset=".45" stop-color="#fff" stop-opacity="0"/>
+     <stop offset="1" stop-color="#000" stop-opacity=".16"/>
+   </linearGradient>
+ </defs>`;
+ s=s.replace(/<svg([^>]*)>/,`<svg$1>${defs}`);
+
+ /* Remove accumulated RC50/51 cosmetic overlays before applying the unified RC52 pass. */
+ s=s.replace(/<g class="eblV10Jaw"[\s\S]*?<\/g>/g,'')
+    .replace(/<g class="eblV10HairDepth"[\s\S]*?<\/g>/g,'')
+    .replace(/<g class="eblV10Brows"[\s\S]*?<\/g>/g,'')
+    .replace(/<g class="eblV11HairStrands"[\s\S]*?<\/g>/g,'');
+
+ /* Face depth: broad lighting planes, not wrinkle/cheek scribbles. */
+ const face=`<g class="eblRC52FaceDepth" pointer-events="none">
+   <path d="M119 119 Q150 101 181 119 L179 158 Q176 184 150 198 Q124 184 121 158Z"
+         fill="url(#eblRC52FaceLight)" opacity=".55"/>
+   <path d="M125 151 Q129 177 150 190 Q171 177 175 151"
+         fill="none" stroke="#4e302c" stroke-width=".8" opacity=".10"/>
+   <path d="M145 164 Q150 167 155 164" fill="none" stroke="#55332f" stroke-width=".8" opacity=".22" stroke-linecap="round"/>
+   <path d="M138 181 Q150 186 162 181" fill="none" stroke="#4b2f2c" stroke-width="1.15" opacity=".46" stroke-linecap="round"/>
+ </g>`;
+ s=s.replace('<!-- facial hair -->',face+'\n<!-- facial hair -->');
+
+ /* Hair now has a silhouette tied to the saved hairstyle, not just texture lines. */
+ const hair=hairstyleOverlay(p);
+ s=s.replace('<!-- Sports Cartoon V10: hairstyle texture -->',hair+'\n<!-- Sports Cartoon V10: hairstyle texture -->');
+
+ /* Better cap construction: crown seams + dimensional bill, EBL/franchise only. */
+ const cap=`<g class="eblRC52CapDepth" pointer-events="none" fill="none" stroke-linecap="round">
+   <path d="M150 69 L150 101" stroke="#fff" stroke-width="1" opacity=".12"/>
+   <path d="M124 77 Q137 72 150 72 Q164 72 177 78" stroke="#fff" stroke-width=".9" opacity=".10"/>
+   <path d="M151 106 Q181 111 207 106" stroke="#000" stroke-width="2.1" opacity=".17"/>
+ </g>`;
+ s=s.replace('<!-- Sports Cartoon V10: cap texture -->',cap+'\n<!-- Sports Cartoon V10: cap texture -->');
+
+ /* Jersey: dimensional shoulders/chest and cleaner baseball construction. */
+ const jersey=`<g class="eblRC52UniformDepth" pointer-events="none">
+   <path d="M79 236 Q105 213 130 211 L150 226 L170 211 Q195 213 221 236 L224 327 L76 327Z"
+         fill="url(#eblRC52JerseyLight)" opacity=".72"/>
+   <path d="M91 236 Q109 221 127 217" fill="none" stroke="#fff" stroke-width="1.2" opacity=".10"/>
+   <path d="M209 236 Q191 221 173 217" fill="none" stroke="#fff" stroke-width="1.2" opacity=".10"/>
+   <path d="M150 228 L150 326" fill="none" stroke="#fff" stroke-width=".9" opacity=".10"/>
+   <circle cx="150" cy="247" r="1.25" fill="#fff" opacity=".24"/>
+   <circle cx="150" cy="267" r="1.25" fill="#fff" opacity=".20"/>
+ </g>`;
+ s=s.replace('<!-- jersey identity -->',jersey+'\n<!-- jersey identity -->');
+
+ /* No accidental external baseball letter marks. */
+ s=s.replace(/<text[^>]*>\s*A\s*<\/text>/gi,'');
+
+ return s;
+};
+
+window.EBL_APPEARANCE_RC52={
+ version:'RC52',
+ type:'major visual redesign',
+ locked:['eye size','athletic body proportions','EBL-only branding'],
+ majorChanges:[
+  'saved-hairstyle silhouette system',
+  'face lighting and jaw planes',
+  'dimensional cap construction',
+  'dimensional baseball jersey',
+  'unified portrait depth instead of stacked micro-tweaks'
+ ]
+};
+
+function repaint(){
+ try{if(typeof renderHome==='function')renderHome()}catch(e){}
+ try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,200),{once:true});
+else setTimeout(repaint,200);
+})();
+</script>
+
 </body></html>
