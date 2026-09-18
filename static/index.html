@@ -6632,4 +6632,88 @@ function repaint(){try{renderHome()}catch(e){}try{renderPlayer()}catch(e){}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,70),{once:true});else setTimeout(repaint,70);setTimeout(repaint,450);
 })();
 </script>
+
+<!-- EBL CARTOON AVATAR V6 — integrated head system -->
+<style>
+.eblCartoonV6{display:inline-block;overflow:hidden;line-height:0;border-radius:inherit}
+.eblCartoonV6 svg{display:block;width:100%;height:100%}
+.eblPlayerArtV24--lg.eblCartoonV6{width:100%;height:100%}.eblPlayerArtV24--md.eblCartoonV6{width:92px;height:112px}.eblPlayerArtV24--sm.eblCartoonV6{width:54px;height:66px}.eblPlayerArtV24--xs.eblCartoonV6{width:34px;height:42px}
+</style>
+<script id="eblCartoonAvatarV6">
+(function(){
+const N=(v,d=1)=>Number.isFinite(+v)?+v:d,C=(v,a,b)=>Math.max(a,Math.min(b,v));
+const SK=['','#f2c59d','#e7b487','#d99d72','#c4865e','#aa6d4d','#89543d','#693e30','#4d3027'];
+const HC=['','#171717','#2b1b15','#4a2d20','#75503a','#9b5b34','#c99a5e','#dfc081','#7c7f82','#d8d8d2'];
+function M(r){try{return typeof eblAppearancePlayer==='function'?eblAppearancePlayer(r||{}):(r||{})}catch(e){return r||{}}}
+function PAL(p){try{let q=teamPalette(p.franchise_id);return[q[0]||'#112d4d',q[1]||'#d82332',q[2]||'#f5f5f2']}catch(e){return['#112d4d','#d82332','#f5f5f2']}}
+function FACE(i){return[
+'M104 110Q104 75 121 62Q134 52 150 52Q166 52 179 62Q196 75 196 110L193 151Q190 174 176 188Q163 200 150 203Q137 200 124 188Q110 174 107 151Z',
+'M100 111Q100 77 119 63Q132 53 150 53Q168 53 181 63Q200 77 200 111L197 151Q194 173 178 187Q165 198 150 200Q135 198 122 187Q106 173 103 151Z',
+'M108 107Q108 72 123 58Q135 48 150 48Q165 48 177 58Q192 72 192 107L190 150Q187 176 171 194L150 206L129 194Q113 176 110 150Z',
+'M103 108Q103 73 121 59Q134 49 150 49Q166 49 179 59Q197 73 197 108L193 149Q189 172 178 187L163 199L150 204L137 199L122 187Q111 172 107 149Z',
+'M103 108Q103 72 121 58Q134 48 150 48Q166 48 179 58Q197 72 197 108L194 149Q191 171 179 187L164 200L150 205L136 200L121 187Q109 171 106 149Z'
+][C(N(i),1,5)-1]}
+function HAIR(i,c){
+ if(i===1)return `<path d="M106 107Q108 74 129 61Q149 49 171 60Q192 72 195 106Q176 96 150 97Q125 96 106 107Z" fill="${c}"/><path d="M108 107Q116 95 125 91M192 107Q184 95 175 91" fill="none" stroke="${c}" stroke-width="7"/>`;
+ if(i===2)return `<path d="M99 120Q96 73 124 56Q149 41 177 57Q204 74 201 122L195 155Q188 145 183 118Q176 100 166 94Q151 88 136 94Q122 100 116 119Q112 145 105 158Q98 143 99 120Z" fill="${c}"/><path d="M105 126Q94 144 103 168Q109 175 116 164M195 126Q206 144 197 168Q191 175 184 164" fill="${c}"/>`;
+ return `<path d="M97 121Q94 69 122 53Q149 37 179 55Q207 72 203 125L198 169Q190 157 183 119Q176 99 166 93Q150 86 134 93Q121 100 116 120Q111 159 102 174Q95 148 97 121Z" fill="${c}"/><path d="M105 128Q90 151 101 181Q109 190 118 173M195 128Q210 151 199 181Q191 190 182 173" fill="${c}"/>`;
+}
+function EARS(sk){return `<path d="M108 125Q98 120 96 137Q95 153 106 158Q111 157 112 150L108 125Z" fill="${sk}"/><path d="M192 125Q202 120 204 137Q205 153 194 158Q189 157 188 150L192 125Z" fill="${sk}"/><path d="M103 136Q108 131 108 145M197 136Q192 131 192 145" fill="none" stroke="#9a604c" stroke-width="2.2"/>`}
+function NOSE(i){return[
+'<path d="M149 137Q146 149 147 156Q150 160 156 157"/><path d="M145 158Q151 161 158 158"/>',
+'<path d="M147 136Q142 150 145 157Q150 162 160 157"/><path d="M143 158Q151 163 161 158"/>',
+'<path d="M150 136L146 157Q150 161 156 158"/>',
+'<path d="M145 139Q143 150 141 157Q148 162 159 158"/><path d="M141 158Q150 163 161 158"/>',
+'<path d="M153 138Q156 150 158 157Q151 162 142 158"/><path d="M140 158Q149 163 159 158"/>'
+][C(N(i),1,5)-1]}
+function BEARD(i,c,sk){
+ if(i===1)return'';
+ if(i===2)return `<path d="M118 166Q124 188 137 196Q150 202 163 196Q176 188 182 166" fill="none" stroke="${c}" stroke-width="3.4" opacity=".45"/>`;
+ if(i===3)return `<path d="M134 170Q150 166 166 170" fill="none" stroke="${c}" stroke-width="5.5"/><path d="M141 184Q150 190 159 184L158 197Q150 204 142 197Z" fill="${c}"/>`;
+ if(i===4)return `<path d="M113 160Q115 185 126 198Q136 210 150 213Q164 210 174 198Q185 185 187 160Q180 183 166 195Q150 207 134 195Q120 183 113 160Z" fill="${c}"/><path d="M132 170Q150 165 168 170" fill="none" stroke="${sk}" stroke-width="4"/>`;
+ return `<path d="M132 169Q141 165 150 169Q159 165 168 169Q164 176 153 174Q150 173 147 174Q136 176 132 169Z" fill="${c}" stroke="none"/>`;
+}
+function SVG(raw){
+let p=M(raw),[pri,sec,acc]=PAL(p),sk=SK[C(N(p.skin_color_id),1,8)],hc=HC[C(N(p.hair_color_id,3),1,9)];
+let f=C(N(p.face_id),1,5),hs=C(N(p.hair_id),1,3),fh=C(N(p.facial_hair_id),1,5),no=C(N(p.nose_id||p.face_id),1,5);
+let num=String(p.jersey_number??24).padStart(2,'0').slice(-2),eyeBlack=N(p.eye_black_id,1)>1;
+return `<svg viewBox="0 0 300 330" xmlns="http://www.w3.org/2000/svg">
+<g stroke="#111820" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="150" cy="158" r="118" fill="${pri}" opacity=".12" stroke="none"/>
+<path d="M34 330L43 282Q49 250 98 228Q122 217 150 217Q178 217 202 228Q251 250 257 282L266 330Z" fill="${acc}"/>
+<path d="M44 283Q72 251 109 235M256 283Q228 251 191 235" fill="none" stroke="${sec}" stroke-width="6"/>
+<path d="M127 187L127 222Q137 232 150 235Q163 232 173 222L173 187Z" fill="${sk}"/>
+<path d="M106 227Q128 243 150 246Q172 243 194 227" fill="none" stroke="${pri}" stroke-width="12"/><path d="M112 228Q131 239 150 241Q169 239 188 228" fill="none" stroke="${sec}" stroke-width="4"/>
+<path d="M150 243V330" stroke="${pri}" stroke-width="4"/><text x="201" y="297" text-anchor="middle" font-size="38" font-family="Arial" font-weight="900" fill="${pri}" stroke="none">${num}</text><text x="101" y="286" text-anchor="middle" font-size="17" font-family="Arial" font-weight="900" fill="${pri}" stroke="none">EBL</text>
+${HAIR(hs,hc)}${EARS(sk)}
+<path d="${FACE(f)}" fill="${sk}"/>
+<!-- temple/side hair integrated into face rather than hanging as blocks -->
+${hs>1?`<path d="M107 106Q103 126 108 149Q114 139 116 116Z" fill="${hc}" stroke="none"/><path d="M193 106Q197 126 192 149Q186 139 184 116Z" fill="${hc}" stroke="none"/>`:''}
+<!-- cap crown and curved brim -->
+<path d="M100 105Q103 68 127 55Q150 43 174 55Q198 68 201 105Q176 95 150 96Q124 95 100 105Z" fill="${pri}"/>
+<path d="M100 105Q139 94 183 101Q205 104 220 114Q192 123 156 114Q126 106 100 112Z" fill="${pri}"/>
+<path d="M105 104Q150 96 211 112" fill="none" stroke="${sec}" stroke-width="5"/><path d="M150 48V95" stroke="${acc}" stroke-width="2" opacity=".25"/>
+<text x="150" y="86" text-anchor="middle" font-size="18" font-family="Arial" font-weight="900" fill="${acc}" stroke="none">EBL</text>
+<!-- brows / compact expressive eyes -->
+<path d="M117 121Q128 116 139 120M161 120Q172 116 183 121" fill="none" stroke="${hc}" stroke-width="5"/>
+<path d="M117 138Q128 132 140 138Q129 146 117 138Z" fill="#fff"/><path d="M160 138Q172 132 183 138Q171 146 160 138Z" fill="#fff"/>
+<path d="M117 138Q128 132 140 138M160 138Q172 132 183 138" fill="none" stroke="#111820" stroke-width="2.8"/>
+<ellipse cx="130" cy="138" rx="4.2" ry="5.4" fill="#29343b" stroke="none"/><ellipse cx="170" cy="138" rx="4.2" ry="5.4" fill="#29343b" stroke="none"/>
+<circle cx="131" cy="136.6" r="1.3" fill="#fff" stroke="none"/><circle cx="171" cy="136.6" r="1.3" fill="#fff" stroke="none"/>
+${eyeBlack?`<path d="M113 153L135 156M165 156L187 153" stroke="#171717" stroke-width="6"/>`:''}
+<g stroke="#965d48" stroke-width="3" fill="none">${NOSE(no)}</g>
+<path d="M115 152Q119 165 128 172M185 152Q181 165 172 172" fill="none" stroke="#9b6653" stroke-width="1.8" opacity=".25"/>
+<path d="M136 177Q150 181 164 177" fill="none" stroke="#713b38" stroke-width="2.6"/>
+${BEARD(fh,hc,sk)}
+</g></svg>`}
+window.eblCartoonAvatarSvg=SVG;window.stationaryPlayerSvg=(p)=>SVG(p);
+window.faceThumbMarkup=function(f,hairId=1,facialId=(window.CREATOR?.facial_hair_id||1)){let a=window.FACE_PRESETS||[],id=Math.max(1,Math.min(5,(a.indexOf(f)+1)||1));return `<div class="faceThumb faceThumbV12">${SVG({...window.CREATOR,face_id:id,hair_id:C(N(hairId),1,3),facial_hair_id:C(N(facialId),1,5),nose_id:id})}</div>`};
+window.renderCreator3D=async function(hostId='creator3dPreview',source=window.CREATOR||{}){let h=document.getElementById(hostId);if(h){h.classList.add('eblAvatarHost');h.innerHTML=`<div class="avatar3dBadge">EBL PLAYER</div>${SVG(source)}`}};
+window.eblPlayerArtV24=function(raw={},size='md'){let z=['xs','sm','md','lg'].includes(size)?size:'md';return `<span class="eblPlayerArtV24 eblCartoonV6 eblPlayerArtV24--${z}" data-ebl-avatar="CARTOON-V6">${SVG(raw)}</span>`};
+window.eblPublicPortraitV28=(r={},z='lg')=>window.eblPlayerArtV24(r,z);
+window.EBL_CARTOON_AVATAR_V6={version:'CARTOON-V6',focus:'integrated head jaw hair ears cap facial hair'};
+function repaint(){try{renderHome()}catch(e){}try{renderPlayer()}catch(e){}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,70),{once:true});else setTimeout(repaint,70);setTimeout(repaint,450);
+})();
+</script>
 </body></html>
