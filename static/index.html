@@ -1690,7 +1690,7 @@ function profilePlayerCard(p){
   return `<div class="profilePlayer">
     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       ${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'card')}
-      <div style="flex:1;min-width:210px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h3 style="margin:0">${escapeHtml(String(p.name||'Player'))} <span class="gold">${escapeHtml(String(p.primary_pos||''))}</span></h3><div class="muted">${team} • #${Number(p.jersey_number??0)} • Age ${Number(p.age||18)} • ${status}</div>${contractLine}</div><span class="legacyBadge">${p.type==='P'?'Pitcher':'Position Player'}</span></div>
+      <div style="flex:1;min-width:210px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h3 style="margin:0">${escapeHtml(String(p.name||'Player'))} <span class="gold">${escapeHtml(String(p.primary_pos||''))}</span></h3><div class="muted">${team} • #${Number(p.jersey_number??0)} • Age ${Number(p.age||18)} • ${status}${p.hometown?` • From ${escapeHtml(p.hometown)}`:''}</div>${contractLine}</div><span class="legacyBadge">${p.type==='P'?'Pitcher':'Position Player'}</span></div>
       ${p.active?`<div class="recordCard" style="margin-top:8px"><span class="label">CURRENT SEASON</span><div>${escapeHtml(currentLine||'Season underway')}</div></div>`:''}</div>
     </div>
     <div class="grid" style="margin-top:10px">
@@ -2053,7 +2053,7 @@ function renderPlayer(){
 
 
                     <div class="muted">
-                        #${Number(p.jersey_number??24)} • Age ${p.age||18} • Bats ${p.bats} • Throws ${p.throws} • ${teamLink}
+                        #${Number(p.jersey_number??24)} • Age ${p.age||18} • Bats ${p.bats} • Throws ${p.throws} • ${teamLink}${p.hometown?`<br>From ${escapeHtml(p.hometown)}`:''}
                     </div>
                 </div>
             </div>
@@ -2514,18 +2514,19 @@ function creatorBasic(){
  loadPositionDemand();
 }
 function saveBasic(){
- const nameEl=document.getElementById('cname'), jerseyEl=document.getElementById('cjersey');
+ const nameEl=document.getElementById('cname'), hometownEl=document.getElementById('chometown'), jerseyEl=document.getElementById('cjersey');
  const groupEl=document.getElementById('cgroup'), posEl=document.getElementById('cpos');
  const batsEl=document.getElementById('cbats'), throwsEl=document.getElementById('cthrows');
- if(!nameEl||!jerseyEl||!groupEl||!posEl||!batsEl||!throwsEl){
+ if(!nameEl||!hometownEl||!jerseyEl||!groupEl||!posEl||!batsEl||!throwsEl){
    console.error('EBL creator basic controls missing');
    return alert('Player creator could not continue. Please refresh and try again.');
  }
  const name=nameEl.value.trim();
  if(!name)return alert('Enter a player name before continuing.');
  if(name.length>40)return alert('Player names must be 40 characters or fewer.');
+ const hometown=hometownEl.value.trim();if(hometown.length>80)return alert('Hometown must be 80 characters or fewer.');
  const num=Number(jerseyEl.value);if(!Number.isInteger(num)||num<0||num>99)return alert('Jersey number must be from 0 to 99.');
- CREATOR.name=name;CREATOR.position_group=groupEl.value;CREATOR.position=posEl.value;CREATOR.bats=batsEl.value;CREATOR.throws=throwsEl.value;CREATOR.jersey_number=num;
+ CREATOR.name=name;CREATOR.hometown=hometown;CREATOR.position_group=groupEl.value;CREATOR.position=posEl.value;CREATOR.bats=batsEl.value;CREATOR.throws=throwsEl.value;CREATOR.jersey_number=num;
  setCreatorStep(2);
 }
 function facialHairClass(id){return ['', 'stubble','goatee','beard','mustache'][Math.max(1,Math.min(5,Number(id||1)))-1]||''}
@@ -2900,7 +2901,7 @@ async function finishCreator(){return onceAction('finishCreator',async()=>{
  try{
    if(!String(CREATOR.name||'').trim())return alert('A player name is required. Go back to Basic Info and enter a name.');
    if(CREATOR.position!=='C' && CREATOR.attributes?.CALL){return alert('CALL is a catcher-only rating. Set CALL back to 0 or choose C as your preferred position.');}
-   let payload={name:CREATOR.name,position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,skin_color_id:CREATOR.skin_color_id||1,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
+   let payload={name:CREATOR.name,hometown:CREATOR.hometown||'',position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,skin_color_id:CREATOR.skin_color_id||1,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
    let created=await api('/api/player/create',{method:'POST',body:JSON.stringify(payload)});
    PLAYER_HQ_TAB='playerOverview';
    const newId=created?.player?.id||null;
@@ -3096,7 +3097,7 @@ function renderHome(){
   }else onboardingCard.classList.add('hidden');
  }
  if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
- let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap">${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
+ let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap">${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos}${p.hometown?` • ${escapeHtml(p.hometown)}`:''} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
  homeTeam.innerHTML=t?`<div class="identity">${teamMark(p.franchise_id)}<div><span class="muted">MY TEAM</span><h2><button class="clickableName" onclick="openTeam('${p.franchise_id}')">${t.name}</button></h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div></div></div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Enter the CPU market from the Player tab.</p>`;
  let ng=p.franchise_id?SCHEDULE.find(g=>g.status==='SCHEDULED'&&(g.away_id===p.franchise_id||g.home_id===p.franchise_id)&&g.league_day>=(LEAGUE?.day||0)):null;
  nextGame.innerHTML=ng?`<span class="muted">NEXT GAME • DAY ${ng.league_day}</span><h2>${teamName(ng.away_id)} @ ${teamName(ng.home_id)}</h2><p>${ng.away_id===p.franchise_id?'Road game':'Home game'}</p>`:`<h2>Next Game</h2><p class="muted">${p.franchise_id?'No upcoming game found.':'Sign a contract to join the schedule.'}</p>`;
@@ -6601,4 +6602,65 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
  window.EBL_APPEARANCE_FUNCTIONAL_V18={skinPersist:true,hairPersist:true,facial:['None','Mustache','Goatee','Full Beard'],sideburns:false};
 })();
 </script>
-</body></html>
+\n<!-- EBL CREATOR GAMEFLOW V19 — Identity → Appearance → Build → Rookie Card -->
+<style id="eblCreatorGameflowV19Style">
+#creatorStage .creatorIdentityV19{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:14px;align-items:start}
+#creatorStage .creatorIdentityPanel,#creatorStage .creatorSidePanel{border:1px solid #294863;border-radius:16px;background:linear-gradient(180deg,#0b2138,#071827);padding:16px}
+#creatorStage .creatorFieldGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#creatorStage .creatorFieldGrid .wide{grid-column:1/-1}
+#creatorStage .creatorFieldGrid input,#creatorStage .creatorFieldGrid select{width:100%;min-height:46px;background:#061523;color:#fff;border:1px solid #35506c;border-radius:10px;padding:10px 11px}
+#creatorStage .creatorStageEyebrow{font-size:11px;font-weight:950;letter-spacing:.14em;color:var(--gold)}
+#creatorStage .creatorStageTitle{font-size:28px;font-weight:950;margin:3px 0 5px}
+#creatorStage .creatorStageCopy{color:var(--mut);line-height:1.45;margin-bottom:15px}
+#creatorStage .creatorDemandV19{margin-top:12px;max-height:360px;overflow:auto}
+#creatorStage .creatorBuildHeaderV19{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;margin-bottom:14px;padding:16px;border:1px solid #35506c;border-radius:16px;background:linear-gradient(135deg,#102b48,#071827)}
+#creatorStage .creatorXpV19{text-align:center;min-width:150px;padding:12px;border:1px solid #49657e;border-radius:14px;background:#061523}
+#creatorStage .creatorXpV19 b{display:block;font-size:34px;line-height:1;color:var(--gold)}
+#creatorStage .creatorXpV19 span{font-size:11px;letter-spacing:.1em;color:var(--mut)}
+#creatorStage .attrV19{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid #203e58;border-radius:12px;background:#081a2b;margin-bottom:8px}
+#creatorStage .attrV19 .bar{margin-top:7px}
+#creatorStage .attrV19 .attrControls{min-width:142px;justify-content:flex-end}
+#creatorStage .attrV19 .attrValue{min-width:30px;text-align:center;font-size:20px}
+#creatorStage .rookieCardV19{max-width:760px;margin:0 auto;border:1px solid #486783;border-radius:22px;overflow:hidden;background:linear-gradient(155deg,#0e2d4e,#071522 58%,#0b2037);box-shadow:0 24px 60px #0008}
+#creatorStage .rookieTopV19{padding:14px 18px;display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid var(--red);font-weight:950;letter-spacing:.1em}
+#creatorStage .rookieBodyV19{display:grid;grid-template-columns:minmax(260px,.9fr) 1.1fr;gap:18px;padding:18px}
+#creatorStage .rookiePortraitV19{min-height:360px;border:1px solid #35506c;border-radius:16px;background:radial-gradient(circle at 50% 35%,#173f61,#061523 72%);display:flex;align-items:center;justify-content:center;overflow:hidden}
+#creatorStage .rookiePortraitV19 .eblPlayerArtV24{width:100%!important;height:360px!important}
+#creatorStage .rookiePortraitV19 svg{width:100%;height:100%}
+#creatorStage .rookieNameV19{font-size:34px;font-weight:950;line-height:1.05;margin:5px 0}
+#creatorStage .rookieMetaV19{color:var(--mut);margin-bottom:14px}
+#creatorStage .rookieFactsV19{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#creatorStage .rookieFactV19{padding:10px;border:1px solid #294863;border-radius:10px;background:#061523}
+#creatorStage .rookieFactV19 span{display:block;font-size:10px;letter-spacing:.09em;color:var(--mut)}
+#creatorStage .rookieBuildV19{margin-top:12px;display:flex;gap:7px;flex-wrap:wrap}
+#creatorStage .rookieBuildV19 span{padding:6px 8px;border:1px solid #35506c;border-radius:999px;background:#0a2138;font-size:12px}
+#creatorStage .creatorPrimaryActionV19{width:100%;margin-top:14px;padding:13px;font-weight:950;letter-spacing:.04em}
+@media(max-width:760px){#creatorStage .creatorIdentityV19,#creatorStage .rookieBodyV19{grid-template-columns:1fr}#creatorStage .creatorFieldGrid{grid-template-columns:1fr}#creatorStage .creatorFieldGrid .wide{grid-column:auto}#creatorStage .creatorBuildHeaderV19{grid-template-columns:1fr}#creatorStage .creatorXpV19{text-align:left}#creatorStage .rookiePortraitV19{min-height:320px}#creatorStage .rookiePortraitV19 .eblPlayerArtV24{height:320px!important}#creatorStage .rookieNameV19{font-size:29px}#creatorStage .attrV19{grid-template-columns:1fr}#creatorStage .attrV19 .attrControls{justify-content:flex-start}}
+</style>
+<script id="eblCreatorGameflowV19">
+(function(){
+ window.creatorBasic=function(){
+  creatorStage.innerHTML=`<div class="creatorIdentityV19"><div class="creatorIdentityPanel"><div class="creatorStageEyebrow">STEP 1 • IDENTITY</div><div class="creatorStageTitle">Create your ballplayer.</div><div class="creatorStageCopy">Set the identity that follows your player through the EBL. Your roster group controls the contract market; your preferred position controls how you want to be used on the field.</div><div class="creatorFieldGrid"><div class="wide"><label class="label">PLAYER NAME</label><input id="cname" maxlength="40" value="${escapeHtml(CREATOR.name||'')}" placeholder="Player name"></div><div class="wide"><label class="label">HOMETOWN</label><input id="chometown" maxlength="80" value="${escapeHtml(CREATOR.hometown||'')}" placeholder="City, State / Region"><div class="muted" style="margin-top:5px">Your hometown becomes part of your permanent EBL player identity.</div></div><div><label class="label">ROSTER GROUP</label><select id="cgroup" onchange="creatorGroupChanged()">${['INF','OF','PITCHER'].map(x=>`<option ${CREATOR.position_group===x?'selected':''}>${x}</option>`).join('')}</select></div><div><label class="label">PREFERRED POSITION</label><select id="cpos" onchange="CREATOR.position=this.value">${creatorPositionOptions()}</select></div><div><label class="label">BATS</label><select id="cbats">${['R','L','S'].map(x=>`<option ${CREATOR.bats===x?'selected':''}>${x}</option>`).join('')}</select></div><div><label class="label">THROWS</label><select id="cthrows">${['R','L'].map(x=>`<option ${CREATOR.throws===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="wide"><label class="label">PREFERRED JERSEY #</label><input id="cjersey" type="number" min="0" max="99" value="${Number(CREATOR.jersey_number??24)}"><div class="muted" style="margin-top:5px">0–99 • If it is unavailable when you sign, your club assigns the next available number.</div></div></div><div id="catcherCreatorNote" class="muted" style="margin-top:12px">${CREATOR.position_group==='INF'?'<b>Catcher specialization:</b> Choose C if you want to develop CALL. Any position player may still catch in an emergency.':''}</div><button class="btn creatorPrimaryActionV19" onclick="saveBasic()">CONTINUE TO APPEARANCE →</button></div><div class="creatorSidePanel"><div class="creatorStageEyebrow">GENESIS LEAGUE</div><h3>POSITION OPPORTUNITY</h3><p class="muted">Demand helps you see where roster openings exist, but it does not choose your career for you.</p><div id="positionDemand" class="creatorDemandV19">${positionDemandHtml()}</div></div></div>`;
+  loadPositionDemand();
+ };
+ const oldAttrs=window.creatorAttributes;
+ window.creatorAttributes=function(){
+  oldAttrs();
+  const stage=document.getElementById('creatorStage');if(!stage)return;
+  const intro=stage.querySelector('.buildIntro');
+  const grid=stage.querySelector(':scope > .grid');
+  if(grid){const remaining=Number(CREATOR.pool||0);grid.outerHTML=`<div class="creatorBuildHeaderV19"><div><div class="creatorStageEyebrow">STEP 3 • BUILD</div><div class="creatorStageTitle">Build your rookie.</div><div class="creatorStageCopy" style="margin:0">Spend all 50 starting XP. Specialize for a signature strength or spread points around for a balanced player.</div></div><div class="creatorXpV19"><b>${remaining}</b><span>XP AVAILABLE</span></div></div>`;}
+  if(intro){intro.querySelector('b')?.replaceChildren(document.createTextNode('YOUR FIRST 50 XP'));}
+  stage.querySelectorAll('.attr').forEach(x=>x.classList.add('attrV19'));
+  stage.querySelectorAll('.attrControls span').forEach(x=>x.classList.add('attrValue'));
+  const next=[...stage.querySelectorAll('button')].find(b=>b.textContent.includes('NEXT: REVIEW'));if(next)next.textContent='REVIEW ROOKIE CARD →';
+ };
+ window.creatorReview=function(){
+  const attrs=Object.entries(CREATOR.attributes||{}).sort((a,b)=>b[1]-a[1]);
+  const top=attrs.filter(x=>x[1]>0).slice(0,8);
+  const art=typeof eblPlayerArtV24==='function'?eblPlayerArtV24(CREATOR,'lg','portrait'):avatarMarkup();
+  creatorStage.innerHTML=`<div class="creatorStageEyebrow" style="text-align:center">STEP 4 • ROOKIE CARD</div><div class="creatorStageTitle" style="text-align:center">Your EBL career starts here.</div><p class="creatorStageCopy" style="text-align:center">Review your rookie one last time. You can still go back and rebalance before entering the league.</p><div class="rookieCardV19"><div class="rookieTopV19"><span>ELITE BASEBALL LEAGUE</span><span>ROOKIE • AGE 18</span></div><div class="rookieBodyV19"><div class="rookiePortraitV19">${art}</div><div><div class="creatorStageEyebrow">GENESIS ROOKIE</div><div class="rookieNameV19">${escapeHtml(CREATOR.name||'Your Player')}</div><div class="rookieMetaV19">#${Number(CREATOR.jersey_number??24)} • ${escapeHtml(CREATOR.position||'')} • ${escapeHtml(CREATOR.position_group||'')}</div>${CREATOR.hometown?`<div class="muted" style="margin-top:6px">FROM <b style="color:var(--txt)">${escapeHtml(CREATOR.hometown)}</b></div>`:''}<div class="rookieFactsV19"><div class="rookieFactV19"><span>BATS</span><b>${escapeHtml(CREATOR.bats||'R')}</b></div><div class="rookieFactV19"><span>THROWS</span><b>${escapeHtml(CREATOR.throws||'R')}</b></div><div class="rookieFactV19"><span>STARTING XP</span><b>50 SPENT</b></div><div class="rookieFactV19"><span>STATUS</span><b>ROOKIE</b></div></div><h3 style="margin-top:15px">Starting Build</h3><div class="rookieBuildV19">${top.map(([k,v])=>`<span><b>${k}</b> ${v}</span>`).join('')||'<span>Balanced rookie</span>'}</div><button class="btn creatorPrimaryActionV19" onclick="finishCreator()">BEGIN YOUR EBL CAREER</button><button class="btn ghost" style="width:100%;margin-top:8px" onclick="setCreatorStep(3)">← REBALANCE BUILD</button></div></div></div>`;
+ };
+ window.EBL_CREATOR_GAMEFLOW_V19={flow:['Identity','Appearance','Build','Rookie Card'],mobile:true,canonicalPortrait:true};
+})();
+</script>\n</body></html>
