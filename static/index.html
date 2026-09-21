@@ -2502,7 +2502,7 @@ function creatorGroupChanged(){
  if(note)note.innerHTML=CREATOR.position_group==='INF'?`<b>Catcher specialization:</b> Any position player can catch in an emergency or by coach choice. Choose C if you want to develop CALL and build specifically for the position. CALL only affects games while you are catching.`:'';
 }
 function creatorBasic(){
- creatorStage.innerHTML=`<div class="grid"><div><label class="label">PLAYER NAME</label><input id="cname" value="${CREATOR.name||''}" placeholder="Player name"></div>
+ creatorStage.innerHTML=`<div class="grid"><div><label class="label">FIRST & LAST NAME</label><input id="cname" maxlength="40" value="${CREATOR.name||''}" placeholder="First Last"></div>
  <div><label class="label">ROSTER GROUP</label><select id="cgroup" onchange="creatorGroupChanged()">${['INF','OF','PITCHER'].map(x=>`<option ${CREATOR.position_group===x?'selected':''}>${x}</option>`).join('')}</select></div>
  <div><label class="label">PREFERRED POSITION</label><select id="cpos" onchange="CREATOR.position=this.value">${creatorPositionOptions()}</select></div>
  <div><label class="label">BATS</label><select id="cbats">${['R','L','S'].map(x=>`<option ${CREATOR.bats===x?'selected':''}>${x}</option>`).join('')}</select></div>
@@ -2522,7 +2522,10 @@ function saveBasic(){
    return alert('Player creator could not continue. Please refresh and try again.');
  }
  const name=nameEl.value.trim();
- if(!name)return alert('Enter a player name before continuing.');
+ if(!name)return alert('Enter your player’s first and last name before continuing.');
+ const nameParts=name.split(/\s+/).filter(Boolean);
+ const validNamePart=part=>/^[\p{L}\p{M}][\p{L}\p{M}'’.-]*$/u.test(part);
+ if(nameParts.length<2||!validNamePart(nameParts[0])||!validNamePart(nameParts[nameParts.length-1]))return alert('Enter both a first and last name (example: Jackie Robinson).');
  if(name.length>40)return alert('Player names must be 40 characters or fewer.');
  const hometown=hometownEl.value.trim();if(hometown.length>80)return alert('Hometown must be 80 characters or fewer.');
  const num=Number(jerseyEl.value);if(!Number.isInteger(num)||num<0||num>99)return alert('Jersey number must be from 0 to 99.');
@@ -6640,7 +6643,7 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
 <script id="eblCreatorGameflowV19">
 (function(){
  window.creatorBasic=function(){
-  creatorStage.innerHTML=`<div class="creatorIdentityV19"><div class="creatorIdentityPanel"><div class="creatorStageEyebrow">STEP 1 • IDENTITY</div><div class="creatorStageTitle">Create your ballplayer.</div><div class="creatorStageCopy">Set the identity that follows your player through the EBL. Your roster group controls the contract market; your preferred position controls how you want to be used on the field.</div><div class="creatorFieldGrid"><div class="wide"><label class="label">PLAYER NAME</label><input id="cname" maxlength="40" value="${escapeHtml(CREATOR.name||'')}" placeholder="Player name"></div><div class="wide"><label class="label">HOMETOWN</label><input id="chometown" maxlength="80" value="${escapeHtml(CREATOR.hometown||'')}" placeholder="City, State / Region"><div class="muted" style="margin-top:5px">Your hometown becomes part of your permanent EBL player identity.</div></div><div><label class="label">ROSTER GROUP</label><select id="cgroup" onchange="creatorGroupChanged()">${['INF','OF','PITCHER'].map(x=>`<option ${CREATOR.position_group===x?'selected':''}>${x}</option>`).join('')}</select></div><div><label class="label">PREFERRED POSITION</label><select id="cpos" onchange="CREATOR.position=this.value">${creatorPositionOptions()}</select></div><div><label class="label">BATS</label><select id="cbats">${['R','L','S'].map(x=>`<option ${CREATOR.bats===x?'selected':''}>${x}</option>`).join('')}</select></div><div><label class="label">THROWS</label><select id="cthrows">${['R','L'].map(x=>`<option ${CREATOR.throws===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="wide"><label class="label">PREFERRED JERSEY #</label><input id="cjersey" type="number" min="0" max="99" value="${Number(CREATOR.jersey_number??24)}"><div class="muted" style="margin-top:5px">0–99 • If it is unavailable when you sign, your club assigns the next available number.</div></div></div><div id="catcherCreatorNote" class="muted" style="margin-top:12px">${CREATOR.position_group==='INF'?'<b>Catcher specialization:</b> Choose C if you want to develop CALL. Any position player may still catch in an emergency.':''}</div><button class="btn creatorPrimaryActionV19" onclick="saveBasic()">CONTINUE TO APPEARANCE →</button></div><div class="creatorSidePanel"><div class="creatorStageEyebrow">GENESIS LEAGUE</div><h3>POSITION OPPORTUNITY</h3><p class="muted">Demand helps you see where roster openings exist, but it does not choose your career for you.</p><div id="positionDemand" class="creatorDemandV19">${positionDemandHtml()}</div></div></div>`;
+  creatorStage.innerHTML=`<div class="creatorIdentityV19"><div class="creatorIdentityPanel"><div class="creatorStageEyebrow">STEP 1 • IDENTITY</div><div class="creatorStageTitle">Create your ballplayer.</div><div class="creatorStageCopy">Set the identity that follows your player through the EBL. Your roster group controls the contract market; your preferred position controls how you want to be used on the field.</div><div class="creatorFieldGrid"><div class="wide"><label class="label">FIRST & LAST NAME</label><input id="cname" maxlength="40" value="${escapeHtml(CREATOR.name||'')}" placeholder="First Last"></div><div class="wide"><label class="label">HOMETOWN</label><input id="chometown" maxlength="80" value="${escapeHtml(CREATOR.hometown||'')}" placeholder="City, State / Region"><div class="muted" style="margin-top:5px">Your hometown becomes part of your permanent EBL player identity.</div></div><div><label class="label">ROSTER GROUP</label><select id="cgroup" onchange="creatorGroupChanged()">${['INF','OF','PITCHER'].map(x=>`<option ${CREATOR.position_group===x?'selected':''}>${x}</option>`).join('')}</select></div><div><label class="label">PREFERRED POSITION</label><select id="cpos" onchange="CREATOR.position=this.value">${creatorPositionOptions()}</select></div><div><label class="label">BATS</label><select id="cbats">${['R','L','S'].map(x=>`<option ${CREATOR.bats===x?'selected':''}>${x}</option>`).join('')}</select></div><div><label class="label">THROWS</label><select id="cthrows">${['R','L'].map(x=>`<option ${CREATOR.throws===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="wide"><label class="label">PREFERRED JERSEY #</label><input id="cjersey" type="number" min="0" max="99" value="${Number(CREATOR.jersey_number??24)}"><div class="muted" style="margin-top:5px">0–99 • If it is unavailable when you sign, your club assigns the next available number.</div></div></div><div id="catcherCreatorNote" class="muted" style="margin-top:12px">${CREATOR.position_group==='INF'?'<b>Catcher specialization:</b> Choose C if you want to develop CALL. Any position player may still catch in an emergency.':''}</div><button class="btn creatorPrimaryActionV19" onclick="saveBasic()">CONTINUE TO APPEARANCE →</button></div><div class="creatorSidePanel"><div class="creatorStageEyebrow">GENESIS LEAGUE</div><h3>POSITION OPPORTUNITY</h3><p class="muted">Demand helps you see where roster openings exist, but it does not choose your career for you.</p><div id="positionDemand" class="creatorDemandV19">${positionDemandHtml()}</div></div></div>`;
   loadPositionDemand();
  };
  const oldAttrs=window.creatorAttributes;
@@ -6663,4 +6666,179 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
  };
  window.EBL_CREATOR_GAMEFLOW_V19={flow:['Identity','Appearance','Build','Rookie Card'],mobile:true,canonicalPortrait:true};
 })();
-</script>\n</body></html>
+</script>\n
+<style id="eblFranchiseIdentityRC45Css">
+.eblIdentityStudioRC45{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr);gap:16px}
+.eblLogoDropRC45{border:2px dashed rgba(255,255,255,.22);border-radius:14px;padding:14px;min-height:150px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;background:rgba(255,255,255,.025)}
+.eblLogoDropRC45 img{max-width:150px;max-height:120px;object-fit:contain}
+.eblBrandPreviewRC45{border-radius:18px;padding:18px;min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.eblBrandPreviewRC45__logos{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap}
+.eblBrandPreviewRC45__logos img{width:140px;height:140px;object-fit:contain}
+@media(max-width:760px){.eblIdentityStudioRC45{grid-template-columns:1fr}.eblBrandPreviewRC45{min-height:260px}}
+</style>
+<script id="eblFranchiseIdentityRC45">
+let EBL_BRAND_LOGOS_RC45={primary:'',secondary:''};
+async function eblLogoFileRC45(file,slot){
+ if(!file)return;
+ if(!['image/png','image/jpeg','image/webp'].includes(file.type)){alert('Use a PNG, JPG, or WebP logo.');return}
+ if(file.size>4*1024*1024){alert('Logo source file must be under 4 MB.');return}
+ const url=URL.createObjectURL(file),img=new Image();
+ await new Promise((ok,bad)=>{img.onload=ok;img.onerror=bad;img.src=url});
+ const canvas=document.createElement('canvas'),max=512,scale=Math.min(1,max/Math.max(img.width,img.height));
+ canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+ canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);
+ let data=canvas.toDataURL('image/webp',.82);
+ if(data.length>220000)data=canvas.toDataURL('image/webp',.65);
+ if(data.length>220000){alert('This logo is still too large after compression. Try a simpler or smaller image.');return}
+ EBL_BRAND_LOGOS_RC45[slot]=data;eblBrandPreviewRC45();
+}
+function eblBrandPreviewRC45(){
+ const city=document.getElementById('brandCityRC45')?.value.trim()||'ELITE';
+ const nick=document.getElementById('brandTeamRC45')?.value.trim()||'BALL CLUB';
+ const p=document.getElementById('brandPrimaryRC45')?.value||'#071A31',s=document.getElementById('brandSecondaryRC45')?.value||'#D7262E',a=document.getElementById('brandAccentRC45')?.value||'#D9E0E8';
+ const box=document.getElementById('brandPreviewRC45');if(!box)return;
+ const primary=EBL_BRAND_LOGOS_RC45.primary,secondary=EBL_BRAND_LOGOS_RC45.secondary;
+ box.style.background=`linear-gradient(145deg,${p},${s})`;box.style.color=a;
+ box.innerHTML=`<div class="eblBrandPreviewRC45__logos">${primary?`<img src="${primary}" alt="Primary logo">`:teamLogoMarkup(1,p,s,a,`${city} ${nick}`)}${secondary?`<img src="${secondary}" alt="Secondary logo">`:''}</div><h2 style="margin:14px 0 2px">${escapeHtml(city)} ${escapeHtml(nick)}</h2><div style="opacity:.82">EBL FRANCHISE IDENTITY</div>`;
+}
+function eblFranchiseIdentityStudioRC45(j){
+ const b=j.branding||{},locked=String(j.phase||'REGULAR').toUpperCase()!=='OFFSEASON'&&Number(j.league_day||0)>0;
+ let city=b.city||'',nick=b.team_name||'';
+ if((!city||!nick)&&(b.display_name||j.team?.name)){const q=String(b.display_name||j.team.name).trim().split(/\s+/);nick=nick||q.pop()||'';city=city||q.join(' ')}
+ EBL_BRAND_LOGOS_RC45={primary:b.primary_logo||'',secondary:b.secondary_logo||''};
+ return `<div class="eblIdentityStudioRC45">
+ <div>
+  <span class="newsMeta">FRANCHISE IDENTITY STUDIO</span><h2>Build Your Club's Identity</h2>
+  <p class="muted">${locked?'Team identity is locked during the active season. You can redesign or relocate the club in the offseason.':'Offseason identity window is open. Changes preserve the franchise ID and all historical records.'}</p>
+  <div class="grid"><label>City / Home Market<input id="brandCityRC45" maxlength="40" value="${escapeHtml(city)}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label><label>Team Name<input id="brandTeamRC45" maxlength="40" value="${escapeHtml(nick)}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label></div>
+  <div class="grid"><label>Primary Color<input id="brandPrimaryRC45" type="color" value="${b.primary_color||'#071A31'}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label><label>Secondary Color<input id="brandSecondaryRC45" type="color" value="${b.secondary_color||'#D7262E'}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label><label>Accent Color<input id="brandAccentRC45" type="color" value="${b.accent_color||'#D9E0E8'}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label></div>
+  <div class="grid">
+   <label class="eblLogoDropRC45">Primary Logo<input type="file" accept="image/png,image/jpeg,image/webp" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files[0],'primary')"><span>${b.primary_logo?'Tap to replace primary logo':'Tap to upload primary logo'}<br><small>PNG, JPG or WebP • transparent PNG/WebP recommended</small></span></label>
+   <label class="eblLogoDropRC45">Secondary Logo<input type="file" accept="image/png,image/jpeg,image/webp" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files[0],'secondary')"><span>${b.secondary_logo?'Tap to replace alternate logo':'Tap to upload secondary / alternate logo'}<br><small>Used for scorebugs, compact cards and alternate branding</small></span></label>
+  </div>
+  <div class="grid"><label>Home Uniform<select id="brandHomeRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_home||'WHITE')}</select></label><label>Away Uniform<select id="brandAwayRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_away||'NAVY')}</select></label></div>
+  <button class="btn" ${locked?'disabled':''} onclick="eblSaveFranchiseIdentityRC45()">${locked?'Identity Locked Until Offseason':'Save Franchise Identity'}</button>
+ </div><div><div id="brandPreviewRC45" class="eblBrandPreviewRC45"></div></div></div>`;
+}
+async function eblSaveFranchiseIdentityRC45(){
+ const body={city:brandCityRC45.value.trim(),team_name:brandTeamRC45.value.trim(),primary_color:brandPrimaryRC45.value,secondary_color:brandSecondaryRC45.value,accent_color:brandAccentRC45.value,primary_logo:EBL_BRAND_LOGOS_RC45.primary,secondary_logo:EBL_BRAND_LOGOS_RC45.secondary,uniform_home:brandHomeRC45.value,uniform_away:brandAwayRC45.value,logo_style:1};
+ if(!body.city||!body.team_name){alert('Enter both a city/home market and a team name.');return}
+ try{await api('/api/coach/branding',{method:'POST',body:JSON.stringify(body)});alert('Franchise identity saved.');await loadLeague();await loadCoachHub()}catch(e){alert(e.detail||e.error||'Could not save franchise identity.')}
+}
+const eblLoadCoachHubRC45=window.loadCoachHub;
+if(typeof eblLoadCoachHubRC45==='function')window.loadCoachHub=async function(){
+ const result=await eblLoadCoachHubRC45.apply(this,arguments);
+ try{const j=await api('/api/coach/team'),pane=document.getElementById('cBrand');if(j?.team&&pane){pane.innerHTML=eblFranchiseIdentityStudioRC45(j);eblBrandPreviewRC45()}}catch(e){console.warn('RC45 identity studio',e)}
+ return result;
+};
+const eblTeamMarkRC45=window.teamMark;
+window.teamMark=function(fid,small=false){
+ const t=LEAGUE?.teams?.find(x=>x.id===fid)||{};
+ const logo=t.primary_logo||t.secondary_logo;
+ if(logo){const n=t.display_name||t.name||fid||'EBL';return `<span class="teamMark ${small?'sm':''}" title="${escapeHtml(n)}" style="overflow:hidden;background:${t.primary_color||'#071A31'}"><img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain"></span>`}
+ return eblTeamMarkRC45?eblTeamMarkRC45(fid,small):'';
+};
+window.EBL_FRANCHISE_IDENTITY_RC45={version:'RC45',fields:['city','team-name','primary-color','secondary-color','accent-color','primary-logo','secondary-logo'],offseasonLock:true};
+</script>
+
+
+<style id="eblUniversalFranchiseRC46Css">
+.eblFranchiseHistoryRC46{display:grid;gap:8px;margin-top:12px}
+.eblFranchiseEraRC46{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:12px}
+.eblFranchiseEraRC46 img{width:44px;height:44px;object-fit:contain}
+</style>
+<script id="eblUniversalFranchiseRC46">
+/* RC46 — one canonical current franchise identity + preserved historical eras. */
+function eblTeamRC46(fid){return LEAGUE?.teams?.find(x=>String(x.id)===String(fid))||{}}
+function teamName(fid){
+ const t=eblTeamRC46(fid);
+ return t.display_name||[t.city,t.team_name].filter(Boolean).join(' ')||t.name||fid;
+}
+function eblTeamLogoRC46(fid,secondary=false){
+ const t=eblTeamRC46(fid),logo=secondary?(t.secondary_logo||t.primary_logo):(t.primary_logo||t.secondary_logo);
+ if(logo)return logo;
+ return '';
+}
+function eblFranchiseIdentityRC46(fid,opts={}){
+ const t=eblTeamRC46(fid),name=teamName(fid),logo=eblTeamLogoRC46(fid,!!opts.secondary);
+ const mark=logo?`<span class="teamMark ${opts.small?'sm':''}" style="overflow:hidden;background:${t.primary_color||'#071A31'}"><img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain"></span>`:teamLogoMarkup(Number(t.logo_style||1),t.primary_color||'#071A31',t.secondary_color||'#D7262E',t.accent_color||'#D9E0E8',name);
+ return `<span class="teamIdentity">${mark}<span>${escapeHtml(name)}</span></span>`;
+}
+function eblFranchiseHistoryRC46(j={}){
+ const rows=j.identity_history||[];
+ if(!rows.length)return '<p class="muted">This franchise has not recorded a previous identity yet.</p>';
+ return `<div class="eblFranchiseHistoryRC46">${rows.map(x=>`<div class="eblFranchiseEraRC46">${x.primary_logo?`<img src="${x.primary_logo}" alt="">`:''}<div><b>${escapeHtml(x.display_name||[x.city,x.team_name].filter(Boolean).join(' '))}</b><div class="muted">Through Season ${Number(x.season||0)} • Same EBL franchise lineage</div></div></div>`).join('')}</div>`;
+}
+const eblOpenTeamRC46=window.openTeam;
+if(typeof eblOpenTeamRC46==='function')window.openTeam=async function(fid){
+ const r=await eblOpenTeamRC46.apply(this,arguments);
+ try{
+   const j=await api('/api/team/'+encodeURIComponent(fid));
+   const page=document.getElementById('teamPage');
+   if(page&&j?.team&&!page.querySelector('.eblFranchiseHistoryRC46')&&(j.identity_history||[]).length){
+     page.insertAdjacentHTML('beforeend',`<div class="card"><span class="newsMeta">FRANCHISE LINEAGE</span><h2>Identity History</h2>${eblFranchiseHistoryRC46(j)}</div>`);
+   }
+ }catch(e){console.warn('RC46 franchise history',e)}
+ return r;
+};
+window.EBL_UNIVERSAL_FRANCHISE_RC46={version:'RC46',canonical:'franchise-id',currentIdentity:['city','team-name','colors','logos'],history:true};
+</script>
+
+
+<style id="eblFranchiseClubhouseRC47Css">
+.eblClubHeroRC47{border-radius:20px;padding:20px;position:relative;overflow:hidden;margin-bottom:14px}
+.eblClubHeroRC47:after{content:"";position:absolute;inset:auto -70px -100px auto;width:250px;height:250px;border-radius:50%;background:rgba(255,255,255,.06)}
+.eblClubHeroRC47__top{display:flex;align-items:center;gap:18px;position:relative;z-index:1}
+.eblClubHeroRC47__logo img{width:118px;height:118px;object-fit:contain}
+.eblClubGridRC47{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+.eblClubRowRC47{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.eblClubRowRC47:last-child{border-bottom:0}
+@media(max-width:760px){.eblClubHeroRC47__top{align-items:flex-start}.eblClubHeroRC47__logo img{width:82px;height:82px}.eblClubGridRC47{grid-template-columns:1fr}}
+</style>
+<script id="eblFranchiseClubhouseRC47">
+function eblClubhouseRC47(j,fid){
+ const t=j.team||{},b=j.branding||{},name=b.display_name||t.name||fid;
+ const pc=b.primary_color||'#071A31',sc=b.secondary_color||'#D7262E',ac=b.accent_color||'#D9E0E8';
+ const logo=b.primary_logo?`<img src="${b.primary_logo}" alt="">`:teamLogoMarkup(Number(b.logo_style||1),pc,sc,ac,name);
+ const roster=j.roster||[],hit=roster.filter(p=>p.type==='H'),pit=roster.filter(p=>p.type==='P');
+ const hlead=[...hit].sort((a,z)=>Number(z.stats?.HR||0)-Number(a.stats?.HR||0))[0];
+ const klead=[...pit].sort((a,z)=>Number(z.stats?.SO||0)-Number(a.stats?.SO||0))[0];
+ const next=j.next_game||j.nextGame||null;
+ const nextText=next?`${escapeHtml(String(next.away_name||teamName(next.away_id||next.away)||''))} at ${escapeHtml(String(next.home_name||teamName(next.home_id||next.home)||''))}`:'Schedule pending';
+ const history=typeof eblFranchiseHistoryRC46==='function'?eblFranchiseHistoryRC46(j):'';
+ return `<div class="eblClubHeroRC47" style="background:linear-gradient(135deg,${pc},${sc});color:${ac}">
+  <div class="eblClubHeroRC47__top"><div class="eblClubHeroRC47__logo">${logo}</div><div><span class="newsMeta">EBL FRANCHISE CLUBHOUSE</span><h1 style="margin:3px 0">${escapeHtml(name)}</h1><div class="big">${Number(t.wins||0)}-${Number(t.losses||0)}</div><div>${escapeHtml(String(j.division||''))} Division • Season ${Number(LEAGUE?.season||0)}</div></div></div>
+ </div>
+ <div class="grid">
+  <div class="statBox"><span class="label">ROSTER</span><b>${roster.length}</b></div>
+  <div class="statBox"><span class="label">RUN DIFF</span><b>${Number(t.runs_for||0)-Number(t.runs_against||0)>=0?'+':''}${Number(t.runs_for||0)-Number(t.runs_against||0)}</b></div>
+  <div class="statBox"><span class="label">CHAMPIONSHIPS</span><b>${Number(j.championship_count||0)}</b></div>
+  <div class="statBox"><span class="label">EBL SEASONS</span><b>${Number(j.seasons_in_ebl||1)}</b></div>
+ </div>
+ <div class="eblClubGridRC47">
+  <div>
+   <div class="card"><span class="newsMeta">GAME DAY</span><h2>Next Game</h2><div class="eblClubRowRC47"><b>${nextText}</b><span class="muted">${next?.status?escapeHtml(String(next.status)):''}</span></div></div>
+   <div class="card"><span class="newsMeta">TEAM LEADERS</span><h2>Club Leaders</h2>
+    <div class="eblClubRowRC47"><span>Home Runs</span><b>${hlead?`${escapeHtml(hlead.name)} • ${Number(hlead.stats?.HR||0)}`:'—'}</b></div>
+    <div class="eblClubRowRC47"><span>Strikeouts</span><b>${klead?`${escapeHtml(klead.name)} • ${Number(klead.stats?.SO||0)}`:'—'}</b></div>
+   </div>
+  </div>
+  <div>
+   <div class="card"><span class="newsMeta">FRANCHISE</span><h2>Legacy</h2><div class="eblClubRowRC47"><span>Founded</span><b>Season ${Number(j.founded_season||1)}</b></div><div class="eblClubRowRC47"><span>Titles</span><b>${Number(j.championship_count||0)}</b></div></div>
+   ${(j.identity_history||[]).length?`<div class="card"><span class="newsMeta">LINEAGE</span><h2>Previous Identities</h2>${history}</div>`:''}
+  </div>
+ </div>`;
+}
+const eblOpenTeamBaseRC47=window.openTeam;
+if(typeof eblOpenTeamBaseRC47==='function')window.openTeam=async function(fid){
+ const r=await eblOpenTeamBaseRC47.apply(this,arguments);
+ try{
+  const j=await api('/api/team/'+encodeURIComponent(fid)),content=document.getElementById('profileContent');
+  if(content&&j?.team&&!content.querySelector('.eblClubHeroRC47'))content.insertAdjacentHTML('afterbegin',eblClubhouseRC47(j,fid));
+ }catch(e){console.warn('RC47 clubhouse',e)}
+ return r;
+};
+window.EBL_FRANCHISE_CLUBHOUSE_RC47={version:'RC47',publicTeamPage:true,canonicalIdentity:true,mobile:true};
+</script>
+
+</body></html>
