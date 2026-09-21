@@ -7036,15 +7036,15 @@ let EBL_BRAND_LOGOS_RC45={primary:'',secondary:''};
 async function eblLogoFileRC45(file,slot){
  if(!file)return;
  if(!['image/png','image/jpeg','image/webp'].includes(file.type)){alert('Use a PNG, JPG, or WebP logo.');return}
- if(file.size>4*1024*1024){alert('Logo source file must be under 4 MB.');return}
+ if(file.size>5*1024*1024){alert('Logo source file must be 5 MB or smaller.');return}
  const url=URL.createObjectURL(file),img=new Image();
  await new Promise((ok,bad)=>{img.onload=ok;img.onerror=bad;img.src=url});
- const canvas=document.createElement('canvas'),max=512,scale=Math.min(1,max/Math.max(img.width,img.height));
+ const canvas=document.createElement('canvas'),max=1024,scale=Math.min(1,max/Math.max(img.width,img.height));
  canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
  canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);
- let data=canvas.toDataURL('image/webp',.82);
- if(data.length>220000)data=canvas.toDataURL('image/webp',.65);
- if(data.length>220000){alert('This logo is still too large after compression. Try a simpler or smaller image.');return}
+ let data=canvas.toDataURL('image/webp',.88);
+ if(data.length>7_100_000)data=canvas.toDataURL('image/webp',.75);
+ if(data.length>7_100_000){alert('This logo is still over the 5 MB upload limit after optimization.');return}
  EBL_BRAND_LOGOS_RC45[slot]=data;eblBrandPreviewRC45();
 }
 function eblBrandPreviewRC45(){
