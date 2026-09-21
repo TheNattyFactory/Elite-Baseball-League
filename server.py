@@ -32,7 +32,7 @@ SP_XP_MULTIPLIER=4.0
 RP_XP_MULTIPLIER=1.75
 CHAT_RETENTION_HOURS=12
 ALPHA_PLAYER_LIMIT=3
-MAX_REQUEST_BYTES=65536
+MAX_REQUEST_BYTES=524288
 
 POSITION_GROUPS=("INF","OF","PITCHER")
 INF_POSITIONS={"C","1B","2B","3B","SS"}
@@ -375,6 +375,21 @@ def init_db():
     );
 
 
+    CREATE TABLE IF NOT EXISTS franchise_identity_history(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      franchise_id TEXT NOT NULL,
+      season INTEGER NOT NULL,
+      city TEXT NOT NULL DEFAULT '',
+      team_name TEXT NOT NULL DEFAULT '',
+      display_name TEXT NOT NULL,
+      primary_color TEXT,
+      secondary_color TEXT,
+      accent_color TEXT,
+      primary_logo TEXT,
+      secondary_logo TEXT,
+      started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS league_config(
       k TEXT PRIMARY KEY,
       v TEXT NOT NULL
@@ -609,6 +624,15 @@ def init_db():
     lineup_cols={r["name"] for r in c.execute("PRAGMA table_info(lineups)").fetchall()}
     if "field_positions_json" not in lineup_cols:
         c.execute("ALTER TABLE lineups ADD COLUMN field_positions_json TEXT NOT NULL DEFAULT '{}'")
+    branding_cols={r["name"] for r in c.execute("PRAGMA table_info(franchise_branding)").fetchall()}
+    for col,ddl in {
+        "city":"TEXT NOT NULL DEFAULT ''",
+        "team_name":"TEXT NOT NULL DEFAULT ''",
+        "primary_logo":"TEXT NOT NULL DEFAULT ''",
+        "secondary_logo":"TEXT NOT NULL DEFAULT ''"
+    }.items():
+        if col not in branding_cols:
+            c.execute(f"ALTER TABLE franchise_branding ADD COLUMN {col} {ddl}")
     for row in c.execute("SELECT id,primary_pos,position_group FROM players").fetchall():
         expected=position_group_for_pos(row["primary_pos"])
         if not row["position_group"] or str(row["position_group"]).upper() not in POSITION_GROUPS or (row["position_group"]=="INF" and expected!="INF"):
@@ -3822,7 +3846,8 @@ class H(BaseHTTPRequestHandler):
             teams=[dict(x) for x in c.execute(
                 """SELECT f.id,f.name,f.wins,f.losses,f.runs_for,f.runs_against,
                           fs.division,fs.expansion_team,
-                          b.display_name,b.logo_style,b.primary_color,b.secondary_color,b.accent_color
+                          b.display_name,b.city,b.team_name,b.logo_style,b.primary_logo,b.secondary_logo,
+                          b.primary_color,b.secondary_color,b.accent_color
                    FROM franchises f
                    JOIN franchise_seasons fs
                      ON fs.franchise_id=f.id AND fs.season=? AND fs.status='ACTIVE'
@@ -3885,6 +3910,10 @@ class H(BaseHTTPRequestHandler):
 
 
             brand=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(fid,)).fetchone()
+            identity_history=[dict(x) for x in c.execute(
+                "SELECT season,city,team_name,display_name,primary_color,secondary_color,accent_color,primary_logo,secondary_logo,started_at FROM franchise_identity_history WHERE franchise_id=? ORDER BY season,id",
+                (fid,)
+            )]
             roster=[]
             for row in c.execute(
                 """SELECT p.id,p.user_id,p.name,p.type,p.primary_pos,p.bats,p.throws,p.xp_wallet,
@@ -3919,7 +3948,7 @@ class H(BaseHTTPRequestHandler):
             founded_season=int(first_hist["s"]) if first_hist and first_hist["s"] is not None else 1
             result={
                 "team":dict(team),
-                "branding":dict(brand) if brand else None,
+                "branding":dict(brand) if brand else None,"identity_history":identity_history,
                 "division":division_for(fid),
                 "roster":roster,
                 "history":history,
@@ -5146,7 +5175,10 @@ class H(BaseHTTPRequestHandler):
                     c.rollback();return self.out({"error":"ACTIVE_PLAYER_LIMIT_REACHED","limit":ALPHA_PLAYER_LIMIT},400)
                 ptype="P" if group=="PITCHER" else "H";valid=PITCHER_ATTRS if ptype=="P" else HITTER_ATTRS
                 valid_pos={"INF":{"C","1B","2B","3B","SS"},"OF":{"LF","CF","RF"},"PITCHER":{"SP","RP"}}
-                if not name or len(name)>40 or len(hometown)>80 or group not in POSITION_GROUPS or pos not in valid_pos.get(group,set()) or bats not in ["R","L","S"] or throws not in ["R","L"] or set(attrs)!=set(valid) or sum(attrs.values())!=50 or any(type(v) is not int or v<0 or v>50 for v in attrs.values()) or (pos!="C" and float(attrs.get("CALL",0) or 0)!=0):
+                name_parts=[part for part in name.split() if part]
+                if len(name_parts)<2 or len(name)>40:
+                    c.rollback();return self.out({"error":"FIRST_AND_LAST_NAME_REQUIRED"},400)
+                if len(hometown)>80 or group not in POSITION_GROUPS or pos not in valid_pos.get(group,set()) or bats not in ["R","L","S"] or throws not in ["R","L"] or set(attrs)!=set(valid) or sum(attrs.values())!=50 or any(type(v) is not int or v<0 or v>50 for v in attrs.values()) or (pos!="C" and float(attrs.get("CALL",0) or 0)!=0):
                     c.rollback();return self.out({"error":"INVALID_50_XP_BUILD"},400)
                 season={k:0 for k in (["G","GS","OUTS","H","ER","BB","SO","W","L","SV"] if ptype=="P" else ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"])}
                 face_id=int(d.get("face_id",1));skin_color_id=int(d.get("skin_color_id",1));hair_id=int(d.get("hair_id",1))
@@ -5624,21 +5656,48 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/coach/branding":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
-            d=self.body();c=conn();f=c.execute("SELECT id FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
+            d=self.body();c=conn();f=c.execute("SELECT id,name FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
             if not f:c.close();return self.out({"error":"NO_FRANCHISE"},404)
-            name=str(d.get("display_name","")).strip()
-            if not (3<=len(name)<=40):c.close();return self.out({"error":"INVALID_TEAM_NAME"},400)
-            logo_style=int(d.get("logo_style",1))
+            state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('phase','league_day')")}
+            phase=str(state.get("phase","REGULAR")).upper();day=int(state.get("league_day","0") or 0)
+            if phase!="OFFSEASON" and day>0:
+                c.close();return self.out({"error":"TEAM_IDENTITY_LOCKED","phase":phase,"league_day":day},400)
+
+            city=" ".join(str(d.get("city","")).split()).strip()
+            team_name=" ".join(str(d.get("team_name","")).split()).strip()
+            # Backward compatibility with the original single display-name field.
+            legacy=" ".join(str(d.get("display_name","")).split()).strip()
+            if not city and not team_name and legacy:
+                parts=legacy.rsplit(" ",1);city=parts[0] if len(parts)>1 else "";team_name=parts[-1]
+            if not (2<=len(city)<=40):c.close();return self.out({"error":"INVALID_TEAM_CITY"},400)
+            if not (2<=len(team_name)<=40):c.close();return self.out({"error":"INVALID_TEAM_NAME"},400)
+            display_name=f"{city} {team_name}".strip()
+            if len(display_name)>70:c.close();return self.out({"error":"TEAM_IDENTITY_TOO_LONG"},400)
+
+            logo_style=int(d.get("logo_style",1) or 1)
             if logo_style not in range(1,11):c.close();return self.out({"error":"INVALID_LOGO_STYLE"},400)
             pc,sc,ac=d.get("primary_color"),d.get("secondary_color"),d.get("accent_color")
             if not all(valid_hex_color(x) for x in [pc,sc,ac]):c.close();return self.out({"error":"INVALID_COLORS"},400)
             home=str(d.get("uniform_home","WHITE")).upper();away=str(d.get("uniform_away","NAVY")).upper()
             allowed={"WHITE","NAVY","RED","GRAY","BLACK","CREAM"}
             if home not in allowed or away not in allowed:c.close();return self.out({"error":"INVALID_UNIFORM"},400)
-            c.execute("""INSERT OR REPLACE INTO franchise_branding(franchise_id,display_name,logo_style,primary_color,secondary_color,accent_color,uniform_home,uniform_away,updated_at)
-                         VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",(f["id"],name,logo_style,pc,sc,ac,home,away))
-            c.execute("UPDATE franchises SET name=? WHERE id=?",(name,f["id"]))
-            c.commit();c.close();return self.out({"ok":True})
+
+            existing=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(f["id"],)).fetchone()
+            primary_logo=str(d.get("primary_logo",existing["primary_logo"] if existing and "primary_logo" in existing.keys() else "") or "")
+            secondary_logo=str(d.get("secondary_logo",existing["secondary_logo"] if existing and "secondary_logo" in existing.keys() else "") or "")
+            for logo in (primary_logo,secondary_logo):
+                if logo and (not logo.startswith(("data:image/png;base64,","data:image/webp;base64,","data:image/jpeg;base64,")) or len(logo)>220000):
+                    c.close();return self.out({"error":"INVALID_TEAM_LOGO","detail":"Use PNG, JPG or WebP. Each compressed logo must be under 165 KB."},400)
+
+            c.execute("""INSERT OR REPLACE INTO franchise_branding(
+                           franchise_id,display_name,city,team_name,logo_style,primary_logo,secondary_logo,
+                           primary_color,secondary_color,accent_color,uniform_home,uniform_away,updated_at)
+                         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
+                      (f["id"],display_name,city,team_name,logo_style,primary_logo,secondary_logo,pc,sc,ac,home,away))
+            c.execute("UPDATE franchises SET name=? WHERE id=?",(display_name,f["id"]))
+            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                      ("FRANCHISE_REBRANDED",u["id"],json.dumps({"franchise_id":f["id"],"display_name":display_name,"city":city,"team_name":team_name})))
+            c.commit();c.close();return self.out({"ok":True,"display_name":display_name,"city":city,"team_name":team_name})
         if p=="/api/coach/set-lineup":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
