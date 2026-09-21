@@ -631,6 +631,78 @@ dialog{
 /* V32 — structural sports-cartoon anatomy pass. */
 .eblPlayerArtV24 svg{overflow:visible}
 </style>
+
+<style id="coachHudRC48">
+.coachPaneHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:14px}
+.coachPaneHead h2{margin:3px 0}
+.coachReadyBadge{font-size:11px;font-weight:900;letter-spacing:.08em;padding:7px 10px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.coachReadyBadge.ready{color:#78e39a;border-color:#287843;background:#0b2b1a}
+.coachReadyBadge.needs{color:#ff9a9a;border-color:#7c3030;background:#2c1111}
+.coachFieldLegend{display:grid;grid-template-columns:48px minmax(170px,1fr) 90px 68px;gap:8px;padding:0 10px 7px;color:var(--mut);font-size:10px;font-weight:900;letter-spacing:.08em}
+.coachLineupCard{display:grid;grid-template-columns:42px 58px minmax(130px,1fr) 82px minmax(150px,.9fr) 58px;gap:9px;align-items:center;padding:9px;margin:7px 0;border:1px solid var(--line);border-radius:12px;background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012))}
+.coachOrder{font-size:22px;font-weight:950;text-align:center;color:var(--gold)}
+.coachMiniPortrait{width:54px;height:54px;overflow:hidden;border-radius:10px;background:#081725;display:flex;align-items:center;justify-content:center}
+.coachMiniPortrait .eblPortrait,.coachMiniPortrait svg{max-width:100%;max-height:100%}
+.coachLineupInfo{display:flex;flex-direction:column;min-width:0}
+.coachLineupInfo b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.coachLineupInfo span{font-size:11px;color:var(--mut);margin-top:3px}
+.coachOrderBtns{display:flex;flex-direction:column;gap:3px}
+.coachMove{border:1px solid var(--line);background:#0c2238;color:#fff;border-radius:6px;min-height:25px}
+.coachMove:disabled{opacity:.25}
+.coachSaveBar{position:sticky;bottom:0;z-index:4;margin-top:12px;padding:10px;background:rgba(7,26,49,.96);border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+@media(max-width:720px){
+ .coachPaneHead{align-items:center}
+ .coachFieldLegend{display:none}
+ .coachLineupCard{grid-template-columns:34px 52px 1fr 48px;gap:7px}
+ .coachLineupCard>select{grid-column:3/5}
+ .coachLineupCard>select[id^="fieldPos"]{grid-column:3/4}
+ .coachLineupCard>select[id^="bat"]{grid-column:3/5}
+ .coachOrderBtns{grid-column:4;grid-row:1/2;flex-direction:row;justify-content:flex-end}
+ .coachMiniPortrait{width:48px;height:48px}
+ .coachSaveBar{bottom:6px}
+}
+</style>
+
+
+<style id="coachPitchingRC49">
+.coachPitchGrid{display:grid;gap:8px}.coachPitchCard{display:grid;grid-template-columns:48px 58px minmax(180px,1fr) minmax(170px,.8fr) 58px;gap:9px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.012))}
+.coachPitchTag{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:30px;padding:0 8px;border-radius:8px;background:#0b2740;border:1px solid #28506e;color:var(--gold);font-weight:950;font-size:12px}.coachPitchPortrait{width:54px;height:54px;overflow:hidden;border-radius:10px;background:#081725;display:flex;align-items:center;justify-content:center}.coachPitchInfo{display:flex;flex-direction:column;min-width:0}.coachPitchInfo b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.coachPitchInfo span{font-size:11px;color:var(--mut);margin-top:3px}
+.coachReadiness{height:5px;background:#162b3d;border-radius:99px;overflow:hidden;margin-top:6px}.coachReadiness i{display:block;height:100%;background:currentColor;color:#69d98b;border-radius:99px}
+.coachRecoveryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.coachRecoveryCard{display:grid;grid-template-columns:48px 1fr;gap:9px;align-items:center;padding:9px;border:1px solid var(--line);border-radius:10px}.coachRecoveryCard>div:last-child{display:flex;flex-direction:column}.coachRecoveryCard span{font-size:11px;color:var(--mut)}
+.coachRoleGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.coachRoleCard,.coachMultiRole{padding:11px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.02)}.coachRoleTop,.coachRolePlayer{display:flex;align-items:center;gap:9px}.coachRoleTop small{display:block;color:var(--mut);font-size:10px}.coachRolePlayer{margin:10px 0}.coachRoleCard select,.coachMultiRole select{width:100%}.coachMultiRoles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:9px}.coachMultiRole{display:flex;flex-direction:column;gap:5px}.coachMultiRole span{font-size:10px;color:var(--mut)}
+.coachStaffWarning{margin:10px 0;padding:10px;border:1px solid #7c4b24;background:#2a1c0c;color:#ffd28a;border-radius:9px;font-size:12px;font-weight:800}
+@media(max-width:720px){.coachPitchCard{grid-template-columns:42px 50px 1fr 52px}.coachPitchCard>select{grid-column:2/5}.coachPitchCard .coachOrderBtns{grid-column:4;grid-row:1}.coachPitchPortrait{width:48px;height:48px}.coachRecoveryGrid,.coachRoleGrid,.coachMultiRoles{grid-template-columns:1fr}}
+</style>
+
+
+<style id="coachDepthRC50">
+.coachDepthLayout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.85fr);gap:14px}.coachDepthGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.coachDepthCard,.coachBenchCard,.coachStrategyBox{padding:11px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012))}.coachDepthHead,.coachDepthPlayer{display:flex;align-items:center;gap:9px}.coachDepthHead small,.coachRoleTop small{display:block;color:var(--mut);font-size:10px;margin-top:2px}.coachDepthPlayer{min-height:56px;margin:9px 0}.coachDepthPlayer>.eblPortrait,.coachDepthPlayer>svg{width:48px!important;height:48px!important;flex:0 0 48px}.coachDepthPlayer>div{display:flex;flex-direction:column;min-width:0}.coachDepthPlayer span{font-size:11px;color:var(--mut)}.coachDepthCard select,.coachBenchCard select{width:100%}.coachBenchRoles{display:grid;gap:9px}.coachStrategyBox{margin-top:9px}.coachRule{display:grid;grid-template-columns:minmax(130px,1fr) minmax(130px,1fr);gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06)}.coachRule:last-child{border-bottom:0}
+@media(max-width:900px){.coachDepthLayout{grid-template-columns:1fr}}@media(max-width:620px){.coachDepthGrid{grid-template-columns:1fr}.coachRule{grid-template-columns:1fr}.coachDepthCard,.coachBenchCard{padding:10px}}
+</style>
+
+
+<style id="coachDefenseRC51">
+.coachDefenseBadge{font-size:11px;font-weight:950;letter-spacing:.08em;padding:7px 10px;border:1px solid #28506e;border-radius:999px;color:var(--gold);background:#0b2740}.coachDefenseLayout{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(360px,1.1fr);gap:14px}.coachDefenseBoard{border:1px solid var(--line);border-radius:14px;padding:14px;background:radial-gradient(circle at 50% 70%,rgba(44,116,61,.3),rgba(7,26,49,.95) 62%)}.coachDiamond{height:330px;position:relative;max-width:440px;margin:auto}.coachDiamond:before{content:"";position:absolute;width:170px;height:170px;left:50%;top:50%;transform:translate(-50%,-36%) rotate(45deg);border:2px solid rgba(255,255,255,.2);background:rgba(132,91,48,.15)}.fieldPos{position:absolute;z-index:2;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#0b2740;border:2px solid var(--gold);font-size:11px;font-weight:950;box-shadow:0 4px 12px rgba(0,0,0,.3)}.fpCF{left:46%;top:5%}.fpLF{left:15%;top:18%}.fpRF{right:15%;top:18%}.fpSS{left:30%;top:43%}.fp2B{right:30%;top:43%}.fp3B{left:17%;top:61%}.fp1B{right:17%;top:61%}.fpP{left:46%;top:61%}.fpC{left:46%;bottom:2%}.coachFieldNote{text-align:center;font-size:10px}.coachDefenseControls{display:grid;gap:9px}.coachDefenseCard,.coachSituationCard{display:grid;grid-template-columns:50px minmax(150px,1fr) minmax(150px,.8fr);gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}.coachDefenseCard small,.coachSituationCard small{display:block;color:var(--mut);font-size:10px;margin-top:2px}.coachSituationCard{grid-template-columns:1fr auto}.coachSwitch input{display:none}.coachSwitch span{display:block;width:48px;height:26px;border-radius:99px;background:#263746;border:1px solid var(--line);position:relative;cursor:pointer}.coachSwitch span:after{content:"";position:absolute;width:20px;height:20px;left:2px;top:2px;border-radius:50%;background:#fff;transition:.18s}.coachSwitch input:checked+span{background:#1f7040}.coachSwitch input:checked+span:after{left:24px}.coachDefenseSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}.coachDefenseSummary>div{padding:9px;border:1px solid var(--line);border-radius:9px}.coachDefenseSummary span{display:block;color:var(--mut);font-size:9px;font-weight:900;letter-spacing:.08em}.coachDefenseSummary b{display:block;margin-top:3px;font-size:12px}
+@media(max-width:820px){.coachDefenseLayout{grid-template-columns:1fr}.coachDiamond{height:285px}.coachDefenseSummary{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.coachDefenseCard{grid-template-columns:45px 1fr}.coachDefenseCard select{grid-column:1/3}.coachDefenseSummary{grid-template-columns:1fr}}
+</style>
+
+
+<style id="coachGameDayRC52">
+.coachGameHero{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(135deg,#0b2740,rgba(7,26,49,.85));margin-bottom:12px}.coachGameHero h2{font-size:28px;margin:4px 0}.coachGameMark{transform:scale(1.12)}.coachGameGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.coachGameCard{display:grid;grid-template-columns:52px 1fr;gap:9px;align-items:center;padding:11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}.coachGameCard>span{grid-column:1/3;color:var(--mut);font-size:9px;font-weight:950;letter-spacing:.08em}.coachGameCard>.eblPortrait,.coachGameCard>svg{width:48px!important;height:48px!important}.coachGameCard div{display:flex;flex-direction:column;min-width:0}.coachGameCard b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.coachGameCard small{color:var(--mut);font-size:10px;margin-top:2px}.coachChecklist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}.coachCheck{display:grid;grid-template-columns:30px 1fr 14px;gap:7px;align-items:center;text-align:left;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0a2035;color:#fff}.coachCheck>span{display:flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;font-weight:950}.coachCheck.ok>span{background:#164c2b;color:#7bea9c}.coachCheck.needs>span{background:#542020;color:#ff9b9b}.coachCheck div{display:flex;flex-direction:column;min-width:0}.coachCheck small{font-size:9px;color:var(--mut);margin-top:2px}.coachCheck i{font-style:normal;font-size:20px;color:var(--mut)}.coachGamePlan{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.coachGamePlan>div{padding:11px;border:1px solid var(--line);border-radius:10px}.coachGamePlan span{display:block;color:var(--mut);font-size:9px;font-weight:900;letter-spacing:.08em}.coachGamePlan b{display:block;font-size:11px;margin-top:4px}
+@media(max-width:800px){.coachGameGrid{grid-template-columns:1fr}.coachChecklist{grid-template-columns:1fr 1fr}.coachGamePlan{grid-template-columns:1fr}}@media(max-width:480px){.coachChecklist{grid-template-columns:1fr}.coachGameHero h2{font-size:23px}}
+</style>
+
+
+<style id="gameCastCoachRC53">
+.gcStrategyLive{display:flex;align-items:center;gap:9px;margin:8px 0 0;padding:8px 10px;border:1px solid rgba(217,180,79,.3);border-radius:9px;background:rgba(217,180,79,.07);min-height:36px}.gcStrategyLive span{font-size:9px;font-weight:950;letter-spacing:.09em;color:var(--gold);white-space:nowrap}.gcStrategyLive b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gcStrategyLive.pulse{animation:gcCoachPulseRC53 .65s ease}.play.strategy{border-left:3px solid var(--gold);background:rgba(217,180,79,.07);padding-left:9px;font-weight:800}@keyframes gcCoachPulseRC53{0%{transform:scale(.985);background:rgba(217,180,79,.22)}100%{transform:scale(1);background:rgba(217,180,79,.07)}}@media(max-width:560px){.gcStrategyLive{align-items:flex-start;flex-direction:column;gap:2px}.gcStrategyLive b{white-space:normal}}
+</style>
+
+
+<style id="noBenchRC54">
+.coachOffenseGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.coachOffenseCard{display:grid;grid-template-columns:58px 1fr minmax(130px,.65fr);gap:10px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}.coachOffenseCard small{display:block;color:var(--mut);font-size:10px;margin-top:3px}.coachNoBenchRule{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:12px;border:1px solid rgba(217,180,79,.32);border-radius:10px;background:rgba(217,180,79,.06)}.coachNoBenchRule b{color:var(--gold);white-space:nowrap}.coachNoBenchRule span{font-size:11px;color:var(--mut)}.coachNineBadge{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--gold);font-size:22px;font-weight:950;color:var(--gold)}
+@media(max-width:650px){.coachOffenseGrid{grid-template-columns:1fr}.coachOffenseCard{grid-template-columns:52px 1fr}.coachOffenseCard select{grid-column:1/3}.coachNoBenchRule{flex-direction:column;gap:4px}}
+</style>
+
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -1542,6 +1614,42 @@ async function loadMyTeam(){
       return;
     }
     TEAM_ROSTER=j.roster||[];
+
+    // RC47 — hydrate every HUMAN teammate from the canonical public profile
+    // before the Team page renders. Thin roster rows must not replace saved creator appearance.
+    const humanProfiles = TEAM_ROSTER
+      .filter(p => String(p.type||'').toUpperCase() !== 'CPU' && p.username)
+      .map(async p => {
+        try{
+          const profile = await api('/api/profile/' + encodeURIComponent(p.username));
+          const candidates = [
+            ...(profile.current_players || []),
+            ...(profile.players || []),
+            ...(profile.former_players || [])
+          ];
+          const saved = candidates.find(x =>
+            Number(x.id||x.player_id||0) === Number(p.id||p.player_id||0)
+          );
+          if(saved){
+            const teamFields = {
+              franchise_id:p.franchise_id,
+              team_name:p.team_name,
+              primary_pos:p.primary_pos,
+              type:p.type,
+              overall:p.overall,
+              stats:p.stats,
+              jersey_number:p.jersey_number
+            };
+            Object.assign(p, saved, teamFields);
+          }
+        }catch(e){
+          console.warn('RC47 teammate appearance hydrate', p?.name, e);
+        }
+      });
+
+    if(humanProfiles.length) await Promise.allSettled(humanProfiles);
+
+    if(typeof eblPrimeIdentityCacheV26==='function')eblPrimeIdentityCacheV26(TEAM_ROSTER);
     const team=j.team||{},brand=j.branding||{},display=brand.display_name||team.name||team.id;
     const logo=teamLogoMarkup(Number(brand.logo_style||1),brand.primary_color||'#071A31',brand.secondary_color||'#D7262E',brand.accent_color||'#D9E0E8',display);
     const byId=new Map(TEAM_ROSTER.map(p=>[Number(p.id),p]));
@@ -3571,6 +3679,10 @@ async function loadCoachHub(){
   let j=await api('/api/coach/team');
   if(!j.team){coachHub.innerHTML='<p class="muted">No franchise assigned.</p>';return}
   let H=j.roster.filter(x=>x.type==='H'),P=j.roster.filter(x=>x.type==='P');
+  window.__EBL_COACH_HITTERS=H;
+  window.__EBL_COACH_PITCHERS=P;
+  window.__EBL_COACH_STRATEGY=j.strategy||{};
+  if(typeof eblPrimeIdentityCacheV26==='function')eblPrimeIdentityCacheV26(j.roster||[]);
   let lineup=j.lineup||[],rot=j.rotation||[],bp=j.strategy?.bullpen||{},def=j.strategy?.defense||{};
   const next=j.next_game,opp=next?(next.away_id===j.team.id?next.home_id:next.away_id):null;
   const humanCount=j.roster.filter(x=>x.user_id).length;
@@ -3593,7 +3705,7 @@ async function loadCoachHub(){
    <div class="statBox"><span class="label">FRANCHISE RESERVE</span><b>${Number(j.team.xp_reserve||0).toFixed(1)}</b></div>
    <div class="statBox"><span class="label">REBUILD BONUS</span><b>+${(Number(j.team.development_bonus||0)*100).toFixed(2)}%</b></div>
    <div class="statBox"><span class="label">OPEN OFFERS</span><b>${j.offers.length}</b></div></div>
-   <div class="subtabs"><button class="subtab active" onclick="coachPane('cRoster',this)">ROSTER & LINEUP</button><button class="subtab" onclick="coachPane('cBrand',this)">TEAM BRANDING</button><button class="subtab" onclick="coachPane('cPitch',this)">PITCHING STAFF</button><button class="subtab" onclick="coachPane('cDepth',this)">DEPTH & SUBS</button><button class="subtab" onclick="coachPane('cDefense',this)">DEFENSE</button><button class="subtab" onclick="coachPane('cMarket',this)">CONTRACTS</button><button class="subtab" onclick="coachPane('cUpgrades',this)">FRANCHISE UPGRADES</button></div>
+   <div class="subtabs"><button class="subtab active" onclick="coachPane('cGameDay',this)">GAME DAY</button><button class="subtab" onclick="coachPane('cRoster',this)">ROSTER & LINEUP</button><button class="subtab" onclick="coachPane('cBrand',this)">TEAM BRANDING</button><button class="subtab" onclick="coachPane('cPitch',this)">PITCHING STAFF</button><button class="subtab" onclick="coachPane('cDepth',this)">OFFENSE</button><button class="subtab" onclick="coachPane('cDefense',this)">DEFENSE</button><button class="subtab" onclick="coachPane('cMarket',this)">CONTRACTS</button><button class="subtab" onclick="coachPane('cUpgrades',this)">FRANCHISE UPGRADES</button></div>
 
 
    <div id="cBrand" class="subpane">
@@ -3612,52 +3724,70 @@ async function loadCoachHub(){
       <div><h2>Preview</h2><div id="brandPreview" class="avatarPreview" style="min-height:300px"></div></div>
     </div>
    </div>
-   <div id="cRoster" class="subpane active">
-    <h2>Batting Order & Fielding Positions</h2>
+   <div id="cGameDay" class="subpane active">
+    ${coachGameDayRC52(j,lineup,rot,bp,def,H,P,next,opp,lineupReady,rotationReady)}
+   </div>
+   <div id="cRoster" class="subpane">
+    <div class="coachPaneHead"><div><span class="newsMeta">GAME MANAGEMENT</span><h2>Starting Nine</h2><p class="muted">Set the batting order and defensive alignment. Use the arrows to move hitters without rebuilding the lineup.</p></div><div class="coachReadyBadge ${lineupReady?'ready':'needs'}">${lineupReady?'LINEUP READY':'SET LINEUP'}</div></div>
+    <div class="coachFieldLegend"><span>ORDER</span><span>PLAYER</span><span>FIELD</span><span>MOVE</span></div>
     <div id="coachLineup">${[0,1,2,3,4,5,6,7,8].map(i=>lineupRowHTML(i,lineup[i],H,j.field_positions||{})).join('')}</div>
-    <button class="btn" onclick="saveCoachLineup()">Save Batting Order</button>
+    <div class="coachSaveBar"><span class="muted">Changes take effect after you save.</span><button class="btn" onclick="saveCoachLineup()">Save Starting Nine</button></div>
    </div>
    <div id="cPitch" class="subpane">
-    <h2>Starting Rotation</h2>
-    <p class="muted">Choose 3–5 starters. A shorter rotation gives you more bullpen arms, but starters return sooner and may carry fatigue if their workload outpaces recovery.</p>
-    ${[0,1,2,3,4].map(i=>`<div class="roleRow"><b>SP ${i+1}</b><select id="rot${i}">${i>=3?'<option value="">— Bullpen —</option>':''}${playerOptions(P,rot[i])}</select></div>`).join('')}
-    <div class="coachSection"><h3>Pitcher Recovery</h3><div class="grid">${P.map(p=>{const r=p.recovery||{readiness:100,fatigue:0};return `<div class="statBox"><b>${p.username?`<button class="clickableName" onclick="openUserProfile('${jsq(p.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</b><span class="label">${p.primary_pos} • ${r.readiness}% ready</span><div class="muted">${r.fatigue>0?`${Number(r.fatigue).toFixed(1)} fatigue`:'Fully recovered'}</div></div>`}).join('')}</div></div>
-    <h2 class="coachSection">Bullpen Roles</h2>
-    <div class="roleRow"><b>Closer</b><select id="bpCL"><option value="">—</option>${playerOptions(P,bp.CL)}</select></div>
-    <div class="roleRow"><b>Setup 1</b><select id="bpSU1"><option value="">—</option>${playerOptions(P,bp.SU1)}</select></div>
-    <div class="roleRow"><b>Setup 2</b><select id="bpSU2"><option value="">—</option>${playerOptions(P,bp.SU2)}</select></div>
-    <div class="roleRow"><b>Middle Relief</b><select id="bpMR" multiple size="5">${playerOptions(P,null,bp.MR||[])}</select></div>
-    <div class="roleRow"><b>Long Relief</b><select id="bpLR" multiple size="4">${playerOptions(P,null,bp.LR||[])}</select></div>
-    <div class="roleRow"><b>Emergency</b><select id="bpEmergency" multiple size="3">${playerOptions(P,null,bp.EMERGENCY||[])}</select></div>
-    <button class="btn" onclick="savePitchingStaff()">Save Pitching Staff</button>
+    <div class="coachPaneHead"><div><span class="newsMeta">PITCHING STAFF</span><h2>Rotation & Bullpen</h2><p class="muted">Build the staff hierarchy the game engine will use. Readiness stays visible while you make decisions.</p></div></div>
+    <h3 class="depthHeading">Starting Rotation</h3>
+    <p class="muted">Choose 3–5 starters. A shorter rotation gives you more bullpen arms, but starters return sooner and may carry fatigue if workload outpaces recovery.</p>
+    <div class="coachPitchGrid">${[0,1,2,3,4].map(i=>coachPitchCardRC49(i,rot[i],P)).join('')}</div>
+
+    <div class="coachSection"><h3>Pitcher Recovery</h3><div class="coachRecoveryGrid">${P.map(p=>coachRecoveryCardRC49(p)).join('')}</div></div>
+
+    <h3 class="coachSection depthHeading">Bullpen Roles</h3>
+    <div class="coachRoleGrid">
+      ${coachSingleRoleRC49('CL','Closer','9th inning',bp.CL,P)}
+      ${coachSingleRoleRC49('SU1','Setup 1','Primary setup',bp.SU1,P)}
+      ${coachSingleRoleRC49('SU2','Setup 2','Secondary setup',bp.SU2,P)}
+    </div>
+    <div class="coachMultiRoles">
+      <div class="coachMultiRole"><b>Middle Relief</b><span>Middle innings / matchup bridge</span><select id="bpMR" multiple size="5">${playerOptions(P,null,bp.MR||[])}</select></div>
+      <div class="coachMultiRole"><b>Long Relief</b><span>Long outings / early exits</span><select id="bpLR" multiple size="4">${playerOptions(P,null,bp.LR||[])}</select></div>
+      <div class="coachMultiRole"><b>Emergency</b><span>Last-resort pitching depth</span><select id="bpEmergency" multiple size="3">${playerOptions(P,null,bp.EMERGENCY||[])}</select></div>
+    </div>
+    <div id="coachPitchWarningRC49" class="coachStaffWarning hidden"></div>
+    <div class="coachSaveBar"><span class="muted">Rotation order and bullpen hierarchy save together.</span><button class="btn" onclick="savePitchingStaff()">Save Pitching Staff</button></div>
    </div>
 
 
    <div id="cDepth" class="subpane">
-    <div class="coachGrid">
-      <div><h2>Position Depth Chart</h2><p class="muted">Rank backups for each position. The game engine can use these for substitutions and injuries later.</p>
-      ${['C','1B','2B','3B','SS','LF','CF','RF','DH'].map(pos=>depthRow(pos,H,j.strategy?.bench?.[pos]||[])).join('')}</div>
-      <div><h2>Substitution Preferences</h2>
-        <div class="roleRow"><b>Pinch Hit Order</b><select id="phOrder" multiple size="6">${playerOptions(H,null,j.strategy?.substitutions?.pinch_hit||[])}</select></div>
-        <div class="roleRow"><b>Pinch Run Order</b><select id="prOrder" multiple size="6">${playerOptions(H,null,j.strategy?.substitutions?.pinch_run||[])}</select></div>
-        <div class="roleRow"><b>Def. Replacements</b><select id="drOrder" multiple size="6">${playerOptions(H,null,j.strategy?.substitutions?.def_replacement||[])}</select></div>
-        <div class="roleRow"><b>Backup Catcher</b><select id="backupC"><option value="">—</option>${playerOptions(H,j.strategy?.substitutions?.catcher_backup)}</select></div>
-        <div class="roleRow"><b>Late Def. Inning</b><select id="lateDefInning">${[6,7,8,9].map(x=>`<option ${x==(j.strategy?.substitutions?.late_inning_defense_inning||8)?'selected':''}>${x}</option>`).join('')}</select></div>
-        <div class="roleRow"><b>Pinch Hit Use</b><select id="phThresh">${['CONSERVATIVE','MEDIUM','AGGRESSIVE'].map(x=>`<option ${x===(j.strategy?.substitutions?.pinch_hit_threshold||'MEDIUM')?'selected':''}>${x}</option>`).join('')}</select></div>
-        <div class="roleRow"><b>Steal Aggression</b><select id="stealAgg">${['LOW','NORMAL','HIGH'].map(x=>`<option ${x===(j.strategy?.substitutions?.steal_aggression||'NORMAL')?'selected':''}>${x}</option>`).join('')}</select></div>
-        <div class="roleRow"><b>Bunt Aggression</b><select id="buntAgg">${['LOW','NORMAL','HIGH'].map(x=>`<option ${x===(j.strategy?.substitutions?.bunt_aggression||'NORMAL')?'selected':''}>${x}</option>`).join('')}</select></div>
-        <button class="btn" onclick="saveDepthSubs()">Save Depth & Substitutions</button>
-      </div>
+    <div class="coachPaneHead"><div><span class="newsMeta">OFFENSIVE IDENTITY</span><h2>Offensive Strategy</h2><p class="muted">EBL carries a starting nine with no position-player bench. Set how aggressively those nine run and use the bunt; there are no pinch hitters, pinch runners, or defensive substitutes.</p></div><div class="coachDefenseBadge">STARTING 9</div></div>
+    <div class="coachOffenseGrid">
+      <div class="coachOffenseCard"><span class="coachPitchTag">RUN</span><div><b>Steal Aggression</b><small>How often eligible runners challenge the defense.</small></div><select id="stealAgg">${['LOW','NORMAL','HIGH'].map(x=>`<option ${x===(j.strategy?.substitutions?.steal_aggression||'NORMAL')?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div class="coachOffenseCard"><span class="coachPitchTag">BUNT</span><div><b>Bunt Aggression</b><small>How willing the offense is to use the bunt in appropriate situations.</small></div><select id="buntAgg">${['LOW','NORMAL','HIGH'].map(x=>`<option ${x===(j.strategy?.substitutions?.bunt_aggression||'NORMAL')?'selected':''}>${x}</option>`).join('')}</select></div>
     </div>
+    <div class="coachNoBenchRule"><b>EBL Roster Rule</b><span>The nine position players in the Starting Nine remain the position-player unit for the game. Pitching changes come from the pitching staff; position-player substitutions are not part of the current EBL roster model.</span></div>
+    <div class="coachSaveBar"><span class="muted">These tendencies feed the simulation's offensive decision logic.</span><button class="btn" onclick="saveOffenseRC54()">Save Offensive Strategy</button></div>
    </div>
    <div id="cDefense" class="subpane">
-    <h2>Defensive Strategy</h2>
-    ${shiftRow('Default','defDefault',def.default_shift||'STANDARD')}
-    ${shiftRow('vs LHB','defL',def.vs_lhb||'STANDARD')}
-    ${shiftRow('vs RHB','defR',def.vs_rhb||'STANDARD')}
-    <div class="roleRow"><b>Corners In</b><input type="checkbox" id="cornersIn" ${def.corners_in?'checked':''}></div>
-    <div class="roleRow"><b>Infield In</b><input type="checkbox" id="infieldIn" ${def.infield_in?'checked':''}></div>
-    <button class="btn" onclick="saveDefense()">Save Defensive Plan</button>
+    <div class="coachPaneHead"><div><span class="newsMeta">RUN PREVENTION</span><h2>Defensive Strategy</h2><p class="muted">Set the club's default positioning and handedness adjustments. Situational calls stay separate so the engine can apply them only when appropriate.</p></div><div class="coachDefenseBadge">FIELD PLAN</div></div>
+    <div class="coachDefenseLayout">
+      <div class="coachDefenseBoard">
+        <div class="coachDiamond">
+          <div class="fieldPos fpCF">CF</div><div class="fieldPos fpLF">LF</div><div class="fieldPos fpRF">RF</div>
+          <div class="fieldPos fpSS">SS</div><div class="fieldPos fp2B">2B</div>
+          <div class="fieldPos fp3B">3B</div><div class="fieldPos fp1B">1B</div>
+          <div class="fieldPos fpP">P</div><div class="fieldPos fpC">C</div>
+        </div>
+        <div class="muted coachFieldNote">Positioning preview • strategy settings control the team plan, not individual player assignments.</div>
+      </div>
+      <div class="coachDefenseControls">
+        <div class="coachDefenseCard"><span class="coachPitchTag">ALL</span><div><b>Default Alignment</b><small>Base positioning for normal situations</small></div>${shiftSelectRC51('defDefault',def.default_shift||'STANDARD')}</div>
+        <div class="coachDefenseCard"><span class="coachPitchTag">LHB</span><div><b>vs Left-Handed Batters</b><small>Override the default against LHB</small></div>${shiftSelectRC51('defL',def.vs_lhb||'STANDARD')}</div>
+        <div class="coachDefenseCard"><span class="coachPitchTag">RHB</span><div><b>vs Right-Handed Batters</b><small>Override the default against RHB</small></div>${shiftSelectRC51('defR',def.vs_rhb||'STANDARD')}</div>
+        <div class="coachSituationCard"><div><b>Corners In</b><small>Bring 1B/3B closer when the situation calls for it.</small></div><label class="coachSwitch"><input type="checkbox" id="cornersIn" ${def.corners_in?'checked':''}><span></span></label></div>
+        <div class="coachSituationCard"><div><b>Infield In</b><small>Trade range for a better chance to cut down a runner at home.</small></div><label class="coachSwitch"><input type="checkbox" id="infieldIn" ${def.infield_in?'checked':''}><span></span></label></div>
+      </div>
+    </div>
+    <div class="coachDefenseSummary" id="coachDefenseSummaryRC51"></div>
+    <div class="coachSaveBar"><span class="muted">The saved field plan becomes the club's defensive strategy.</span><button class="btn" onclick="saveDefense()">Save Defensive Plan</button></div>
    </div>
    <div id="cMarket" class="subpane">
     <div class="coachGrid"><div><h2>Free Agents</h2><p class="muted">Offer signing bonus XP, salary per game, and contract length. Accepted signing bonuses immediately count against the annual team XP pool.</p><button class="btn" onclick="loadCoachFreeAgents()">Refresh Free Agents</button><div id="coachFAs"></div></div>
@@ -3666,21 +3796,203 @@ async function loadCoachHub(){
    </div>
    <div id="cUpgrades" class="subpane">
     <h2>Franchise Treasury & Revenue</h2>
-    <p class="muted">Every franchise receives 480 XP each season. Unspent XP and finish rewards roll into the treasury permanently. Revenue upgrades permanently add +5 XP to every future annual pool.</p>
-    <div class="grid"><div class="statBox"><span class="label">ANNUAL POOL</span><b>${Number(j.team.xp_budget||0).toFixed(1)}</b></div><div class="statBox"><span class="label">TREASURY</span><b>${Number(j.team.xp_reserve||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LAST FINISH REWARD</span><b>+${Number(j.team.finish_reward||0).toFixed(1)}</b></div><div class="statBox"><span class="label">PLAYER DEVELOPMENT</span><b>+${(Number(j.team.development_bonus||0)*100).toFixed(2)}%</b></div></div>
-    ${(()=>{let lvl=Number(j.team.revenue_level||0),costs=[50,65,80,100,125];return `<div class="upgradeGrid" style="margin-top:12px"><div class="upgradeCard"><h3>Revenue Operations</h3><div>Level ${lvl}/5</div><div class="muted">Annual allocation: ${Number(j.team.xp_budget||480).toFixed(0)} XP • Each level permanently adds +5 XP per season.</div><button class="btn" ${lvl>=5?'disabled':''} onclick="buyFranchiseUpgrade('revenue')">${lvl>=5?'MAX LEVEL':'Upgrade • '+costs[Math.min(4,lvl)]+' Treasury XP'}</button></div><div class="upgradeCard"><h3>More Infrastructure Coming</h3><div class="muted">Training, medical, scouting/analytics and facilities branches will use the same treasury without simply becoming automatic wins.</div></div></div>`})()}
+    <p class="muted">Bank XP without a rollover cap. Salaries, signing bonuses and franchise investments all compete for the same treasury. Every revenue-upgrade level permanently adds +5 XP to future annual funding.</p>
+    <div class="grid"><div class="statBox"><span class="label">CURRENT TREASURY</span><b>${Number(j.team.xp_budget||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LAST FINISH REWARD</span><b>+${Number(j.team.finish_reward||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LEGACY REVENUE LEVELS</span><b>${Number(j.team.revenue_level||0)}</b></div><div class="statBox"><span class="label">PLAYER DEVELOPMENT</span><b>+${(Number(j.team.development_bonus||0)*100).toFixed(2)}%</b></div></div>
+    ${(()=>{const costs=[50,65,80,100,125], branches=[
+      ['seating','Stadium Seating','Expand capacity, premium seating and game-day attendance.'],
+      ['concessions','Concessions','Improve food, beverage and ballpark sales operations.'],
+      ['marketing','Marketing','Grow the club brand, promotions and local fan reach.'],
+      ['sponsorships','Sponsorships','Build recurring commercial and partner revenue.'],
+      ['merchandising','Merchandising','Expand team merchandise and retail operations.'],
+      ['media','Media Operations','Grow broadcasts, digital coverage and club media revenue.']
+    ];return `<div class="upgradeGrid" style="margin-top:12px">${branches.map(([key,name,desc])=>{let lvl=Number(j.team[key+'_level']||0);return `<div class="upgradeCard"><h3>${name}</h3><div><b>Level ${lvl}/5</b> • +${lvl*5} XP/year</div><div class="muted">${desc}</div><div class="muted">Next level permanently adds +5 XP/year.</div><button class="btn" ${lvl>=5?'disabled':''} onclick="buyFranchiseUpgrade('${key}')">${lvl>=5?'MAX LEVEL':'Upgrade • '+costs[Math.min(4,lvl)]+' XP'}</button></div>`}).join('')}</div>`})()}
+
+    <h2 class="coachSection">Baseball Operations</h2>
+    <p class="muted">Permanent facilities improve how your organization develops and recovers without directly buying player ratings.</p>
+    ${(()=>{const costs=[50,65,80,100,125],tl=Number(j.team.training_level||0),rl=Number(j.team.recovery_level||0);return `<div class="upgradeGrid">
+      <div class="upgradeCard"><h3>Training Facility</h3><div><b>Level ${tl}/5</b> • Daily practice ${Number(0.25+tl*.01).toFixed(2)} XP</div><div class="muted">Each level adds +0.01 XP to every completed daily team practice.</div><button class="btn" ${tl>=5?'disabled':''} onclick="buyFacilityUpgrade('training')">${tl>=5?'MAX LEVEL':'Upgrade • '+costs[Math.min(4,tl)]+' XP'}</button></div>
+      <div class="upgradeCard"><h3>Recovery Center</h3><div><b>Level ${rl}/5</b> • +${rl*2} fatigue recovery/day</div><div class="muted">Pitchers recover faster between league days. Each level adds +2 fatigue recovery per day.</div><button class="btn" ${rl>=5?'disabled':''} onclick="buyFacilityUpgrade('recovery')">${rl>=5?'MAX LEVEL':'Upgrade • '+costs[Math.min(4,rl)]+' XP'}</button></div>
+    </div>`})()}
+    <h2 class="coachSection">Team Sponsorships</h2>
+    <p class="muted">A sponsorship costs 25 XP and gives every active player on the club a temporary +1 team modifier for the current season and the next season. It does not permanently change a player's trained attribute.</p>
+    ${(()=>{const active=j.sponsorships||[],attrs=[['ARM','Arm Equipment Partner'],['ACC','Precision Equipment Partner'],['FLD','Fielding Equipment Partner'],['REAC','Reaction Training Partner'],['SPD','Performance Footwear Partner']];return `<div class="upgradeGrid">${attrs.map(([a,n])=>{const x=active.find(z=>z.attribute===a);return `<div class="upgradeCard"><h3>${n}</h3><div><b>+1 ${a}</b> • 25 XP • 2 seasons</div>${x?`<div class="muted">ACTIVE • Seasons ${x.start_season}–${x.end_season}</div><button class="btn" disabled>ACTIVE</button>`:`<div class="muted">Applies while a player is on this team's active roster.</div><button class="btn" onclick="buyTeamSponsor('${a}')">Sign Sponsor • 25 XP</button>`}</div>`}).join('')}</div>`})()}
    </div>
    </div>`;
  if(window.brandPreview){updateBrandPreview();['brandName','brandLogo','brandPrimary','brandSecondary','brandAccent'].forEach(id=>document.querySelector('#'+id)?.addEventListener('input',updateBrandPreview));}
  }catch(e){coachHub.innerHTML=`<p class="red">${e.error||'Could not load coach interface'}</p>`}
 }
-async function buyFranchiseUpgrade(kind){try{const j=await api('/api/coach/franchise-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} upgraded to Level ${j.level}.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Upgrade failed'))}}
+async function buyFranchiseUpgrade(kind){try{const j=await api('/api/coach/franchise-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} upgraded to Level ${j.level}. +5 XP/year permanently.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Upgrade failed'))}}
+async function buyFacilityUpgrade(kind){try{const j=await api('/api/coach/facility-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} facility upgraded to Level ${j.level}.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Facility upgrade failed'))}}
+async function buyTeamSponsor(attribute){try{const j=await api('/api/coach/sponsor',{method:'POST',body:JSON.stringify({attribute})});alert(`Sponsor signed: +1 ${attribute} for Seasons ${j.start_season}–${j.end_season}.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Sponsorship failed'))}}
+
 function coachPane(id,b){switchPane('.subpane',id,b)}
 function playerOptions(arr,selected,multi=[]){return arr.map(x=>`<option value="${x.id}" ${(x.id==selected||multi.includes(x.id))?'selected':''}>${x.name} — ${x.primary_pos}</option>`).join('')}
+
+function coachPitchMetaRC49(p={}){
+ const r=p.recovery||{readiness:100,fatigue:0};
+ return `${escapeHtml(p.primary_pos||'P')} • #${Number(p.jersey_number||0)} • ${Number(r.readiness??100)}% ready${Number(r.fatigue||0)>0?` • ${Number(r.fatigue).toFixed(1)} fatigue`:' • fresh'}`;
+}
+function coachPitchCardRC49(i,id,P){
+ const p=P.find(x=>Number(x.id)===Number(id))||{};
+ const r=p.recovery||{readiness:100,fatigue:0};
+ return `<div class="coachPitchCard">
+   <div class="coachPitchTag">SP${i+1}</div>
+   <div class="coachPitchPortrait">${p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):''}</div>
+   <div class="coachPitchInfo"><b>${escapeHtml(p.name||'Select Starter')}</b><span>${p.id?coachPitchMetaRC49(p):'Rotation slot open'}</span><div class="coachReadiness"><i style="width:${Math.max(0,Math.min(100,Number(r.readiness??100)))}%"></i></div></div>
+   <select id="rot${i}" onchange="refreshPitchStaffRC49()">${i>=3?'<option value="">— Bullpen —</option>':''}${playerOptions(P,id)}</select>
+   <div class="coachOrderBtns"><button type="button" class="coachMove" onclick="moveStarterRC49(${i},-1)" ${i===0?'disabled':''}>▲</button><button type="button" class="coachMove" onclick="moveStarterRC49(${i},1)" ${i===4?'disabled':''}>▼</button></div>
+ </div>`;
+}
+function coachRecoveryCardRC49(p={}){
+ const r=p.recovery||{readiness:100,fatigue:0};
+ return `<div class="coachRecoveryCard">${typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):''}<div><b>${escapeHtml(p.name||'Pitcher')}</b><span>${Number(r.readiness??100)}% ready • ${Number(r.fatigue||0)>0?Number(r.fatigue).toFixed(1)+' fatigue':'fully recovered'}</span><div class="coachReadiness"><i style="width:${Math.max(0,Math.min(100,Number(r.readiness??100)))}%"></i></div></div></div>`;
+}
+function coachSingleRoleRC49(id,label,desc,value,P){
+ const p=P.find(x=>Number(x.id)===Number(value))||{};
+ return `<div class="coachRoleCard" data-role="${id}"><div class="coachRoleTop"><span class="coachPitchTag">${id}</span><div><b>${label}</b><small>${desc}</small></div></div><div class="coachRolePlayer"><div class="coachPitchPortrait">${p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):''}</div><div class="coachPitchInfo"><b>${escapeHtml(p.name||'Unassigned')}</b><span>${p.id?coachPitchMetaRC49(p):'Choose a pitcher'}</span></div></div><select id="bp${id}" onchange="refreshPitchStaffRC49()"><option value="">—</option>${playerOptions(P,value)}</select></div>`;
+}
+function moveStarterRC49(i,dir){
+ const j=i+dir;if(j<0||j>4)return;const a=document.querySelector('#rot'+i),b=document.querySelector('#rot'+j);if(!a||!b)return;const t=a.value;a.value=b.value;b.value=t;refreshPitchStaffRC49();
+}
+function refreshPitchStaffRC49(){
+ const P=window.__EBL_COACH_PITCHERS||[];
+ document.querySelectorAll('.coachPitchCard').forEach((card,i)=>{
+   const id=Number(document.querySelector('#rot'+i)?.value||0),p=P.find(x=>Number(x.id)===id)||{},r=p.recovery||{readiness:100,fatigue:0};
+   const portrait=card.querySelector('.coachPitchPortrait'),info=card.querySelector('.coachPitchInfo');
+   if(portrait)portrait.innerHTML=p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):'';
+   if(info)info.innerHTML=`<b>${escapeHtml(p.name||'Select Starter')}</b><span>${p.id?coachPitchMetaRC49(p):'Rotation slot open'}</span><div class="coachReadiness"><i style="width:${Math.max(0,Math.min(100,Number(r.readiness??100)))}%"></i></div>`;
+ });
+ document.querySelectorAll('.coachRoleCard').forEach(card=>{
+   const role=card.dataset.role,id=Number(document.querySelector('#bp'+role)?.value||0),p=P.find(x=>Number(x.id)===id)||{};
+   const portrait=card.querySelector('.coachPitchPortrait'),info=card.querySelector('.coachPitchInfo');
+   if(portrait)portrait.innerHTML=p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):'';
+   if(info)info.innerHTML=`<b>${escapeHtml(p.name||'Unassigned')}</b><span>${p.id?coachPitchMetaRC49(p):'Choose a pitcher'}</span>`;
+ });
+ const primary=['CL','SU1','SU2'].map(r=>Number(document.querySelector('#bp'+r)?.value||0)).filter(Boolean);
+ const warning=document.querySelector('#coachPitchWarningRC49'),dup=primary.length!==new Set(primary).size;
+ if(warning){warning.classList.toggle('hidden',!dup);warning.textContent=dup?'A pitcher is assigned to more than one primary late-inning role. Give CL, SU1, and SU2 unique pitchers for a clear bullpen hierarchy.':'';}
+}
+
+
+function depthCardRC50(pos,H,selected=[]){
+ const ids=Array.isArray(selected)?selected:[selected].filter(Boolean);
+ const top=H.find(p=>Number(p.id)===Number(ids[0]))||{};
+ return `<div class="coachDepthCard">
+   <div class="coachDepthHead"><span class="coachPitchTag">${pos}</span><div><b>${escapeHtml(top.name||'Set backups')}</b><small>${ids.length?`${ids.length} ranked backup${ids.length===1?'':'s'}`:'No backups ranked'}</small></div></div>
+   <div class="coachDepthPlayer">${top.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(top,'sm'):''}<div><b>${escapeHtml(top.name||'Open depth')}</b><span>${top.id?`${escapeHtml(top.primary_pos||'—')} • #${Number(top.jersey_number||0)}${top.overall!=null?` • OVR ${Number(top.overall)}`:''}`:'Choose players below'}</span></div></div>
+   <select id="depth_${pos}" multiple size="4" onchange="refreshDepthRC50()">${playerOptions(H,null,ids)}</select>
+ </div>`;
+}
+function benchRoleRC50(id,tag,title,desc,H,selected=[]){
+ const ids=Array.isArray(selected)?selected:[selected].filter(Boolean);
+ const top=H.find(p=>Number(p.id)===Number(ids[0]))||{};
+ return `<div class="coachBenchCard" data-bench-id="${id}"><div class="coachRoleTop"><span class="coachPitchTag">${tag}</span><div><b>${title}</b><small>${desc}</small></div></div><div class="coachDepthPlayer">${top.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(top,'sm'):''}<div><b>${escapeHtml(top.name||'No priority set')}</b><span>${top.id?`${escapeHtml(top.primary_pos||'—')} • #${Number(top.jersey_number||0)}`:'Rank options below'}</span></div></div><select id="${id}" multiple size="5" onchange="refreshDepthRC50()">${playerOptions(H,null,ids)}</select></div>`;
+}
+function refreshDepthRC50(){
+ const H=window.__EBL_COACH_HITTERS||[];
+ document.querySelectorAll('.coachDepthCard').forEach(card=>{
+   const sel=card.querySelector('select'),id=Number(sel?.selectedOptions?.[0]?.value||0),p=H.find(x=>Number(x.id)===id)||{};
+   const box=card.querySelector('.coachDepthPlayer');
+   if(box)box.innerHTML=`${p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):''}<div><b>${escapeHtml(p.name||'Open depth')}</b><span>${p.id?`${escapeHtml(p.primary_pos||'—')} • #${Number(p.jersey_number||0)}${p.overall!=null?` • OVR ${Number(p.overall)}`:''}`:'Choose players below'}</span></div>`;
+ });
+ document.querySelectorAll('.coachBenchCard').forEach(card=>{
+   const sel=card.querySelector('select'),id=Number(sel?.selectedOptions?.[0]?.value||0),p=H.find(x=>Number(x.id)===id)||{},box=card.querySelector('.coachDepthPlayer');
+   if(box)box.innerHTML=`${p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):''}<div><b>${escapeHtml(p.name||'No priority set')}</b><span>${p.id?`${escapeHtml(p.primary_pos||'—')} • #${Number(p.jersey_number||0)}`:'Rank options below'}</span></div>`;
+ });
+ const catcher=Number(document.querySelector('#backupC')?.value||0),warn=document.querySelector('#coachDepthWarningRC50');
+ if(warn){warn.classList.toggle('hidden',!!catcher);warn.textContent=catcher?'':'No backup catcher is assigned. Set one so the sim has a catcher option if the starter leaves the game.';}
+}
+
+
+function shiftSelectRC51(id,value){
+ const opts=['STANDARD','PULL','OPPOSITE','STRAIGHT_UP'];
+ const labels={STANDARD:'Standard',PULL:'Shade Pull Side',OPPOSITE:'Shade Opposite Field',STRAIGHT_UP:'Straight Up'};
+ return `<select id="${id}" onchange="refreshDefenseRC51()">${opts.map(x=>`<option value="${x}" ${x===value?'selected':''}>${labels[x]}</option>`).join('')}</select>`;
+}
+function refreshDefenseRC51(){
+ const label=v=>({STANDARD:'Standard',PULL:'Pull-side shade',OPPOSITE:'Opposite-field shade',STRAIGHT_UP:'Straight up'}[v]||v);
+ const d=document.querySelector('#defDefault')?.value||'STANDARD',l=document.querySelector('#defL')?.value||'STANDARD',r=document.querySelector('#defR')?.value||'STANDARD';
+ const c=!!document.querySelector('#cornersIn')?.checked,i=!!document.querySelector('#infieldIn')?.checked;
+ const box=document.querySelector('#coachDefenseSummaryRC51');
+ if(box)box.innerHTML=`<div><span>DEFAULT</span><b>${label(d)}</b></div><div><span>vs LHB</span><b>${label(l)}</b></div><div><span>vs RHB</span><b>${label(r)}</b></div><div><span>SITUATIONAL</span><b>${[c?'Corners in':'',i?'Infield in':''].filter(Boolean).join(' • ')||'Standard depth'}</b></div>`;
+}
+
+
+function coachGameDayRC52(j,lineup,rot,bp,def,H,P,next,opp,lineupReady,rotationReady){
+ const opponent=next?teamName(opp):'TBD';
+ const venue=next?(next.away_id===j.team.id?'AWAY':'HOME'):'—';
+ const starter=P.find(p=>Number(p.id)===Number(rot?.[0]))||{};
+ const closer=P.find(p=>Number(p.id)===Number(bp?.CL))||{};
+ const steal=j.strategy?.substitutions?.steal_aggression||'NORMAL';
+ const bunt=j.strategy?.substitutions?.bunt_aggression||'NORMAL';
+ const checks=[
+   ['Starting Nine',lineupReady,lineupReady?'9 hitters set':'Lineup needs attention','cRoster'],
+   ['Rotation',rotationReady,rotationReady?`${rot.length}-man rotation set`:'Choose 3–5 starters','cPitch'],
+   ['Bullpen',!!bp?.CL,bp?.CL?'Closer assigned':'Closer not assigned','cPitch'],
+   ['Offense',true,`${steal} steals • ${bunt} bunts`,'cDepth'],
+   ['Defense',!!def?.default_shift,def?.default_shift||'No field plan','cDefense']
+ ];
+ return `<div class="coachGameHero">
+   <div><span class="newsMeta">NEXT MATCHUP</span><h2>${next?`${venue==='AWAY'?'@':'vs'} ${escapeHtml(opponent)}`:'No Game Scheduled'}</h2><p class="muted">${next?`League Day ${next.league_day} • ${venue}`:'Your next opponent will appear here when the schedule is available.'}</p></div>
+   <div class="coachGameMark">${teamMark(j.team.id)}</div>
+ </div>
+ <div class="coachGameGrid coachGameGridRC54">
+   <div class="coachGameCard"><span>PROJECTED STARTER</span>${starter.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(starter,'sm'):''}<div><b>${escapeHtml(starter.name||'Not Set')}</b><small>${starter.id?coachPitchMetaRC49(starter):'Set SP1 in Pitching Staff'}</small></div></div>
+   <div class="coachGameCard"><span>LATE-INNING ARM</span>${closer.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(closer,'sm'):''}<div><b>${escapeHtml(closer.name||'Not Set')}</b><small>${closer.id?'Closer':'Assign a closer'}</small></div></div>
+   <div class="coachGameCard"><span>POSITION PLAYERS</span><div class="coachNineBadge">9</div><div><b>Starting Nine</b><small>No position-player bench or substitutions</small></div></div>
+ </div>
+ <div class="coachSection"><div class="coachPaneHead"><div><h3>Game Readiness</h3><p class="muted">Check the actual EBL game plan before the sim reaches your next game.</p></div><div class="coachReadyBadge ${checks.every(x=>x[1])?'ready':'needs'}">${checks.filter(x=>x[1]).length}/${checks.length} READY</div></div>
+ <div class="coachChecklist">${checks.map(([label,ok,detail,pane])=>`<button type="button" class="coachCheck ${ok?'ok':'needs'}" onclick="coachJumpRC52('${pane}')"><span>${ok?'✓':'!'}</span><div><b>${label}</b><small>${escapeHtml(String(detail))}</small></div><i>›</i></button>`).join('')}</div></div>
+ <div class="coachGamePlan">
+   <div><span>OFFENSIVE APPROACH</span><b>${escapeHtml(steal)} STEAL • ${escapeHtml(bunt)} BUNT</b></div>
+   <div><span>DEFENSIVE PLAN</span><b>${escapeHtml(def?.default_shift||'STANDARD')} • LHB ${escapeHtml(def?.vs_lhb||'STANDARD')} • RHB ${escapeHtml(def?.vs_rhb||'STANDARD')}</b></div>
+ </div>`;
+}
+function coachJumpRC52(id){
+ const pane=document.querySelector('#'+id);if(!pane)return;
+ document.querySelectorAll('#coachHub .subpane').forEach(x=>x.classList.remove('active'));pane.classList.add('active');
+ document.querySelectorAll('#coachHub .subtab').forEach(x=>x.classList.remove('active'));
+ const btn=[...document.querySelectorAll('#coachHub .subtab')].find(x=>(x.getAttribute('onclick')||'').includes(`'${id}'`));if(btn)btn.classList.add('active');
+ pane.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function lineupRowHTML(i,id,H,fieldPositions={}){
  const posList=['C','1B','2B','3B','SS','LF','CF','RF','DH'];
  const savedPos=Object.keys(fieldPositions||{}).find(p=>Number(fieldPositions[p])===Number(id))||posList[i];
- return `<div class="lineupRow"><b>${i+1}</b><select id="fieldPos${i}">${posList.map(p=>`<option ${p===savedPos?'selected':''}>${p}</option>`).join('')}</select><select id="bat${i}">${playerOptions(H,id)}</select></div>`;
+ const player=H.find(p=>Number(p.id)===Number(id))||H[i]||{};
+ return `<div class="coachLineupCard" data-lineup-row="${i}">
+   <div class="coachOrder">${i+1}</div>
+   <div class="coachMiniPortrait">${typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(player,'sm'):''}</div>
+   <div class="coachLineupInfo">
+     <b>${escapeHtml(player.name||'Select Player')}</b>
+     <span>${escapeHtml(player.primary_pos||'—')} • #${Number(player.jersey_number||0)}${player.overall!=null?` • OVR ${Number(player.overall)}`:''}</span>
+   </div>
+   <select id="fieldPos${i}" aria-label="Defensive position for batting slot ${i+1}">${posList.map(p=>`<option ${p===savedPos?'selected':''}>${p}</option>`).join('')}</select>
+   <select id="bat${i}" onchange="refreshCoachLineupCards()" aria-label="Player batting ${i+1}">${playerOptions(H,id)}</select>
+   <div class="coachOrderBtns">
+     <button type="button" class="coachMove" onclick="moveCoachBat(${i},-1)" ${i===0?'disabled':''}>▲</button>
+     <button type="button" class="coachMove" onclick="moveCoachBat(${i},1)" ${i===8?'disabled':''}>▼</button>
+   </div>
+ </div>`;
+}
+function moveCoachBat(i,dir){
+ const j=i+dir;if(j<0||j>8)return;
+ const a=document.querySelector('#bat'+i),b=document.querySelector('#bat'+j);
+ if(!a||!b)return;
+ const t=a.value;a.value=b.value;b.value=t;
+ refreshCoachLineupCards();
+}
+function refreshCoachLineupCards(){
+ document.querySelectorAll('.coachLineupCard').forEach((row,i)=>{
+   const sel=document.querySelector('#bat'+i);
+   const opt=sel?.selectedOptions?.[0];
+   const id=Number(sel?.value||0);
+   const p=(window.__EBL_COACH_HITTERS||[]).find(x=>Number(x.id)===id)||{};
+   const info=row.querySelector('.coachLineupInfo');
+   const portrait=row.querySelector('.coachMiniPortrait');
+   if(info)info.innerHTML=`<b>${escapeHtml(p.name||opt?.textContent||'Select Player')}</b><span>${escapeHtml(p.primary_pos||'—')} • #${Number(p.jersey_number||0)}${p.overall!=null?` • OVR ${Number(p.overall)}`:''}</span>`;
+   if(portrait&&typeof eblPublicPortraitV28==='function')portrait.innerHTML=eblPublicPortraitV28(p,'sm');
+ });
 }
 function shiftRow(label,id,val){let opts=['STANDARD','PULL','OPPO','NO_DOUBLES','BUNT_DEFENSE','INFIELD_IN'];return `<div class="roleRow"><b>${label}</b><select id="${id}">${opts.map(x=>`<option ${x===val?'selected':''}>${x.replaceAll('_',' ')}</option>`).join('')}</select></div>`}
 async function saveCoachLineup(){
@@ -3715,6 +4027,21 @@ function depthRow(pos,H,selected){
  return `<div class="roleRow"><b>${pos}</b><select id="depth_${pos.replace('1','one').replace('2','two').replace('3','three')}" multiple size="3">${playerOptions(H,null,selected)}</select></div>`;
 }
 function depthId(pos){return 'depth_'+pos.replace('1','one').replace('2','two').replace('3','three')}
+async function saveOffenseRC54(){
+ const current=window.__EBL_COACH_STRATEGY||{};
+ const substitutions={
+   steal_aggression:document.getElementById('stealAgg')?.value||'NORMAL',
+   bunt_aggression:document.getElementById('buntAgg')?.value||'NORMAL'
+ };
+ await api('/api/coach/set-strategy',{method:'POST',body:JSON.stringify({
+   bullpen:current.bullpen||{},
+   defense:current.defense||{},
+   bench:{},
+   substitutions
+ })});
+ toast('Offensive strategy saved');
+ loadCoachHub();
+}
 async function saveDepthSubs(){
  try{
   let j=await api('/api/coach/team');
@@ -4360,6 +4687,7 @@ function renderGamecast(){
         <div class="gcBroadcast">
           ${gcScoreboardMarkup()}
           <div class="gcLineups">${gamecastLineupStrip(GG.away_id,teamName(GG.away_id))}${gamecastLineupStrip(GG.home_id,teamName(GG.home_id))}</div>
+          <div id="gcStrategyLive" class="gcStrategyLive"><span>MANAGER DECISIONS</span><b>Game plan loaded</b></div>
           <div id="gcFlash" class="gcFlash"></div>
         </div>
         <div class="gcgrid">
@@ -4382,7 +4710,7 @@ function renderGamecast(){
 
 function renderFullPlayByPlay(){
     const plays=(GG.events || [])
-        .map(e=>`<div class="play">${describe(e)}</div>`)
+        .map(e=>`<div class="play${gcStrategyClassRC53(e)}">${describe(e)}</div>`)
         .reverse()
         .join('');
 
@@ -4414,7 +4742,7 @@ function instant(){
 }
 function step(){
  if(gi>=GG.events.length){clearInterval(timer);return}
- const e=GG.events[gi++],d=document.createElement('div');d.className='play';d.textContent=describe(e);feed.prepend(d);
+ const e=GG.events[gi++],d=document.createElement('div');d.className='play'+gcStrategyClassRC53(e);d.textContent=describe(e);feed.prepend(d);
  if(e.score)GC_STATE.score=[Number(e.score[0]||0),Number(e.score[1]||0)];
  if(e.final_score)GC_STATE.score=[Number(e.final_score[0]||0),Number(e.final_score[1]||0)];
  if(e.inning)GC_STATE.inning=Number(e.inning);if(e.half&&['TOP','BOT'].includes(e.half))GC_STATE.half=e.half;
@@ -4436,14 +4764,35 @@ function step(){
  if(e.type==='STEAL_ATTEMPT'&&e.success&&GC_STATE.runner){GC_STATE.base=Math.min(3,(GC_STATE.base||1)+1);gcFlash(`#${gamecastPlayerById(e.runner_id)?.jersey_number??''} ${gamecastPlayerById(e.runner_id)?.name||'Runner'} steals a base!`,'run')}
  if((e.type==='PICKOFF')||(e.type==='OUT'&&e.out_type==='Caught Stealing')){GC_STATE.runner=null;GC_STATE.base=0}
  if(e.type==='RUN'){GC_STATE.runner=null;GC_STATE.base=0;gcFlash(`${Number(e.runs||1)>1?Number(e.runs)+' RUNS':'RUN'} SCORES • ${GC_STATE.score[0]}-${GC_STATE.score[1]}`,'run');gcBanner('RUN SCORES',true)}
- if(e.type==='PITCHING_CHANGE'){const p=gamecastPlayerById(e.pitcher_id);gcFlash(`Pitching change • ${teamMark(e.team,true)} ${p?`#${p.jersey_number??''} ${escapeHtml(p.name)}`:escapeHtml(e.role||'Reliever')} enters the game`,'change')}
+ if(e.type==='PITCHING_CHANGE'){const p=gamecastPlayerById(e.pitcher_id);gcFlash(`Pitching change • ${teamMark(e.team,true)} ${p?`#${p.jersey_number??''} ${escapeHtml(p.name)}`:escapeHtml(e.role||'Reliever')} enters the game`,'change');gcStrategyDecisionRC53(e)}
+ if(['DEFENSIVE_SHIFT','BUNT_ATTEMPT','STEAL_ATTEMPT'].includes(e.type))gcStrategyDecisionRC53(e);
  if(e.type==='GREAT_PLAY'){const p=gamecastPlayerById(e.fielder_id);gcFlash(`⭐ GREAT PLAY${p?` • #${p.jersey_number??''} ${escapeHtml(p.name)}`:''}`,'defense');gcBanner('GREAT PLAY',true)}
  if(e.type==='INNING_END'){GC_STATE.outs=0;GC_STATE.balls=0;GC_STATE.strikes=0;GC_STATE.runner=null;GC_STATE.base=0}
  if(e.type==='GAME_END'){gcFlash(`FINAL • ${teamName(GG.away_id)} ${GC_STATE.score[0]} — ${GC_STATE.score[1]} ${teamName(GG.home_id)}`,'run');gcBanner('FINAL',true)}
  gcUpdateScoreboard();
 }
 
-function describe(e){switch(e.type){case'GAME_START':return`${e.away_name} at ${e.home_name}`;case'PA_START':{const b=gamecastPlayerById(e.batter_id),p=gamecastPlayerById(e.pitcher_id);return`${e.half} ${e.inning}: #${b?.jersey_number??'—'} ${e.batter} vs #${p?.jersey_number??'—'} ${e.pitcher}`;}case'PITCH':return`${e.pitch_type} ${e.velocity} MPH — ${e.call}`;case'BALL_IN_PLAY':return`${e.result}: ${e.exit_velocity} MPH, ${e.launch_angle}°`;case'PITCHING_CHANGE':return`Pitching change: ${teamName(e.team)} brings in ${e.role}`;case'PINCH_HITTER':return`Pinch hitter enters for player ${e.replaced_id}`;case'PINCH_RUNNER':return`Pinch runner enters for player ${e.replaced_id}`;case'DEFENSIVE_SHIFT':return`${teamName(e.team)} uses ${e.mode.replaceAll('_',' ')} alignment`;case'STEAL_ATTEMPT':return`Steal attempt — ${e.success?'SAFE':'OUT'}`;case'PICKOFF':return`Runner picked off`; case'BUNT_ATTEMPT':return`Bunt attempt — ${e.success?'successful':'out recorded'}`;case'DEFENSIVE_REPLACEMENT_WINDOW':return`${teamName(e.team)} goes to late-inning defensive replacements`;case'OUT':return`${e.out_type} — ${e.outs} out(s)`;case'RUN':return`Run scores! ${e.score[0]}-${e.score[1]}`;case'PA_END':return`PA: ${e.result}`;case'INNING_END':return`End ${e.half} ${e.inning}`;case'GAME_END':return`FINAL ${e.final_score[0]}-${e.final_score[1]}`;default:return e.type}}
+
+function gcStrategyDecisionRC53(e){
+ const el=document.getElementById('gcStrategyLive');if(!el)return;
+ const player=id=>gamecastPlayerById(id),name=id=>{const p=player(id);return p?`#${p.jersey_number??'—'} ${p.name}`:'player'};
+ let label='MANAGER DECISION',text='';
+ if(e.type==='PITCHING_CHANGE')text=`${teamName(e.team)} • ${e.role||'RP'} ${name(e.pitcher_id)} enters${e.reason==='STARTER_HOOK'?' after starter hook':''}`;
+ if(e.type==='PINCH_HITTER')text=`${teamName(e.team)} • Pinch hit: ${name(e.player_id)} for ${name(e.replaced_id)}`;
+ if(e.type==='PINCH_RUNNER')text=`${teamName(e.team)} • Pinch run: ${name(e.player_id)} for ${name(e.replaced_id)}`;
+ if(e.type==='DEFENSIVE_SHIFT')text=`${teamName(e.team)} • ${String(e.mode||'STANDARD').replaceAll('_',' ')} alignment`;
+ if(e.type==='DEFENSIVE_REPLACEMENT_WINDOW')text=`${teamName(e.team)} • Late-inning defensive replacement plan activated`;
+ if(e.type==='BUNT_ATTEMPT')text=`Offensive call • Bunt ${e.success?'executed':'attempted'}`;
+ if(e.type==='STEAL_ATTEMPT')text=`Baserunning call • Steal attempt ${e.success?'successful':'unsuccessful'}`;
+ if(!text)return;
+ el.innerHTML=`<span>${label}</span><b>${escapeHtml(text)}</b>`;
+ el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');
+}
+function gcStrategyClassRC53(e){
+ return ['PITCHING_CHANGE','DEFENSIVE_SHIFT','BUNT_ATTEMPT','STEAL_ATTEMPT'].includes(e?.type)?' strategy':'';
+}
+
+function describe(e){switch(e.type){case'GAME_START':return`${e.away_name} at ${e.home_name}`;case'PA_START':{const b=gamecastPlayerById(e.batter_id),p=gamecastPlayerById(e.pitcher_id);return`${e.half} ${e.inning}: #${b?.jersey_number??'—'} ${e.batter} vs #${p?.jersey_number??'—'} ${e.pitcher}`;}case'PITCH':return`${e.pitch_type} ${e.velocity} MPH — ${e.call}`;case'BALL_IN_PLAY':return`${e.result}: ${e.exit_velocity} MPH, ${e.launch_angle}°`;case'PITCHING_CHANGE':{const p=gamecastPlayerById(e.pitcher_id);return`Pitching change: ${teamName(e.team)} brings in ${p?`#${p.jersey_number??'—'} ${p.name}`:(e.role||'reliever')} (${e.role||'RP'})`;}case'PINCH_HITTER':{const p=gamecastPlayerById(e.player_id),r=gamecastPlayerById(e.replaced_id);return`Pinch hitter: ${p?`#${p.jersey_number??'—'} ${p.name}`:'Bench bat'}${r?` for #${r.jersey_number??'—'} ${r.name}`:''}`;}case'PINCH_RUNNER':{const p=gamecastPlayerById(e.player_id),r=gamecastPlayerById(e.replaced_id);return`Pinch runner: ${p?`#${p.jersey_number??'—'} ${p.name}`:'Bench runner'}${r?` for #${r.jersey_number??'—'} ${r.name}`:''}`;}case'DEFENSIVE_SHIFT':return`${teamName(e.team)} uses ${e.mode.replaceAll('_',' ')} alignment`;case'STEAL_ATTEMPT':return`Steal attempt — ${e.success?'SAFE':'OUT'}`;case'PICKOFF':return`Runner picked off`; case'BUNT_ATTEMPT':return`Bunt attempt — ${e.success?'successful':'out recorded'}`;case'DEFENSIVE_REPLACEMENT_WINDOW':return`${teamName(e.team)} goes to late-inning defensive replacements`;case'OUT':return`${e.out_type} — ${e.outs} out(s)`;case'RUN':return`Run scores! ${e.score[0]}-${e.score[1]}`;case'PA_END':return`PA: ${e.result}`;case'INNING_END':return`End ${e.half} ${e.inning}`;case'GAME_END':return`FINAL ${e.final_score[0]}-${e.final_score[1]}`;default:return e.type}}
 loadPolicies();
 (async()=>{if(!(await handleAccountAction()))await refresh()})();
 setInterval(()=>{if(ME){loadChat('EBL');loadChat('TEAM');loadNotifications()}},15000);
@@ -4906,16 +5255,19 @@ function eblSavedIdentityRC36(raw={}){
     throws:String(pick(raw.throws,merged.throws,'R')).toUpperCase(),
     franchise_id:pick(raw.franchise_id,raw.team_id,merged.franchise_id,merged.team_id,null),
     jersey_number:n(24,raw.jersey_number,raw.number,merged.jersey_number),
-    face_id:n(1,raw.face_id,merged.face_id),
-    skin_color_id:n(1,raw.skin_color_id,merged.skin_color_id),
-    hair_id:n(1,raw.hair_id,merged.hair_id),
-    hair_color_id:n(3,raw.hair_color_id,merged.hair_color_id),
-    facial_hair_id:n(1,raw.facial_hair_id,merged.facial_hair_id),
-    eye_color_id:n(6,raw.eye_color_id,merged.eye_color_id),
-    eye_black_id:n(1,raw.eye_black_id,merged.eye_black_id),
-    eyewear_id:n(1,raw.eyewear_id,raw.goggles_id,merged.eyewear_id,merged.goggles_id),
-    chain_id:n(1,raw.chain_id,merged.chain_id),
-    sleeve_id:n(1,raw.sleeve_id,merged.sleeve_id)
+    // Saved creator appearance is authoritative. Team/roster payloads can still
+    // contain legacy/default top-level cosmetic columns; do not let those erase
+    // a human player's saved look when rendering the clubhouse roster.
+    face_id:n(1,saved.face_id,appearance.face_id,avatar.face_id,raw.face_id),
+    skin_color_id:n(1,saved.skin_color_id,appearance.skin_color_id,avatar.skin_color_id,raw.skin_color_id),
+    hair_id:n(1,saved.hair_id,appearance.hair_id,avatar.hair_id,raw.hair_id),
+    hair_color_id:n(3,saved.hair_color_id,appearance.hair_color_id,avatar.hair_color_id,raw.hair_color_id),
+    facial_hair_id:n(1,saved.facial_hair_id,appearance.facial_hair_id,avatar.facial_hair_id,raw.facial_hair_id),
+    eye_color_id:n(6,saved.eye_color_id,appearance.eye_color_id,avatar.eye_color_id,raw.eye_color_id),
+    eye_black_id:n(1,saved.eye_black_id,appearance.eye_black_id,avatar.eye_black_id,raw.eye_black_id),
+    eyewear_id:n(1,saved.eyewear_id,saved.goggles_id,appearance.eyewear_id,appearance.goggles_id,avatar.eyewear_id,avatar.goggles_id,raw.eyewear_id,raw.goggles_id),
+    chain_id:n(1,saved.chain_id,appearance.chain_id,avatar.chain_id,raw.chain_id),
+    sleeve_id:n(1,saved.sleeve_id,appearance.sleeve_id,avatar.sleeve_id,raw.sleeve_id)
   };
 }
 
@@ -5130,6 +5482,7 @@ function eblRC38Pools(){
   const add=x=>{ if(x&&typeof x==='object') pool.push(x); };
   try{ if(typeof PLAYER!=='undefined') add(PLAYER); }catch(_){}
   try{ if(typeof ACTIVE_PLAYERS!=='undefined'&&Array.isArray(ACTIVE_PLAYERS)) ACTIVE_PLAYERS.forEach(add); }catch(_){}
+  try{ if(typeof TEAM_ROSTER!=='undefined'&&Array.isArray(TEAM_ROSTER)) TEAM_ROSTER.forEach(add); }catch(_){}
   try{
     if(typeof LEAGUE!=='undefined'&&LEAGUE){
       if(Array.isArray(LEAGUE.players)) LEAGUE.players.forEach(add);
@@ -6911,6 +7264,26 @@ window.EBL_CREATOR_FACE_GEOMETRY_V19={
 })();
 </script>
 
+
+<script id="eblTeamHumanAvatarRC47">
+window.EBL_TEAM_HUMAN_AVATAR_RC47={
+  version:'RC47',
+  fix:'hydrate-all-human-team-roster-players-from-saved-public-profile-before-render',
+  canonicalPoolIncludesTeamRoster:true
+};
+</script>
+
+
+<script id="coachHudBuildRC48">
+window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
+</script>
+
+<script id="coachHudBuildRC49">window.EBL_COACH_HUD_BUILD='RC49_PITCHING_STAFF';</script>
+<script id="coachHudBuildRC50">window.EBL_COACH_HUD_BUILD='RC50_DEPTH_BENCH';</script>
+<script id="coachHudBuildRC51">window.EBL_COACH_HUD_BUILD='RC51_DEFENSIVE_STRATEGY';</script>
+<script id="coachHudBuildRC52">window.EBL_COACH_HUD_BUILD='RC52_GAME_DAY';</script>
+<script id="gameCastCoachBuildRC53">window.EBL_GAMECAST_COACH_BUILD='RC53_STRATEGY_VISIBILITY';</script>
+<script id="eblNoBenchBuildRC54">window.EBL_ROSTER_MODEL='RC54_NO_POSITION_PLAYER_BENCH';</script>
 </body></html>
 
 <!-- EBL PLAYER CREATOR STUDIO V20 — tabbed sports-game creator -->
