@@ -1887,18 +1887,14 @@ def previous_team_salary(c,player_id,franchise_id):
     return round(float(r["salary"]),2) if r else None
 
 def player_salary_floor(c,player_id):
-    """RC68: veteran free-agent floor is based on completed service seasons.
+    """RC71: veteran free-agent floor is based on completed service seasons.
 
     Rookie/0 completed seasons: .30. Each completed season adds .01, capped
     at a .40 minimum after 10 seasons. Previous oversized contracts do not
     permanently poison the player's market; service time still prevents
     veteran superteams from signing everyone at rookie minimum.
     """
-    r=c.execute(
-        "SELECT COUNT(*) seasons FROM player_season_history WHERE player_id=?",
-        (int(player_id),)
-    ).fetchone()
-    completed=int(r["seasons"] or 0) if r else 0
+    completed=player_seasons_completed(c,player_id)
     return round(SALARY_MIN + min(completed,10)*0.01,2)
 
 def minimum_offer_salary(c,player_id,franchise_id=None):
@@ -6825,7 +6821,7 @@ class H(BaseHTTPRequestHandler):
                                 })
                                 notify_user(c,pl["user_id"],"CONTRACT","Contract expired",f"{pl['name']} is now an EBL free agent. Your former club will send a return offer for the new season.",str(pid))
                     else:
-                        next_salary=round(float(con["salary"] or SALARY_MIN)+0.01,2)
+                        next_salary=round(float(con["salary"] or SALARY_MIN)+0.02,2)
                         c.execute("UPDATE contracts SET years_remaining=?,salary=? WHERE player_id=?",(remaining,next_salary,pid))
                         summary["contracts_advanced"]+=1
 
