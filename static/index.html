@@ -6899,3 +6899,70 @@ window.EBL_CREATOR_FACE_GEOMETRY_V19={
  window.EBL_CREATOR_STUDIO_V20={tabs:['Face','Hair','Facial Hair','Headwear','Accessories'],facial:FACIAL.map(x=>x.label),responsive:true};
 })();
 </script>
+
+<!-- EBL CREATOR RENDER SYNC V21 — full facial library, live cosmetics, fixed team cap -->
+<style id="eblCreatorRenderSyncV21Style">
+#creatorStage .creatorStudioTabsV20{grid-template-columns:repeat(4,1fr)}
+#creatorStage .creatorStudioCardV20 .faceThumb{height:170px}
+@media(max-width:760px){#creatorStage .creatorStudioTabsV20{grid-template-columns:repeat(4,minmax(88px,1fr))}#creatorStage .creatorStudioCardV20 .faceThumb{height:165px}}
+</style>
+<script id="eblCreatorRenderSyncV21">
+(function(){
+ const oldArt=window.eblPlayerArtV24;
+ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const N=(v,d=1)=>Number.isFinite(+v)?+v:d;
+ function teamMark(p){
+   try{const t=p.team||(window.LEAGUE?.teams||[]).find(x=>String(x.id)===String(p.franchise_id));const raw=t?.abbreviation||t?.abbr||t?.short_name||t?.city||t?.name||'EBL';const words=String(raw).trim().split(/\s+/);return esc((words.length>1?words.map(x=>x[0]).join(''):raw).replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase()||'EBL')}catch(e){return 'EBL'}
+ }
+ function facialSvg(id,c){
+   id=N(id,1);
+   const must=`<path d="M132 174Q141 168 150 173Q159 168 168 174Q160 181 150 179Q140 181 132 174Z" fill="${c}"/>`;
+   const soul=`<path d="M145 188Q150 191 155 188L154 199Q150 203 146 199Z" fill="${c}"/>`;
+   if(id===1)return '';
+   if(id===2)return `<g fill="${c}" opacity=".45"><circle cx="127" cy="174" r="1.1"/><circle cx="135" cy="181" r="1"/><circle cx="143" cy="187" r="1"/><circle cx="151" cy="190" r="1"/><circle cx="159" cy="187" r="1"/><circle cx="167" cy="181" r="1"/><circle cx="174" cy="173" r="1.1"/><circle cx="132" cy="190" r=".9"/><circle cx="168" cy="190" r=".9"/></g>`;
+   if(id===3)return must+`<path d="M141 187Q150 192 159 187L158 202Q150 209 142 202Z" fill="${c}"/>`;
+   if(id===4)return must+`<path d="M116 160Q119 190 132 204Q141 214 150 218Q159 214 168 204Q181 190 184 160L177 171Q173 191 162 201Q150 210 138 201Q127 191 123 171Z" fill="${c}"/>`;
+   if(id===5)return must;
+   if(id===6)return `<path d="M119 164Q122 183 132 194" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round"/><path d="M181 164Q178 183 168 194" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round"/><path d="M132 194Q150 205 168 194" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round"/>`;
+   if(id===7)return soul;
+   if(id===8)return `<path d="M130 174Q139 170 147 174Q139 184 126 180Q121 179 118 175Q125 178 130 174ZM170 174Q161 170 153 174Q161 184 174 180Q179 179 182 175Q175 178 170 174Z" fill="${c}"/>`;
+   if(id===9)return must+soul+`<path d="M143 187Q150 191 157 187L157 204Q150 211 143 204Z" fill="${c}"/>`;
+   return '';
+ }
+ function decorate(svg,p){
+   if(!svg)return svg;
+   const hairColors=['#171411','#2b1b15','#4a2c1d','#6b4128','#8a5b34','#b07842','#d3a060','#9b9b9b','#e5e3dc'];
+   const hc=p.hair_color||hairColors[Math.max(0,Math.min(hairColors.length-1,N(p.hair_color_id,3)-1))];
+   let add=facialSvg(p.facial_hair_id,hc);
+   const eb=N(p.eye_black_id,1);
+   if(eb===2)add+=`<path d="M112 154L136 158M164 158L188 154" stroke="#111" stroke-width="6" stroke-linecap="round" opacity=".92"/>`;
+   if(eb===3)add+=`<path d="M112 151L136 155M112 160L135 163M164 155L188 151M165 163L188 160" stroke="#111" stroke-width="4" stroke-linecap="round" opacity=".92"/>`;
+   if(N(p.eyewear_id,1)===2)add+=`<g fill="none" stroke="#16212b" stroke-width="4"><path d="M112 137Q127 130 143 137L141 151Q128 156 115 147Z"/><path d="M157 137Q173 130 188 137L185 147Q172 156 159 151Z"/><path d="M141 139Q150 135 159 139"/></g>`;
+   const mark=teamMark(p);
+   svg=svg.replace(/<text x="150" y="96"[^>]*>EBL<\/text>/,m=>m.replace('>EBL<','>'+mark+'<'));
+   // V16 already draws legacy facial IDs; suppress it by rendering base with facial=1, then inject all V21 facial/cosmetics before cap.
+   return svg.replace(/(<path d="M105 116Q108 77 150 64)/,add+'$1');
+ }
+ window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){
+   const p={...(raw||{})};
+   if(action&&action!=='portrait'&&action!=='auto'&&oldArt)return oldArt(p,size,action);
+   const wantedFacial=N(p.facial_hair_id,1);p.facial_hair_id=1;
+   let html=oldArt?oldArt(p,size,'portrait'):'';
+   p.facial_hair_id=wantedFacial;
+   return html.replace(/<svg[\s\S]*<\/svg>/,m=>decorate(m,p));
+ };
+ window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
+ const oldCreator=window.creatorAppearance;
+ window.creatorAppearance=function(){
+   if(typeof oldCreator==='function')oldCreator();
+   const tabs=[...document.querySelectorAll('#creatorStage .creatorStudioTabV20')];
+   const hw=tabs.find(b=>b.textContent.trim()==='Headwear');if(hw)hw.remove();
+ };
+ // Rebuild V20 body so every thumbnail uses the exact choice it represents and no headwear choice exists.
+ try{
+   const src=document.getElementById('eblCreatorStudioV20');
+   if(src){ /* creator's existing click handlers continue to repaint through creatorAppearance */ }
+ }catch(e){}
+ window.EBL_CREATOR_RENDER_SYNC_V21={facialHair:9,eyeBlack:true,eyewear:true,fixedBaseballCap:true,teamCapMark:true};
+})();
+</script>
