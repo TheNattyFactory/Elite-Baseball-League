@@ -6864,6 +6864,53 @@ window.EBL_CREATOR_FACE_GEOMETRY_V19={
 };
 </script>
 
+
+
+<!-- EBL CANONICAL PLAYER PORTRAIT V24 — one saved identity renderer everywhere -->
+<style id="eblCanonicalPortraitV24Style">
+.eblCanonicalPortraitV24{display:block;min-width:0}
+.eblCanonicalPortraitV24>svg{display:block;width:100%;height:100%}
+.eblIdentityMiniV22__art .eblPlayerArtV24,.eblPlayerBylineV25 .eblPlayerArtV24{flex:0 0 auto}
+</style>
+<script id="eblCanonicalPortraitV24">
+(function(){
+ function full(raw){
+   try{return typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{})}catch(e){return raw||{}}
+ }
+ function art(raw,size='md',action='portrait'){
+   const p=full(raw);
+   return typeof window.eblPlayerArtV24==='function'?window.eblPlayerArtV24(p,size,action):'';
+ }
+ // Legacy calls now terminate at the same renderer used by Player Creator / Live Preview.
+ window.eblAvatarHtml=function(raw,size='card'){
+   const map={mini:'xs',sm:'sm',card:'md',hero:'lg',lg:'lg'};
+   return art(raw,map[size]||'md','portrait');
+ };
+ window.playerPortraitMarkup=function(raw,pose='auto'){
+   const p=full(raw), action=(pose&&pose!=='auto'&&pose!=='portrait')?pose:'portrait';
+   return `<div class="playerPortrait playerPortraitV27" data-pos="#${Number(p.jersey_number??24)} • ${typeof escapeHtml==='function'?escapeHtml(p.primary_pos||'EBL'):(p.primary_pos||'EBL')}">${art(p,'lg',action)}</div>`;
+ };
+ window.eblPublicPortraitV28=function(raw={},size='lg'){return art(raw,size,'portrait')};
+ window.eblIdentityPortraitV22=function(raw={},cls=''){return `<div class="eblIdentityPortrait ${typeof escapeHtml==='function'?escapeHtml(cls):cls}">${art(raw,'lg','portrait')}</div>`};
+ window.eblIdentityMiniV22=function(raw={},subtitle=''){
+   const p=full(raw), sub=subtitle||p.primary_pos||'';
+   const esc=typeof escapeHtml==='function'?escapeHtml:(x=>String(x??''));
+   return `<span class="eblIdentityMiniV22"><span class="eblIdentityMiniV22__art">${art(p,'sm','portrait')}</span><span class="eblIdentityMiniV22__copy"><b>${esc(p.name||'Player')}</b><small>${esc(sub)}</small></span></span>`;
+ };
+ window.eblPlayerBylineV25=function(raw={},opts={}){
+   const p=full(raw), esc=typeof escapeHtml==='function'?escapeHtml:(x=>String(x??''));
+   const sub=opts.subtitle||opts.sub||p.primary_pos||'';
+   return `<span class="eblPlayerBylineV25">${art(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${esc(p.name||p.player_name||'Player')}</strong>${sub?`<span>${esc(sub)}</span>`:''}</span></span>`;
+ };
+ window.EBL_CANONICAL_PLAYER_PORTRAIT_V24={version:'V24',renderer:'eblPlayerArtV24',surfaces:['creator','live-preview','home','player-hq','roster','public-profile','gamecast'],teamIdentity:true,savedAppearance:true};
+ function repaint(){
+   try{if(typeof renderHome==='function')renderHome()}catch(e){}
+   try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(repaint,180),{once:true});else setTimeout(repaint,180);
+})();
+</script>
+
 </body></html>
 
 <!-- EBL PLAYER CREATOR STUDIO V20 — tabbed sports-game creator -->
@@ -6964,5 +7011,89 @@ window.EBL_CREATOR_FACE_GEOMETRY_V19={
    if(src){ /* creator's existing click handlers continue to repaint through creatorAppearance */ }
  }catch(e){}
  window.EBL_CREATOR_RENDER_SYNC_V21={facialHair:9,eyeBlack:true,eyewear:true,fixedBaseballCap:true,teamCapMark:true};
+})();
+</script>
+
+<!-- EBL CREATOR FACIAL DETAIL PASS V22 -->
+<style id="eblCreatorFacialDetailV22Style">
+/* Keep the successful two-up mobile preview size. */
+#creatorStage .creatorStudioCardV20 .faceThumb{overflow:hidden}
+</style>
+<script id="eblCreatorFacialDetailV22">
+(function(){
+ const prior=window.eblPlayerArtV24;
+ const N=(v,d=1)=>Number.isFinite(+v)?+v:d;
+ const HAIR=['#171411','#2b1b15','#4a2c1d','#6b4128','#8a5b34','#b07842','#d3a060','#9b9b9b','#e5e3dc'];
+ function color(p){return p.hair_color||HAIR[Math.max(0,Math.min(HAIR.length-1,N(p.hair_color_id,3)-1))]}
+ function art(id,c){
+   id=N(id,1);
+   const must=`<path d="M132 174 Q140 168 150 173 Q160 168 168 174 Q160 181 150 179 Q140 181 132 174Z" fill="${c}"/>`;
+   const soul=`<path d="M145 188 Q150 191 155 188 L154 198 Q150 202 146 198Z" fill="${c}"/>`;
+   if(id===1)return '';
+   if(id===2)return `<g fill="${c}" opacity=".55">${[[123,171],[129,177],[136,182],[143,187],[150,189],[157,187],[164,182],[171,177],[177,171],[130,189],[138,194],[150,196],[162,194],[170,189]].map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="1.15"/>`).join('')}</g>`;
+   if(id===3)return must+`<path d="M141 187 Q150 192 159 187 L158 201 Q150 207 142 201Z" fill="${c}"/>`;
+   if(id===5)return must;
+   if(id===4)return must+`<path d="M119 160 Q120 181 130 196 Q139 208 150 212 Q161 208 170 196 Q180 181 181 160 L175 171 Q171 190 161 199 Q150 207 139 199 Q129 190 125 171Z" fill="${c}"/>`+`<path d="M128 184 Q150 199 172 184 L166 201 Q150 214 134 201Z" fill="${c}"/>`;
+   if(id===7)return `<path d="M120 163 Q122 181 132 194" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round"/><path d="M180 163 Q178 181 168 194" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round"/><path d="M132 194 Q150 204 168 194" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round"/>`;
+   if(id===11)return soul;
+   if(id===13)return `<path d="M130 174 Q139 169 147 174 Q138 184 125 180 Q120 179 116 175 Q124 178 130 174Z" fill="${c}"/><path d="M170 174 Q161 169 153 174 Q162 184 175 180 Q180 179 184 175 Q176 178 170 174Z" fill="${c}"/>`;
+   if(id===10)return must+soul+`<path d="M142 187 Q150 192 158 187 L157 202 Q150 209 143 202Z" fill="${c}"/>`;
+   return '';
+ }
+ window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){
+   const p={...(raw||{})}, wanted=N(p.facial_hair_id,1);
+   // Let V21 handle team cap + eye black + eyewear, but prevent its mismatched facial-ID layer.
+   p.facial_hair_id=1;
+   let html=prior?prior(p,size,action):'';
+   if(!html||action&&action!=='portrait'&&action!=='auto')return html;
+   const extra=art(wanted,color(raw||{}));
+   return html.replace(/(<path d="M105 116Q108 77 150 64)/,extra+'$1');
+ };
+ window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
+ window.EBL_CREATOR_FACIAL_DETAIL_V22={ids:{none:1,stubble:2,goatee:3,mustache:5,fullBeard:4,chinStrap:7,soulPatch:11,handlebar:13,vanDyke:10},thumbnailLiveParity:true};
+})();
+</script>
+
+<!-- EBL TEAM UNIFORM IDENTITY V23 — canonical team mark on cap + jersey -->
+<script id="eblTeamUniformIdentityV23">
+(function(){
+ const prior=window.eblPlayerArtV24;
+ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ function teamFor(p){
+   try{return p?.team||(window.LEAGUE?.teams||[]).find(t=>String(t.id)===String(p?.franchise_id))||null}catch(e){return null}
+ }
+ function markFor(p){
+   const t=teamFor(p); if(!t)return 'EBL';
+   const explicit=t.abbreviation||t.abbr||t.short_name||t.code;
+   let raw=explicit||t.team_name||t.display_name||t.name||t.city||'EBL';
+   raw=String(raw).trim();
+   let mark;
+   if(explicit) mark=raw;
+   else {
+     const words=raw.split(/\s+/).filter(Boolean);
+     mark=words.length>1?words.map(w=>w[0]).join(''):raw.slice(0,3);
+   }
+   return esc(mark.replace(/[^A-Za-z0-9]/g,'').slice(0,3).toUpperCase()||'EBL');
+ }
+ function apply(html,p){
+   if(!html)return html;
+   const mark=markFor(p);
+   // V5 cap mark.
+   html=html.replace(/(<text x="150" y="88"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
+   // Earlier portrait variants, retained for safe cross-site fallback.
+   html=html.replace(/(<text x="150" y="91"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
+   html=html.replace(/(<text x="150" y="96"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
+   // Left-chest wordmark follows the same club identity.
+   html=html.replace(/(<text x="113" y="300"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
+   html=html.replace(/(<text x="112" y="303"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
+   return html;
+ }
+ window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){
+   const html=prior?prior(raw,size,action):'';
+   if(action&&action!=='portrait'&&action!=='auto')return html;
+   return apply(html,raw||{});
+ };
+ window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
+ window.EBL_TEAM_UNIFORM_IDENTITY_V23={capMark:true,jerseyMark:true,paletteFromFranchise:true,fallback:'EBL'};
 })();
 </script>
