@@ -6171,7 +6171,7 @@ return `<svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg"><defs>
 <path d="M150 144C148 154 145 163 147 168C150 171 154 171 158 168" fill="none" stroke="#875847" stroke-width="2.4" stroke-linecap="round"/>
 <path d="M122 160C127 164 132 166 137 165M178 160C173 164 168 166 163 165" fill="none" stroke="#714436" stroke-opacity=".22" stroke-width="2"/>
 <path d="M132 181C142 186 158 186 168 181C163 190 157 194 150 194C143 194 137 190 132 181Z" fill="#f7f2ea" stroke="#2b1713" stroke-width="2.5"/>
-${beard(p.facial_hair_id,hc)}
+${beard(p.facial_hair_id,hc,p.face_id)}
 <!-- realistic fitted cap; original EBL mark only -->
 <path d="M112 112C114 81 130 62 150 60C170 62 186 81 188 112C171 103 129 103 112 112Z" fill="${pri}" stroke="#06101b" stroke-width="4"/>
 <path d="M119 104C136 99 164 99 181 104" fill="none" stroke="${sec}" stroke-width="3"/>
@@ -6230,8 +6230,10 @@ window.EBL_PORTRAIT_V4={version:'V4',dynamic:true,direction:'sports card anatomy
   let sk=p.skin_color||skins[C(N(p.skin_color_id,2),1,8)-1],hc=p.hair_color||hairs[C(N(p.hair_color_id,2),1,8)-1],ec=p.eye_color||eyes[C(N(p.eye_color_id,1),1,8)-1];
   let num=String(Math.max(0,N(p.jersey_number,0))).padStart(2,'0').slice(-2),b=(N(p.body_build_id||p.face_id)-1)%4;
   let shoulder=[105,111,117,122][b],neck=[17,18,19,20][b],u='p5'+Math.random().toString(36).slice(2,8);
-  let eyeBlack=p.eye_black||p.eye_black_id?`<path d="M118 151L137 154M163 154L182 151" stroke="#171717" stroke-width="4" opacity=".72" stroke-linecap="round"/>`:'';
-  let chain=p.chain||p.chain_id?`<path d="M132 242Q150 254 168 242" fill="none" stroke="#d8c48a" stroke-width="2" opacity=".9"/>`:'';
+  let eyeBlackId=N(p.eye_black_id,1);
+  let eyeBlack=eyeBlackId===2?`<path d="M119 149L137 152M163 152L181 149" stroke="#171717" stroke-width="4.5" opacity=".88" stroke-linecap="round"/>`:eyeBlackId===3?`<path d="M119 147L137 150M119 154L136 156M163 150L181 147M164 156L181 154" stroke="#171717" stroke-width="3.5" opacity=".88" stroke-linecap="round"/>`:'';
+  let eyewear=N(p.eyewear_id,1)===2?`<g fill="none" stroke="#17232d" stroke-width="3"><path d="M116 136Q128 129 142 136L140 146Q129 151 119 144Z"/><path d="M158 136Q172 129 184 136L181 144Q171 151 160 146Z"/><path d="M141 137Q150 133 159 137"/><path d="M116 137L111 134M184 137L189 134"/></g><path d="M120 137Q130 132 140 137M160 137Q170 132 180 137" fill="none" stroke="#d7efff" stroke-width="1.5" opacity=".65"/>`:'';
+  let chain=N(p.chain_id,1)>1?`<path d="M132 242Q150 254 168 242" fill="none" stroke="#d8c48a" stroke-width="2" opacity=".9"/>`:'';
   return `<svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg">
   <defs>
    <linearGradient id="${u}skin" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff" stop-opacity=".19"/><stop offset=".18" stop-color="${sk}"/><stop offset=".72" stop-color="${sk}"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient>
@@ -6274,7 +6276,7 @@ window.EBL_PORTRAIT_V4={version:'V4',dynamic:true,direction:'sports card anatomy
   <path d="M159 139C165 134 174 134 180 139C174 145 165 145 159 139Z" fill="#f8f4ed" stroke="#241714" stroke-width="1.7"/>
   <ellipse cx="130" cy="139" rx="4.4" ry="4.8" fill="${ec}"/><ellipse cx="170" cy="139" rx="4.4" ry="4.8" fill="${ec}"/>
   <circle cx="130" cy="139" r="1.9"/><circle cx="170" cy="139" r="1.9"/><circle cx="131.3" cy="137.7" r=".8" fill="#fff"/><circle cx="171.3" cy="137.7" r=".8" fill="#fff"/>
-  ${eyeBlack}
+  ${eyeBlack}${eyewear}
   <!-- dimensional nose -->
   <path d="M150 139C149 148 145 157 146 163C147 167 151 169 156 166" fill="none" stroke="#7e4d3e" stroke-width="2.2" stroke-linecap="round"/>
   <path d="M143 164C147 167 153 168 158 165" fill="none" stroke="#5f382e" stroke-opacity=".38" stroke-width="1.4"/>
@@ -6548,9 +6550,9 @@ const EC=['#4b2d1f','#765133','#3d7b5a','#2f6690','#77736b','#18232d'];
 const F={
 1:'M112 112Q114 79 150 76Q186 79 188 112L185 163Q180 193 150 207Q120 193 115 163Z',
 2:'M101 115Q104 82 150 78Q196 82 199 115L194 166Q187 194 150 204Q113 194 106 166Z',
-3:'M111 108Q116 76 150 73Q184 76 189 108L185 158L171 191L150 214L129 191L115 158Z',
-4:'M116 108Q119 75 150 72Q181 75 184 108L182 164Q178 198 150 216Q122 198 118 164Z',
-5:'M104 113Q107 79 150 76Q193 79 196 113L192 164L178 196L150 207L122 196L108 164Z'};
+3:'M116 108Q119 75 150 72Q181 75 184 108L182 160Q180 190 168 205Q159 215 150 219Q141 215 132 205Q120 190 118 160Z',
+4:'M106 110Q108 78 150 75Q192 78 194 110L193 166Q190 191 179 203Q166 211 150 214Q134 211 121 203Q110 191 107 166Z',
+5:'M111 108Q116 76 150 73Q184 76 189 108L185 158L171 191L150 214L129 191L115 158Z'};
 function n(v,d=1){v=+v;return Number.isFinite(v)?v:d} function c(v,a,b){return Math.max(a,Math.min(b,v))}
 function model(r){let p=r||{};try{if(typeof eblFullSavedPlayerRC38==='function')p=eblFullSavedPlayerRC38(p)}catch(e){}return p}
 function pal(p){try{let q=teamPalette(p.franchise_id);return [q.primary||q[0],q.secondary||q[1],q.accent||q[2]]}catch(e){return ['#071a31','#d7262e','#f4f7fb']}}
@@ -6841,4 +6843,59 @@ if(typeof eblOpenTeamBaseRC47==='function')window.openTeam=async function(fid){
 window.EBL_FRANCHISE_CLUBHOUSE_RC47={version:'RC47',publicTeamPage:true,canonicalIdentity:true,mobile:true};
 </script>
 
+
+<!-- EBL CREATOR FACE GEOMETRY + THUMBNAIL PASS V19 -->
+<style id="eblCreatorFaceGeometryV19Style">
+#creatorStage .eblChoiceCard .faceThumb{height:148px}
+#creatorStage .faceThumbV17{display:flex;align-items:center;justify-content:center;overflow:hidden}
+#creatorStage .faceThumbV17 .eblPlayerArtV24{width:132px!important;height:148px!important;display:block!important}
+#creatorStage .faceThumbV17 .eblPlayerArtV24 svg{width:132px!important;height:158px!important;display:block!important;transform:scale(1.12);transform-origin:50% 43%}
+@media(max-width:760px){
+ #creatorStage .eblChoiceCard .faceThumb{height:158px}
+ #creatorStage .faceThumbV17 .eblPlayerArtV24{width:142px!important;height:158px!important}
+ #creatorStage .faceThumbV17 .eblPlayerArtV24 svg{width:142px!important;height:168px!important;transform:scale(1.15);transform-origin:50% 43%}
+}
+</style>
+<script id="eblCreatorFaceGeometryV19">
+window.EBL_CREATOR_FACE_GEOMETRY_V19={
+ version:'V19',
+ faceMap:{1:'Classic',2:'Wide',3:'Oval',4:'Square',5:'Angular'},
+ changes:['Oval now uses long smooth rounded taper','Square now uses broad jaw with minimal taper','Angular restored to angular silhouette','Creator choice portraits enlarged for mobile readability']
+};
+</script>
+
 </body></html>
+
+<!-- EBL PLAYER CREATOR STUDIO V20 — tabbed sports-game creator -->
+<style id="eblCreatorStudioV20Style">
+#creatorStage .creatorStudioV20{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(360px,.92fr);gap:16px;align-items:start}
+#creatorStage .creatorStudioLeftV20,#creatorStage .creatorStudioRightV20{border:1px solid #294863;border-radius:18px;background:linear-gradient(180deg,#0b2138,#071827);overflow:hidden}
+#creatorStage .creatorStudioHeadV20{padding:18px 20px 12px}.creatorStudioTabsV20{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid #203e58;border-bottom:1px solid #203e58}
+#creatorStage .creatorStudioTabV20{padding:13px 7px;background:#091d31;color:#b8c5d2;border:0;border-right:1px solid #203e58;font-weight:800;cursor:pointer}
+#creatorStage .creatorStudioTabV20.active{color:#fff;background:#102b48;box-shadow:inset 0 -3px 0 #e4bd3f}
+#creatorStage .creatorStudioBodyV20{padding:16px 20px 20px}.creatorStudioGridV20{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#creatorStage .creatorStudioCardV20{border:1px solid #294863;border-radius:14px;background:#0a2037;padding:7px;cursor:pointer;text-align:center;overflow:hidden;min-width:0}
+#creatorStage .creatorStudioCardV20.selected{border:2px solid #e4bd3f;box-shadow:0 0 0 2px rgba(228,189,63,.12) inset}.creatorStudioCardV20 .faceThumb{height:150px}.creatorStudioCardV20 .eblChoiceTitle{font-size:14px}
+#creatorStage .creatorStudioRightV20{position:sticky;top:88px;padding:16px}.creatorStudioRightV20 .avatar3dPreview{min-height:430px}.creatorStudioRightV20 .eblPlayerArtV24{height:430px!important;width:100%!important}.creatorStudioRightV20 svg{width:100%;height:100%}
+#creatorStage .creatorSubheadV20{font-size:12px;font-weight:950;letter-spacing:.12em;color:#e4bd3f;margin:16px 0 9px}.creatorStudioMetaV20{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.creatorStudioMetaV20>div{padding:10px;border:1px solid #294863;border-radius:10px;background:#061523}.creatorStudioMetaV20 span{display:block;color:#91a5b8;font-size:10px;text-transform:uppercase}.creatorStudioMetaV20 b{font-size:16px}.creatorStudioSaveV20{width:100%;margin-top:10px}
+#creatorStage .creatorAccessoryGridV20{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.creatorAccessoryV20{padding:12px 7px;border:1px solid #294863;border-radius:12px;background:#0a2037;text-align:center;cursor:pointer}.creatorAccessoryV20.selected{border:2px solid #e4bd3f}.creatorAccessoryV20 small{display:block;color:#91a5b8}.creatorAccessoryV20 b{display:block;margin-top:3px}
+@media(max-width:760px){#creatorStage .creatorStudioV20{grid-template-columns:1fr}#creatorStage .creatorStudioRightV20{position:static}#creatorStage .creatorStudioTabsV20{grid-template-columns:repeat(5,minmax(76px,1fr));overflow-x:auto}#creatorStage .creatorStudioTabV20{font-size:12px;padding:12px 5px}#creatorStage .creatorStudioGridV20{grid-template-columns:repeat(2,minmax(0,1fr))}#creatorStage .creatorStudioCardV20 .faceThumb{height:150px}#creatorStage .creatorStudioRightV20 .avatar3dPreview{min-height:360px}#creatorStage .creatorStudioRightV20 .eblPlayerArtV24{height:360px!important}}
+</style>
+<script id="eblCreatorStudioV20">
+(function(){
+ let tab='face';
+ const FACE=[{id:1,label:'Classic'},{id:2,label:'Wide'},{id:5,label:'Angular'},{id:3,label:'Oval'},{id:4,label:'Square'}];
+ const HAIR=[{id:1,label:'Short'},{id:2,label:'Medium'},{id:3,label:'Long'}];
+ const FACIAL=[{id:1,label:'None'},{id:2,label:'Stubble'},{id:3,label:'Goatee'},{id:5,label:'Mustache'},{id:4,label:'Full Beard'},{id:7,label:'Chin Strap'},{id:11,label:'Soul Patch'},{id:13,label:'Handlebar'},{id:10,label:'Van Dyke'}];
+ const label=(arr,id)=>(arr.find(x=>x.id===Number(id))||arr[0]).label;
+ function thumb(face,hair,facial){const f=(window.FACE_PRESETS||[])[Math.max(0,Number(face)-1)]||(window.FACE_PRESETS||[])[0];return window.faceThumbMarkup?window.faceThumbMarkup(f,hair,facial):''}
+ function card(x,sel,onclick,html){return `<div class="creatorStudioCardV20 ${Number(sel)===x.id?'selected':''}" onclick="${onclick}(${x.id})">${html}<div class="eblChoiceTitle">${x.label}</div></div>`}
+ function colors(title,arr,key,fn){return `<div class="creatorSubheadV20">${title}</div><div class="colorChoices">${arr.map((x,i)=>`<button class="colorChoice ${Number(CREATOR[key]||1)===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" onclick="${fn}(${i+1})"></button>`).join('')}</div>`}
+ function accessories(){const group=(title,names,key,fn)=>`<div class="creatorSubheadV20">${title}</div><div class="creatorAccessoryGridV20">${names.map((n,i)=>`<div class="creatorAccessoryV20 ${Number(CREATOR[key]||1)===i+1?'selected':''}" onclick="${fn}(${i+1})"><small>${title}</small><b>${n}</b></div>`).join('')}</div>`;return group('EYE BLACK',EYE_BLACK_NAMES,'eye_black_id','pickEyeBlack')+group('EYEWEAR',EYEWEAR_NAMES,'eyewear_id','pickEyewear')+group('CHAIN',CHAIN_NAMES,'chain_id','pickChain')+group('SLEEVES',SLEEVE_NAMES,'sleeve_id','pickSleeve')}
+ function body(){if(tab==='face')return `<h3>FACE</h3><div class="creatorStudioGridV20">${FACE.map(x=>card(x,CREATOR.face_id,'pickFace',thumb(x.id,CREATOR.hair_id,CREATOR.facial_hair_id))).join('')}</div>${colors('SKIN TONE',SKIN_TONES,'skin_color_id','pickSkinTone')}${colors('EYE COLOR',EYE_COLORS,'eye_color_id','pickEyeColor')}`;if(tab==='hair')return `<h3>HAIR</h3><div class="creatorStudioGridV20">${HAIR.map(x=>card(x,CREATOR.hair_id,'pickHair',thumb(CREATOR.face_id,x.id,CREATOR.facial_hair_id))).join('')}</div>${colors('HAIR COLOR',HAIR_COLORS,'hair_color_id','pickHairColor')}`;if(tab==='facial')return `<h3>FACIAL HAIR</h3><div class="creatorStudioGridV20">${FACIAL.map(x=>card(x,CREATOR.facial_hair_id,'pickFacialHair',thumb(CREATOR.face_id,CREATOR.hair_id,x.id))).join('')}</div>`;if(tab==='headwear')return `<h3>HEADWEAR</h3><p class="muted">EBL game cap is currently the official player headwear. More cap and helmet choices can plug into this tab later without changing the avatar system.</p><div class="creatorAccessoryGridV20"><div class="creatorAccessoryV20 selected"><small>HEADWEAR</small><b>EBL Game Cap</b></div></div>`;return `<h3>ACCESSORIES</h3>${accessories()}`}
+ window.setCreatorAppearanceTabV20=function(t){tab=t;creatorAppearance()};
+ window.pickFacialHair=function(id){CREATOR.facial_hair_id=FACIAL.some(x=>x.id===Number(id))?Number(id):1;creatorAppearance()};
+ window.creatorAppearance=function(){const stage=document.getElementById('creatorStage');if(!stage)return;stage.innerHTML=`<div class="creatorStudioV20"><section class="creatorStudioLeftV20"><div class="creatorStudioHeadV20"><div class="creatorStageEyebrow">PLAYER APPEARANCE</div><div class="creatorStageTitle">Build your look.</div><div class="creatorStageCopy" style="margin:0">This is the same avatar used across EBL.</div></div><div class="creatorStudioTabsV20">${[['face','Face'],['hair','Hair'],['facial','Facial Hair'],['headwear','Headwear'],['accessories','Accessories']].map(x=>`<button class="creatorStudioTabV20 ${tab===x[0]?'active':''}" onclick="setCreatorAppearanceTabV20('${x[0]}')">${x[1]}</button>`).join('')}</div><div class="creatorStudioBodyV20">${body()}</div></section><aside class="creatorStudioRightV20"><h3>LIVE PLAYER PREVIEW</h3><div class="muted">This is exactly how you will look across EBL.</div><div id="creator3dPreview" class="avatar3dPreview"></div><div class="creatorStudioMetaV20"><div><span>Name</span><b>${escapeHtml(CREATOR.name||'Your Player')}</b></div><div><span>Jersey #</span><b>${String(CREATOR.jersey_number||24).padStart(2,'0')}</b></div><div><span>Position</span><b>${escapeHtml(CREATOR.position||'EBL')}</b></div><div><span>Look</span><b>${label(HAIR,CREATOR.hair_id)} • ${label(FACIAL,CREATOR.facial_hair_id)}</b></div></div><button class="btn creatorStudioSaveV20" onclick="beginAttributes()">SAVE APPEARANCE</button><div class="card" style="margin-top:10px"><b>SAME LOOK. EVERYWHERE.</b><div class="muted">Your saved appearance carries across Player HQ, EBL Home, team rosters, public profiles, and GameCast.</div></div></aside></div><div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(1)">BACK</button></div>`;requestAnimationFrame(()=>renderCreator3D('creator3dPreview'))};
+ window.EBL_CREATOR_STUDIO_V20={tabs:['Face','Hair','Facial Hair','Headwear','Accessories'],facial:FACIAL.map(x=>x.label),responsive:true};
+})();
+</script>
