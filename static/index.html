@@ -7035,17 +7035,32 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
 let EBL_BRAND_LOGOS_RC45={primary:'',secondary:''};
 async function eblLogoFileRC45(file,slot){
  if(!file)return;
- if(!['image/png','image/jpeg','image/webp'].includes(file.type)){alert('Use a PNG, JPG, or WebP logo.');return}
- if(file.size>5*1024*1024){alert('Logo source file must be 5 MB or smaller.');return}
- const url=URL.createObjectURL(file),img=new Image();
- await new Promise((ok,bad)=>{img.onload=ok;img.onerror=bad;img.src=url});
- const canvas=document.createElement('canvas'),max=1024,scale=Math.min(1,max/Math.max(img.width,img.height));
- canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
- canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);
- let data=canvas.toDataURL('image/webp',.88);
- if(data.length>7_100_000)data=canvas.toDataURL('image/webp',.75);
- if(data.length>7_100_000){alert('This logo is still over the 5 MB upload limit after optimization.');return}
- EBL_BRAND_LOGOS_RC45[slot]=data;eblBrandPreviewRC45();
+ const status=document.getElementById(slot==='primary'?'brandPrimaryLogoStatusRC45':'brandSecondaryLogoStatusRC45');
+ try{
+  if(status)status.textContent='Loading '+(file.name||'logo')+'…';
+  if(file.size>5*1024*1024)throw new Error('Logo source file must be 5 MB or smaller.');
+  const reader=new FileReader();
+  const source=await new Promise((ok,bad)=>{
+   reader.onload=()=>ok(reader.result);
+   reader.onerror=()=>bad(new Error('Android could not read that image. Try choosing it from Files instead of Photos.'));
+   reader.readAsDataURL(file);
+  });
+  const img=new Image();
+  await new Promise((ok,bad)=>{img.onload=ok;img.onerror=()=>bad(new Error('That image could not be decoded.'));img.src=source});
+  const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,max=1024,scale=Math.min(1,max/Math.max(w,h));
+  const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  let data=canvas.toDataURL('image/webp',.88);
+  if(!data||data==='data:,')data=canvas.toDataURL('image/png');
+  if(data.length>7_100_000)throw new Error('This logo is still over the 5 MB upload limit after optimization.');
+  EBL_BRAND_LOGOS_RC45[slot]=data;
+  if(status)status.textContent='✓ '+(file.name||'Logo selected')+' — ready to save';
+  eblBrandPreviewRC45();
+ }catch(err){
+  console.error('EBL logo picker',err);
+  if(status)status.textContent='Upload failed — tap to try again';
+  alert(err?.message||'Could not load that logo.');
+ }
 }
 function eblBrandPreviewRC45(){
  const city=document.getElementById('brandCityRC45')?.value.trim()||'ELITE';
@@ -7068,8 +7083,8 @@ function eblFranchiseIdentityStudioRC45(j){
   <div class="grid"><label>City / Home Market<input id="brandCityRC45" maxlength="40" value="${escapeHtml(city)}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label><label>Team Name<input id="brandTeamRC45" maxlength="40" value="${escapeHtml(nick)}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label></div>
   <div class="grid"><label>Primary Color<input id="brandPrimaryRC45" type="color" value="${b.primary_color||'#071A31'}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label><label>Secondary Color<input id="brandSecondaryRC45" type="color" value="${b.secondary_color||'#D7262E'}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label><label>Accent Color<input id="brandAccentRC45" type="color" value="${b.accent_color||'#D9E0E8'}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label></div>
   <div class="grid">
-   <label class="eblLogoDropRC45">Primary Logo<input type="file" accept="image/png,image/jpeg,image/webp" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files[0],'primary')"><span>${b.primary_logo?'Tap to replace primary logo':'Tap to upload primary logo'}<br><small>PNG, JPG or WebP • transparent PNG/WebP recommended</small></span></label>
-   <label class="eblLogoDropRC45">Secondary Logo<input type="file" accept="image/png,image/jpeg,image/webp" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files[0],'secondary')"><span>${b.secondary_logo?'Tap to replace alternate logo':'Tap to upload secondary / alternate logo'}<br><small>Used for scorebugs, compact cards and alternate branding</small></span></label>
+   <label class="eblLogoDropRC45">Primary Logo<input type="file" accept="image/*" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files&&this.files[0],'primary')"><span id="brandPrimaryLogoStatusRC45">${b.primary_logo?'Primary logo loaded — tap to replace':'Tap to upload primary logo'}<br><small>PNG, JPG or WebP • up to 5 MB</small></span></label>
+   <label class="eblLogoDropRC45">Secondary Logo<input type="file" accept="image/*" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files&&this.files[0],'secondary')"><span id="brandSecondaryLogoStatusRC45">${b.secondary_logo?'Secondary logo loaded — tap to replace':'Tap to upload secondary / alternate logo'}<br><small>PNG, JPG or WebP • up to 5 MB</small></span></label>
   </div>
   <div class="grid"><label>Home Uniform<select id="brandHomeRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_home||'WHITE')}</select></label><label>Away Uniform<select id="brandAwayRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_away||'NAVY')}</select></label></div>
   <button class="btn" ${locked?'disabled':''} onclick="eblSaveFranchiseIdentityRC45()">${locked?'Identity Locked Until Offseason':'Save Franchise Identity'}</button>
