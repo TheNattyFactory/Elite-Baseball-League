@@ -19,7 +19,6 @@ RATE_LOCK=threading.Lock()
 HITTER_ATTRS=["CON","POW","VIS","DISC","TIM","SPD","BRIQ","LEAD","FLD","ARM","ACC","REAC","CALL"]
 PITCHER_ATTRS=["STA","PCLT","CTRL","CMD","VEL","BRK","MOV","DEC","SEQ","FLD","ARM","ACC","REAC"]
 SALARY_MIN=0.30
-SALARY_MAX=0.40
 BONUS_CAP=25.0
 REGULAR_SEASON_GAMES=81
 ACTIVE_ROSTER_SIZE=16
@@ -185,7 +184,7 @@ def init_db():
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       owner_user_id INTEGER,
-      xp_budget REAL NOT NULL DEFAULT 550,
+      xp_budget REAL NOT NULL DEFAULT 480,
       xp_spent REAL NOT NULL DEFAULT 0,
       xp_reserve REAL NOT NULL DEFAULT 0,
       training_level INTEGER NOT NULL DEFAULT 0,
@@ -937,8 +936,7 @@ def init_db():
                 pid=players[i-1]["id"] if i-1<len(players) else None
                 c.execute("""INSERT OR IGNORE INTO roster_slots(franchise_id,slot_no,position_group,player_id,occupant_type)
                              VALUES(?,?,?,?,?)""",(fid,i,posgrp,pid,"CPU" if pid else "OPEN"))
-    # RC66 contract migration: salary rises +0.01 XP/game every new season
-    # even while a multi-year contract remains active.
+    # RC74 contract migration: active multi-year salary rises +0.02 XP/game at each season rollover.
     contract_cols={r["name"] for r in c.execute("PRAGMA table_info(contracts)").fetchall()}
     if "years_total" not in contract_cols:
         c.execute("ALTER TABLE contracts ADD COLUMN years_total INTEGER NOT NULL DEFAULT 1")
@@ -952,8 +950,11 @@ def init_db():
     for col,ddl in [("revenue_level","INTEGER NOT NULL DEFAULT 0"),("finish_reward","REAL NOT NULL DEFAULT 0"),("development_bonus","REAL NOT NULL DEFAULT 0")]:
         if col not in franchise_cols:
             c.execute(f"ALTER TABLE franchises ADD COLUMN {col} {ddl}")
-    for fr in c.execute("SELECT * FROM franchises").fetchall():
-        c.execute("UPDATE franchises SET xp_budget=? WHERE id=?",(annual_team_budget(dict(fr)),fr["id"]))
+    # RC73: startup/deploys must never reset an established club treasury.
+    # xp_budget already has a schema default for brand-new franchises, and the
+    # explicit Genesis reset / season rollover paths are responsible for
+    # intentionally establishing a new season's treasury.
+    # Preserving this value here protects multi-season XP banking across restarts.
 
     # Normalize existing leagues to the current active-roster shape on startup.
     enforce_active_rosters(c)
@@ -1887,7 +1888,7 @@ def previous_team_salary(c,player_id,franchise_id):
     return round(float(r["salary"]),2) if r else None
 
 def player_salary_floor(c,player_id):
-    """RC71: veteran free-agent floor is based on completed service seasons.
+    """RC72: veteran free-agent floor is based on completed service seasons.
 
     Rookie/0 completed seasons: .30. Each completed season adds .01, capped
     at a .40 minimum after 10 seasons. Previous oversized contracts do not
@@ -5751,8 +5752,11 @@ class H(BaseHTTPRequestHandler):
                              WHERE id=?""",
                           (off["franchise_id"],off["bonus"],assigned_number,pl["id"]))
 
-                # Signing bonus is charged to the team once and credited to this player only.
-                c.execute("UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",
+                # RC72: signing bonuses are immediate treasury purchases, like
+                # facilities/sponsorships. Reduce the season's spendable budget once.
+                # Do not add the bonus to xp_spent: xp_spent tracks payroll paid during
+                # games, while signing_pool_state already protects full-season payroll.
+                c.execute("UPDATE franchises SET xp_budget=xp_budget-? WHERE id=?",
                           (off["bonus"],off["franchise_id"]))
                 c.execute("""INSERT INTO xp_ledger(player_id,event_type,xp,detail_json)
                              VALUES(?,?,?,?)""",
