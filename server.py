@@ -31,7 +31,8 @@ SP_XP_MULTIPLIER=4.0
 RP_XP_MULTIPLIER=1.75
 CHAT_RETENTION_HOURS=12
 ALPHA_PLAYER_LIMIT=3
-MAX_REQUEST_BYTES=524288
+MAX_REQUEST_BYTES=20*1024*1024
+MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
 
 POSITION_GROUPS=("INF","OF","PITCHER")
 INF_POSITIONS={"C","1B","2B","3B","SS"}
@@ -1106,16 +1107,20 @@ def notify_user(c,user_id,kind,title,body="",ref_id=None):
 def award_player(c,season,period,code,name,pid,xp,detail=None):
     pl=c.execute("SELECT id,user_id,franchise_id,name FROM players WHERE id=?",(pid,)).fetchone()
     if not pl:return False
+    awarded_xp=float(xp) if pl["user_id"] is not None else 0.0
     try:
         cur=c.execute("""INSERT INTO award_history(season,period,award_code,award_name,player_id,franchise_id,xp_awarded,detail_json)
                          VALUES(?,?,?,?,?,?,?,?)""",
-                      (season,period,code,name,pid,pl["franchise_id"],xp,json.dumps(detail or {})))
+                      (season,period,code,name,pid,pl["franchise_id"],awarded_xp,json.dumps(detail or {})))
     except sqlite3.IntegrityError:
         return False
-    c.execute("UPDATE players SET xp_wallet=xp_wallet+? WHERE id=?",(xp,pid))
-    c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
-              (pid,"AWARD",xp,json.dumps({"season":season,"period":period,"award":name,**(detail or {})})))
-    notify_user(c,pl["user_id"],"AWARD",f"{name}: +{xp:g} XP",f"{pl['name']} earned {name}.",str(pid))
+    # RC76: CPU fillers may produce stats, but they are infrastructure rather than
+    # developing careers. Only human-owned players receive award XP.
+    if awarded_xp:
+        c.execute("UPDATE players SET xp_wallet=xp_wallet+? WHERE id=?",(awarded_xp,pid))
+        c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                  (pid,"AWARD",awarded_xp,json.dumps({"season":season,"period":period,"award":name,**(detail or {})})))
+    notify_user(c,pl["user_id"],"AWARD",f"{name}: +{awarded_xp:g} XP",f"{pl['name']} earned {name}.",str(pid))
     team=c.execute("SELECT name FROM franchises WHERE id=?",(pl["franchise_id"],)).fetchone() if pl["franchise_id"] else None
     team_name=team["name"] if team else "Free Agent"
     if detail and isinstance(detail.get("days"),list) and detail.get("days"):
@@ -1123,7 +1128,7 @@ def award_player(c,season,period,code,name,pid,xp,detail=None):
     else:
         news_day=81 if period=="REGULAR_SEASON" else int((c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone() or {'v':0})["v"] or 0)
     post_news(c,"AWARD",f"🏆 {pl['name']} wins {name}",
-              f"{pl['name']} of the {team_name} has been named {name} for Season {season} and earns +{xp:g} XP.",
+              f"{pl['name']} of the {team_name} has been named {name} for Season {season}" + (f" and earns +{awarded_xp:g} XP." if awarded_xp else "."),
               news_day,pl["franchise_id"],pid,None,4,season=season)
     return True
 
@@ -1452,6 +1457,11 @@ def enforce_active_rosters(c,season=None):
         rows=[dict(x) for x in c.execute("SELECT * FROM players WHERE franchise_id=? AND active=1 AND status='SIGNED' ORDER BY CASE WHEN user_id IS NOT NULL THEN 0 ELSE 1 END,id",(fid,))]
         humans=[x for x in rows if x.get("user_id") is not None]
         cpus=[x for x in rows if x.get("user_id") is None]
+        # RC76: CPU fillers are fixed rookie infrastructure. Purge any legacy XP
+        # they may have accumulated under older builds.
+        if cpus:
+            c.executemany("UPDATE players SET xp_wallet=0 WHERE id=?",[(x["id"],) for x in cpus])
+            for x in cpus:x["xp_wallet"]=0
         slots=[None]*len(template)
         def place(pl):
             allowed=eligible_roster_slot_groups(pl)
@@ -3082,37 +3092,30 @@ def simulate_game(c,g):
                     continue
 
                 con=contract_for(c,salary_pid)
-                salary=round(float(con["salary"]) if con else .35,3)
+                # RC75: unsigned CPU/fallback roster jobs are budgeted at league minimum
+                # by signing_pool_state, so game payroll must use that same minimum.
+                # Otherwise every CPU slot silently costs .35 while finance reserves .30.
+                salary=round(float(con["salary"]) if con else SALARY_MIN,3)
 
                 c.execute(
                     "UPDATE franchises SET xp_spent=xp_spent+? WHERE id=?",
                     (salary,fid)
                 )
 
-                salary_player["xp_wallet"]=round(
-                    float(salary_player.get("xp_wallet",0) or 0)+salary,
-                    3
-                )
-
-                c.execute(
-                    """
-                    INSERT INTO xp_ledger(
-                        player_id,event_type,xp,detail_json
+                # RC76: the club still pays a CPU filler at league minimum, but CPU
+                # players never bank XP or develop. Salary XP belongs only to humans.
+                if salary_player.get("user_id") is not None:
+                    salary_player["xp_wallet"]=round(
+                        float(salary_player.get("xp_wallet",0) or 0)+salary,
+                        3
                     )
-                    VALUES(?,?,?,?)
-                    """,
-                    (
-                        salary_pid,
-                        "SALARY",
-                        salary,
-                        json.dumps({
-                            "game":g["id"],
-                            "league_day":int(g["league_day"]),
-                            "team":fid
-                        })
+                    c.execute(
+                        """INSERT INTO xp_ledger(player_id,event_type,xp,detail_json)
+                           VALUES(?,?,?,?)""",
+                        (salary_pid,"SALARY",salary,json.dumps({
+                            "game":g["id"],"league_day":int(g["league_day"]),"team":fid
+                        }))
                     )
-                )
-
                 save_player(c,salary_player)
 
                 box["xp"].append({
@@ -3161,32 +3164,15 @@ def simulate_game(c,g):
             )
 
 
-            p["xp_wallet"]=round(
-                p["xp_wallet"]+perf,
-                3
-            )
-
-
-            c.execute(
-                """
-                INSERT INTO xp_ledger(
-                    player_id,
-                    event_type,
-                    xp,
-                    detail_json
+            if p.get("user_id") is not None:
+                p["xp_wallet"]=round(p["xp_wallet"]+perf,3)
+                c.execute(
+                    """INSERT INTO xp_ledger(player_id,event_type,xp,detail_json)
+                       VALUES(?,?,?,?)""",
+                    (pid,"PERFORMANCE",perf,json.dumps({"game":g["id"],"gps":round(gps,1)}))
                 )
-                VALUES(?,?,?,?)
-                """,
-                (
-                    pid,
-                    "PERFORMANCE",
-                    perf,
-                    json.dumps({
-                        "game":g["id"],
-                        "gps":round(gps,1)
-                    })
-                )
-            )
+            else:
+                perf=0.0
 
 
             save_player(c,p)
@@ -3267,32 +3253,15 @@ def simulate_game(c,g):
             )
 
 
-            p["xp_wallet"]=round(
-                p["xp_wallet"]+perf,
-                3
-            )
-
-
-            c.execute(
-                """
-                INSERT INTO xp_ledger(
-                    player_id,
-                    event_type,
-                    xp,
-                    detail_json
+            if p.get("user_id") is not None:
+                p["xp_wallet"]=round(p["xp_wallet"]+perf,3)
+                c.execute(
+                    """INSERT INTO xp_ledger(player_id,event_type,xp,detail_json)
+                       VALUES(?,?,?,?)""",
+                    (spid,"PERFORMANCE",perf,json.dumps({"game":g["id"],"gps":round(gps,1)}))
                 )
-                VALUES(?,?,?,?)
-                """,
-                (
-                    spid,
-                    "PERFORMANCE",
-                    perf,
-                    json.dumps({
-                        "game":g["id"],
-                        "gps":round(gps,1)
-                    })
-                )
-            )
+            else:
+                perf=0.0
 
 
             save_player(c,p)
@@ -5935,8 +5904,8 @@ class H(BaseHTTPRequestHandler):
             primary_logo=str(d.get("primary_logo",existing["primary_logo"] if existing and "primary_logo" in existing.keys() else "") or "")
             secondary_logo=str(d.get("secondary_logo",existing["secondary_logo"] if existing and "secondary_logo" in existing.keys() else "") or "")
             for logo in (primary_logo,secondary_logo):
-                if logo and (not logo.startswith(("data:image/png;base64,","data:image/webp;base64,","data:image/jpeg;base64,")) or len(logo)>220000):
-                    c.close();return self.out({"error":"INVALID_TEAM_LOGO","detail":"Use PNG, JPG or WebP. Each compressed logo must be under 165 KB."},400)
+                if logo and (not logo.startswith(("data:image/png;base64,","data:image/webp;base64,","data:image/jpeg;base64,")) or len(logo)>MAX_TEAM_LOGO_DATA_URL_CHARS):
+                    c.close();return self.out({"error":"INVALID_TEAM_LOGO","detail":"Use PNG, JPG or WebP. Each logo must be 5 MB or smaller."},400)
 
             c.execute("""INSERT OR REPLACE INTO franchise_branding(
                            franchise_id,display_name,city,team_name,logo_style,primary_logo,secondary_logo,
