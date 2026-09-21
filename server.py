@@ -20,7 +20,7 @@ HITTER_ATTRS=["CON","POW","VIS","DISC","TIM","SPD","BRIQ","LEAD","FLD","ARM","AC
 PITCHER_ATTRS=["STA","PCLT","CTRL","CMD","VEL","BRK","MOV","DEC","SEQ","FLD","ARM","ACC","REAC"]
 SALARY_MIN=0.30
 SALARY_MAX=0.40
-BONUS_CAP=91.2
+BONUS_CAP=25.0
 REGULAR_SEASON_GAMES=81
 ACTIVE_ROSTER_SIZE=16
 TEAM_BUDGET=480.0
@@ -64,6 +64,26 @@ def eligible_roster_slot_groups(player):
     if pref in slots:
         slots=[pref]+[x for x in slots if x!=pref]
     return slots
+
+
+def roster_capacity_state(c,fid):
+    """RC57: authoritative 16-man EBL roster capacity."""
+    rows=c.execute("""
+        SELECT rs.slot_no,rs.position_group,rs.player_id,rs.occupant_type,
+               p.type,p.user_id,p.active,p.status
+        FROM roster_slots rs
+        LEFT JOIN players p ON p.id=rs.player_id
+        WHERE rs.franchise_id=?
+        ORDER BY rs.slot_no
+    """,(fid,)).fetchall()
+    hitter_groups={"C","1B","2B","3B","SS","LF","CF","RF","DH"}
+    hitters=[r for r in rows if r["position_group"] in hitter_groups]
+    pitchers=[r for r in rows if r["position_group"] in ("SP","RP")]
+    return {
+        "total_slots":len(rows),"hitter_slots":len(hitters),"pitcher_slots":len(pitchers),
+        "open_or_cpu_hitters":sum(1 for r in hitters if r["occupant_type"] in ("OPEN","CPU")),
+        "open_or_cpu_pitchers":sum(1 for r in pitchers if r["occupant_type"] in ("OPEN","CPU"))
+    }
 
 
 FIRST_NAMES=["Marcus","Eli","Jordan","Dominic","Andre","Caleb","Noah","Isaiah","Lucas","Mateo","Julian","Miles","Cameron","Darius","Adrian","Nolan","Gavin","Roman","Jalen","Malik","Evan","Cole","Wesley","Bryce","Theo","Grant","Micah","Jonah","Emmett","Xavier","Leo","Mason","Owen","Silas","Aaron","Damian","Trevor","Derek","Logan","Rafael","Victor","Diego","Luis","Marco","Tomas","Javier","Nico","Santiago","Gabriel","Felix","Henry","Jack","Sam","Ben","Tyler","Connor","Dylan","Austin","Zachary","Nathan","Peter","Alex","Eric","Ryan","Sean","Ian","Blake","Chase","Troy","Reid","Dean","Clay","Jesse","Colin","Spencer","Garrett","Max","Milo","Asher","Ezra","Kai","Jace","Rory","Finn","Dante","Desmond","Terrence","Quincy","Leon","Curtis","Maurice","Devin","Kendrick","Avery","Tristan","Cody","Mitchell","Preston","Walker","Brody"]
@@ -174,6 +194,13 @@ def init_db():
       performance_level INTEGER NOT NULL DEFAULT 0,
       hq_level INTEGER NOT NULL DEFAULT 0,
       revenue_level INTEGER NOT NULL DEFAULT 0,
+      seating_level INTEGER NOT NULL DEFAULT 0,
+      concessions_level INTEGER NOT NULL DEFAULT 0,
+      marketing_level INTEGER NOT NULL DEFAULT 0,
+      sponsorships_level INTEGER NOT NULL DEFAULT 0,
+      merchandising_level INTEGER NOT NULL DEFAULT 0,
+      media_level INTEGER NOT NULL DEFAULT 0,
+      recovery_level INTEGER NOT NULL DEFAULT 0,
       finish_reward REAL NOT NULL DEFAULT 0,
       development_bonus REAL NOT NULL DEFAULT 0,
       identity_locked INTEGER NOT NULL DEFAULT 1,
@@ -229,6 +256,8 @@ def init_db():
       bonus REAL NOT NULL,
       salary REAL NOT NULL,
       years_remaining INTEGER NOT NULL,
+      years_total INTEGER NOT NULL DEFAULT 1,
+      starting_salary REAL NOT NULL DEFAULT 0.30,
       signed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS contract_history(
@@ -243,6 +272,18 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_contract_history_player_team
       ON contract_history(player_id,franchise_id,id);
+    CREATE TABLE IF NOT EXISTS team_sponsorships(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      franchise_id TEXT NOT NULL,
+      attribute TEXT NOT NULL,
+      bonus INTEGER NOT NULL DEFAULT 1,
+      start_season INTEGER NOT NULL,
+      end_season INTEGER NOT NULL,
+      cost REAL NOT NULL DEFAULT 25,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_team_sponsorships_team ON team_sponsorships(franchise_id,status,end_season);
     CREATE TABLE IF NOT EXISTS xp_ledger(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       player_id INTEGER NOT NULL,
@@ -698,6 +739,14 @@ def init_db():
         ("scouting_level","INTEGER NOT NULL DEFAULT 0"),
         ("performance_level","INTEGER NOT NULL DEFAULT 0"),
         ("hq_level","INTEGER NOT NULL DEFAULT 0"),
+        ("revenue_level","INTEGER NOT NULL DEFAULT 0"),
+        ("seating_level","INTEGER NOT NULL DEFAULT 0"),
+        ("concessions_level","INTEGER NOT NULL DEFAULT 0"),
+        ("marketing_level","INTEGER NOT NULL DEFAULT 0"),
+        ("sponsorships_level","INTEGER NOT NULL DEFAULT 0"),
+        ("merchandising_level","INTEGER NOT NULL DEFAULT 0"),
+        ("media_level","INTEGER NOT NULL DEFAULT 0"),
+        ("recovery_level","INTEGER NOT NULL DEFAULT 0"),
         ("established_season","INTEGER")
     ]:
         if col not in franchise_cols:
@@ -814,12 +863,6 @@ def init_db():
                     "DH":[]
                 }),
                 json.dumps({
-                    "pinch_hit":[],
-                    "pinch_run":[],
-                    "def_replacement":[],
-                    "catcher_backup":None,
-                    "late_inning_defense_inning":8,
-                    "pinch_hit_threshold":"MEDIUM",
                     "steal_aggression":"NORMAL",
                     "bunt_aggression":"NORMAL"
                 })
@@ -894,6 +937,16 @@ def init_db():
                 pid=players[i-1]["id"] if i-1<len(players) else None
                 c.execute("""INSERT OR IGNORE INTO roster_slots(franchise_id,slot_no,position_group,player_id,occupant_type)
                              VALUES(?,?,?,?,?)""",(fid,i,posgrp,pid,"CPU" if pid else "OPEN"))
+    # RC66 contract migration: salary rises +0.01 XP/game every new season
+    # even while a multi-year contract remains active.
+    contract_cols={r["name"] for r in c.execute("PRAGMA table_info(contracts)").fetchall()}
+    if "years_total" not in contract_cols:
+        c.execute("ALTER TABLE contracts ADD COLUMN years_total INTEGER NOT NULL DEFAULT 1")
+        c.execute("UPDATE contracts SET years_total=MAX(1,years_remaining)")
+    if "starting_salary" not in contract_cols:
+        c.execute("ALTER TABLE contracts ADD COLUMN starting_salary REAL NOT NULL DEFAULT 0.30")
+        c.execute("UPDATE contracts SET starting_salary=salary")
+
     # Franchise economy migration.
     franchise_cols={r["name"] for r in c.execute("PRAGMA table_info(franchises)").fetchall()}
     for col,ddl in [("revenue_level","INTEGER NOT NULL DEFAULT 0"),("finish_reward","REAL NOT NULL DEFAULT 0"),("development_bonus","REAL NOT NULL DEFAULT 0")]:
@@ -936,35 +989,81 @@ def player_seasons_completed(c,player_id):
 def development_cost(value,seasons_completed):
     return attr_cost(value)+career_xp_surcharge(seasons_completed)
 
+REVENUE_BRANCH_COLUMNS={
+    "seating":"seating_level",
+    "concessions":"concessions_level",
+    "marketing":"marketing_level",
+    "sponsorships":"sponsorships_level",
+    "merchandising":"merchandising_level",
+    "media":"media_level",
+}
+def revenue_upgrade_levels(fr):
+    # Preserve legacy generic revenue purchases as permanent +5 XP levels.
+    legacy=int(fr.get("revenue_level",0) or 0)
+    branches=sum(int(fr.get(col,0) or 0) for col in REVENUE_BRANCH_COLUMNS.values())
+    return legacy+branches
+
 def annual_team_budget(fr):
-    return round(TEAM_BUDGET + 5*int(fr.get("revenue_level",0) or 0),3)
+    return round(TEAM_BUDGET + 5*revenue_upgrade_levels(fr),3)
 
 def signing_pool_state(c, fid, exclude_offer_id=None):
-    """Protect enough annual XP to pay a full 16-player roster at league minimum.
+    """RC61: dynamic annual club economy.
 
-    The base reserve is 16 * .30 * 81 = 388.8 XP, leaving 91.2 XP from
-    the standard 480 allocation for signing bonuses and salary premiums.
-    Open/held offers reserve their bonus plus only the salary amount above
-    league minimum, because the minimum salary is already protected.
+    xp_budget is the club's complete spendable amount for the season after
+    annual funding, revenue upgrades, finish rewards and prior-year rollover.
+    Actual signed contract salaries are protected for the full 81-game season.
+    Empty/CPU roster jobs are protected at league minimum. OPEN/HELD offers
+    reserve their bonus plus any salary obligation above the salary already
+    protected for the roster job they would occupy.
     """
     fr=c.execute("SELECT xp_budget FROM franchises WHERE id=?",(fid,)).fetchone()
     budget=float(fr["xp_budget"] if fr else TEAM_BUDGET)
-    base_minimum=ACTIVE_ROSTER_SIZE*SALARY_MIN*REGULAR_SEASON_GAMES
-    pool=max(0.0,budget-base_minimum)
-    signed=c.execute("""SELECT COALESCE(SUM(CASE WHEN salary>? THEN (salary-?)*? ELSE 0 END),0) x
-                        FROM contracts WHERE franchise_id=?""",
-                     (SALARY_MIN,SALARY_MIN,REGULAR_SEASON_GAMES,fid)).fetchone()
-    signed_premium=float(signed["x"] or 0)
-    q="""SELECT COALESCE(SUM(bonus + CASE WHEN salary>? THEN (salary-?)*? ELSE 0 END),0) x
-         FROM offers WHERE franchise_id=? AND status IN ('OPEN','HELD')"""
+
+    contracts=c.execute(
+        """SELECT co.player_id,co.salary,p.type
+           FROM contracts co
+           LEFT JOIN players p ON p.id=co.player_id
+           WHERE co.franchise_id=?""",(fid,)
+    ).fetchall()
+    signed_count=len(contracts)
+    signed_payroll=sum(float(r["salary"] or SALARY_MIN)*REGULAR_SEASON_GAMES for r in contracts)
+    open_jobs=max(0,ACTIVE_ROSTER_SIZE-signed_count)
+    open_job_floor=open_jobs*SALARY_MIN*REGULAR_SEASON_GAMES
+    protected_payroll=signed_payroll+open_job_floor
+
+    q="""SELECT COALESCE(SUM(
+             bonus +
+             CASE WHEN salary>? THEN (salary-?)*? ELSE 0 END
+           ),0) x
+         FROM offers
+         WHERE franchise_id=? AND status IN ('OPEN','HELD')"""
     args=[SALARY_MIN,SALARY_MIN,REGULAR_SEASON_GAMES,fid]
     if exclude_offer_id is not None:
         q += " AND id<>?"; args.append(int(exclude_offer_id))
     offered=c.execute(q,tuple(args)).fetchone()
     reserved=float(offered["x"] or 0)
-    available=max(0.0,pool-signed_premium-reserved)
-    return {"pool":round(pool,3),"signed_premium":round(signed_premium,3),
-            "reserved":round(reserved,3),"available":round(available,3)}
+
+    available=max(0.0,budget-protected_payroll-reserved)
+    return {
+        "budget":round(budget,3),
+        "signed_payroll":round(signed_payroll,3),
+        "open_job_minimum_reserve":round(open_job_floor,3),
+        "protected_payroll":round(protected_payroll,3),
+        "reserved":round(reserved,3),
+        "available":round(available,3)
+    }
+
+
+def team_finance_snapshot(c,fid):
+    """RC61 finance card values: funding, payroll floor, commitments, spending room."""
+    state=signing_pool_state(c,fid)
+    fr=c.execute("SELECT xp_spent,revenue_level,finish_reward FROM franchises WHERE id=?",(fid,)).fetchone()
+    state.update({
+        "xp_spent_to_date":round(float(fr["xp_spent"] or 0),3) if fr else 0.0,
+        "revenue_level":int(fr["revenue_level"] or 0) if fr else 0,
+        "finish_reward":round(float(fr["finish_reward"] or 0),3) if fr else 0.0
+    })
+    return state
 
 def reserve_cap(fr):
     return float("inf")
@@ -1364,6 +1463,11 @@ def enforce_active_rosters(c,season=None):
         overflow=[]
         for pl in humans:
             if not place(pl):overflow.append(pl)
+        # RC57: impossible legacy overflow cannot remain as a hidden bench.
+        for pl in overflow:
+            c.execute("DELETE FROM contracts WHERE player_id=?",(pl["id"],))
+            c.execute("UPDATE players SET franchise_id=NULL,status='FREE_AGENT' WHERE id=?",(pl["id"],))
+            c.execute("UPDATE offers SET status='CANCELLED_ROSTER_FULL' WHERE player_id=? AND status IN ('OPEN','HELD')",(pl["id"],))
         for pl in cpus:
             if not place(pl):continue
         # Fill any missing slots with fresh CPU filler.
@@ -1684,6 +1788,14 @@ def sim_player_obj(c,pid):
     if not r:return None
     d=dict(r)
     d["attributes"]=json.loads(d.pop("attributes_json"))
+    # RC65 — sponsorships are temporary team modifiers, never permanent player development.
+    # Apply them only to the simulation copy of the player's attributes.
+    fid=d.get("franchise_id")
+    if fid:
+        for attr in SPONSORSHIP_ATTRS:
+            bonus=team_attribute_bonus(c,fid,attr)
+            if bonus:
+                d["attributes"][attr]=float(d["attributes"].get(attr,0) or 0)+bonus
     d["season"]=json.loads(d.pop("season_json"))
     d["overall"]=player_overall(d)
     con=c.execute("SELECT * FROM contracts WHERE player_id=?",(pid,)).fetchone()
@@ -1774,9 +1886,46 @@ def previous_team_salary(c,player_id,franchise_id):
     ).fetchone()
     return round(float(r["salary"]),2) if r else None
 
-def minimum_offer_salary(c,player_id,franchise_id):
-    previous=previous_team_salary(c,player_id,franchise_id)
-    return round(previous+0.02,2) if previous is not None else SALARY_MIN
+def player_salary_floor(c,player_id):
+    """RC68: veteran free-agent floor is based on completed service seasons.
+
+    Rookie/0 completed seasons: .30. Each completed season adds .01, capped
+    at a .40 minimum after 10 seasons. Previous oversized contracts do not
+    permanently poison the player's market; service time still prevents
+    veteran superteams from signing everyone at rookie minimum.
+    """
+    r=c.execute(
+        "SELECT COUNT(*) seasons FROM player_season_history WHERE player_id=?",
+        (int(player_id),)
+    ).fetchone()
+    completed=int(r["seasons"] or 0) if r else 0
+    return round(SALARY_MIN + min(completed,10)*0.01,2)
+
+def minimum_offer_salary(c,player_id,franchise_id=None):
+    return player_salary_floor(c,player_id)
+
+FACILITY_UPGRADE_COSTS=[50,65,80,100,125]
+SPONSORSHIP_COST=25.0
+SPONSORSHIP_ATTRS={"ARM","ACC","FLD","REAC","SPD"}
+
+def practice_reward_for(c,fid):
+    r=c.execute("SELECT training_level FROM franchises WHERE id=?",(fid,)).fetchone()
+    level=int(r["training_level"] or 0) if r else 0
+    return round(0.25+0.01*level,2)
+
+def active_team_sponsorships(c,fid,season=None):
+    if season is None:
+        r=c.execute("SELECT v FROM league_state WHERE k='season'").fetchone()
+        season=int(r["v"] or 1) if r else 1
+    return [dict(x) for x in c.execute(
+        """SELECT * FROM team_sponsorships
+           WHERE franchise_id=? AND status='ACTIVE' AND start_season<=? AND end_season>=?
+           ORDER BY attribute,id""",(fid,int(season),int(season))
+    ).fetchall()]
+
+def team_attribute_bonus(c,fid,attribute,season=None):
+    return sum(int(x.get("bonus",0) or 0) for x in active_team_sponsorships(c,fid,season)
+               if str(x.get("attribute","")).upper()==str(attribute).upper())
 
 def pitcher_recovery_state(c,pitcher_id,league_day):
     r=c.execute("SELECT fatigue,last_league_day,last_outs FROM pitcher_workload WHERE pitcher_id=?",(int(pitcher_id),)).fetchone()
@@ -1788,7 +1937,9 @@ def pitcher_recovery_state(c,pitcher_id,league_day):
     days=max(0,int(league_day)-int(r["last_league_day"] or 0))
     # Higher STA recovers more workload between league days. A short rotation can
     # therefore be viable, but heavy starts can carry fatigue into the next turn.
-    recovery_per_day=10.0+sta*0.10
+    fr=c.execute("SELECT recovery_level FROM franchises WHERE id=(SELECT franchise_id FROM players WHERE id=?)",(int(pitcher_id),)).fetchone()
+    recovery_level=int(fr["recovery_level"] or 0) if fr else 0
+    recovery_per_day=10.0+sta*0.10+(2.0*recovery_level)
     fatigue=max(0.0,float(r["fatigue"] or 0)-days*recovery_per_day)
     readiness=max(35,int(round(100-fatigue)))
     return {"fatigue":round(fatigue,2),"readiness":readiness,"days_since":days,"last_outs":int(r["last_outs"] or 0)}
@@ -1884,31 +2035,9 @@ def should_pull_starter(line, inning):
     return False
 
 
-def maybe_pinch_hit(c,fid,strategy,current_batter_id,inning,score_diff,used_bench):
-    subs=strategy["substitutions"];th=subs.get("pinch_hit_threshold","MEDIUM")
-    if inning<7:return current_batter_id,None
-    chance={"CONSERVATIVE":.08,"MEDIUM":.18,"AGGRESSIVE":.32}[th]
-    if score_diff<0: chance+=.08
-    if R.random()>chance:return current_batter_id,None
-    for pid in subs.get("pinch_hit",[]):
-        pid=int(pid)
-        if pid in used_bench:continue
-        r=c.execute("SELECT id FROM players WHERE id=? AND franchise_id=? AND type='H' AND active=1",(pid,fid)).fetchone()
-        if r:
-            used_bench.add(pid);return pid,current_batter_id
-    return current_batter_id,None
-
-
-def maybe_pinch_run(c,fid,strategy,runner_id,inning,score_diff,used_bench):
-    if inning<7 or score_diff>2:return runner_id,None
-    for pid in strategy["substitutions"].get("pinch_run",[]):
-        pid=int(pid)
-        if pid in used_bench:continue
-        r=c.execute("SELECT id FROM players WHERE id=? AND franchise_id=? AND type='H' AND active=1",(pid,fid)).fetchone()
-        if r:
-            used_bench.add(pid);return pid,runner_id
-    return runner_id,None
-
+# EBL RC55: no position-player bench.
+# The Starting Nine remains the position-player unit for the full game.
+# Pitching changes remain available through the pitching staff.
 
 def steal_attempt_probability(player,strategy):
     attrs=player["attributes"]
@@ -2303,14 +2432,15 @@ def simulate_game(c,g):
             if r["user_id"] is not None
         ]
 
-        # Human playing-time protection: if a club has 10-11 human hitters,
-        # rotate the two bench spots through the lineup by league day.
+        # RC56 — EBL has no position-player bench.
+        # A club may carry only the nine active hitters used by the Starting Nine.
+        # Do not rotate extra hitters into/out of the lineup at simulation time.
+        # If legacy data somehow contains more than nine active hitters, preserve
+        # the coach's saved Starting Nine and only use missing humans to fill holes.
         if len(human_ids)>9:
-            offset=(int(g["league_day"])-1)%len(human_ids)
-            rotated=human_ids[offset:]+human_ids[:offset]
-            protected=set(rotated[:9])
-            clean=[pid for pid in clean if pid not in human_ids or pid in protected]
-            human_ids=rotated[:9]
+            saved_humans=[pid for pid in clean if pid in human_ids]
+            missing_humans=[pid for pid in human_ids if pid not in saved_humans]
+            human_ids=(saved_humans+missing_humans)[:9]
 
 
         # Put active human players into the lineup if an old CPU lineup omitted them.
@@ -2412,10 +2542,10 @@ def simulate_game(c,g):
         for dr in c.execute("SELECT attributes_json FROM players WHERE franchise_id=? AND type='H' AND active=1 AND status='SIGNED'",(dfid,)).fetchall():
             da=json.loads(dr["attributes_json"] or "{}")
             dvals.append(
-                float(da.get("FLD",0) or 0)*.40+
-                float(da.get("REAC",0) or 0)*.30+
-                float(da.get("ARM",0) or 0)*.15+
-                float(da.get("ACC",0) or 0)*.15
+                (float(da.get("FLD",0) or 0)+team_attribute_bonus(c,dfid,"FLD"))*.40+
+                (float(da.get("REAC",0) or 0)+team_attribute_bonus(c,dfid,"REAC"))*.30+
+                (float(da.get("ARM",0) or 0)+team_attribute_bonus(c,dfid,"ARM"))*.15+
+                (float(da.get("ACC",0) or 0)+team_attribute_bonus(c,dfid,"ACC"))*.15
             )
         defense_rating[dfid]=sum(dvals)/len(dvals) if dvals else 0.0
 
@@ -2518,7 +2648,7 @@ def simulate_game(c,g):
         return pitcher_live[fid][pid]
 
 
-    used_pitchers={away:set(),home:set()};used_bench={away:set(),home:set()}
+    used_pitchers={away:set(),home:set()}
     base_runner={away:None,home:None}
     unearned_runners={away:set(),home:set()}
     current_pitcher={}
@@ -2550,12 +2680,9 @@ def simulate_game(c,g):
                         ev={"type":"PITCHING_CHANGE","team":opp,"pitcher_id":rp,"role":role,"inning":inning,"half":half,"reason":"STARTER_HOOK"}
                         events.append(ev);box["strategy_events"].append(ev)
                 starter_batter_id=lineups[fid][idx%9];idx+=1
-                ph_id,replaced=maybe_pinch_hit(c,fid,strategies[fid],starter_batter_id,inning,score[fid]-score[opp],used_bench[fid])
-                batter=sim_player_obj(c,ph_id)
+                # RC55 — no position-player bench: the scheduled Starting Nine bats.
+                batter=sim_player_obj(c,starter_batter_id)
                 batline=hitter_line(batter["id"])
-                if replaced:
-                    ev={"type":"PINCH_HITTER","team":fid,"player_id":ph_id,"replaced_id":replaced,"inning":inning,"half":half}
-                    events.append(ev);box["strategy_events"].append(ev)
                 pitcher=sim_player_obj(c,current_pitcher[opp])
                 pitchline=pitcher_line(opp,pitcher["id"])
                 shift_adj,shift_mode=defensive_shift_modifier(strategies[opp],batter.get("bats","R"))
@@ -2831,17 +2958,8 @@ def simulate_game(c,g):
                                     base_runner[fid]=None
 
 
-                                runner_id,replaced_runner=maybe_pinch_run(
-                                    c,fid,strategies[fid],batter["id"],inning,
-                                    score[fid]-score[opp],used_bench[fid]
-                                )
-                                if replaced_runner:
-                                    ev2={
-                                        "type":"PINCH_RUNNER","team":fid,
-                                        "player_id":runner_id,"replaced_id":replaced_runner,
-                                        "inning":inning,"half":half
-                                    }
-                                    events.append(ev2);box["strategy_events"].append(ev2)
+                                # RC55 — no pinch runners; the batter who reached base remains the runner.
+                                runner_id=batter["id"]
                                 base_runner[fid]=runner_id
                                 runner=sim_player_obj(c,runner_id)
                                 if runner and R.random()<pickoff_probability(runner):
@@ -2919,14 +3037,7 @@ def simulate_game(c,g):
                         })
                         break
             events.append({"type":"INNING_END","inning":inning,"half":half,"score":[score[away],score[home]]})
-        # late-inning defensive replacement marker for both teams
-        for fid in [away,home]:
-            subs=strategies[fid]["substitutions"]
-            if inning==int(subs.get("late_inning_defense_inning",8)) and score[fid]>score[home if fid==away else away]:
-                reps=subs.get("def_replacement",[])
-                if reps:
-                    ev={"type":"DEFENSIVE_REPLACEMENT_WINDOW","team":fid,"players":[int(x) for x in reps],"inning":inning}
-                    events.append(ev);box["strategy_events"].append(ev)
+        # RC55 — no position-player defensive replacements; Starting Nine stays on the field.
 
 
     if score[away]==score[home]:
@@ -3590,7 +3701,7 @@ def compact_events_for_storage(events, summary_only=False):
         away=start.get("away_name") or start.get("away") or "Away"
         home=start.get("home_name") or start.get("home") or "Home"
         return [{"type":"GAME_SUMMARY","text":f"{away} {score[0]} - {home} {score[1]}","final_score":score}]
-    keep={"GAME_START","RUN","PITCHING_CHANGE","PINCH_HITTER","PINCH_RUNNER","FIELDING_ERROR","FIELDING_COLLISION","GREAT_PLAY","OUTFIELD_ASSIST","GAME_END"}
+    keep={"GAME_START","RUN","PITCHING_CHANGE","FIELDING_ERROR","FIELDING_COLLISION","GREAT_PLAY","OUTFIELD_ASSIST","GAME_END"}
     out=[e for e in events if e.get("type") in keep]
     return out[-160:]
 
@@ -4773,7 +4884,7 @@ class H(BaseHTTPRequestHandler):
                    ORDER BY league_day DESC,id DESC LIMIT 5""",(season,fid,fid))]
             out={"team":dict(team),"branding":dict(brand) if brand else None,"division":division_for(fid),
                  "player_id":pl["id"],"roster":roster,"lineup":lineup,"field_positions":field_positions,
-                 "rotation":rotation,"bullpen":bullpen,"practice":{"date":today,"reward":0.25,
+                 "rotation":rotation,"bullpen":bullpen,"practice":{"date":today,"reward":practice_reward_for(c,fid),
                  "completed":practiced,"attendance":attendance,"human_total":human_total},
                  "season":season,"league_day":day,"phase":state.get("phase","REGULAR"),
                  "next_game":dict(next_game) if next_game else None,"recent_games":recent_games}
@@ -4788,7 +4899,7 @@ class H(BaseHTTPRequestHandler):
                 for row in rows:
                     previous=previous_team_salary(c,row["id"],f["id"])
                     row["previous_team_salary"]=previous
-                    row["minimum_offer_salary"]=round(previous+0.02,2) if previous is not None else SALARY_MIN
+                    row["minimum_offer_salary"]=minimum_offer_salary(c,row["id"],f["id"])
                     row["returning_player"]=previous is not None
             c.close();return self.out({"players":rows})
         if p=="/api/coach/team":
@@ -4834,6 +4945,9 @@ class H(BaseHTTPRequestHandler):
             team["reserved_offers"]=reserved
             team["salary_rate"]=round(salary_rate,3)
             team["spend_pct"]=round((float(team.get("xp_spent") or 0)/float(team.get("xp_budget") or 1))*100,1)
+            team["practice_reward"]=practice_reward_for(c,f["id"])
+            team["recovery_bonus_per_day"]=2*int(team.get("recovery_level") or 0)
+            sponsorships=active_team_sponsorships(c,f["id"],season)
             c.close()
             return self.out({"team":team,"branding":dict(brand) if brand else None,"roster":roster,
                              "lineup":json.loads(l["batting_order_json"]) if l else [],
@@ -4843,7 +4957,7 @@ class H(BaseHTTPRequestHandler):
                                          "defense":json.loads(strat["defense_json"]) if strat else {},
                                          "bench":json.loads(strat["bench_json"]) if strat else {},
                                          "substitutions":json.loads(strat["substitutions_json"]) if strat else {}},
-                             "offers":offers,"contracts":contracts,
+                             "offers":offers,"contracts":contracts,"sponsorships":sponsorships,
                              "next_game":dict(next_game) if next_game else None,
                              "league_day":day,"phase":state.get("phase","REGULAR")})
         if p=="/api/friends":
@@ -5309,6 +5423,27 @@ class H(BaseHTTPRequestHandler):
             for f in teams:
                 if f["id"] in existing_teams:
                     continue
+                # RC58 — CPU market may only offer where this player can actually sign.
+                cap=roster_capacity_state(c,f["id"])
+                if cap["total_slots"]!=ACTIVE_ROSTER_SIZE or cap["hitter_slots"]!=9 or cap["pitcher_slots"]!=7:
+                    enforce_active_rosters(c,season)
+                    cap=roster_capacity_state(c,f["id"])
+                allowed=eligible_roster_slot_groups(dict(pr))
+                if pr["type"]=="H":
+                    allowed=[x for x in allowed if x in ("C","1B","2B","3B","SS","LF","CF","RF","DH")]
+                    if cap["open_or_cpu_hitters"]<=0:
+                        continue
+                else:
+                    allowed=[x for x in allowed if x in ("SP","RP")]
+                    if cap["open_or_cpu_pitchers"]<=0:
+                        continue
+                marks=",".join("?" for _ in allowed)
+                legal_slot=c.execute(f"""SELECT 1 FROM roster_slots
+                    WHERE franchise_id=? AND position_group IN ({marks})
+                      AND occupant_type IN ('OPEN','CPU') LIMIT 1""",
+                    (f["id"],*allowed)).fetchone()
+                if not legal_slot:
+                    continue
                 need=R.uniform(0,12)
                 group=str(pr["position_group"] or position_group_for_pos(pr["primary_pos"])).upper()
                 desired={"INF":5,"OF":4,"PITCHER":7}.get(group,4)
@@ -5322,8 +5457,25 @@ class H(BaseHTTPRequestHandler):
             made=[]
             for rank,(_,f) in enumerate(scored[:slots]):
                 bonus=round(min(25,6+overall*.45+R.uniform(0,7)-rank),1)
-                salary=round(max(SALARY_MIN,min(SALARY_MAX,0.30+(overall/100.0)*0.10+R.uniform(-0.015,0.015))),2)
+                floor=minimum_offer_salary(c,pr["id"],f["id"])
+                history_n=int(c.execute("SELECT COUNT(*) n FROM contract_history WHERE player_id=?",(pr["id"],)).fetchone()["n"] or 0)
+                market_salary=round(0.30+(overall/100.0)*0.10+R.uniform(-0.015,0.015),2)
+                if history_n==0:
+                    salary=round(max(SALARY_MIN,min(0.35,market_salary)),2)
+                else:
+                    salary=round(max(floor,market_salary),2)
                 years=R.choice([1,2,2,3])
+
+                # RC59/RC60 — CPU clubs obey the same shared discretionary pool
+                # and the same permanent player salary floor as human coaches.
+                pool=signing_pool_state(c,f["id"])
+                premium=max(0.0,salary-SALARY_MIN)*REGULAR_SEASON_GAMES
+                max_bonus=max(0.0,pool["available"]-premium)
+                bonus=round(min(bonus,max_bonus),1)
+                offer_cost=round(bonus+premium,3)
+                if offer_cost>pool["available"]+1e-9:
+                    continue
+
                 cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,?,'OPEN')",(f["id"],pr["id"],bonus,salary,years))
                 made.append({"offer_id":cur.lastrowid,"team":f["name"],"franchise_id":f["id"],"bonus":bonus,"salary":salary,"years":years})
             c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("CPU_MARKET_OFFERS",u["id"],json.dumps({"player_id":pr["id"],"offers":made})))
@@ -5420,14 +5572,42 @@ class H(BaseHTTPRequestHandler):
             c=conn();f=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
             if not f:c.close();return self.out({"error":"NO_FRANCHISE"},404)
             previous_salary=previous_team_salary(c,pid,f["id"])
-            minimum_salary=round(previous_salary+0.02,2) if previous_salary is not None else SALARY_MIN
+            minimum_salary=minimum_offer_salary(c,pid,f["id"])
+            career_history=c.execute("SELECT COUNT(*) n FROM contract_history WHERE player_id=?",(pid,)).fetchone()
+            is_rookie_contract=int(career_history["n"] or 0)==0
             if salary<minimum_salary:
-                c.close();return self.out({"error":"RE_SIGN_RAISE_REQUIRED" if previous_salary is not None else "INVALID_OFFER","minimum_salary":minimum_salary,"previous_salary":previous_salary},400)
-            if previous_salary is None and salary>SALARY_MAX:
-                c.close();return self.out({"error":"INVALID_OFFER","minimum_salary":SALARY_MIN,"maximum_salary":SALARY_MAX},400)
+                c.close();return self.out({"error":"SALARY_FLOOR_REQUIRED","minimum_salary":minimum_salary,"previous_team_salary":previous_salary},400)
+            # RC60: first contract is intentionally constrained to .30-.35.
+            # Veteran contracts have no artificial salary ceiling; the shared
+            # signing pool is the economic limiter.
+            if is_rookie_contract and salary>0.35:
+                c.close();return self.out({"error":"ROOKIE_SALARY_MAX","minimum_salary":SALARY_MIN,"maximum_salary":0.35},400)
             pl=c.execute("SELECT * FROM players WHERE id=?",(pid,)).fetchone()
             if not pl or pl["status"]!="FREE_AGENT":c.close();return self.out({"error":"PLAYER_NOT_FREE_AGENT"},400)
             if pl["user_id"]==u["id"]:c.close();return self.out({"error":"CANNOT_SIGN_OWN_PLAYER"},403)
+
+            # RC58 — don't create or reserve XP for an offer the roster cannot accept.
+            cap=roster_capacity_state(c,f["id"])
+            if cap["total_slots"]!=ACTIVE_ROSTER_SIZE or cap["hitter_slots"]!=9 or cap["pitcher_slots"]!=7:
+                enforce_active_rosters(c)
+                cap=roster_capacity_state(c,f["id"])
+            allowed=eligible_roster_slot_groups(dict(pl))
+            if pl["type"]=="H":
+                allowed=[x for x in allowed if x in ("C","1B","2B","3B","SS","LF","CF","RF","DH")]
+                if cap["open_or_cpu_hitters"]<=0:
+                    c.close();return self.out({"error":"HITTER_ROSTER_FULL","detail":"All nine position-player jobs are occupied by human players."},400)
+            else:
+                allowed=[x for x in allowed if x in ("SP","RP")]
+                if cap["open_or_cpu_pitchers"]<=0:
+                    c.close();return self.out({"error":"PITCHER_ROSTER_FULL"},400)
+            marks=",".join("?" for _ in allowed)
+            legal_slot=c.execute(f"""SELECT 1 FROM roster_slots
+                WHERE franchise_id=? AND position_group IN ({marks})
+                  AND occupant_type IN ('OPEN','CPU') LIMIT 1""",
+                (f["id"],*allowed)).fetchone()
+            if not legal_slot:
+                c.close();return self.out({"error":"ROSTER_POSITION_FULL"},400)
+
             pool=signing_pool_state(c,f["id"])
             offer_cost=round(bonus + max(0.0,salary-SALARY_MIN)*REGULAR_SEASON_GAMES,3)
             if offer_cost>pool["available"]+1e-9:
@@ -5476,12 +5656,41 @@ class H(BaseHTTPRequestHandler):
                 if not f:
                     c.rollback();return self.out({"error":"FRANCHISE_NOT_FOUND"},404)
 
+                # RC68: revalidate salary rules at acceptance because OPEN/HELD
+                # offers can outlive the state used when the offer was created.
+                minimum_salary=minimum_offer_salary(c,pl["id"],f["id"])
+                if float(off["salary"] or 0)+1e-9 < minimum_salary:
+                    c.rollback();return self.out({
+                        "error":"SALARY_FLOOR_REQUIRED",
+                        "minimum_salary":minimum_salary,
+                        "offered_salary":round(float(off["salary"] or 0),2)
+                    },400)
+                career_history=c.execute("SELECT COUNT(*) n FROM contract_history WHERE player_id=?",(pl["id"],)).fetchone()
+                is_rookie_contract=int(career_history["n"] or 0)==0
+                if is_rookie_contract and float(off["salary"] or 0)>0.35+1e-9:
+                    c.rollback();return self.out({"error":"ROOKIE_SALARY_MAX","minimum_salary":SALARY_MIN,"maximum_salary":0.35},400)
+                if float(off["bonus"] or 0)<0 or float(off["bonus"] or 0)>BONUS_CAP or int(off["years"] or 0) not in (1,2,3):
+                    c.rollback();return self.out({"error":"INVALID_OFFER"},400)
+
                 pool=signing_pool_state(c,f["id"],exclude_offer_id=oid)
                 accept_cost=round(float(off["bonus"] or 0)+max(0.0,float(off["salary"] or 0)-SALARY_MIN)*REGULAR_SEASON_GAMES,3)
                 if accept_cost>pool["available"]+1e-9:
                     c.rollback();return self.out({"error":"SIGNING_POOL_EXCEEDED","signing_pool":pool,"offer_cost":accept_cost},400)
 
+                # RC57: nine hitter jobs + seven pitcher jobs. No hitter bench.
+                cap=roster_capacity_state(c,off["franchise_id"])
+                if cap["total_slots"]!=ACTIVE_ROSTER_SIZE or cap["hitter_slots"]!=9 or cap["pitcher_slots"]!=7:
+                    enforce_active_rosters(c)
+                    cap=roster_capacity_state(c,off["franchise_id"])
                 allowed=eligible_roster_slot_groups(dict(pl))
+                if pl["type"]=="H":
+                    allowed=[x for x in allowed if x in ("C","1B","2B","3B","SS","LF","CF","RF","DH")]
+                    if cap["open_or_cpu_hitters"]<=0:
+                        c.rollback();return self.out({"error":"HITTER_ROSTER_FULL","detail":"EBL clubs carry exactly nine position players and no position-player bench."},400)
+                else:
+                    allowed=[x for x in allowed if x in ("SP","RP")]
+                    if cap["open_or_cpu_pitchers"]<=0:
+                        c.rollback();return self.out({"error":"PITCHER_ROSTER_FULL"},400)
                 marks=",".join("?" for _ in allowed)
                 slot=c.execute(f"""
                     SELECT slot_no,player_id,occupant_type,position_group
@@ -5501,8 +5710,12 @@ class H(BaseHTTPRequestHandler):
 
                 displaced_id=slot["player_id"]
                 if displaced_id:
+                    displaced=c.execute("SELECT user_id FROM players WHERE id=?",(displaced_id,)).fetchone()
+                    if displaced and displaced["user_id"] is not None:
+                        c.rollback();return self.out({"error":"HUMAN_ROSTER_SLOT_PROTECTED"},409)
+                    c.execute("DELETE FROM contracts WHERE player_id=?",(displaced_id,))
                     c.execute("""UPDATE players
-                                 SET franchise_id=NULL,status='FREE_AGENT'
+                                 SET franchise_id=NULL,status='RETIRED',active=0
                                  WHERE id=?""",(displaced_id,))
 
                 c.execute("""UPDATE roster_slots
@@ -5532,9 +5745,9 @@ class H(BaseHTTPRequestHandler):
                              WHERE player_id=? AND id<>?
                                AND status IN ('OPEN','HELD')""",(pl["id"],oid))
 
-                c.execute("""INSERT INTO contracts(player_id,franchise_id,bonus,salary,years_remaining)
-                             VALUES(?,?,?,?,?)""",
-                          (pl["id"],off["franchise_id"],off["bonus"],off["salary"],off["years"]))
+                c.execute("""INSERT INTO contracts(player_id,franchise_id,bonus,salary,years_remaining,years_total,starting_salary)
+                             VALUES(?,?,?,?,?,?,?)""",
+                          (pl["id"],off["franchise_id"],off["bonus"],off["salary"],off["years"],off["years"],off["salary"]))
 
                 assigned_number=assign_team_jersey_number(c,off["franchise_id"],pl["id"],pl["jersey_number"] if pl["jersey_number"] is not None else 24)
                 c.execute("""UPDATE players
@@ -5582,18 +5795,66 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/coach/franchise-upgrade":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
-            kind=str(self.body().get("kind","revenue")).lower()
-            if kind!="revenue":return self.out({"error":"INVALID_UPGRADE"},400)
+            kind=str(self.body().get("kind","")).lower()
+            if kind not in REVENUE_BRANCH_COLUMNS:
+                return self.out({"error":"INVALID_UPGRADE","allowed":list(REVENUE_BRANCH_COLUMNS)},400)
             c=conn();fr=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
             if not fr:c.close();return self.out({"error":"NO_FRANCHISE"},404)
-            level=int(fr["revenue_level"] or 0)
+            col=REVENUE_BRANCH_COLUMNS[kind]
+            level=int(fr[col] or 0)
             if level>=5:c.close();return self.out({"error":"MAX_LEVEL"},400)
             cost=REVENUE_UPGRADE_COSTS[level]
-            if float(fr["xp_reserve"] or 0)<cost:c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":cost},400)
-            c.execute("UPDATE franchises SET revenue_level=revenue_level+1,xp_reserve=xp_reserve-? WHERE id=?",(cost,fr["id"]))
+            # RC63: upgrades are purchased from the club's current spendable treasury.
+            finance=signing_pool_state(c,fr["id"])
+            if float(finance["available"] or 0)<cost:
+                c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":cost,"available":finance["available"]},400)
+            c.execute(f"UPDATE franchises SET {col}={col}+1,xp_budget=xp_budget-? WHERE id=?",(cost,fr["id"]))
             fr2=dict(c.execute("SELECT * FROM franchises WHERE id=?",(fr["id"],)).fetchone())
-            c.execute("UPDATE franchises SET xp_budget=? WHERE id=?",(annual_team_budget(fr2),fr["id"]))
-            c.commit();c.close();return self.out({"ok":True,"kind":"revenue","level":level+1,"cost":cost,"annual_pool":annual_team_budget(fr2)})
+            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                      ("FRANCHISE_UPGRADE",u["id"],json.dumps({"franchise_id":fr["id"],"kind":kind,"level":level+1,"cost":cost,"annual_bonus":5})))
+            c.commit();c.close()
+            return self.out({"ok":True,"kind":kind,"level":level+1,"cost":cost,
+                             "annual_bonus":5,"future_annual_funding":annual_team_budget(fr2)})
+
+        if p=="/api/coach/facility-upgrade":
+            u=self.auth(["COACH","COMMISSIONER"])
+            if not u:return
+            kind=str(self.body().get("kind","")).lower()
+            cols={"training":"training_level","recovery":"recovery_level"}
+            if kind not in cols:return self.out({"error":"INVALID_FACILITY","allowed":list(cols)},400)
+            c=conn();fr=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
+            if not fr:c.close();return self.out({"error":"NO_FRANCHISE"},404)
+            col=cols[kind];level=int(fr[col] or 0)
+            if level>=5:c.close();return self.out({"error":"MAX_LEVEL"},400)
+            cost=FACILITY_UPGRADE_COSTS[level];finance=signing_pool_state(c,fr["id"])
+            if float(finance["available"] or 0)<cost:
+                c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":cost,"available":finance["available"]},400)
+            c.execute(f"UPDATE franchises SET {col}={col}+1,xp_budget=xp_budget-? WHERE id=?",(cost,fr["id"]))
+            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                      ("FACILITY_UPGRADE",u["id"],json.dumps({"franchise_id":fr["id"],"kind":kind,"level":level+1,"cost":cost})))
+            c.commit();c.close();return self.out({"ok":True,"kind":kind,"level":level+1,"cost":cost})
+
+        if p=="/api/coach/sponsor":
+            u=self.auth(["COACH","COMMISSIONER"])
+            if not u:return
+            d=self.body();attribute=str(d.get("attribute","ARM")).upper()
+            if attribute not in SPONSORSHIP_ATTRS:return self.out({"error":"INVALID_SPONSOR_ATTRIBUTE","allowed":sorted(SPONSORSHIP_ATTRS)},400)
+            c=conn();fr=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
+            if not fr:c.close();return self.out({"error":"NO_FRANCHISE"},404)
+            season_row=c.execute("SELECT v FROM league_state WHERE k='season'").fetchone();season=int(season_row["v"] or 1) if season_row else 1
+            existing=c.execute("""SELECT id FROM team_sponsorships WHERE franchise_id=? AND attribute=? AND status='ACTIVE' AND end_season>=?""",
+                               (fr["id"],attribute,season)).fetchone()
+            if existing:c.close();return self.out({"error":"SPONSOR_ALREADY_ACTIVE","attribute":attribute},400)
+            finance=signing_pool_state(c,fr["id"])
+            if float(finance["available"] or 0)<SPONSORSHIP_COST:
+                c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":SPONSORSHIP_COST,"available":finance["available"]},400)
+            end_season=season+1
+            c.execute("UPDATE franchises SET xp_budget=xp_budget-? WHERE id=?",(SPONSORSHIP_COST,fr["id"]))
+            c.execute("""INSERT INTO team_sponsorships(franchise_id,attribute,bonus,start_season,end_season,cost)
+                         VALUES(?,?,1,?,?,?)""",(fr["id"],attribute,season,end_season,SPONSORSHIP_COST))
+            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                      ("TEAM_SPONSORSHIP",u["id"],json.dumps({"franchise_id":fr["id"],"attribute":attribute,"bonus":1,"start_season":season,"end_season":end_season,"cost":SPONSORSHIP_COST})))
+            c.commit();c.close();return self.out({"ok":True,"attribute":attribute,"bonus":1,"start_season":season,"end_season":end_season,"cost":SPONSORSHIP_COST})
 
         if p=="/api/coach/set-strategy":
             u=self.auth(["COACH","COMMISSIONER"])
@@ -5616,33 +5877,21 @@ class H(BaseHTTPRequestHandler):
                 c.close();return self.out({"error":"INVALID_BULLPEN"},400)
             if any(i in rotation_ids for i in ids):
                 c.close();return self.out({"error":"PITCHER_ASSIGNED_TO_ROTATION_AND_BULLPEN"},400)
-            # depth chart may contain repeated players across positions, but each listed id must be a hitter on roster.
-            for pos,lst in (bench or {}).items():
-                for x in lst:
-                    i=int(x)
-                    if i not in roster or roster[i]["type"]!="H":
-                        c.close();return self.out({"error":"INVALID_DEPTH_CHART"},400)
-            for key in ["pinch_hit","pinch_run","def_replacement"]:
-                for x in subs.get(key,[]):
-                    i=int(x)
-                    if i not in roster or roster[i]["type"]!="H":
-                        c.close();return self.out({"error":"INVALID_SUBSTITUTION_LIST"},400)
-            cb=subs.get("catcher_backup")
-            if cb is not None and (int(cb) not in roster or roster[int(cb)]["type"]!="H"):
-                c.close();return self.out({"error":"INVALID_CATCHER_BACKUP"},400)
+            # RC55 — EBL has no position-player bench. Ignore/remove legacy bench
+            # and substitution fields; only steal/bunt aggression remain valid.
+            bench={}
+            subs={
+                "steal_aggression":subs.get("steal_aggression","NORMAL"),
+                "bunt_aggression":subs.get("bunt_aggression","NORMAL")
+            }
             allowed={"STANDARD","PULL","OPPO","NO_DOUBLES","BUNT_DEFENSE","INFIELD_IN"}
             for k in ["default_shift","vs_lhb","vs_rhb"]:
                 if defense.get(k,"STANDARD") not in allowed:
                     c.close();return self.out({"error":"INVALID_DEFENSE"},400)
-            if subs.get("pinch_hit_threshold","MEDIUM") not in {"CONSERVATIVE","MEDIUM","AGGRESSIVE"}:
-                c.close();return self.out({"error":"INVALID_PINCH_HIT_THRESHOLD"},400)
             if subs.get("steal_aggression","NORMAL") not in {"LOW","NORMAL","HIGH"}:
                 c.close();return self.out({"error":"INVALID_STEAL_AGGRESSION"},400)
             if subs.get("bunt_aggression","NORMAL") not in {"LOW","NORMAL","HIGH"}:
                 c.close();return self.out({"error":"INVALID_BUNT_AGGRESSION"},400)
-            inning=int(subs.get("late_inning_defense_inning",8))
-            if inning<6 or inning>9:
-                c.close();return self.out({"error":"INVALID_LATE_INNING"},400)
             c.execute("UPDATE team_strategy SET bullpen_json=?,defense_json=?,bench_json=?,substitutions_json=?,updated_at=CURRENT_TIMESTAMP WHERE franchise_id=?",
                       (json.dumps(bullpen),json.dumps(defense),json.dumps(bench),json.dumps(subs),fid))
             c.commit();c.close();return self.out({"ok":True})
@@ -5751,7 +6000,7 @@ class H(BaseHTTPRequestHandler):
             if not fid or str(pl["status"] or "").upper()!="SIGNED":
                 c.close();return self.out({"error":"NO_TEAM"},400)
             state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day')")}
-            season=int(state.get("season",1));day=int(state.get("league_day",0));today=practice_day_key();reward=0.25
+            season=int(state.get("season",1));day=int(state.get("league_day",0));today=practice_day_key();reward=practice_reward_for(c,fid)
             existing=c.execute("SELECT xp FROM team_practice WHERE player_id=? AND practice_date=?",(pl["id"],today)).fetchone()
             if existing:
                 c.close();return self.out({"ok":True,"already_completed":True,"xp":float(existing["xp"]),"practice_date":today})
@@ -6559,7 +6808,7 @@ class H(BaseHTTPRequestHandler):
                         pl=c.execute("SELECT user_id,name FROM players WHERE id=?",(pid,)).fetchone()
                         seen=c.execute("""SELECT 1 FROM contract_history WHERE player_id=? AND franchise_id=? AND ABS(salary-?)<0.0001 AND signed_at=? LIMIT 1""",(pid,con["franchise_id"],con["salary"],con["signed_at"])).fetchone()
                         if not seen:
-                            c.execute("""INSERT INTO contract_history(player_id,franchise_id,bonus,salary,years,signed_at,ended_at) VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)""",(pid,con["franchise_id"],con["bonus"],con["salary"],max(1,int(con["years_remaining"] or 1)),con["signed_at"]))
+                            c.execute("""INSERT INTO contract_history(player_id,franchise_id,bonus,salary,years,signed_at,ended_at) VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)""",(pid,con["franchise_id"],con["bonus"],con["salary"],max(1,int(con["years_total"] or con["years_remaining"] or 1)),con["signed_at"]))
                         c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
                         c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE player_id=?",(pid,))
                         c.execute("UPDATE players SET franchise_id=NULL,status='FREE_AGENT' WHERE id=? AND active=1",(pid,))
@@ -6576,10 +6825,12 @@ class H(BaseHTTPRequestHandler):
                                 })
                                 notify_user(c,pl["user_id"],"CONTRACT","Contract expired",f"{pl['name']} is now an EBL free agent. Your former club will send a return offer for the new season.",str(pid))
                     else:
-                        c.execute("UPDATE contracts SET years_remaining=? WHERE player_id=?",(remaining,pid))
+                        next_salary=round(float(con["salary"] or SALARY_MIN)+0.01,2)
+                        c.execute("UPDATE contracts SET years_remaining=?,salary=? WHERE player_id=?",(remaining,next_salary,pid))
                         summary["contracts_advanced"]+=1
 
                 c.execute("UPDATE players SET age=age+1 WHERE active=1")
+                c.execute("UPDATE team_sponsorships SET status='EXPIRED' WHERE status='ACTIVE' AND end_season<?",(next_season,))
 
                 cap_rows=c.execute("""SELECT p.id,p.user_id,p.name,p.franchise_id,p.age,COUNT(sh.season) seasons_played
                                       FROM players p JOIN season_history sh ON sh.player_id=p.id
@@ -6605,9 +6856,11 @@ class H(BaseHTTPRequestHandler):
                     unused=max(0.0,budget-spent)
                     reserve=float(fr.get("xp_reserve",0) or 0)+unused
                     fr["xp_reserve"]=reserve
-                    next_budget=annual_team_budget(fr)
+                    # RC61: reserve is spendable next season, not merely tracked.
+                    # annual_team_budget already includes +5 XP per revenue upgrade.
+                    next_budget=round(annual_team_budget(fr)+reserve,3)
                     c.execute("""UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,
-                               xp_reserve=?,xp_spent=0,xp_budget=? WHERE id=?""",(reserve,next_budget,fr["id"]))
+                               xp_reserve=0,xp_spent=0,xp_budget=? WHERE id=?""",(next_budget,fr["id"]))
 
                 if not c.execute("SELECT 1 FROM franchise_seasons WHERE season=? LIMIT 1",(next_season,)).fetchone():
                     set_season_membership(c,next_season,current_active)
@@ -6624,10 +6877,24 @@ class H(BaseHTTPRequestHandler):
                     if c.execute("SELECT 1 FROM offers WHERE player_id=? AND franchise_id=? AND status IN ('OPEN','HELD')",(cand["player_id"],cand["franchise_id"])).fetchone():
                         continue
                     fr=c.execute("SELECT name,xp_budget,xp_spent FROM franchises WHERE id=?",(cand["franchise_id"],)).fetchone()
-                    reserved=float(c.execute("SELECT COALESCE(SUM(bonus),0) x FROM offers WHERE franchise_id=? AND status IN ('OPEN','HELD')",(cand["franchise_id"],)).fetchone()["x"] or 0)
-                    available=max(0.0,float(fr["xp_budget"] or TEAM_BUDGET)-float(fr["xp_spent"] or 0)-reserved) if fr else 0.0
-                    bonus=round(min(5.0,available),1)
-                    salary=round(float(cand["previous_salary"])+0.02,2)
+                    salary=minimum_offer_salary(c,cand["player_id"],cand["franchise_id"])
+
+                    # RC59/RC60 — return offers spend from the same shared signing pool
+                    # and can never undercut the player's career salary floor.
+                    # The 16 league-minimum salaries are protected first; bonuses and
+                    # salary premiums for signed contracts + OPEN/HELD offers all consume
+                    # the remaining discretionary pool.
+                    pool=signing_pool_state(c,cand["franchise_id"])
+                    salary_premium=max(0.0,salary-SALARY_MIN)*REGULAR_SEASON_GAMES
+                    available_bonus=max(0.0,pool["available"]-salary_premium)
+                    bonus=round(min(5.0,available_bonus),1)
+
+                    # If the mandatory returning-player raise itself cannot fit, do not
+                    # create an impossible offer that could later overspend the club.
+                    offer_cost=round(bonus+salary_premium,3)
+                    if offer_cost>pool["available"]+1e-9:
+                        continue
+
                     cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,2,'OPEN')",(cand["franchise_id"],cand["player_id"],bonus,salary))
                     summary["return_offers"]+=1
                     if cand["user_id"]:
