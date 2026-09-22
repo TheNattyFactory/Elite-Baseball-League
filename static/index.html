@@ -1401,6 +1401,9 @@ function showPage(id,b){
   page.setAttribute('aria-hidden','false');
   if(b){b.classList.add('active');b.setAttribute('aria-selected','true');b.setAttribute('aria-current','page')}
   if(id==='team' && ME)loadMyTeam();
+  // Coach HUD is page-critical: always refresh it when the Coach tab is opened.
+  // This also recovers if an unrelated dashboard loader failed during initial refresh.
+  if(id==='coach' && ME)loadCoachPortal();
 }
 
 
@@ -1517,8 +1520,12 @@ async function refresh(){
  }
  accountTag.innerHTML=`<span class="notifWrap"><button class="btn notifBell" onclick="toggleNotifications()" aria-label="Notifications">🔔<span id="notifCount" class="notifCount hidden">0</span></button></span> <button id="pmShortcut" class="btn pmShortcut" onclick="openMessagesPage()" aria-label="Private messages">💬 Messages <span id="pmCount" class="pmCount hidden">0</span></button> ${ME.username} • ${ME.role} &nbsp; <button class="btn" onclick="logout()">Logout</button><div id="notifBackdrop" class="notifBackdrop hidden" onclick="closeNotifications()"></div><div id="notifPanel" class="notifPanel hidden"></div>`;
  loginCard.classList.add('hidden');dashboard.classList.remove('hidden');adminNav.classList.toggle('hidden',ME.role!=='COMMISSIONER');coachNav.classList.remove('hidden');
- await Promise.all([loadLeague(),loadSchedule(),loadAnalytics(),loadAwards(),loadPlayer(),loadNews(),loadReadiness(),loadCommunity(),loadDMContacts(),loadDMUnread(),loadPlayoffs()]);await loadCoachPortal();if(ME.role==='COMMISSIONER')await Promise.all([loadLeagueSizeAdmin(),loadCoachApplications(),loadCoachAssignments()]);
- await Promise.all([loadChat('EBL'),loadChat('TEAM')]);
+ const initialLoads=await Promise.allSettled([loadLeague(),loadSchedule(),loadAnalytics(),loadAwards(),loadPlayer(),loadNews(),loadReadiness(),loadCommunity(),loadDMContacts(),loadDMUnread(),loadPlayoffs()]);
+ initialLoads.forEach((r,i)=>{if(r.status==='rejected')console.warn('EBL dashboard loader failed',i,r.reason)});
+ // Never let an unrelated page failure block Franchise Operations.
+ await loadCoachPortal();
+ if(ME.role==='COMMISSIONER')await Promise.allSettled([loadLeagueSizeAdmin(),loadCoachApplications(),loadCoachAssignments()]);
+ await Promise.allSettled([loadChat('EBL'),loadChat('TEAM')]);
  renderHome();
  startDMPoll();
 }
@@ -2831,14 +2838,24 @@ function positionDemandHtml(){
  const c=CATCHER_DEMAND;
  return broad+(c?`<div class="card" style="margin-top:10px"><b>🥎 Catcher specialty</b><p class="muted">Catcher is an on-field assignment, not a roster gate. Any position player can catch; C specialists are the only players who can develop CALL. ${c.opportunities} catcher opportunity${c.opportunities===1?'':'ies'} currently remain.</p></div>`:'');
 }
-async function loadPositionDemand(){
- try{
-   const j=await api('/api/league/position-demand');
-   POSITION_DEMAND=j.positions||[]; CATCHER_DEMAND=j.catcher_specialty||null;
+let POSITION_DEMAND_LOADING=null;
+let POSITION_DEMAND_READY=false;
+async function loadPositionDemand(force=false){
+ if(POSITION_DEMAND_READY && !force){
    if(document.getElementById('positionDemand'))document.getElementById('positionDemand').innerHTML=positionDemandHtml();
- }catch(e){
-   if(document.getElementById('positionDemand'))document.getElementById('positionDemand').innerHTML='<p class="muted">Roster demand is temporarily unavailable. You can still create your player.</p>';
+   return;
  }
+ if(POSITION_DEMAND_LOADING)return POSITION_DEMAND_LOADING;
+ POSITION_DEMAND_LOADING=(async()=>{
+  try{
+    const j=await api('/api/league/position-demand');
+    POSITION_DEMAND=j.positions||[]; CATCHER_DEMAND=j.catcher_specialty||null;POSITION_DEMAND_READY=true;
+    if(document.getElementById('positionDemand'))document.getElementById('positionDemand').innerHTML=positionDemandHtml();
+  }catch(e){
+    if(document.getElementById('positionDemand'))document.getElementById('positionDemand').innerHTML='<p class="muted">Roster demand is temporarily unavailable. You can still create your player.</p>';
+  }finally{POSITION_DEMAND_LOADING=null}
+ })();
+ return POSITION_DEMAND_LOADING;
 }
 function creatorPositionsForGroup(group){
  return group==='PITCHER'?['SP','RP']:group==='OF'?['LF','CF','RF']:['SS','2B','3B','1B','C'];
@@ -7298,7 +7315,8 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
  window.pickFacialHair=function(id){CREATOR.facial_hair_id=FACIAL.some(x=>x.id===Number(id))?Number(id):1;creatorAppearance()};
  window.EBL_APPEARANCE_FUNCTION_FIX_V17={canonicalPreview:true,canonicalThumbs:true,skinColorLive:true,hairColorLive:true,facesDistinct:true,facial:FACIAL.map(x=>x.label)};
 })();
-</script>\n
+</script>
+
 <script id="eblAppearanceFunctionalV18">
 (function(){
  const oldV11=window.eblAppearancePlayerV11;
@@ -7310,7 +7328,7 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
  window.EBL_APPEARANCE_FUNCTIONAL_V18={skinPersist:true,hairPersist:true,facial:['None','Mustache','Goatee','Full Beard'],sideburns:false};
 })();
 </script>
-\n<!-- EBL CREATOR GAMEFLOW V19 — Identity → Appearance → Build → Rookie Card -->
+<!-- EBL CREATOR GAMEFLOW V19 — Identity → Appearance → Build → Rookie Card -->
 <style id="eblCreatorGameflowV19Style">
 #creatorStage .creatorIdentityV19{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:14px;align-items:start}
 #creatorStage .creatorIdentityPanel,#creatorStage .creatorSidePanel{border:1px solid #294863;border-radius:16px;background:linear-gradient(180deg,#0b2138,#071827);padding:16px}
@@ -7371,7 +7389,8 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
  };
  window.EBL_CREATOR_GAMEFLOW_V19={flow:['Identity','Appearance','Build','Rookie Card'],mobile:true,canonicalPortrait:true};
 })();
-</script>\n
+</script>
+
 <style id="eblFranchiseIdentityRC45Css">
 .eblIdentityStudioRC45{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(280px,.95fr);gap:16px}
 .eblLogoDropRC45{border:2px dashed rgba(255,255,255,.22);border-radius:14px;padding:14px;min-height:150px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;background:rgba(255,255,255,.025)}
