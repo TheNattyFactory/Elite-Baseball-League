@@ -2320,7 +2320,11 @@ function renderPlayer(){
     const defs=p.type==='P' ? pitcherStats(p) : hitterStats(p);
 
 
-    const profileAvatar=playerPortraitMarkup(p);
+    // Player HQ identity = player portrait. Team logos stay attached to team references only.
+    const hqIdentityPlayer=(typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(p):p);
+    const profileAvatar=(typeof eblPlayerArtV24==='function')
+        ? `<div class="playerHQIdentityPortraitV35">${eblPlayerArtV24(hqIdentityPlayer,'sm','portrait')}</div>`
+        : playerPortraitMarkup(hqIdentityPlayer);
 
 
     const teamLink=p.franchise_id
@@ -6906,7 +6910,7 @@ window.EBL_PORTRAIT_V4={version:'V4',dynamic:true,direction:'sports card anatomy
   let p=model(raw),q=palette(p),pri=q.primary||q[0],sec=q.secondary||q[1],acc=q.accent||q[2];
   let sk=p.skin_color||skins[C(N(p.skin_color_id,2),1,8)-1],hc=p.hair_color||hairs[C(N(p.hair_color_id,2),1,8)-1],ec=p.eye_color||eyes[C(N(p.eye_color_id,1),1,8)-1];
   let num=String(Math.max(0,N(p.jersey_number,0))).padStart(2,'0').slice(-2),b=(N(p.body_build_id||p.face_id)-1)%4;
-  let shoulder=[105,111,117,122][b],neck=[17,18,19,20][b],u='p5'+Math.random().toString(36).slice(2,8);
+  let shoulder=[94,100,106,112][b],neck=[16,17,18,19][b],u='p5'+Math.random().toString(36).slice(2,8);
   let eyeBlackId=N(p.eye_black_id,1);
   let eyeBlack=eyeBlackId===2?`<path d="M119 149L137 152M163 152L181 149" stroke="#171717" stroke-width="4.5" opacity=".88" stroke-linecap="round"/>`:eyeBlackId===3?`<path d="M119 147L137 150M119 154L136 156M163 150L181 147M164 156L181 154" stroke="#171717" stroke-width="3.5" opacity=".88" stroke-linecap="round"/>`:'';
   let eyewear=N(p.eyewear_id,1)===2?`<g fill="none" stroke="#17232d" stroke-width="3"><path d="M116 136Q128 129 142 136L140 146Q129 151 119 144Z"/><path d="M158 136Q172 129 184 136L181 144Q171 151 160 146Z"/><path d="M141 137Q150 133 159 137"/><path d="M116 137L111 134M184 137L189 134"/></g><path d="M120 137Q130 132 140 137M160 137Q170 132 180 137" fill="none" stroke="#d7efff" stroke-width="1.5" opacity=".65"/>`:'';
@@ -6919,13 +6923,13 @@ window.EBL_PORTRAIT_V4={version:'V4',dynamic:true,direction:'sports card anatomy
    <filter id="${u}shadow"><feGaussianBlur stdDeviation="4"/></filter>
   </defs>
   <!-- card depth -->
-  <ellipse cx="150" cy="344" rx="126" ry="17" fill="#000" opacity=".24" filter="url(#${u}shadow)"/>
+  <ellipse cx="150" cy="344" rx="114" ry="16" fill="#000" opacity=".24" filter="url(#${u}shadow)"/>
   <circle cx="150" cy="177" r="137" fill="${pri}" opacity=".10"/><circle cx="150" cy="177" r="120" fill="none" stroke="${acc}" stroke-width="5" opacity=".035"/>
   <text x="150" y="211" text-anchor="middle" font-size="108" font-weight="950" fill="${acc}" opacity=".022">EBL</text>
   <!-- athletic chest: shoulders, deltoids, traps -->
-  <path d="M${150-shoulder} 360L${153-shoulder} 309C${156-shoulder} 282 72 269 112 247C123 241 133 237 150 237C167 237 177 241 188 247C228 269 ${144+shoulder} 282 ${147+shoulder} 309L${150+shoulder} 360Z" fill="url(#${u}jersey)" stroke="#020812" stroke-width="4"/>
-  <path d="M52 301C73 274 97 258 124 251M248 301C227 274 203 258 176 251" fill="none" stroke="#fff" stroke-opacity=".055" stroke-width="8"/>
-  <path d="M73 286C91 266 108 256 126 250M227 286C209 266 192 256 174 250" fill="none" stroke="${acc}" stroke-opacity=".18" stroke-width="2.5"/>
+  <path d="M${150-shoulder} 360L${153-shoulder} 309C${156-shoulder} 284 82 270 114 248C125 241 135 237 150 237C165 237 175 241 186 248C218 270 ${144+shoulder} 284 ${147+shoulder} 309L${150+shoulder} 360Z" fill="url(#${u}jersey)" stroke="#020812" stroke-width="4"/>
+  <path d="M62 301C80 277 101 261 125 252M238 301C220 277 199 261 175 252" fill="none" stroke="#fff" stroke-opacity=".055" stroke-width="8"/>
+  <path d="M81 286C96 269 111 258 127 251M219 286C204 269 189 258 173 251" fill="none" stroke="${acc}" stroke-opacity=".18" stroke-width="2.5"/>
   <!-- anatomical neck -->
   <path d="M${150-neck} 191L${150-neck-2} 229C132 234 122 240 114 248C125 260 138 266 150 268C162 266 175 260 186 248C178 240 168 234 ${150+neck+2} 229L${150+neck} 191Z" fill="url(#${u}skin)" stroke="#2b1713" stroke-width="3"/>
   <path d="M131 217C134 230 140 238 150 242C160 238 166 230 169 217" fill="none" stroke="#6f4335" stroke-opacity=".20" stroke-width="3"/>
@@ -6934,7 +6938,7 @@ window.EBL_PORTRAIT_V4={version:'V4',dynamic:true,direction:'sports card anatomy
   <path d="M118 247C131 255 141 260 150 261C159 260 169 255 182 247" fill="none" stroke="${sec}" stroke-width="7"/>
   <path d="M150 262V360" stroke="${acc}" stroke-width="7"/><path d="M150 262V360" stroke="${sec}" stroke-width="3"/>
   <circle cx="150" cy="279" r="2.8" fill="${acc}"/><circle cx="150" cy="300" r="2.8" fill="${acc}"/><circle cx="150" cy="321" r="2.8" fill="${acc}"/>
-  <path d="M82 274Q105 266 128 267M218 274Q195 266 172 267" fill="none" stroke="#fff" stroke-opacity=".07" stroke-width="2"/>
+  <path d="M91 276Q109 267 129 267M209 276Q191 267 171 267" fill="none" stroke="#fff" stroke-opacity=".07" stroke-width="2"/>
   <text x="194" y="311" text-anchor="middle" font-size="37" font-weight="950" fill="${acc}" stroke="#000" stroke-opacity=".22" stroke-width="1">${num}</text>
   <path d="M92 282h42v25H92z" fill="${acc}" opacity=".07"/><text x="113" y="300" text-anchor="middle" font-size="14" font-weight="950" letter-spacing="1.5" fill="${acc}">EBL</text>${chain}
   <!-- ears -->
@@ -8231,4 +8235,47 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
  window.EBL_FITTED_GAME_CAP_V35={canonical:true,smallerCrown:true,shorterBrim:true,cleanIllustration:true};
 })();
+</script>
+
+<!-- EBL AVATAR FINAL RENDERER SYNC V36 — V35 cap + saved identity everywhere -->
+<script id="eblAvatarFinalRendererSyncV36">
+(function(){
+ const art=window.eblPlayerArtV24;
+ if(typeof art!=='function')return;
+ const esc=typeof window.escapeHtml==='function'?window.escapeHtml:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+ function canonical(raw={}){try{return typeof window.eblFullSavedPlayerRC38==='function'?window.eblFullSavedPlayerRC38(raw||{}):(raw||{})}catch(_){return raw||{}}}
+ function render(raw={},size='md',action='portrait'){return art(canonical(raw),size,action)}
+ window.eblPublicPortraitV28=(raw={},size='lg')=>render(raw,size,'portrait');
+ window.eblAvatarHtml=function(raw,size='card'){const map={mini:'xs',sm:'sm',card:'md',hero:'lg',lg:'lg'};return render(raw,map[size]||'md','portrait')};
+ window.eblIdentityPortraitV22=function(raw={},cls=''){return `<div class="eblIdentityPortrait ${esc(cls)}">${render(raw,'lg','portrait')}</div>`};
+ window.eblIdentityMiniV22=function(raw={},subtitle=''){
+   const p=canonical(raw),sub=subtitle||[p.primary_pos,p.jersey_number!=null?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+   return `<span class="eblIdentityMiniV22"><span class="eblIdentityMiniV22__art">${render(p,'sm','portrait')}</span><span class="eblIdentityMiniV22__copy"><b>${esc(p.name||p.player_name||'Player')}</b><small>${esc(sub)}</small></span></span>`;
+ };
+ window.eblPlayerBylineV25=function(raw={},opts={}){
+   const p=canonical(raw),sub=opts.subtitle||opts.sub||[p.primary_pos,p.jersey_number!=null?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+   return `<span class="eblPlayerBylineV25">${render(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${esc(p.name||p.player_name||'Player')}</strong>${sub?`<span>${esc(sub)}</span>`:''}</span></span>`;
+ };
+ window.playerPortraitMarkup=function(raw,pose='auto'){
+   const p=canonical(raw),action=(pose&&pose!=='auto'&&pose!=='portrait')?pose:'portrait';
+   let logo='';try{logo=p.franchise_id&&typeof window.teamLogoUrl==='function'?window.teamLogoUrl(p.franchise_id,'secondary'):''}catch(_){ }
+   return `<div class="playerPortrait playerPortraitV27 playerPortraitTeamBrandV33" data-pos="#${Number(p.jersey_number??24)} • ${esc(p.primary_pos||'EBL')}">${logo?`<div class="playerPortraitTeamBackdropV33"><img src="${esc(logo)}" alt=""></div>`:''}${render(p,'lg',action)}</div>`;
+ };
+ try{if(typeof renderHome==='function')renderHome()}catch(_){ }
+ try{if(typeof renderPlayer==='function')renderPlayer()}catch(_){ }
+ window.EBL_AVATAR_FINAL_RENDERER_SYNC_V36={version:'V36',renderer:'V35-fitted-cap',savedIdentity:true,canonicalEverywhere:true};
+})();
+</script>
+
+<!-- EBL PLAYER HQ IDENTITY PORTRAIT V35 -->
+<style id="eblPlayerHQIdentityPortraitV35Style">
+.playerHQIdentityPortraitV35{width:82px;height:96px;min-width:82px;border:1px solid var(--line-bright);border-radius:14px 14px 22px 22px;overflow:hidden;display:grid;place-items:center;background:radial-gradient(circle at 50% 27%,#254d70 0,#102b46 52%,#071a31 100%);box-shadow:0 7px 18px #0006,inset 0 0 0 1px #ffffff0b}
+.playerHQIdentityPortraitV35>.eblPlayerArtV24{width:100%!important;height:100%!important;aspect-ratio:auto!important;border:0!important;border-radius:inherit!important;background:transparent!important}
+.playerHQIdentityPortraitV35>.eblPlayerArtV24>svg{width:100%!important;height:100%!important;display:block!important;transform:none!important}
+@media(max-width:520px){.playerHQIdentityPortraitV35{width:82px;height:96px;min-width:82px}}
+</style>
+
+<!-- EBL ATHLETIC PLAYER PROPORTION V37 — balanced shoulders/torso across canonical portrait -->
+<script id="eblAthleticPlayerProportionV37">
+window.EBL_ATHLETIC_PLAYER_PROPORTION_V37={version:'V37',shoulders:'balanced',torso:'athletic',neck:'natural',identityPreserved:true,canonicalRenderer:true};
 </script>
