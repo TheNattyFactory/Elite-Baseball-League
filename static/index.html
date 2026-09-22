@@ -4232,7 +4232,11 @@ function refreshDefenseRC51(){
 function coachGameDayRC52(j,lineup,rot,bp,def,H,P,next,opp,lineupReady,rotationReady){
  const opponent=next?teamName(opp):'TBD';
  const venue=next?(next.away_id===j.team.id?'AWAY':'HOME'):'—';
- const starter=P.find(p=>Number(p.id)===Number(rot?.[0]))||{};
+ const gameDay=Number(j?.genesis_plan?.league_day||next?.league_day||j?.league_day||1);
+ const genesisStarterSlot=Number(j?.genesis_plan?.starter_slot||0);
+ const starterSlot=genesisStarterSlot>0?genesisStarterSlot-1:((rot&&rot.length)?((Math.max(1,gameDay)-1)%rot.length):0);
+ const starterId=Number(j?.genesis_plan?.starter_id||((rot&&rot.length)?rot[starterSlot]:0))||null;
+ const starter=P.find(p=>Number(p.id)===Number(starterId))||{};
  const closer=P.find(p=>Number(p.id)===Number(bp?.CL))||{};
  const steal=j.strategy?.substitutions?.steal_aggression||'NORMAL';
  const bunt=j.strategy?.substitutions?.bunt_aggression||'NORMAL';
@@ -4243,7 +4247,7 @@ function coachGameDayRC52(j,lineup,rot,bp,def,H,P,next,opp,lineupReady,rotationR
    const field=slot?.position||slot?.field_pos||slot?.pos||p.primary_pos||'—';
    return `<div class="coachGameLine"><span>${i+1}</span>${p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):''}<div><b>${escapeHtml(p.name||'Open Slot')}</b><small>${escapeHtml(field)}${p.jersey_number!=null?` • #${Number(p.jersey_number)}`:''}</small></div></div>`;
  }).join('') || '<p class="muted">Set the Starting Nine to build the game card.</p>';
- const rotationPreview=(rot||[]).map((id,i)=>{const p=byPitcher.get(Number(id))||{};return `<div class="coachGameStaff"><span>SP${i+1}</span><b>${escapeHtml(p.name||'Open')}</b><small>${p.id?coachPitchMetaRC49(p):'Not set'}</small></div>`}).join('') || '<p class="muted">No rotation set.</p>';
+ const rotationPreview=(rot||[]).map((id,i)=>{const p=byPitcher.get(Number(id))||{},isNext=i===starterSlot;return `<div class="coachGameStaff ${isNext?'coachNextStarterRC56':''}"><span>SP${i+1}${isNext?' • NEXT':''}</span><b>${escapeHtml(p.name||'Open')}</b><small>${p.id?coachPitchMetaRC49(p):'Not set'}</small></div>`}).join('') || '<p class="muted">No rotation set.</p>';
  const bullpenPreview=[['CL',bp?.CL],['SU1',bp?.SU1],['SU2',bp?.SU2]].map(([role,id])=>{const p=byPitcher.get(Number(id))||{};return `<div class="coachGameStaff"><span>${role}</span><b>${escapeHtml(p.name||'Unassigned')}</b><small>${p.id?coachPitchMetaRC49(p):'Set role'}</small></div>`}).join('');
  const checks=[
    ['Starting Nine',lineupReady,lineupReady?'9 hitters set':'Lineup needs attention','cRoster'],
@@ -4257,12 +4261,13 @@ function coachGameDayRC52(j,lineup,rot,bp,def,H,P,next,opp,lineupReady,rotationR
    <div class="coachGameMark">${teamMark(j.team.id)}</div>
  </div>
  <div class="coachGameGrid coachGameGridRC54">
-   <div class="coachGameCard"><span>PROJECTED STARTER</span>${starter.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(starter,'sm'):''}<div><b>${escapeHtml(starter.name||'Not Set')}</b><small>${starter.id?coachPitchMetaRC49(starter):'Set SP1 in Pitching Staff'}</small></div></div>
+   <div class="coachGameCard"><span>PROJECTED STARTER • SP${starterSlot+1}</span>${starter.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(starter,'sm'):''}<div><b>${escapeHtml(starter.name||'Not Set')}</b><small>${starter.id?`${coachPitchMetaRC49(starter)} • Genesis Day ${gameDay}`:'Set your rotation in Pitching Staff'}</small></div></div>
    <div class="coachGameCard"><span>LATE-INNING ARM</span>${closer.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(closer,'sm'):''}<div><b>${escapeHtml(closer.name||'Not Set')}</b><small>${closer.id?'Closer':'Assign a closer'}</small></div></div>
    <div class="coachGameCard"><span>POSITION PLAYERS</span><div class="coachNineBadge">9</div><div><b>Starting Nine</b><small>No position-player bench or substitutions</small></div></div>
  </div>
  <div class="coachSection"><div class="coachPaneHead"><div><h3>Game Readiness</h3><p class="muted">Check the actual EBL game plan before the sim reaches your next game.</p></div><div class="coachReadyBadge ${checks.every(x=>x[1])?'ready':'needs'}">${checks.filter(x=>x[1]).length}/${checks.length} READY</div></div>
  <div class="coachChecklist">${checks.map(([label,ok,detail,pane])=>`<button type="button" class="coachCheck ${ok?'ok':'needs'}" onclick="coachJumpRC52('${pane}')"><span>${ok?'✓':'!'}</span><div><b>${label}</b><small>${escapeHtml(String(detail))}</small></div><i>›</i></button>`).join('')}</div></div>
+ <div class="coachGenesisLockRC57"><div><span class="newsMeta">GENESIS GAME PLAN</span><b>${next&&j?.genesis_plan?.game_id?'CONNECTED TO SCHEDULED GAME':'WAITING FOR SCHEDULE'}</b><small>${next?`Game ${escapeHtml(String(j.genesis_plan?.game_id||next.id||'—'))} • Day ${gameDay} • SP${starterSlot+1} ${escapeHtml(starter.name||'Not Set')}`:'The saved coach plan will connect automatically when a game is scheduled.'}</small></div><span class="coachGenesisSignalRC57">${lineupReady&&rotationReady?'READY FOR GENESIS':'SETUP NEEDED'}</span></div>
  <div class="coachGamePlan">
    <div><span>OFFENSIVE APPROACH</span><b>${escapeHtml(steal)} STEAL • ${escapeHtml(bunt)} BUNT</b></div>
    <div><span>DEFENSIVE PLAN</span><b>${escapeHtml(def?.default_shift||'STANDARD')} • LHB ${escapeHtml(def?.vs_lhb||'STANDARD')} • RHB ${escapeHtml(def?.vs_rhb||'STANDARD')}</b></div>
@@ -7969,7 +7974,11 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  const prior=window.eblPlayerArtV24;
  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
  function teamFor(p){
-   try{return p?.team||(window.LEAGUE?.teams||[]).find(t=>String(t.id)===String(p?.franchise_id))||null}catch(e){return null}
+   try{
+     const league=(window.LEAGUE?.teams||[]).find(t=>String(t.id)===String(p?.franchise_id))||null;
+     const embedded=(p?.team&&typeof p.team==='object')?p.team:null;
+     return league||embedded?{...(league||{}),...(embedded||{})}:null;
+   }catch(e){return null}
  }
  function markFor(p){
    const t=teamFor(p); if(!t)return 'EBL';
@@ -8097,7 +8106,11 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  if(typeof prior!=='function'||prior.__eblUniformV33)return;
  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
  function club(p){
-   try{return p?.team||(window.LEAGUE?.teams||[]).find(t=>String(t.id)===String(p?.franchise_id))||null}catch(e){return null}
+   try{
+     const league=(window.LEAGUE?.teams||[]).find(t=>String(t.id)===String(p?.franchise_id))||null;
+     const embedded=(p?.team&&typeof p.team==='object')?p.team:null;
+     return league||embedded?{...(league||{}),...(embedded||{})}:null;
+   }catch(e){return null}
  }
  function nickname(p){
    const t=club(p); if(!t)return 'EBL';
@@ -8307,3 +8320,16 @@ window.EBL_ATHLETIC_PLAYER_PROPORTION_V37={version:'V37',shoulders:'balanced',to
 
 <!-- EBL REFERENCE UNIFORM FINISH V38 -->
 <script id="eblReferenceUniformFinishV38">window.EBL_REFERENCE_UNIFORM_FINISH_V38={version:'V38',target:'full baseball uniform',jerseySleeves:true,layeredPiping:true,buttonPlacket:true,largeNicknameScript:true,compressionSleeveUnderJersey:true,playerNumber:true,canonicalIdentityPreserved:true};</script>
+
+<!-- EBL COACH → GENESIS ROTATION BRIDGE RC56 -->
+<style id="coachGenesisBridgeRC56Style">
+.coachNextStarterRC56{border-color:var(--gold)!important;box-shadow:inset 3px 0 0 var(--gold)}
+.coachNextStarterRC56>span{color:var(--gold)!important;font-weight:900}
+</style>
+<script id="coachGenesisBridgeRC56">window.EBL_COACH_HUD_BUILD='RC56_GENESIS_ROTATION_BRIDGE';</script>
+
+<!-- EBL COACH → GENESIS AUTHORITATIVE GAME PLAN RC57 -->
+<style id="coachGenesisGamePlanRC57Style">
+.coachGenesisLockRC57{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:12px 14px;border:1px solid rgba(217,175,55,.42);border-radius:13px;background:linear-gradient(135deg,rgba(217,175,55,.09),rgba(8,29,49,.72))}.coachGenesisLockRC57>div{display:flex;flex-direction:column;gap:3px}.coachGenesisLockRC57 b{font-size:13px;letter-spacing:.04em}.coachGenesisLockRC57 small{color:var(--mut)}.coachGenesisSignalRC57{white-space:nowrap;padding:6px 9px;border-radius:999px;border:1px solid rgba(217,175,55,.45);color:var(--gold2);font-size:10px;font-weight:950;letter-spacing:.08em}@media(max-width:600px){.coachGenesisLockRC57{align-items:flex-start;flex-direction:column}.coachGenesisSignalRC57{align-self:flex-start}}
+</style>
+<script id="coachGenesisGamePlanRC57">window.EBL_COACH_HUD_BUILD='RC57_AUTHORITATIVE_GENESIS_GAME_PLAN';</script>
