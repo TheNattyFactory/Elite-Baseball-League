@@ -7985,3 +7985,71 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  window.EBL_TEAM_UNIFORM_IDENTITY_V23={capMark:true,jerseyMark:true,paletteFromFranchise:true,fallback:'EBL'};
 })();
 </script>
+
+<!-- EBL PLAYER PORTRAIT BRAND + COMPRESSION SLEEVE V32 -->
+<style id="eblPlayerPortraitBrandV32">
+.playerPortraitTeamBrandV32{position:relative;isolation:isolate;overflow:hidden}
+.playerPortraitTeamBrandV32>.playerPortraitTeamBackdropV32{position:absolute;inset:8% 8% 15%;z-index:0;display:grid;place-items:center;pointer-events:none}
+.playerPortraitTeamBrandV32>.playerPortraitTeamBackdropV32 img{width:88%;height:88%;object-fit:contain;opacity:.13;filter:saturate(.9) drop-shadow(0 5px 12px #0008)}
+.playerPortraitTeamBrandV32>.eblPlayerArtV24{position:relative;z-index:1}
+</style>
+<script id="eblPlayerPortraitBrandV32">
+(function(){
+ const prior=window.eblPlayerArtV24;
+ if(typeof prior!=='function'||prior.__eblPortraitBrandV32)return;
+ function stripLegacySleeves(html){
+   return String(html||'')
+    .replace(/<g data-ebl-accessory="left-sleeve">[\s\S]*?<\/g>/g,'')
+    .replace(/<g data-ebl-accessory="right-sleeve">[\s\S]*?<\/g>/g,'')
+    .replace(/<g data-ebl-accessory="left-sleeve-v30">[\s\S]*?<\/g>/g,'')
+    .replace(/<g data-ebl-accessory="right-sleeve-v30">[\s\S]*?<\/g>/g,'');
+ }
+ function removeBackdropEBL(html){
+   return String(html||'')
+    .replace(/<text x="150" y="210"[^>]*opacity="\.03"[^>]*>EBL<\/text>/g,'')
+    .replace(/<text x="150" y="208"[^>]*opacity="\.035"[^>]*>EBL<\/text>/g,'')
+    .replace(/<text x="150" y="213"[^>]*opacity="\.025"[^>]*>EBL<\/text>/g,'')
+    .replace(/<text x="150" y="211"[^>]*opacity="\.022"[^>]*>EBL<\/text>/g,'');
+ }
+ function fittedSleeve(raw){
+   const sleeve=Number(raw?.sleeve_id||1); if(sleeve<=1)return '';
+   const left=sleeve===2||sleeve===4, right=sleeve===3||sleeve===4;
+   let out='';
+   if(left)out+=`<g data-ebl-accessory="left-compression-sleeve-v32"><path d="M63 294 Q68 287 76 283 Q72 305 73 333 L60 340 Q57 318 63 294Z" fill="#111827" opacity=".97"/><path d="M64 299 Q68 292 74 288" fill="none" stroke="#ffffff" stroke-opacity=".10" stroke-width="1.5"/></g>`;
+   if(right)out+=`<g data-ebl-accessory="right-compression-sleeve-v32"><path d="M237 294 Q232 287 224 283 Q228 305 227 333 L240 340 Q243 318 237 294Z" fill="#111827" opacity=".97"/><path d="M236 299 Q232 292 226 288" fill="none" stroke="#ffffff" stroke-opacity=".10" stroke-width="1.5"/></g>`;
+   return out;
+ }
+ const clean=function(raw={},size='md',action='portrait'){
+   let html=prior(raw,size,action)||'';
+   if(!html||((action&&action!=='portrait'&&action!=='auto')))return html;
+   html=removeBackdropEBL(stripLegacySleeves(html));
+   const sleeve=fittedSleeve(raw);
+   return sleeve?html.replace(/<\/svg>/,sleeve+'</svg>'):html;
+ };
+ clean.__eblPortraitBrandV32=true;
+ window.eblPlayerArtV24=clean;
+ window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
+
+ // Player HQ: put the club's secondary mark behind the athlete instead of a generic EBL watermark.
+ const oldRenderPlayer=window.renderPlayer;
+ if(typeof oldRenderPlayer==='function'){
+   window.renderPlayer=function(){
+     const result=oldRenderPlayer.apply(this,arguments);
+     requestAnimationFrame(()=>{
+       try{
+         const p=window.PLAYER||PLAYER;if(!p?.franchise_id)return;
+         const host=[...document.querySelectorAll('#playerHQ .eblPlayerArtV24--lg')].find(x=>x.closest('.card'));
+         if(!host||host.parentElement?.classList.contains('playerPortraitTeamBrandV32'))return;
+         const wrap=document.createElement('div');wrap.className='playerPortraitTeamBrandV32';
+         host.parentNode.insertBefore(wrap,host);wrap.appendChild(host);
+         const logo=typeof teamLogoUrl==='function'?teamLogoUrl(p.franchise_id,'secondary'):'';
+         if(logo){const bg=document.createElement('div');bg.className='playerPortraitTeamBackdropV32';const img=document.createElement('img');img.src=logo;img.alt='';bg.appendChild(img);wrap.insertBefore(bg,host);}
+       }catch(e){}
+     });
+     return result;
+   };
+ }
+ try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
+ try{if(typeof renderHome==='function')renderHome()}catch(e){}
+})();
+</script>
