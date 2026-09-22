@@ -907,6 +907,13 @@ dialog{
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}}
 </style>
 
+
+<style id="eblProfileTeamBrandingV29">
+.profilePlayer .legacyTeamRef{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;flex-wrap:wrap}
+.profilePlayer .legacyTeamRef .teamMark{width:22px;height:22px;flex:0 0 22px}
+.profilePlayer .legacyTeamJourney .teamMark,.profilePlayer .brandedChampBanner .teamMark{width:20px;height:20px;flex:0 0 20px}
+@media(max-width:520px){.profilePlayer .legacyTeamRef .teamMark{width:20px;height:20px;flex-basis:20px}}
+</style>
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -3446,12 +3453,13 @@ async function loadAnalytics(){
 }
 async function loadAwards(){
  let j=await api('/api/awards');const xp=j.xp_values||{};
- mvpPane.innerHTML=`<p class="gold">MVP winner: +${xp.MVP||15} XP</p>`+raceList(j.mvp,x=>`${x.pos} • <span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • OPS ${x.ops.toFixed(3)} • ${x.hr} HR`);
- batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
- pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
- sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
- fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
- if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${a.award_name}</b> — ${leaguePlayerName(a)} <span class="gold">+${a.xp_awarded} XP</span><div class="muted">Season ${a.season} • ${String(a.period).replaceAll('_',' ')}</div></div>`).join('')}`}
+ const teamLine=(x)=>awardTeamRef(x.team);
+ mvpPane.innerHTML=`<p class="gold">MVP winner: +${xp.MVP||15} XP</p>`+raceList(j.mvp,x=>`${escapeHtml(String(x.pos||''))} • ${teamLine(x)} • OPS ${Number(x.ops||0).toFixed(3)} • ${Number(x.hr||0)} HR`);
+ batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`${teamLine(x)} • AVG ${Number(x.avg||0).toFixed(3)} • OBP ${Number(x.obp||0).toFixed(3)}`);
+ pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`${teamLine(x)} • ERA ${Number(x.era||0).toFixed(2)} • WHIP ${Number(x.whip||0).toFixed(2)} • ${Number(x.so||0)} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`${teamLine(x)} • ERA ${Number(x.era||0).toFixed(2)} • WHIP ${Number(x.whip||0).toFixed(2)} • ${Number(x.so||0)} K • ${Number(x.sv||0)} SV`)}`;
+ sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases||[],x=>`${teamLine(x)} • ${Number(x.sb||0)} SB • OBP ${Number(x.obp||0).toFixed(3)}`);
+ fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding||{}).map(([pos,rows])=>`<h3>${escapeHtml(pos)}</h3>${raceList(rows||[],x=>`${teamLine(x)} • OAA ${Number(x.oaa||0).toFixed(2)} • ${Number(x.e||0)} E • ${escapeHtml(String(x.fld_pct||'1.000'))} FLD`)}`).join('');
+ if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${escapeHtml(String(a.award_name||'Award'))}</b> — ${leaguePlayerName(a)} <span class="gold">+${Number(a.xp_awarded||0)} XP</span><div class="muted">Season ${Number(a.season||0)} • ${escapeHtml(String(a.period||'').replaceAll('_',' '))}${a.franchise_id||a.team?` • ${awardTeamRef(a.franchise_id||a.team)}`:''}</div></div>`).join('')}`}
 }
 
 function awardTeamRef(fid){
