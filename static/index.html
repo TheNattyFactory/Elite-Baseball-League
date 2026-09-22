@@ -909,6 +909,9 @@ dialog{
 
 
 
+<style id="eblCoachGameSheetRC55">
+.coachGameSheet{display:grid;grid-template-columns:1.15fr .85fr;gap:12px;margin-top:14px}.coachGameSheetPanel{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(15,39,63,.92),rgba(7,22,37,.94));padding:13px}.coachGameSheetHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.coachGameSheetHead h3{margin:2px 0 0}.coachGameLineup{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.coachGameLine{display:grid;grid-template-columns:22px 34px 1fr;align-items:center;gap:7px;min-width:0;padding:7px;border:1px solid rgba(75,103,129,.45);border-radius:9px;background:rgba(4,14,25,.45)}.coachGameLine>span{font-weight:1000;color:var(--gold);text-align:center}.coachGameLine .playerPortrait,.coachGameLine .publicPortrait{width:34px!important;height:34px!important;min-width:34px}.coachGameLine div{min-width:0}.coachGameLine b,.coachGameLine small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.coachGameLine small,.coachGameStaff small{color:var(--muted);font-size:9px}.coachGameStaffList{display:grid;gap:7px}.coachGameStaff{display:grid;grid-template-columns:40px 1fr;gap:2px 9px;align-items:center;padding:8px 9px;border:1px solid rgba(75,103,129,.45);border-radius:9px;background:rgba(4,14,25,.45)}.coachGameStaff>span{grid-row:1/3;color:var(--gold);font-size:10px;font-weight:1000}.coachGameStaff b,.coachGameStaff small{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(max-width:760px){.coachGameSheet{grid-template-columns:1fr}.coachGameLineup{grid-template-columns:1fr}.coachGameSheetHead{align-items:flex-start}.coachGameSheetHead .btn{padding:7px 9px;font-size:10px}}
+</style>
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -3447,10 +3450,6 @@ async function loadAnalytics(){
  aPitch.innerHTML=`<div class="tablewrap"><table><tr><th>#</th><th>Pitcher</th><th>Team</th><th>ERA</th><th>WHIP</th><th>SO</th><th>XP</th></tr>${j.leaders.pitching.map((x,i)=>`<tr><td>${i+1}</td><td>${leaguePlayerIdentity(x)}</td><td><span class="analyticsTeamRef">${teamMark(x.team,true)}<button class="clickableName" onclick="openTeam('${jsq(x.team)}')">${escapeHtml(teamName(x.team))}</button></span></td><td>${x.era.toFixed(2)}</td><td>${x.whip.toFixed(2)}</td><td>${x.so}</td><td>${x.xp.toFixed(3)}</td></tr>`).join('')}</table></div>`;
 }
 async function loadAwards(){
- // Awards need franchise identity data before rendering team names/logos.
- // loadAwards and loadLeague can start together during bootstrap, so wait here
- // rather than permanently rendering fallback EBL marks / raw franchise IDs.
- if(!LEAGUE?.teams?.length) await loadLeague();
  let j=await api('/api/awards');const xp=j.xp_values||{};
  mvpPane.innerHTML=`<p class="gold">MVP winner: +${xp.MVP||15} XP</p>`+raceList(j.mvp,x=>`${x.pos} • <span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • OPS ${x.ops.toFixed(3)} • ${x.hr} HR`);
  batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
@@ -3491,7 +3490,7 @@ function renderHome(){
   }else onboardingCard.classList.add('hidden');
  }
  if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
- let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap">${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos}${p.hometown?` • ${escapeHtml(p.hometown)}`:''} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
+ let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap homeAvatarBranded">${p.franchise_id?`<div class="homePlayerTeamBackdrop">${teamLogoImg(p.franchise_id,'secondary','homePlayerBackdropLogo')}</div>`:''}${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos}${p.hometown?` • ${escapeHtml(p.hometown)}`:''} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
  homeTeam.innerHTML=t?`<div class="identity">${teamMark(p.franchise_id)}<div><span class="muted">MY TEAM</span><h2><button class="clickableName" onclick="openTeam('${p.franchise_id}')">${t.name}</button></h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div></div></div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Request CPU contract offers to begin your EBL career.</p><button class="btn" onclick="market()">REQUEST CONTRACT OFFERS</button><button class="btn ghost" onclick="PLAYER_HQ_TAB='playerContracts';goPage('player');renderPlayer()">OPEN CONTRACT HQ</button>`;
  let ng=p.franchise_id?SCHEDULE.find(g=>g.status==='SCHEDULED'&&(g.away_id===p.franchise_id||g.home_id===p.franchise_id)&&g.league_day>=(LEAGUE?.day||0)):null;
  nextGame.innerHTML=ng?`<span class="muted">NEXT GAME • DAY ${ng.league_day}</span><div class="homeNextMatchup"><span>${teamMark(ng.away_id,true)}<button class="teamLink" onclick="openTeam('${jsq(ng.away_id)}')">${teamName(ng.away_id)}</button></span><b>@</b><span>${teamMark(ng.home_id,true)}<button class="teamLink" onclick="openTeam('${jsq(ng.home_id)}')">${teamName(ng.home_id)}</button></span></div><p>${ng.away_id===p.franchise_id?'Road game':'Home game'}</p><button class="btn ghost" onclick="goPage('schedule')">VIEW SCHEDULE</button>`:`<h2>Next Game</h2><p class="muted">${p.franchise_id?'Your next scheduled game will appear here.':'Accept a contract and your first EBL game will appear here automatically.'}</p>${!p.franchise_id?`<div class="launchPath"><span>1. Request offers</span><span>2. Choose a team</span><span>3. Play ball</span></div>`:''}`;
@@ -4233,6 +4232,15 @@ function coachGameDayRC52(j,lineup,rot,bp,def,H,P,next,opp,lineupReady,rotationR
  const closer=P.find(p=>Number(p.id)===Number(bp?.CL))||{};
  const steal=j.strategy?.substitutions?.steal_aggression||'NORMAL';
  const bunt=j.strategy?.substitutions?.bunt_aggression||'NORMAL';
+ const byHitter=new Map((H||[]).map(p=>[Number(p.id),p]));
+ const byPitcher=new Map((P||[]).map(p=>[Number(p.id),p]));
+ const lineupPreview=(lineup||[]).slice(0,9).map((slot,i)=>{
+   const pid=Number((slot?.player_id??slot?.id??slot) || 0),p=byHitter.get(pid)||{};
+   const field=slot?.position||slot?.field_pos||slot?.pos||p.primary_pos||'—';
+   return `<div class="coachGameLine"><span>${i+1}</span>${p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):''}<div><b>${escapeHtml(p.name||'Open Slot')}</b><small>${escapeHtml(field)}${p.jersey_number!=null?` • #${Number(p.jersey_number)}`:''}</small></div></div>`;
+ }).join('') || '<p class="muted">Set the Starting Nine to build the game card.</p>';
+ const rotationPreview=(rot||[]).map((id,i)=>{const p=byPitcher.get(Number(id))||{};return `<div class="coachGameStaff"><span>SP${i+1}</span><b>${escapeHtml(p.name||'Open')}</b><small>${p.id?coachPitchMetaRC49(p):'Not set'}</small></div>`}).join('') || '<p class="muted">No rotation set.</p>';
+ const bullpenPreview=[['CL',bp?.CL],['SU1',bp?.SU1],['SU2',bp?.SU2]].map(([role,id])=>{const p=byPitcher.get(Number(id))||{};return `<div class="coachGameStaff"><span>${role}</span><b>${escapeHtml(p.name||'Unassigned')}</b><small>${p.id?coachPitchMetaRC49(p):'Set role'}</small></div>`}).join('');
  const checks=[
    ['Starting Nine',lineupReady,lineupReady?'9 hitters set':'Lineup needs attention','cRoster'],
    ['Rotation',rotationReady,rotationReady?`${rot.length}-man rotation set`:'Choose 3–5 starters','cPitch'],
@@ -4254,6 +4262,10 @@ function coachGameDayRC52(j,lineup,rot,bp,def,H,P,next,opp,lineupReady,rotationR
  <div class="coachGamePlan">
    <div><span>OFFENSIVE APPROACH</span><b>${escapeHtml(steal)} STEAL • ${escapeHtml(bunt)} BUNT</b></div>
    <div><span>DEFENSIVE PLAN</span><b>${escapeHtml(def?.default_shift||'STANDARD')} • LHB ${escapeHtml(def?.vs_lhb||'STANDARD')} • RHB ${escapeHtml(def?.vs_rhb||'STANDARD')}</b></div>
+ </div>
+ <div class="coachGameSheet">
+   <div class="coachGameSheetPanel"><div class="coachGameSheetHead"><div><span class="newsMeta">SAVED CARD</span><h3>Starting Nine</h3></div><button class="btn ghost" onclick="coachJumpRC52('cRoster')">Edit Lineup</button></div><div class="coachGameLineup">${lineupPreview}</div></div>
+   <div class="coachGameSheetPanel"><div class="coachGameSheetHead"><div><span class="newsMeta">PITCHING PLAN</span><h3>Rotation & Late Innings</h3></div><button class="btn ghost" onclick="coachJumpRC52('cPitch')">Edit Staff</button></div><div class="coachGameStaffList">${rotationPreview}${bullpenPreview}</div></div>
  </div>`;
 }
 function coachJumpRC52(id){
@@ -7739,6 +7751,54 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
 })();
 </script>
+
+<!-- EBL HOME MULTI-PLAYER SWITCH + TEAM LOGO BACKDROP V31 -->
+<style id="eblHomePlayerBrandV31">
+.homeAvatarBranded{position:relative;isolation:isolate;overflow:hidden}
+.homePlayerTeamBackdrop{position:absolute;inset:6% 5% 12%;display:grid;place-items:center;z-index:0;pointer-events:none}
+.homePlayerBackdropLogo{width:88%;height:88%;object-fit:contain;opacity:.16;filter:saturate(.9) drop-shadow(0 5px 12px #0008)}
+.homeAvatarBranded>.eblPlayerArtV24,.homeAvatarBranded>.eblIdentityPortrait{position:relative;z-index:1}
+@media(max-width:520px){.homePlayerBackdropLogo{width:92%;height:92%;opacity:.18}}
+</style>
+<script id="eblHomePlayerSwitchV31">
+(function(){
+ let switching=false;
+ async function switchHomePlayerV31(pid){
+   pid=Number(pid||0);
+   if(!pid||switching)return;
+   switching=true;
+   document.querySelectorAll('.homeCycleBtn,.homePlayerDot').forEach(b=>b.disabled=true);
+   try{
+     const j=await api('/api/my-player?player_id='+encodeURIComponent(pid));
+     if(!j?.player||Number(j.player.id)!==pid)throw new Error('PLAYER_SWITCH_FAILED');
+     PLAYER=j.player;
+     ACTIVE_PLAYERS=j.players||ACTIVE_PLAYERS;
+     PLAYER_LIMIT=Number(j.player_limit||PLAYER_LIMIT);
+     CAREERS=j.careers||CAREERS;
+     localStorage.setItem('ebl_selected_player',String(pid));
+     renderPlayer();
+     await Promise.all([loadSchedule(),loadLeague()]);
+     renderHome();
+     await Promise.all([loadChat('EBL'),loadChat('TEAM')]);
+   }catch(e){
+     console.error('EBL player switch failed',e);
+     try{await loadPlayer(pid);renderHome()}catch(_){}
+   }finally{
+     switching=false;
+     document.querySelectorAll('.homeCycleBtn,.homePlayerDot').forEach(b=>b.disabled=false);
+   }
+ }
+ window.selectPlayer=switchHomePlayerV31;
+ window.cycleHomePlayer=async function(dir){
+   if(switching||!Array.isArray(ACTIVE_PLAYERS)||ACTIVE_PLAYERS.length<2)return;
+   const current=ACTIVE_PLAYERS.findIndex(x=>Number(x.id)===Number(PLAYER?.id));
+   const base=current>=0?current:0;
+   const next=(base+(Number(dir)<0?-1:1)+ACTIVE_PLAYERS.length)%ACTIVE_PLAYERS.length;
+   await switchHomePlayerV31(ACTIVE_PLAYERS[next]?.id);
+ };
+})();
+</script>
+
 </body></html>
 
 <!-- EBL PLAYER CREATOR STUDIO V20 — tabbed sports-game creator -->
