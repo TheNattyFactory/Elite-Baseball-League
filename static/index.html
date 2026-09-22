@@ -3447,6 +3447,10 @@ async function loadAnalytics(){
  aPitch.innerHTML=`<div class="tablewrap"><table><tr><th>#</th><th>Pitcher</th><th>Team</th><th>ERA</th><th>WHIP</th><th>SO</th><th>XP</th></tr>${j.leaders.pitching.map((x,i)=>`<tr><td>${i+1}</td><td>${leaguePlayerIdentity(x)}</td><td><span class="analyticsTeamRef">${teamMark(x.team,true)}<button class="clickableName" onclick="openTeam('${jsq(x.team)}')">${escapeHtml(teamName(x.team))}</button></span></td><td>${x.era.toFixed(2)}</td><td>${x.whip.toFixed(2)}</td><td>${x.so}</td><td>${x.xp.toFixed(3)}</td></tr>`).join('')}</table></div>`;
 }
 async function loadAwards(){
+ // Awards need franchise identity data before rendering team names/logos.
+ // loadAwards and loadLeague can start together during bootstrap, so wait here
+ // rather than permanently rendering fallback EBL marks / raw franchise IDs.
+ if(!LEAGUE?.teams?.length) await loadLeague();
  let j=await api('/api/awards');const xp=j.xp_values||{};
  mvpPane.innerHTML=`<p class="gold">MVP winner: +${xp.MVP||15} XP</p>`+raceList(j.mvp,x=>`${x.pos} • <span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • OPS ${x.ops.toFixed(3)} • ${x.hr} HR`);
  batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
@@ -7674,6 +7678,65 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  bind(['lu','lp'],()=>login());
  bind(['ru','rp','re'],()=>register());
  bind(['resetEmail'],()=>requestReset());
+})();
+</script>
+
+
+<!-- EBL HOME CAROUSEL + SLEEVE GEOMETRY POLISH V30 -->
+<style id="eblHomeCarouselPolishV30">
+.homeCycleBtn{min-width:64px;min-height:54px;display:flex;align-items:center;justify-content:center;font-size:28px;line-height:1;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.homeCycleBtn:focus:not(:focus-visible){outline:none;box-shadow:none}
+.homeCycleBtn[disabled]{opacity:.55;cursor:wait}
+.homePlayerDot{min-width:14px;min-height:14px;width:14px;height:14px;touch-action:manipulation}
+@media(max-width:520px){.homePlayerCycle{gap:12px}.homeCycleBtn{min-width:64px;min-height:56px}.homePlayerDots{gap:9px}}
+</style>
+<script id="eblHomeCarouselSleevePolishV30">
+(function(){
+ let cycling=false;
+ window.cycleHomePlayer=async function(dir){
+   if(cycling||!Array.isArray(ACTIVE_PLAYERS)||ACTIVE_PLAYERS.length<2)return;
+   const current=ACTIVE_PLAYERS.findIndex(x=>Number(x.id)===Number(PLAYER?.id));
+   const base=current>=0?current:0;
+   const next=(base+(Number(dir)<0?-1:1)+ACTIVE_PLAYERS.length)%ACTIVE_PLAYERS.length;
+   const pid=Number(ACTIVE_PLAYERS[next]?.id||0);
+   if(!pid)return;
+   cycling=true;
+   document.querySelectorAll('.homeCycleBtn').forEach(b=>b.disabled=true);
+   try{await selectPlayer(pid)}finally{
+     cycling=false;
+     document.querySelectorAll('.homeCycleBtn').forEach(b=>b.disabled=false);
+   }
+ };
+ window.homePlayerCycleHtml=function(){
+   if(!Array.isArray(ACTIVE_PLAYERS)||ACTIVE_PLAYERS.length<=1)return '';
+   return `<div class="homePlayerCycle"><button type="button" class="btn homeCycleBtn" onclick="cycleHomePlayer(-1)" aria-label="Previous player">‹</button><div class="homePlayerDots">${ACTIVE_PLAYERS.map(x=>`<button type="button" class="homePlayerDot ${Number(x.id)===Number(PLAYER?.id)?'active':''}" onclick="selectPlayer(${Number(x.id)})" aria-label="Show ${escapeHtml(x.name)}" title="${escapeHtml(x.name)}"></button>`).join('')}</div><button type="button" class="btn homeCycleBtn" onclick="cycleHomePlayer(1)" aria-label="Next player">›</button></div>`;
+ };
+
+ /* Replace the late accessory overlay only; preserve the canonical player renderer. */
+ const baseArt=window.eblPlayerArtV24;
+ if(typeof baseArt==='function' && !baseArt.__eblSleeveV30){
+   /* The current wrapper adds the old shoulder-heavy sleeve. Strip that group from its output,
+      then add a slimmer compression sleeve that begins below the jersey shoulder seam. */
+   const oldWrapped=baseArt;
+   const clean=function(raw={},size='md',action='portrait'){
+     let html=oldWrapped(raw,size,action)||'';
+     html=html.replace(/<g data-ebl-accessory="left-sleeve">[\s\S]*?<\/g>/g,'')
+              .replace(/<g data-ebl-accessory="right-sleeve">[\s\S]*?<\/g>/g,'');
+     if(!html||((action&&action!=='portrait'&&action!=='auto')))return html;
+     const sleeve=Number(raw?.sleeve_id||1);
+     if(sleeve<=1)return html;
+     const left=sleeve===2||sleeve===4, right=sleeve===3||sleeve===4;
+     let extra='';
+     if(left)extra+=`<g data-ebl-accessory="left-sleeve-v30"><path d="M76 286 Q62 296 56 315 L58 344 L78 335 Q76 314 87 293Z" fill="#111827" opacity=".96"/><path d="M63 302 Q70 296 82 291" fill="none" stroke="#ffffff" stroke-opacity=".12" stroke-width="2"/></g>`;
+     if(right)extra+=`<g data-ebl-accessory="right-sleeve-v30"><path d="M224 286 Q238 296 244 315 L242 344 L222 335 Q224 314 213 293Z" fill="#111827" opacity=".96"/><path d="M237 302 Q230 296 218 291" fill="none" stroke="#ffffff" stroke-opacity=".12" stroke-width="2"/></g>`;
+     return extra?html.replace(/<\/svg>/,extra+'</svg>'):html;
+   };
+   clean.__eblSleeveV30=true;
+   window.eblPlayerArtV24=clean;
+   window.eblPublicPortraitV28=(r={},z='lg')=>window.eblPlayerArtV24(r,z,'portrait');
+ }
+ try{if(typeof renderHome==='function')renderHome()}catch(e){}
+ try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
 })();
 </script>
 </body></html>
