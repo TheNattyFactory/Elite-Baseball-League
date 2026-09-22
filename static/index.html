@@ -5931,9 +5931,9 @@ window.EBL_AVATAR_EVERYWHERE_RC39={version:'RC39',surfaces:['home','player-hq','
  function faceProfile(p){
    const raw=String(p?.face_shape ?? p?.faceShape ?? p?.face ?? 'classic').toLowerCase();
    if(raw.includes('square')) return {sx:.97,sy:1.00,chin:3};
-   if(raw.includes('oval')) return {sx:.91,sy:1.035,chin:0};
+   if(raw.includes('oval')) return {sx:.96,sy:1.025,chin:0};
    if(raw.includes('strong')) return {sx:.98,sy:1.00,chin:5};
-   if(raw.includes('angular')) return {sx:.94,sy:1.015,chin:4};
+   if(raw.includes('angular')) return {sx:.98,sy:1.01,chin:4};
    if(raw.includes('narrow')) return {sx:.87,sy:1.035,chin:1};
    if(raw.includes('broad')) return {sx:1.01,sy:.99,chin:3};
    if(raw.includes('round')) return {sx:.97,sy:.965,chin:-1};
@@ -7299,6 +7299,67 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
 <script id="coachHudBuildRC52">window.EBL_COACH_HUD_BUILD='RC52_GAME_DAY';</script>
 <script id="gameCastCoachBuildRC53">window.EBL_GAMECAST_COACH_BUILD='RC53_STRATEGY_VISIBILITY';</script>
 <script id="eblNoBenchBuildRC54">window.EBL_ROSTER_MODEL='RC54_NO_POSITION_PLAYER_BENCH';</script>
+
+
+<!-- EBL CREATOR ACCESSORY POLISH V24 — visible chains + sleeves -->
+<script id="eblCreatorAccessoryPolishV24">
+(function(){
+ const prior=window.eblPlayerArtV24;
+ const N=(v,d=1)=>Number.isFinite(+v)?+v:d;
+ function accessorySvg(p){
+   let out='';
+   const chain=N(p.chain_id,1);
+   if(chain===2||chain===3){
+     const metal=chain===2?'#f2c94c':'#d8e0e8';
+     const shine=chain===2?'#fff0a6':'#ffffff';
+     out+=`<g data-ebl-accessory="chain" fill="none" stroke-linecap="round"><path d="M128 244 Q150 261 172 244" stroke="#111827" stroke-opacity=".38" stroke-width="5"/><path d="M128 244 Q150 261 172 244" stroke="${metal}" stroke-width="3.2"/><path d="M133 247 Q150 258 167 247" stroke="${shine}" stroke-opacity=".72" stroke-width="1"/></g>`;
+   }
+   const sleeve=N(p.sleeve_id,1);
+   if(sleeve>1){
+     const left=sleeve===2||sleeve===4, right=sleeve===3||sleeve===4;
+     if(left)out+=`<g data-ebl-accessory="left-sleeve"><path d="M48 302 Q67 278 91 266 Q83 290 81 332 L54 343 Q49 323 48 302Z" fill="#111827" opacity=".96"/><path d="M54 299 Q69 281 86 272" fill="none" stroke="#ffffff" stroke-opacity=".16" stroke-width="2"/></g>`;
+     if(right)out+=`<g data-ebl-accessory="right-sleeve"><path d="M252 302 Q233 278 209 266 Q217 290 219 332 L246 343 Q251 323 252 302Z" fill="#111827" opacity=".96"/><path d="M246 299 Q231 281 214 272" fill="none" stroke="#ffffff" stroke-opacity=".16" stroke-width="2"/></g>`;
+   }
+   return out;
+ }
+ window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){
+   let html=prior?prior(raw,size,action):'';
+   if(!html||action&&action!=='portrait'&&action!=='auto')return html;
+   const extra=accessorySvg(raw||{});
+   if(!extra)return html;
+   return html.replace(/<\/svg>/,extra+'</svg>');
+ };
+ window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
+ window.EBL_CREATOR_ACCESSORY_POLISH_V24={chains:['none','gold','silver'],sleeves:['none','left','right','both'],visibleInLivePreview:true,visibleInThumbnails:true};
+})();
+</script>
+
+
+<!-- EBL RC52 — uploaded franchise logo propagation -->
+<script>
+(function(){
+  function primary(t){return t&&(t.primary_logo_url||t.primary_logo||t.primary_logo_url||t.primary_logo||t.logo_url||t.logo||t.logo_primary||t.primaryLogoUrl||t.primaryLogo)||""}
+  function secondary(t){return t&&(t.secondary_logo_url||t.secondary_logo||t.logo_secondary||t.secondaryLogoUrl||t.secondaryLogo)||""}
+  window.EBLTeamLogo=function(t,useSecondary){return (useSecondary?secondary(t):primary(t))||(useSecondary?primary(t):secondary(t))||""};
+  function team(fid){return (((window.LEAGUE||{}).teams)||[]).find(t=>String(t.id)===String(fid))}
+  window.EBLTeamLogoById=(fid,useSecondary)=>window.EBLTeamLogo(team(fid),useSecondary);
+  function apply(){
+    if(!window.LEAGUE||!LEAGUE.teams)return;
+    document.querySelectorAll('[data-franchise-id],[data-team-id]').forEach(el=>{
+      const fid=el.dataset.franchiseId||el.dataset.teamId;
+      const src=window.EBLTeamLogoById(fid,el.dataset.logoType==="secondary");
+      if(!src)return;
+      const img=el.tagName==="IMG"?el:el.querySelector('img.team-logo,img.franchise-logo,img[data-team-logo]');
+      if(img){if(img.src!==src)img.src=src;img.style.objectFit="contain"}
+    });
+  }
+  window.EBLRefreshUploadedTeamLogos=apply;
+  new MutationObserver(()=>requestAnimationFrame(apply)).observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener("DOMContentLoaded",apply);
+  setInterval(apply,2500);
+})();
+</script>
+
 </body></html>
 
 <!-- EBL PLAYER CREATOR STUDIO V20 — tabbed sports-game creator -->
@@ -7421,8 +7482,8 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    if(id===2)return `<g fill="${c}" opacity=".55">${[[123,171],[129,177],[136,182],[143,187],[150,189],[157,187],[164,182],[171,177],[177,171],[130,189],[138,194],[150,196],[162,194],[170,189]].map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="1.15"/>`).join('')}</g>`;
    if(id===3)return must+`<path d="M141 187 Q150 192 159 187 L158 201 Q150 207 142 201Z" fill="${c}"/>`;
    if(id===5)return must;
-   if(id===4)return must+`<path d="M119 160 Q120 181 130 196 Q139 208 150 212 Q161 208 170 196 Q180 181 181 160 L175 171 Q171 190 161 199 Q150 207 139 199 Q129 190 125 171Z" fill="${c}"/>`+`<path d="M128 184 Q150 199 172 184 L166 201 Q150 214 134 201Z" fill="${c}"/>`;
-   if(id===7)return `<path d="M120 163 Q122 181 132 194" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round"/><path d="M180 163 Q178 181 168 194" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round"/><path d="M132 194 Q150 204 168 194" fill="none" stroke="${c}" stroke-width="5" stroke-linecap="round"/>`;
+   if(id===4)return must+`<path d="M121 169 Q124 188 136 199 Q143 205 150 208 Q157 205 164 199 Q176 188 179 169 L174 176 Q170 190 161 198 Q150 205 139 198 Q130 190 126 176Z" fill="${c}"/>`+`<path d="M132 190 Q150 202 168 190 Q163 203 150 209 Q137 203 132 190Z" fill="${c}"/>`;
+   if(id===7)return `<path d="M124 174 Q127 190 138 199 Q144 204 150 207" fill="none" stroke="${c}" stroke-width="4.5" stroke-linecap="round"/><path d="M176 174 Q173 190 162 199 Q156 204 150 207" fill="none" stroke="${c}" stroke-width="4.5" stroke-linecap="round"/>`;
    if(id===11)return soul;
    if(id===13)return `<path d="M130 174 Q139 169 147 174 Q138 184 125 180 Q120 179 116 175 Q124 178 130 174Z" fill="${c}"/><path d="M170 174 Q161 169 153 174 Q162 184 175 180 Q180 179 184 175 Q176 178 170 174Z" fill="${c}"/>`;
    if(id===10)return must+soul+`<path d="M142 187 Q150 192 158 187 L157 202 Q150 209 143 202Z" fill="${c}"/>`;
