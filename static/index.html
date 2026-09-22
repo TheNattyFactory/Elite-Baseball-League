@@ -8053,3 +8053,182 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  try{if(typeof renderHome==='function')renderHome()}catch(e){}
 })();
 </script>
+
+<!-- EBL FRANCHISE GAMEDAY UNIFORM V33 -->
+<style id="eblFranchiseGamedayUniformV33Style">
+/* Keep the secondary club mark centered and readable behind portraits. */
+.homePlayerTeamBackdrop{inset:1% 0 5%!important}
+.homePlayerBackdropLogo{width:112%!important;height:112%!important;opacity:.19!important;object-fit:contain!important}
+.playerPortraitTeamBrandV33{position:relative;isolation:isolate;overflow:hidden}
+.playerPortraitTeamBrandV33>.playerPortraitTeamBackdropV33{position:absolute;inset:2% 1% 5%;z-index:0;display:grid;place-items:center;pointer-events:none}
+.playerPortraitTeamBrandV33>.playerPortraitTeamBackdropV33 img{width:108%;height:108%;object-fit:contain;opacity:.17;filter:saturate(.95) drop-shadow(0 5px 12px #0008)}
+.playerPortraitTeamBrandV33>.eblPlayerArtV24{position:relative;z-index:1}
+</style>
+<script id="eblFranchiseGamedayUniformV33">
+(function(){
+ const prior=window.eblPlayerArtV24;
+ if(typeof prior!=='function'||prior.__eblUniformV33)return;
+ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ function club(p){
+   try{return p?.team||(window.LEAGUE?.teams||[]).find(t=>String(t.id)===String(p?.franchise_id))||null}catch(e){return null}
+ }
+ function nickname(p){
+   const t=club(p); if(!t)return 'EBL';
+   let n=String(t.team_name||t.nickname||t.display_name||t.name||'EBL').trim();
+   if(!t.team_name&&!t.nickname){const city=String(t.city||'').trim();if(city&&n.toLowerCase().startsWith(city.toLowerCase()+' '))n=n.slice(city.length+1).trim()}
+   return n||'EBL';
+ }
+ function jerseyWordmark(html,p){
+   const word=nickname(p); if(word==='EBL')return html;
+   const safe=esc(word), len=word.length;
+   const fs=len>=13?17:len>=10?20:len>=8?23:26;
+   const wordmark=`<text data-ebl-team-wordmark="v33" x="112" y="307" text-anchor="middle" fill="#fff" stroke="#07101c" stroke-width="3.5" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="cursive" font-style="italic">${safe}</text>`;
+   // Replace the generic league chest mark with the franchise nickname.
+   let out=String(html||'');
+   const patterns=[
+     /<text x="103" y="305"[^>]*>[^<]*<\/text>/,
+     /<text x="113" y="300"[^>]*>[^<]*<\/text>/,
+     /<text x="112" y="303"[^>]*>[^<]*<\/text>/,
+     /<text x="92" y="304"[^>]*>[^<]*<\/text>/
+   ];
+   for(const re of patterns){if(re.test(out)){out=out.replace(re,wordmark);return out}}
+   return out.replace(/(<text[^>]*x="19[0-9]"[^>]*y="31[0-9]"[^>]*>)/,wordmark+'$1');
+ }
+ const render=function(raw={},size='md',action='portrait'){
+   let html=prior(raw,size,action)||'';
+   if(!html||((action&&action!=='portrait'&&action!=='auto')))return html;
+   return jerseyWordmark(html,raw||{});
+ };
+ render.__eblUniformV33=true;
+ window.eblPlayerArtV24=render;
+ window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
+
+ // Player HQ portrait: secondary logo watermark, same rule as Home.
+ window.playerPortraitMarkup=function(raw,pose='auto'){
+   const p=typeof eblFullSavedPlayerRC38==='function'?eblFullSavedPlayerRC38(raw||{}):(raw||{});
+   const action=(pose&&pose!=='auto'&&pose!=='portrait')?pose:'portrait';
+   let logo='';
+   try{logo=p.franchise_id&&typeof teamLogoUrl==='function'?teamLogoUrl(p.franchise_id,'secondary'):''}catch(e){}
+   return `<div class="playerPortrait playerPortraitV27 playerPortraitTeamBrandV33" data-pos="#${Number(p.jersey_number??24)} • ${esc(p.primary_pos||'EBL')}">${logo?`<div class="playerPortraitTeamBackdropV33"><img src="${esc(logo)}" alt=""></div>`:''}${window.eblPlayerArtV24(p,'lg',action)}</div>`;
+ };
+ try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
+ try{if(typeof renderHome==='function')renderHome()}catch(e){}
+ window.EBL_FRANCHISE_GAMEDAY_UNIFORM_V33={dynamicWordmark:true,secondaryWatermark:true,capMark:true,playerNumber:true};
+})();
+</script>
+
+<!-- EBL CANONICAL PLAYER IDENTITY LOCK V34 -->
+<script id="eblCanonicalPlayerIdentityLockV34">
+(function(){
+ const APPEARANCE=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id'];
+ const cache=new Map();
+ const priorFull=window.eblFullSavedPlayerRC38;
+ const finalArt=window.eblPlayerArtV24;
+ const esc=typeof window.escapeHtml==='function'?window.escapeHtml:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+ function key(p={}){
+   const id=Number(p.id||p.player_id||0); if(id)return 'id:'+id;
+   const u=String(p.username||'').trim().toLowerCase(); if(u)return 'user:'+u;
+   const n=String(p.name||p.player_name||'').trim().toLowerCase(); return n?'name:'+n:'';
+ }
+ function valid(v){return v!==undefined&&v!==null&&v!==''}
+ function appearanceObject(p={}){
+   let a={};
+   try{if(typeof window.eblRC38AppearanceObject==='function')a=window.eblRC38AppearanceObject(p)||{}}catch(_){ }
+   const out={}; APPEARANCE.forEach(k=>{const v=valid(p[k])?p[k]:a[k];if(valid(v))out[k]=v}); return out;
+ }
+ function richness(p={}){const a=appearanceObject(p);return APPEARANCE.reduce((n,k)=>n+(valid(a[k])?1:0),0)}
+ function remember(p={}){
+   const k=key(p); if(!k)return p;
+   const old=cache.get(k)||{};
+   const winner=richness(p)>=richness(old)?p:old;
+   const other=winner===p?old:p;
+   const merged={...other,...winner,...appearanceObject(other),...appearanceObject(winner)};
+   cache.set(k,merged); return merged;
+ }
+ function seed(){
+   const add=x=>{if(x&&typeof x==='object')remember(x)};
+   try{add(window.PLAYER)}catch(_){ }
+   try{(window.ACTIVE_PLAYERS||[]).forEach(add)}catch(_){ }
+   try{(window.TEAM_ROSTER||[]).forEach(add)}catch(_){ }
+   try{(window.LEAGUE?.players||[]).forEach(add);(window.LEAGUE?.roster||[]).forEach(add);(window.LEAGUE?.teams||[]).forEach(t=>{(t.players||[]).forEach(add);(t.roster||[]).forEach(add)})}catch(_){ }
+ }
+ window.eblFullSavedPlayerRC38=function(raw={}){
+   seed();
+   let base={}; try{base=typeof priorFull==='function'?priorFull(raw||{}):(raw||{})}catch(_){base=raw||{}}
+   const k=key(base)||key(raw); const saved=k?cache.get(k):null;
+   // Saved appearance is authoritative; surface-specific rows may contribute stats/team data only.
+   let merged={...(saved||{}),...base};
+   if(saved) APPEARANCE.forEach(a=>{if(valid(saved[a]))merged[a]=saved[a]});
+   merged=remember(merged);
+   return merged;
+ };
+ function canonical(raw={}){return window.eblFullSavedPlayerRC38(raw||{})}
+ // Every portrait helper terminates at the exact same final renderer and canonical saved identity.
+ window.eblPublicPortraitV28=(raw={},size='lg')=>finalArt(canonical(raw),size,'portrait');
+ window.eblAvatarHtml=function(raw,size='card'){const map={mini:'xs',sm:'sm',card:'md',hero:'lg',lg:'lg'};return finalArt(canonical(raw),map[size]||'md','portrait')};
+ window.eblIdentityPortraitV22=function(raw={},cls=''){return `<div class="eblIdentityPortrait ${esc(cls)}">${finalArt(canonical(raw),'lg','portrait')}</div>`};
+ window.eblIdentityMiniV22=function(raw={},subtitle=''){
+   const p=canonical(raw),sub=subtitle||[p.primary_pos,p.jersey_number!=null?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+   return `<span class="eblIdentityMiniV22"><span class="eblIdentityMiniV22__art">${finalArt(p,'sm','portrait')}</span><span class="eblIdentityMiniV22__copy"><b>${esc(p.name||p.player_name||'Player')}</b><small>${esc(sub)}</small></span></span>`;
+ };
+ window.eblPlayerBylineV25=function(raw={},opts={}){
+   const p=canonical(raw),sub=opts.subtitle||opts.sub||[p.primary_pos,p.jersey_number!=null?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+   return `<span class="eblPlayerBylineV25">${finalArt(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${esc(p.name||p.player_name||'Player')}</strong>${sub?`<span>${esc(sub)}</span>`:''}</span></span>`;
+ };
+ const oldPortrait=window.playerPortraitMarkup;
+ window.playerPortraitMarkup=function(raw,pose='auto'){
+   const p=canonical(raw),action=(pose&&pose!=='auto'&&pose!=='portrait')?pose:'portrait';
+   let logo='';try{logo=p.franchise_id&&typeof window.teamLogoUrl==='function'?window.teamLogoUrl(p.franchise_id,'secondary'):''}catch(_){ }
+   return `<div class="playerPortrait playerPortraitV27 playerPortraitTeamBrandV33" data-pos="#${Number(p.jersey_number??24)} • ${esc(p.primary_pos||'EBL')}">${logo?`<div class="playerPortraitTeamBackdropV33"><img src="${esc(logo)}" alt=""></div>`:''}${finalArt(p,'lg',action)}</div>`;
+ };
+ window.EBL_CANONICAL_PLAYER_IDENTITY_V34={version:'V34',appearanceAuthority:'saved-player',renderer:'single-final-renderer',surfaces:['creator','home','player-hq','team-roster','coach-hud','awards','analytics','gamecast','public-profile-helper']};
+ seed();
+})();
+</script>
+
+<!-- EBL FITTED GAME CAP PROPORTION V35 — simpler cap, uniform-level polish -->
+<script id="eblFittedGameCapV35">
+(function(){
+ const prior=window.eblPlayerArtV24;
+ if(typeof prior!=='function'||prior.__eblCapV35)return;
+ function tuneCap(html){
+   let out=String(html||'');
+   // Smaller fitted crown: sits on the skull instead of surrounding it.
+   out=out.replace(
+     /<path d="M113 108C114 79 130 59 150 57C170 59 186 79 187 108C171 99 129 99 113 108Z"([^>]*)\/>/,
+     '<path d="M118 108C119 83 132 65 150 63C168 65 181 83 182 108C167 101 133 101 118 108Z"$1/>'
+   );
+   // Remove the overly detailed panel stitching; EBL avatars use clean illustrated shapes.
+   out=out.replace(/<path d="M150 59V98M121 77C132 70 141 67 150 67M179 77C168 70 159 67 150 67"[^>]*\/>/,'');
+   // Clean red band following the new crown width.
+   out=out.replace(
+     /<path d="M119 101C136 96 164 96 181 101"([^>]*)\/>/,
+     '<path d="M122 102C137 98 163 98 178 102"$1/>'
+   );
+   // Shorter, more natural brim with the same franchise colors.
+   out=out.replace(
+     /<path d="M114 107C133 102 162 102 185 107C198 109 207 113 214 118C197 124 179 123 161 119C145 115 128 112 114 113Z"([^>]*)\/>/,
+     '<path d="M119 108C136 103 161 103 181 108C192 110 201 113 207 117C193 122 178 121 162 118C146 114 132 112 119 113Z"$1/>'
+   );
+   out=out.replace(
+     /<path d="M119 109C148 105 180 110 207 118"([^>]*)\/>/,
+     '<path d="M123 109C149 106 178 110 201 117"$1/>'
+   );
+   // Button and club mark stay readable but scale with the smaller cap.
+   out=out.replace(/<ellipse cx="150" cy="58" rx="3\.2" ry="2\.3"([^>]*)\/>/,'<ellipse cx="150" cy="64" rx="3" ry="2.1"$1/>');
+   out=out.replace(/<text x="150" y="88" text-anchor="middle" font-size="20"/,'<text x="150" y="92" text-anchor="middle" font-size="18"');
+   return out;
+ }
+ const render=function(raw={},size='md',action='portrait'){
+   const html=prior(raw,size,action)||'';
+   if(!html||((action&&action!=='portrait'&&action!=='auto')))return html;
+   return tuneCap(html);
+ };
+ render.__eblCapV35=true;
+ window.eblPlayerArtV24=render;
+ window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
+ try{if(typeof renderHome==='function')renderHome()}catch(e){}
+ try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
+ window.EBL_FITTED_GAME_CAP_V35={canonical:true,smallerCrown:true,shorterBrim:true,cleanIllustration:true};
+})();
+</script>
