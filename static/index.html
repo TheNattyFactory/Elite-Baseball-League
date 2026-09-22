@@ -7969,13 +7969,19 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  }
  function apply(html,p){
    if(!html)return html;
-   const mark=markFor(p);
-   // V5 cap mark.
-   html=html.replace(/(<text x="150" y="88"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
-   // Earlier portrait variants, retained for safe cross-site fallback.
-   html=html.replace(/(<text x="150" y="91"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
-   html=html.replace(/(<text x="150" y="96"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
-   // Left-chest wordmark follows the same club identity.
+   const mark=markFor(p),t=teamFor(p);
+   const secondary=t&&(t.secondary_logo_url||t.secondary_logo||t.logo_secondary||t.secondaryLogoUrl||t.secondaryLogo||'');
+   // The cap is the franchise's secondary-mark surface. Use the uploaded secondary logo when available;
+   // fall back to the short team abbreviation so every franchise still has a clean game cap.
+   const capGraphic=secondary
+     ? `<image data-ebl-cap-secondary="v36" href="${esc(String(secondary))}" x="137" y="76" width="26" height="25" preserveAspectRatio="xMidYMid meet"/>`
+     : `<text x="150" y="96" text-anchor="middle" font-size="19" font-weight="900" fill="currentColor">${mark}</text>`;
+   let capDone=false;
+   for(const y of ['88','91','96','97']){
+     const re=new RegExp(`<text x="150" y="${y}"[^>]*>[^<]*<\\/text>`);
+     if(re.test(html)){html=html.replace(re,capGraphic);capDone=true;break}
+   }
+   // Legacy jersey mark fallbacks; V33 replaces the main chest copy with the club nickname wordmark.
    html=html.replace(/(<text x="113" y="300"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
    html=html.replace(/(<text x="112" y="303"[^>]*>)([^<]*)(<\/text>)/,'$1'+mark+'$3');
    return html;
@@ -8078,8 +8084,10 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  }
  function nickname(p){
    const t=club(p); if(!t)return 'EBL';
-   let n=String(t.team_name||t.nickname||t.display_name||t.name||'EBL').trim();
-   if(!t.team_name&&!t.nickname){const city=String(t.city||'').trim();if(city&&n.toLowerCase().startsWith(city.toLowerCase()+' '))n=n.slice(city.length+1).trim()}
+   let n=String(t.nickname||t.team_name||t.display_name||t.name||'EBL').trim();
+   // Jersey front uses the club nickname (Scouts), not the full city + nickname (Atlanta Scouts).
+   const city=String(t.city||'').trim();
+   if(city&&n.toLowerCase().startsWith(city.toLowerCase()+' '))n=n.slice(city.length+1).trim();
    return n||'EBL';
  }
  function jerseyWordmark(html,p){
