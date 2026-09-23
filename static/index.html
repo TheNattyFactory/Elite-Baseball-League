@@ -7303,7 +7303,7 @@ function svg(raw){const p=model(raw),[pri,sec,acc]=pal(p),skin=SK[c(n(p.skin_col
 <path d="M150 250V360" stroke="#f7f7f7" stroke-width="3.2" opacity=".98"/>
 <circle cx="150" cy="269" r="2.2" fill="#07101c"/><circle cx="150" cy="293" r="2.2" fill="#07101c"/><circle cx="150" cy="317" r="2.2" fill="#07101c"/><circle cx="150" cy="341" r="2.2" fill="#07101c"/>
 <text x="103" y="305" text-anchor="middle" fill="#f7f7f7" font-size="15" font-weight="900">EBL</text><g data-ebl-jersey-number="v45"><text x="195" y="347" text-anchor="middle" fill="#f7f7f7" stroke="#07101c" stroke-width="7" paint-order="stroke" font-size="30" font-weight="950">${num}</text><text x="195" y="347" text-anchor="middle" fill="#f7f7f7" stroke="${sec}" stroke-width="4.5" paint-order="stroke" font-size="30" font-weight="950">${num}</text><text x="195" y="347" text-anchor="middle" fill="#f7f7f7" font-size="30" font-weight="950">${num}</text></g>
-<path d="M124 200L124 235Q150 246 176 235L176 200Z" fill="${skin}" stroke="#2a1712" stroke-width="3"/>${hair(hid,hc)}<ellipse cx="105" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><ellipse cx="195" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><path d="${F[fid]}" fill="${skin}" stroke="#2a1712" stroke-width="4"/>
+<path data-ebl-neck="v46" d="M127 194Q129 204 130 214L128 232Q150 243 172 232L170 214Q171 204 173 194Z" fill="${skin}" stroke="#2a1712" stroke-width="3"/>${hair(hid,hc)}<ellipse cx="105" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><ellipse cx="195" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><path d="${F[fid]}" fill="${skin}" stroke="#2a1712" stroke-width="4"/>
 <path d="M116 132Q127 126 139 131M161 131Q173 126 184 132" fill="none" stroke="${hc}" stroke-width="4" stroke-linecap="round"/><path d="M116 145Q128 138 140 145Q128 152 116 145ZM160 145Q172 138 184 145Q172 152 160 145Z" fill="#fff" stroke="#2a1712" stroke-width="2"/><ellipse cx="128" cy="145" rx="4" ry="4.4" fill="${ec}"/><ellipse cx="172" cy="145" rx="4" ry="4.4" fill="${ec}"/><circle cx="128" cy="145" r="1.5"/><circle cx="172" cy="145" r="1.5"/><path d="M150 147Q144 164 148 171Q153 175 158 171" fill="none" stroke="#875344" stroke-width="2.5"/><path d="M134 184Q150 190 166 184" fill="none" stroke="#704038" stroke-width="3" stroke-linecap="round"/>${facial(fac,hc)}
 <path data-ebl-cap-crown="v45" d="M101 116Q104 86 124 70Q143 57 150 57Q157 57 176 70Q196 86 199 116Q176 105 150 104Q124 105 101 116Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><ellipse cx="150" cy="58" rx="3.8" ry="2.8" fill="${sec}" stroke="#07101c" stroke-width="2"/><path d="M110 108Q150 99 190 108" fill="none" stroke="${sec}" stroke-width="4.4"/><path d="M124 72Q116 90 116 108M150 62Q149 82 149 104M176 72Q184 90 184 108" fill="none" stroke="#07101c" stroke-width="1.7" opacity=".27"/><circle cx="121" cy="82" r="2.2" fill="#07101c" opacity=".42"/><circle cx="179" cy="82" r="2.2" fill="#07101c" opacity=".42"/><path data-ebl-cap-brim="v45" d="M101 111Q126 107 150 105Q175 105 198 111Q208 114 215 119Q207 125 194 126Q171 125 148 122Q124 119 104 120Q99 118 101 111Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><path data-ebl-cap-underbrim="v45" d="M108 117Q150 112 191 117Q200 118 207 120Q200 123 191 124Q150 121 109 121Z" fill="#07101c" opacity=".27"/><path d="M108 114Q157 108 210 120" fill="none" stroke="${sec}" stroke-width="3.4"/><text x="150" y="96" text-anchor="middle" font-size="19" font-weight="900" fill="#f7f7f7">EBL</text></svg>`}
 window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){if(action&&action!=='portrait'&&action!=='auto'&&prior)return prior(raw,size,action);return `<span class="eblPlayerArtV24 eblPortraitV4 eblPlayerArtV24--${size}" data-ebl-avatar="CANONICAL-V16">${svg(raw)}</span>`};
@@ -8189,8 +8189,11 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    if(!secondary&&t)secondary=t.secondary_logo_url||t.secondary_logo||t.logo_secondary||t.secondaryLogoUrl||t.secondaryLogo||'';
    primary=primary||secondary; secondary=secondary||primary;
    if(!primary&&!secondary)return html;
-   const patch=`<g data-ebl-jersey-patches="v43">${primary?`<image href="${esc(String(primary))}" xlink:href="${esc(String(primary))}" x="50" y="291" width="20" height="20" preserveAspectRatio="xMidYMid meet" transform="rotate(-7 60 301)"/>`:''}${secondary?`<image href="${esc(String(secondary))}" xlink:href="${esc(String(secondary))}" x="230" y="291" width="20" height="20" preserveAspectRatio="xMidYMid meet" transform="rotate(7 240 301)"/>`:''}</g>`;
-   return String(html||'').replace('<!-- layered baseball collar -->',patch+'<!-- layered baseball collar -->');
+   const patch=`<g data-ebl-jersey-patches="v46">${primary?`<image href="${esc(String(primary))}" xlink:href="${esc(String(primary))}" x="48" y="291" width="21" height="21" preserveAspectRatio="xMidYMid meet" transform="rotate(-7 58.5 301.5)"/>`:''}${secondary?`<image href="${esc(String(secondary))}" xlink:href="${esc(String(secondary))}" x="231" y="291" width="21" height="21" preserveAspectRatio="xMidYMid meet" transform="rotate(7 241.5 301.5)"/>`:''}</g>`;
+   let out=String(html||'');
+   const marker='<!-- V45 layered baseball collar -->';
+   if(out.includes(marker))return out.replace(marker,patch+marker);
+   return out.replace('<!-- layered baseball collar -->',patch+'<!-- layered baseball collar -->');
  }
  function jerseyWordmark(html,p){
    const word=nickname(p); if(word==='EBL')return html;
@@ -8232,7 +8235,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  };
  try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
  try{if(typeof renderHome==='function')renderHome()}catch(e){}
- window.EBL_FRANCHISE_GAMEDAY_UNIFORM_V33={version:'V45',dynamicWordmark:true,outlinedScript:true,sleevePatches:true,compactPatchSuppression:true,secondaryWatermark:true,capMark:true,playerNumber:true,referenceJersey:true};
+ window.EBL_FRANCHISE_GAMEDAY_UNIFORM_V33={version:'V46',dynamicWordmark:true,outlinedScript:true,sleevePatches:true,compactPatchSuppression:true,secondaryWatermark:true,capMark:true,playerNumber:true,referenceJersey:true};
 })();
 </script>
 
@@ -8385,4 +8388,14 @@ window.EBL_ATHLETIC_PLAYER_PROPORTION_V37={version:'V37',shoulders:'balanced',to
 
 <script id="eblReferenceLockV45">
 window.EBL_REFERENCE_LOCK_V45={version:'V45',target:'polished Atlanta Scouts portrait reference',cap:'fitted round crown + shorter symmetric bill',neck:'shorter + wider',jersey:'broader shoulders + rounded fitted sleeves',patches:'fabric aligned',wordmark:'centered/lowered',number:'separated right chest',sharedRenderer:true};
+</script>
+
+<script id="eblLiveScreenshotPolishV46">
+window.EBL_LIVE_SCREENSHOT_POLISH_V46={
+  version:'V46',
+  neck:'tapered under jaw instead of rectangular block',
+  heroSleevePatches:'restored against V45 collar marker',
+  compactPatches:'still suppressed for xs/sm readability',
+  referenceDirection:'locked'
+};
 </script>
