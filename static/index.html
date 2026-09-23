@@ -1316,11 +1316,14 @@ function teamInitials(team){
 }
 
 function teamPalette(team){
-  const fallback=['#153c63','#d7262e','#f0c84b']; fallback.primary=fallback[0]; fallback.secondary=fallback[1]; fallback.accent=fallback[2]; fallback.text='#f3f6fa';
+  // Team art should never inherit the site's gold UI accent just because a branding field is absent.
+  // Baseball-white is the neutral uniform fallback; primary/secondary remain franchise-controlled.
+  const fallback=['#153c63','#d7262e','#f7f7f7']; fallback.primary=fallback[0]; fallback.secondary=fallback[1]; fallback.accent=fallback[2]; fallback.text='#f3f6fa';
   if(!team) return fallback;
   if(typeof team==='string'){
+    const key=String(team);
     const t=(typeof LEAGUE!=='undefined' && LEAGUE?.teams)
-      ? LEAGUE.teams.find(x=>x.id===team || x.name===team)
+      ? LEAGUE.teams.find(x=>String(x.id)===key || String(x.name||'')===key || String(x.display_name||'')===key)
       : null;
     return t ? teamPalette(t) : fallback;
   }
@@ -7268,21 +7271,21 @@ function svg(raw){const p=model(raw),[pri,sec,acc]=pal(p),skin=SK[c(n(p.skin_col
 <path d="M43 307Q47 281 69 269L111 248Q101 269 94 294L80 323L38 315Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
 <path d="M257 307Q253 281 231 269L189 248Q199 269 206 294L220 323L262 315Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
 <!-- shoulder + sleeve piping -->
-<path d="M47 293Q72 267 112 250M253 293Q228 267 188 250" fill="none" stroke="${acc}" stroke-width="9"/>
+<path d="M47 293Q72 267 112 250M253 293Q228 267 188 250" fill="none" stroke="#f7f7f7" stroke-width="9"/>
 <path d="M48 293Q73 269 113 252M252 293Q227 269 187 252" fill="none" stroke="${sec}" stroke-width="4"/>
-<path d="M43 310Q62 315 82 320M257 310Q238 315 218 320" fill="none" stroke="${acc}" stroke-width="8"/>
+<path d="M43 310Q62 315 82 320M257 310Q238 315 218 320" fill="none" stroke="#f7f7f7" stroke-width="8"/>
 <path d="M44 309Q63 314 82 318M256 309Q237 314 218 318" fill="none" stroke="${sec}" stroke-width="3.5"/>
 <!-- layered baseball collar -->
-<path d="M126 241Q150 263 174 241" fill="none" stroke="${acc}" stroke-width="13"/>
+<path d="M126 241Q150 263 174 241" fill="none" stroke="#f7f7f7" stroke-width="13"/>
 <path d="M127 242Q150 260 173 242" fill="none" stroke="${sec}" stroke-width="7"/>
 <path d="M128 243Q150 257 172 243" fill="none" stroke="#f7f7f7" stroke-width="2.5" opacity=".95"/>
 <!-- button placket -->
-<path d="M150 258V360" stroke="${acc}" stroke-width="3" opacity=".9"/>
-<circle cx="150" cy="277" r="1.7" fill="${acc}"/><circle cx="150" cy="298" r="1.7" fill="${acc}"/><circle cx="150" cy="319" r="1.7" fill="${acc}"/>
-<text x="103" y="305" text-anchor="middle" fill="${acc}" font-size="15" font-weight="900">EBL</text><text data-ebl-jersey-number="v39" x="228" y="343" text-anchor="middle" fill="${acc}" stroke="#07101c" stroke-width="2.5" paint-order="stroke" font-size="30" font-weight="900">${num}</text>
+<path d="M150 258V360" stroke="#f7f7f7" stroke-width="3" opacity=".92"/>
+<circle cx="150" cy="277" r="1.7" fill="#f7f7f7"/><circle cx="150" cy="298" r="1.7" fill="#f7f7f7"/><circle cx="150" cy="319" r="1.7" fill="#f7f7f7"/>
+<text x="103" y="305" text-anchor="middle" fill="#f7f7f7" font-size="15" font-weight="900">EBL</text><text data-ebl-jersey-number="v40" x="205" y="340" text-anchor="middle" fill="#f7f7f7" stroke="${sec}" stroke-width="3" paint-order="stroke" font-size="30" font-weight="900">${num}</text>
 <path d="M128 196L126 240Q150 253 174 240L172 196Z" fill="${skin}" stroke="#2a1712" stroke-width="3"/>${hair(hid,hc)}<ellipse cx="105" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><ellipse cx="195" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><path d="${F[fid]}" fill="${skin}" stroke="#2a1712" stroke-width="4"/>
 <path d="M116 132Q127 126 139 131M161 131Q173 126 184 132" fill="none" stroke="${hc}" stroke-width="4" stroke-linecap="round"/><path d="M116 145Q128 138 140 145Q128 152 116 145ZM160 145Q172 138 184 145Q172 152 160 145Z" fill="#fff" stroke="#2a1712" stroke-width="2"/><ellipse cx="128" cy="145" rx="4" ry="4.4" fill="${ec}"/><ellipse cx="172" cy="145" rx="4" ry="4.4" fill="${ec}"/><circle cx="128" cy="145" r="1.5"/><circle cx="172" cy="145" r="1.5"/><path d="M150 147Q144 164 148 171Q153 175 158 171" fill="none" stroke="#875344" stroke-width="2.5"/><path d="M134 184Q150 190 166 184" fill="none" stroke="#704038" stroke-width="3" stroke-linecap="round"/>${facial(fac,hc)}
-<path d="M114 113Q118 80 150 69Q182 80 186 113Q169 105 150 105Q131 105 114 113Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><ellipse cx="150" cy="69" rx="3.2" ry="2.4" fill="${sec}" stroke="#07101c" stroke-width="2"/><path d="M120 106Q150 100 180 106" fill="none" stroke="${sec}" stroke-width="5"/><path d="M116 111Q150 105 183 112Q195 114 204 119Q190 124 175 121Q146 114 116 116Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><path d="M121 112Q159 108 199 119" fill="none" stroke="${sec}" stroke-width="4"/><text x="150" y="97" text-anchor="middle" font-size="19" font-weight="900" fill="${acc}">EBL</text></svg>`}
+<path d="M108 114Q112 79 150 67Q188 79 192 114Q172 104 150 104Q128 104 108 114Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><ellipse cx="150" cy="67" rx="3.4" ry="2.5" fill="${sec}" stroke="#07101c" stroke-width="2"/><path d="M114 107Q150 99 186 107" fill="none" stroke="${sec}" stroke-width="5"/><path d="M109 112Q150 104 190 112Q204 114 214 120Q196 126 178 122Q146 114 109 117Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><path d="M114 113Q160 108 209 120" fill="none" stroke="${sec}" stroke-width="4"/><text x="150" y="96" text-anchor="middle" font-size="19" font-weight="900" fill="#f7f7f7">EBL</text></svg>`}
 window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){if(action&&action!=='portrait'&&action!=='auto'&&prior)return prior(raw,size,action);return `<span class="eblPlayerArtV24 eblPortraitV4 eblPlayerArtV24--${size}" data-ebl-avatar="CANONICAL-V16">${svg(raw)}</span>`};
 window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
 window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','Goatee','Beard'],colors:'ID-driven',sameRendererEverywhere:true};
@@ -8025,12 +8028,12 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    let secondary='';
    try{if(p?.franchise_id&&typeof window.teamLogoUrl==='function')secondary=window.teamLogoUrl(p.franchise_id,'secondary')||''}catch(_){ }
    try{if(!secondary&&p?.franchise_id&&typeof window.EBLTeamLogoById==='function')secondary=window.EBLTeamLogoById(p.franchise_id,'secondary')||''}catch(_){ }
-   if(!secondary&&t)secondary=t.secondary_logo_url||t.secondary_logo||t.logo_secondary||t.secondaryLogoUrl||t.secondaryLogo||'';
-   // The cap is the franchise's secondary-mark surface. Keep it centered inside the crown and
-   // small enough that it never collides with the cap band or brim.
+   if(!secondary&&t)secondary=t.secondary_logo_url||t.secondary_logo||t.logo_secondary||t.secondaryLogoUrl||t.secondaryLogo||t.branding?.secondary_logo||t.branding?.secondary_logo_url||'';
+   // The cap is the franchise's secondary-mark surface. V40 gives the mark more crown area so
+   // detailed secondary logos remain recognizable on both hero and compact portraits.
    const capGraphic=secondary
-     ? `<image data-ebl-cap-secondary="v39" href="${esc(String(secondary))}" x="138" y="76.5" width="24" height="24" preserveAspectRatio="xMidYMid meet"/>`
-     : `<text data-ebl-cap-fallback="v39" x="150" y="96" text-anchor="middle" font-size="18" font-weight="900" fill="currentColor">${mark}</text>`;
+     ? `<image data-ebl-cap-secondary="v40" href="${esc(String(secondary))}" xlink:href="${esc(String(secondary))}" x="132" y="70" width="36" height="36" preserveAspectRatio="xMidYMid meet"/>`
+     : `<text data-ebl-cap-fallback="v40" x="150" y="96" text-anchor="middle" font-size="18" font-weight="900" fill="#f7f7f7">${mark}</text>`;
    let capDone=false;
    for(const y of ['88','91','96','97']){
      const re=new RegExp(`<text x="150" y="${y}"[^>]*>[^<]*<\\/text>`);
@@ -8160,11 +8163,11 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  function jerseyWordmark(html,p){
    const word=nickname(p); if(word==='EBL')return html;
    const safe=esc(word), len=word.length;
-   // Script occupies the left/center chest; the number lives lower on the player's right chest.
-   // textLength keeps long club nicknames from drifting into the number at compact portrait sizes.
-   const fs=len>=13?27:len>=10?31:len>=8?35:40;
-   const tw=len>=13?105:len>=10?112:len>=8?116:122;
-   const wordmark=`<g data-ebl-team-wordmark="v39"><text x="138" y="313" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#fff" stroke="#07101c" stroke-width="5" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Segoe Script','Brush Script MT',cursive" font-style="italic" transform="rotate(-4 138 313)">${safe}</text><path data-ebl-wordmark-swish="v39" d="M80 324Q138 331 195 316" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></g>`;
+   // Center the nickname across the chest. The number sits below/right, so the script and swash
+   // read as one primary jersey mark without colliding with the player's number.
+   const fs=len>=13?26:len>=10?30:len>=8?34:38;
+   const tw=len>=13?112:len>=10?118:len>=8?124:128;
+   const wordmark=`<g data-ebl-team-wordmark="v40"><text x="150" y="311" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#f7f7f7" stroke="#07101c" stroke-width="5" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Segoe Script','Brush Script MT',cursive" font-style="italic" transform="rotate(-4 150 311)">${safe}</text><path data-ebl-wordmark-swish="v40" d="M90 322Q150 329 196 316" fill="none" stroke="#f7f7f7" stroke-width="3.2" stroke-linecap="round"/></g>`;
    // Replace the generic league chest mark with the franchise nickname.
    let out=String(html||'');
    const patterns=[
@@ -8273,45 +8276,15 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
 (function(){
  const prior=window.eblPlayerArtV24;
  if(typeof prior!=='function'||prior.__eblCapV35)return;
- function tuneCap(html){
-   let out=String(html||'');
-   // Smaller fitted crown: sits on the skull instead of surrounding it.
-   out=out.replace(
-     /<path d="M113 108C114 79 130 59 150 57C170 59 186 79 187 108C171 99 129 99 113 108Z"([^>]*)\/>/,
-     '<path d="M118 108C119 83 132 65 150 63C168 65 181 83 182 108C167 101 133 101 118 108Z"$1/>'
-   );
-   // Remove the overly detailed panel stitching; EBL avatars use clean illustrated shapes.
-   out=out.replace(/<path d="M150 59V98M121 77C132 70 141 67 150 67M179 77C168 70 159 67 150 67"[^>]*\/>/,'');
-   // Clean red band following the new crown width.
-   out=out.replace(
-     /<path d="M119 101C136 96 164 96 181 101"([^>]*)\/>/,
-     '<path d="M122 102C137 98 163 98 178 102"$1/>'
-   );
-   // Shorter, more natural brim with the same franchise colors.
-   out=out.replace(
-     /<path d="M114 107C133 102 162 102 185 107C198 109 207 113 214 118C197 124 179 123 161 119C145 115 128 112 114 113Z"([^>]*)\/>/,
-     '<path d="M119 108C136 103 161 103 181 108C192 110 201 113 207 117C193 122 178 121 162 118C146 114 132 112 119 113Z"$1/>'
-   );
-   out=out.replace(
-     /<path d="M119 109C148 105 180 110 207 118"([^>]*)\/>/,
-     '<path d="M123 109C149 106 178 110 201 117"$1/>'
-   );
-   // Button and club mark stay readable but scale with the smaller cap.
-   out=out.replace(/<ellipse cx="150" cy="58" rx="3\.2" ry="2\.3"([^>]*)\/>/,'<ellipse cx="150" cy="64" rx="3" ry="2.1"$1/>');
-   out=out.replace(/<text x="150" y="88" text-anchor="middle" font-size="20"/,'<text x="150" y="92" text-anchor="middle" font-size="18"');
-   return out;
- }
+ // V40 owns fitted-cap geometry directly in the canonical V16 SVG. Keep this historical wrapper
+ // as an identity-preserving compatibility layer so no later renderer re-applies older cap shapes.
  const render=function(raw={},size='md',action='portrait'){
-   const html=prior(raw,size,action)||'';
-   if(!html||((action&&action!=='portrait'&&action!=='auto')))return html;
-   return tuneCap(html);
+   return prior(raw,size,action)||'';
  };
  render.__eblCapV35=true;
  window.eblPlayerArtV24=render;
  window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
- try{if(typeof renderHome==='function')renderHome()}catch(e){}
- try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
- window.EBL_FITTED_GAME_CAP_V35={canonical:true,smallerCrown:true,shorterBrim:true,cleanIllustration:true};
+ window.EBL_FITTED_GAME_CAP_V35={canonical:true,geometryOwner:'V40-canonical-svg',compatibilityOnly:true};
 })();
 </script>
 
@@ -8359,7 +8332,7 @@ window.EBL_ATHLETIC_PLAYER_PROPORTION_V37={version:'V37',shoulders:'balanced',to
 </script>
 
 <!-- EBL REFERENCE UNIFORM FINISH V38 -->
-<script id="eblReferenceUniformFinishV39">window.EBL_REFERENCE_UNIFORM_FINISH_V39={version:'V39',target:'reference baseball uniform',jerseySleeves:true,layeredPiping:true,buttonPlacket:true,largeNicknameScript:true,scriptLocation:'left-center chest',numberLocation:'lower-right chest',capSurface:'secondary-logo',compressionSleeveUnderJersey:true,playerNumber:true,canonicalIdentityPreserved:true};</script>
+<script id="eblReferenceUniformFinishV40">window.EBL_REFERENCE_UNIFORM_FINISH_V40={version:'V40',target:'reference baseball uniform',jerseySleeves:true,layeredPiping:true,buttonPlacket:true,largeNicknameScript:true,scriptLocation:'centered chest',numberLocation:'inset right chest',capSurface:'wider-secondary-logo',compressionSleeveUnderJersey:true,uniformTrim:'baseball-white + franchise-secondary',playerNumber:true,canonicalIdentityPreserved:true};</script>
 
 <!-- EBL COACH → GENESIS ROTATION BRIDGE RC56 -->
 <style id="coachGenesisBridgeRC56Style">
