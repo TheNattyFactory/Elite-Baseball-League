@@ -368,6 +368,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS chat_messages(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
+      player_id INTEGER,
       channel TEXT NOT NULL CHECK(channel IN ('EBL','TEAM')),
       team_id TEXT,
       message TEXT NOT NULL,
@@ -653,6 +654,10 @@ def init_db():
                 used.add(num)
                 c.execute("UPDATE players SET jersey_number=? WHERE id=?",(num,row["id"]))
         c.execute("UPDATE players SET jersey_number=((id*7)%99)+1 WHERE franchise_id IS NULL")
+
+    chat_cols={r["name"] for r in c.execute("PRAGMA table_info(chat_messages)").fetchall()}
+    if "player_id" not in chat_cols:
+        c.execute("ALTER TABLE chat_messages ADD COLUMN player_id INTEGER")
 
     news_cols={r["name"] for r in c.execute("PRAGMA table_info(news)").fetchall()}
     if "season" not in news_cols:
@@ -3993,7 +3998,7 @@ class H(BaseHTTPRequestHandler):
             )]
             roster=[]
             for row in c.execute(
-                """SELECT p.id,p.user_id,p.name,p.type,p.primary_pos,p.bats,p.throws,p.xp_wallet,
+                """SELECT p.id,p.user_id,p.name,p.franchise_id,p.type,p.primary_pos,p.bats,p.throws,p.xp_wallet,
                           p.season_json,p.attributes_json,p.status,p.active,p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,
                           p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.jersey_number,u.username
                    FROM players p LEFT JOIN users u ON u.id=p.user_id
@@ -4808,8 +4813,9 @@ class H(BaseHTTPRequestHandler):
             brand=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(fid,)).fetchone()
             roster=[]
             for row in c.execute(
-                """SELECT p.id,p.user_id,p.name,p.hometown,p.type,p.primary_pos,p.bats,p.throws,p.jersey_number,p.status,
-                          p.attributes_json,p.season_json,u.username
+                """SELECT p.id,p.user_id,p.name,p.hometown,p.franchise_id,p.type,p.primary_pos,p.bats,p.throws,p.jersey_number,p.status,
+                          p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,
+                          p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.attributes_json,p.season_json,u.username
                    FROM players p LEFT JOIN users u ON u.id=p.user_id
                    WHERE p.franchise_id=? AND p.active=1
                    ORDER BY CASE p.type WHEN 'H' THEN 0 ELSE 1 END,p.primary_pos,p.name""",(fid,)):
@@ -4874,7 +4880,9 @@ class H(BaseHTTPRequestHandler):
             c=conn();f=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
             if not f:c.close();return self.out({"team":None})
             roster=[dict(x) for x in c.execute(
-                """SELECT p.id,p.user_id,p.name,p.type,p.primary_pos,p.xp_wallet,p.status,u.username,
+                """SELECT p.id,p.user_id,p.name,p.franchise_id,p.type,p.primary_pos,p.bats,p.throws,p.jersey_number,p.xp_wallet,p.status,
+                          p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,
+                          p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,u.username,
                           co.salary,co.bonus,co.years_remaining
                    FROM players p
                    LEFT JOIN users u ON u.id=p.user_id
@@ -5039,11 +5047,34 @@ class H(BaseHTTPRequestHandler):
                 pr=owned_active_player(c,u["id"],request_player_id(self))
                 team_id=pr["franchise_id"] if pr else None
                 if not team_id:c.close();return self.out({"messages":[]})
-            rows=[dict(x) for x in c.execute("""SELECT m.id,m.channel,m.team_id,m.message,m.created_at,u.username
+            rows=[dict(x) for x in c.execute("""SELECT m.id,m.user_id,m.player_id,m.channel,m.team_id,m.message,m.created_at,u.username
                     FROM chat_messages m JOIN users u ON u.id=m.user_id
                     WHERE m.channel=? AND (? IS NULL OR m.team_id=?)
                     ORDER BY m.id DESC LIMIT 50""",(channel,team_id,team_id))]
-            rows.reverse();c.close();return self.out({"messages":rows})
+            rows.reverse()
+            for msg in rows:
+                pid=msg.get("player_id")
+                player=None
+                if pid:
+                    player=c.execute("""SELECT id,name,franchise_id,face_id,skin_color_id,hair_id,hair_color_id,
+                                      facial_hair_id,eye_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,
+                                      jersey_number,primary_pos,bats,throws
+                                      FROM players WHERE id=?""",(pid,)).fetchone()
+                if not player and msg.get("team_id"):
+                    player=c.execute("""SELECT id,name,franchise_id,face_id,skin_color_id,hair_id,hair_color_id,
+                                      facial_hair_id,eye_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,
+                                      jersey_number,primary_pos,bats,throws
+                                      FROM players WHERE user_id=? AND active=1 AND franchise_id=?
+                                      ORDER BY id DESC LIMIT 1""",(msg["user_id"],msg["team_id"])).fetchone()
+                if not player:
+                    player=c.execute("""SELECT id,name,franchise_id,face_id,skin_color_id,hair_id,hair_color_id,
+                                      facial_hair_id,eye_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,
+                                      jersey_number,primary_pos,bats,throws
+                                      FROM players WHERE user_id=? AND active=1
+                                      ORDER BY id DESC LIMIT 1""",(msg["user_id"],)).fetchone()
+                msg["player"]=dict(player) if player else None
+                msg.pop("user_id",None)
+            c.close();return self.out({"messages":rows})
         if p=="/api/simulation-lab":
             fp=os.path.join(ROOT,"simulation_lab_report.json")
             with open(fp,"r") as f: return self.out(json.load(f))
@@ -5992,13 +6023,14 @@ class H(BaseHTTPRequestHandler):
             if not rate_limit(rlc,f"chat:{u['id']}",12,60):rlc.commit();rlc.close();return self.out({"error":"RATE_LIMITED"},429)
             rlc.commit();rlc.close()
             c=conn();team_id=None
+            pr=owned_active_player(c,u["id"],request_player_id(self,d))
+            player_id=pr["id"] if pr else None
             if channel=="TEAM":
-                pr=owned_active_player(c,u["id"],request_player_id(self,d))
                 team_id=pr["franchise_id"] if pr else None
                 if not team_id:c.close();return self.out({"error":"NO_TEAM"},400)
             # simple anti-spam: max 1 message per second/account
             recent=c.execute("SELECT created_at FROM chat_messages WHERE user_id=? ORDER BY id DESC LIMIT 1",(u["id"],)).fetchone()
-            c.execute("INSERT INTO chat_messages(user_id,channel,team_id,message) VALUES(?,?,?,?)",(u["id"],channel,team_id,msg))
+            c.execute("INSERT INTO chat_messages(user_id,player_id,channel,team_id,message) VALUES(?,?,?,?,?)",(u["id"],player_id,channel,team_id,msg))
             c.commit();c.close();return self.out({"ok":True})
         if p=="/api/friends/request":
             u=self.auth()
