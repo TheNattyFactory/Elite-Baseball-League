@@ -7270,19 +7270,23 @@ function svg(raw){const p=model(raw),[pri,sec,acc]=pal(p),skin=SK[c(n(p.skin_col
 <!-- true short jersey sleeves -->
 <path d="M43 307Q47 281 69 269L111 248Q101 269 94 294L80 323L38 315Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
 <path d="M257 307Q253 281 231 269L189 248Q199 269 206 294L220 323L262 315Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
-<!-- shoulder + sleeve piping -->
-<path d="M47 293Q72 267 112 250M253 293Q228 267 188 250" fill="none" stroke="#f7f7f7" stroke-width="9"/>
-<path d="M48 293Q73 269 113 252M252 293Q227 269 187 252" fill="none" stroke="${sec}" stroke-width="4"/>
-<path d="M43 310Q62 315 82 320M257 310Q238 315 218 320" fill="none" stroke="#f7f7f7" stroke-width="8"/>
-<path d="M44 309Q63 314 82 318M256 309Q237 314 218 318" fill="none" stroke="${sec}" stroke-width="3.5"/>
+<!-- shoulder + sleeve piping — V41 reference jersey depth -->
+<path d="M47 293Q72 267 112 250M253 293Q228 267 188 250" fill="none" stroke="#07101c" stroke-width="13" stroke-linecap="round"/>
+<path d="M47 293Q72 267 112 250M253 293Q228 267 188 250" fill="none" stroke="#f7f7f7" stroke-width="9" stroke-linecap="round"/>
+<path d="M48 293Q73 269 113 252M252 293Q227 269 187 252" fill="none" stroke="${sec}" stroke-width="4" stroke-linecap="round"/>
+<path d="M43 310Q62 315 82 320M257 310Q238 315 218 320" fill="none" stroke="#07101c" stroke-width="12" stroke-linecap="round"/>
+<path d="M43 310Q62 315 82 320M257 310Q238 315 218 320" fill="none" stroke="#f7f7f7" stroke-width="8" stroke-linecap="round"/>
+<path d="M44 309Q63 314 82 318M256 309Q237 314 218 318" fill="none" stroke="${sec}" stroke-width="3.5" stroke-linecap="round"/>
 <!-- layered baseball collar -->
-<path d="M126 241Q150 263 174 241" fill="none" stroke="#f7f7f7" stroke-width="13"/>
-<path d="M127 242Q150 260 173 242" fill="none" stroke="${sec}" stroke-width="7"/>
-<path d="M128 243Q150 257 172 243" fill="none" stroke="#f7f7f7" stroke-width="2.5" opacity=".95"/>
+<path d="M126 241Q150 263 174 241" fill="none" stroke="#07101c" stroke-width="17" stroke-linecap="round"/>
+<path d="M126 241Q150 263 174 241" fill="none" stroke="#f7f7f7" stroke-width="13" stroke-linecap="round"/>
+<path d="M127 242Q150 260 173 242" fill="none" stroke="${sec}" stroke-width="7" stroke-linecap="round"/>
+<path d="M128 243Q150 257 172 243" fill="none" stroke="#f7f7f7" stroke-width="2.5" opacity=".95" stroke-linecap="round"/>
 <!-- button placket -->
-<path d="M150 258V360" stroke="#f7f7f7" stroke-width="3" opacity=".92"/>
-<circle cx="150" cy="277" r="1.7" fill="#f7f7f7"/><circle cx="150" cy="298" r="1.7" fill="#f7f7f7"/><circle cx="150" cy="319" r="1.7" fill="#f7f7f7"/>
-<text x="103" y="305" text-anchor="middle" fill="#f7f7f7" font-size="15" font-weight="900">EBL</text><text data-ebl-jersey-number="v40" x="205" y="340" text-anchor="middle" fill="#f7f7f7" stroke="${sec}" stroke-width="3" paint-order="stroke" font-size="30" font-weight="900">${num}</text>
+<path d="M150 258V360" stroke="#07101c" stroke-width="6" opacity=".72"/>
+<path d="M150 258V360" stroke="#f7f7f7" stroke-width="3" opacity=".96"/>
+<circle cx="150" cy="277" r="1.8" fill="#07101c"/><circle cx="150" cy="298" r="1.8" fill="#07101c"/><circle cx="150" cy="319" r="1.8" fill="#07101c"/>
+<text x="103" y="305" text-anchor="middle" fill="#f7f7f7" font-size="15" font-weight="900">EBL</text><g data-ebl-jersey-number="v41"><text x="194" y="341" text-anchor="middle" fill="#f7f7f7" stroke="#07101c" stroke-width="7" paint-order="stroke" font-size="31" font-weight="950">${num}</text><text x="194" y="341" text-anchor="middle" fill="#f7f7f7" stroke="${sec}" stroke-width="4" paint-order="stroke" font-size="31" font-weight="950">${num}</text><text x="194" y="341" text-anchor="middle" fill="#f7f7f7" font-size="31" font-weight="950">${num}</text></g>
 <path d="M128 196L126 240Q150 253 174 240L172 196Z" fill="${skin}" stroke="#2a1712" stroke-width="3"/>${hair(hid,hc)}<ellipse cx="105" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><ellipse cx="195" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><path d="${F[fid]}" fill="${skin}" stroke="#2a1712" stroke-width="4"/>
 <path d="M116 132Q127 126 139 131M161 131Q173 126 184 132" fill="none" stroke="${hc}" stroke-width="4" stroke-linecap="round"/><path d="M116 145Q128 138 140 145Q128 152 116 145ZM160 145Q172 138 184 145Q172 152 160 145Z" fill="#fff" stroke="#2a1712" stroke-width="2"/><ellipse cx="128" cy="145" rx="4" ry="4.4" fill="${ec}"/><ellipse cx="172" cy="145" rx="4" ry="4.4" fill="${ec}"/><circle cx="128" cy="145" r="1.5"/><circle cx="172" cy="145" r="1.5"/><path d="M150 147Q144 164 148 171Q153 175 158 171" fill="none" stroke="#875344" stroke-width="2.5"/><path d="M134 184Q150 190 166 184" fill="none" stroke="#704038" stroke-width="3" stroke-linecap="round"/>${facial(fac,hc)}
 <path d="M108 114Q112 79 150 67Q188 79 192 114Q172 104 150 104Q128 104 108 114Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><ellipse cx="150" cy="67" rx="3.4" ry="2.5" fill="${sec}" stroke="#07101c" stroke-width="2"/><path d="M114 107Q150 99 186 107" fill="none" stroke="${sec}" stroke-width="5"/><path d="M109 112Q150 104 190 112Q204 114 214 120Q196 126 178 122Q146 114 109 117Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><path d="M114 113Q160 108 209 120" fill="none" stroke="${sec}" stroke-width="4"/><text x="150" y="96" text-anchor="middle" font-size="19" font-weight="900" fill="#f7f7f7">EBL</text></svg>`}
@@ -8160,6 +8164,17 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    if(!t.nickname&&n.includes(' '))n=n.split(/\s+/).filter(Boolean).pop()||n;
    return n||'EBL';
  }
+ function jerseyPatches(html,p){
+   let primary='',secondary='';
+   try{if(p?.franchise_id&&typeof window.teamLogoUrl==='function'){primary=window.teamLogoUrl(p.franchise_id,'primary')||'';secondary=window.teamLogoUrl(p.franchise_id,'secondary')||''}}catch(_){ }
+   const t=club(p);
+   if(!primary&&t)primary=t.primary_logo_url||t.primary_logo||t.logo_url||t.logo||t.logo_primary||t.primaryLogoUrl||t.primaryLogo||'';
+   if(!secondary&&t)secondary=t.secondary_logo_url||t.secondary_logo||t.logo_secondary||t.secondaryLogoUrl||t.secondaryLogo||'';
+   primary=primary||secondary; secondary=secondary||primary;
+   if(!primary&&!secondary)return html;
+   const patch=`<g data-ebl-jersey-patches="v41">${primary?`<image href="${esc(String(primary))}" xlink:href="${esc(String(primary))}" x="47" y="275" width="29" height="29" preserveAspectRatio="xMidYMid meet" transform="rotate(-9 61.5 289.5)"/>`:''}${secondary?`<image href="${esc(String(secondary))}" xlink:href="${esc(String(secondary))}" x="224" y="275" width="29" height="29" preserveAspectRatio="xMidYMid meet" transform="rotate(9 238.5 289.5)"/>`:''}</g>`;
+   return String(html||'').replace('<!-- layered baseball collar -->',patch+'<!-- layered baseball collar -->');
+ }
  function jerseyWordmark(html,p){
    const word=nickname(p); if(word==='EBL')return html;
    const safe=esc(word), len=word.length;
@@ -8167,7 +8182,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    // read as one primary jersey mark without colliding with the player's number.
    const fs=len>=13?26:len>=10?30:len>=8?34:38;
    const tw=len>=13?112:len>=10?118:len>=8?124:128;
-   const wordmark=`<g data-ebl-team-wordmark="v40"><text x="150" y="311" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#f7f7f7" stroke="#07101c" stroke-width="5" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Segoe Script','Brush Script MT',cursive" font-style="italic" transform="rotate(-4 150 311)">${safe}</text><path data-ebl-wordmark-swish="v40" d="M90 322Q150 329 196 316" fill="none" stroke="#f7f7f7" stroke-width="3.2" stroke-linecap="round"/></g>`;
+   const wordmark=`<g data-ebl-team-wordmark="v41"><text x="150" y="309" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" stroke="${club(p)?.secondary_color||club(p)?.secondary||'#d7262e'}" stroke-width="9" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Segoe Script','Brush Script MT',cursive" font-style="italic" transform="rotate(-5 150 309)">${safe}</text><text x="150" y="309" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" stroke="#f7f7f7" stroke-width="5.5" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Segoe Script','Brush Script MT',cursive" font-style="italic" transform="rotate(-5 150 309)">${safe}</text><text x="150" y="309" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" font-size="${fs}" font-weight="900" font-family="'Segoe Script','Brush Script MT',cursive" font-style="italic" transform="rotate(-5 150 309)">${safe}</text><path data-ebl-wordmark-swish="v41" d="M92 321Q150 328 195 315" fill="none" stroke="${club(p)?.secondary_color||club(p)?.secondary||'#d7262e'}" stroke-width="8" stroke-linecap="round"/><path d="M92 321Q150 328 195 315" fill="none" stroke="#f7f7f7" stroke-width="5" stroke-linecap="round"/><path d="M92 321Q150 328 195 315" fill="none" stroke="#071a31" stroke-width="2.5" stroke-linecap="round"/></g>`;
    // Replace the generic league chest mark with the franchise nickname.
    let out=String(html||'');
    const patterns=[
@@ -8182,6 +8197,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  const render=function(raw={},size='md',action='portrait'){
    let html=prior(raw,size,action)||'';
    if(!html||((action&&action!=='portrait'&&action!=='auto')))return html;
+   html=jerseyPatches(html,raw||{});
    return jerseyWordmark(html,raw||{});
  };
  render.__eblUniformV33=true;
@@ -8198,7 +8214,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  };
  try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
  try{if(typeof renderHome==='function')renderHome()}catch(e){}
- window.EBL_FRANCHISE_GAMEDAY_UNIFORM_V33={dynamicWordmark:true,secondaryWatermark:true,capMark:true,playerNumber:true};
+ window.EBL_FRANCHISE_GAMEDAY_UNIFORM_V33={version:'V41',dynamicWordmark:true,outlinedScript:true,sleevePatches:true,secondaryWatermark:true,capMark:true,playerNumber:true,referenceJersey:true};
 })();
 </script>
 
@@ -8332,7 +8348,7 @@ window.EBL_ATHLETIC_PLAYER_PROPORTION_V37={version:'V37',shoulders:'balanced',to
 </script>
 
 <!-- EBL REFERENCE UNIFORM FINISH V38 -->
-<script id="eblReferenceUniformFinishV40">window.EBL_REFERENCE_UNIFORM_FINISH_V40={version:'V40',target:'reference baseball uniform',jerseySleeves:true,layeredPiping:true,buttonPlacket:true,largeNicknameScript:true,scriptLocation:'centered chest',numberLocation:'inset right chest',capSurface:'wider-secondary-logo',compressionSleeveUnderJersey:true,uniformTrim:'baseball-white + franchise-secondary',playerNumber:true,canonicalIdentityPreserved:true};</script>
+<script id="eblReferenceUniformFinishV41">window.EBL_REFERENCE_UNIFORM_FINISH_V41={version:'V41',target:'reference baseball uniform close-up',jerseySleeves:true,layeredPiping:true,darkSeamDepth:true,buttonPlacket:true,largeOutlinedNicknameScript:true,scriptLocation:'centered chest',numberLocation:'inset right chest',sleevePatches:true,capSurface:'V40-preserved-for-later-cap-polish',compressionSleeveUnderJersey:true,uniformTrim:'baseball-white + franchise-secondary',playerNumber:true,canonicalIdentityPreserved:true};</script>
 
 <!-- EBL COACH → GENESIS ROTATION BRIDGE RC56 -->
 <style id="coachGenesisBridgeRC56Style">
