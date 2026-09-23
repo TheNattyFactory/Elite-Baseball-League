@@ -8055,7 +8055,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
      ? `<image data-ebl-cap-secondary="v45" href="${esc(String(secondary))}" xlink:href="${esc(String(secondary))}" x="131" y="66" width="38" height="38" preserveAspectRatio="xMidYMid meet"/>`
      : `<text data-ebl-cap-fallback="v42" x="150" y="96" text-anchor="middle" font-size="18" font-weight="900" fill="#f7f7f7">${mark}</text>`;
    let capDone=false;
-   for(const y of ['88','91','96','97']){
+   for(const y of ['95','88','91','96','97']){
      const re=new RegExp(`<text x="150" y="${y}"[^>]*>[^<]*<\\/text>`);
      if(re.test(html)){html=html.replace(re,capGraphic);capDone=true;break}
    }
@@ -8070,7 +8070,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    return apply(html,raw||{});
  };
  window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
- window.EBL_TEAM_UNIFORM_IDENTITY_V23={capMark:true,jerseyMark:true,paletteFromFranchise:true,fallback:'EBL'};
+ window.EBL_TEAM_UNIFORM_IDENTITY_V23={version:'V48',capMark:true,jerseyMark:true,paletteFromFranchise:true,fallback:'EBL',capTextY95:true};
 })();
 </script>
 
@@ -8401,3 +8401,5 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 </script>
 
 <script id="eblFinalAvatarPolishV47">window.EBL_FINAL_AVATAR_POLISH_V47={version:'V47',scope:'final 5 percent live polish',neck:'shorter tapered transition',collar:'integrated jersey neckline',cap:'rounder fitted crown + shorter natural bill',heroPatches:'slightly larger and fabric-aligned',compactPatches:'suppressed',wordmark:'locked',number:'locked',watermark:'locked',sharedRenderer:true};</script>
+
+<script id="eblCapLogoRestoreV48">window.EBL_CAP_LOGO_RESTORE_V48={version:'V48',fix:'V47 cap text moved to y=95; secondary team logo resolver now targets it',scope:'shared renderer all players and roster sizes'};</script>
