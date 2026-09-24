@@ -1781,7 +1781,19 @@ def player_obj(c,pid):
                               ORDER BY ch.id DESC LIMIT 1""",(pid,)).fetchone()
     d["former_team"]={"franchise_id":last_contract["franchise_id"],"team_name":last_contract["team_name"],"salary":last_contract["salary"]} if last_contract else None
     d["offers"]=[]
-    for row in c.execute("SELECT * FROM offers WHERE player_id=? AND status IN ('OPEN','HELD') ORDER BY id DESC",(pid,)):
+    # Contract offers carry their franchise identity with them. The client should never
+    # have to expose an internal id (EBL-F01, etc.) while waiting for /api/league.
+    # Branding display_name is preferred, with franchises.name as the canonical fallback.
+    for row in c.execute(
+        """SELECT o.*,f.name AS team_name,
+                  COALESCE(NULLIF(b.display_name,''),f.name) AS team_display_name
+           FROM offers o
+           JOIN franchises f ON f.id=o.franchise_id
+           LEFT JOIN franchise_branding b ON b.franchise_id=o.franchise_id
+           WHERE o.player_id=? AND o.status IN ('OPEN','HELD')
+           ORDER BY o.id DESC""",
+        (pid,)
+    ):
         off=dict(row)
         off["returning_offer"]=bool(last_contract and off.get("franchise_id")==last_contract["franchise_id"])
         d["offers"].append(off)
@@ -1795,6 +1807,39 @@ def player_obj(c,pid):
     return d
 
 
+
+
+def player_identity_payload(row):
+    """Canonical public player identity used by league-wide surfaces.
+
+    Team assignment always comes from players.franchise_id. Appearance is copied from
+    the same player row so Team, Awards, Analytics and other public views do not invent
+    separate versions of a player after a signing or trade.
+    """
+    d=dict(row) if row is not None else {}
+    fid=d.get("franchise_id")
+    out={
+        "id":d.get("id"),
+        "player_id":d.get("id"),
+        "name":d.get("name"),
+        "username":d.get("username"),
+        "team":fid,
+        "franchise_id":fid,
+        "pos":d.get("primary_pos"),
+        "primary_pos":d.get("primary_pos"),
+        "jersey_number":d.get("jersey_number"),
+        "bats":d.get("bats"),
+        "throws":d.get("throws")
+    }
+    for key in ("face_id","skin_color_id","hair_id","hair_color_id","facial_hair_id",
+                "eye_color_id","eye_black_id","eyewear_id","chain_id","sleeve_id"):
+        if key in d:
+            out[key]=d.get(key)
+    if d.get("team_name") is not None:
+        out["team_name"]=d.get("team_name")
+    if d.get("team_display_name") is not None:
+        out["team_display_name"]=d.get("team_display_name")
+    return out
 
 
 def assign_team_jersey_number(c,franchise_id,player_id,preferred):
@@ -4990,8 +5035,15 @@ class H(BaseHTTPRequestHandler):
 
         if p=="/api/awards":
             c=conn(); hitters=[]; pitchers=[]
-            for r in c.execute("""SELECT p.id,p.name,p.franchise_id,p.primary_pos,p.season_json,u.username
-                                  FROM players p LEFT JOIN users u ON u.id=p.user_id WHERE p.active=1"""):
+            for r in c.execute("""SELECT p.id,p.name,p.franchise_id,p.primary_pos,p.season_json,p.jersey_number,p.bats,p.throws,
+                                         p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,
+                                         p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,u.username,
+                                         f.name AS team_name,COALESCE(NULLIF(b.display_name,''),f.name) AS team_display_name
+                                  FROM players p
+                                  LEFT JOIN users u ON u.id=p.user_id
+                                  LEFT JOIN franchises f ON f.id=p.franchise_id
+                                  LEFT JOIN franchise_branding b ON b.franchise_id=p.franchise_id
+                                  WHERE p.active=1"""):
                 st=json.loads(r["season_json"])
                 if "PA" in st:
                     ab=st.get("AB",0);h=st.get("H",0);bb=st.get("BB",0);pa=st.get("PA",0)
@@ -5001,15 +5053,17 @@ class H(BaseHTTPRequestHandler):
                     oaa=float(st.get("OAA",0) or 0); ferr=int(st.get("E",0) or 0); fldpct=st.get("FLD_PCT","1.000")
                     defense_value=oaa*2.0-ferr*.65
                     mvp=(obp+slg)*100 + st.get("HR",0)*1.1 + st.get("SB",0)*.35 + st.get("RBI",0)*.12 + defense_value
-                    hitters.append({"id":r["id"],"name":r["name"],"username":r["username"],"team":r["franchise_id"],"pos":r["primary_pos"],
-                                    "avg":avg,"obp":obp,"slg":slg,"ops":obp+slg,"hr":st.get("HR",0),"rbi":st.get("RBI",0),
-                                    "sb":st.get("SB",0),"pa":pa,"mvp":mvp,"oaa":oaa,"e":ferr,"fld_pct":fldpct,"po":st.get("PO",0),"a":st.get("A",0)})
+                    identity=player_identity_payload(r)
+                    identity.update({"avg":avg,"obp":obp,"slg":slg,"ops":obp+slg,"hr":st.get("HR",0),"rbi":st.get("RBI",0),
+                                     "sb":st.get("SB",0),"pa":pa,"mvp":mvp,"oaa":oaa,"e":ferr,"fld_pct":fldpct,"po":st.get("PO",0),"a":st.get("A",0)})
+                    hitters.append(identity)
                 else:
                     outs=st.get("OUTS",0);er=st.get("ER",0);bb=st.get("BB",0);h=st.get("H",0);so=st.get("SO",0)
                     era=er*27/outs if outs else 99.0;whip=(bb+h)/(outs/3) if outs else 99.0
                     score=(so*1.2)-(er*2.2)-(bb*.7)+(outs/3)*.3
-                    pitchers.append({"id":r["id"],"name":r["name"],"username":r["username"],"team":r["franchise_id"],"pos":r["primary_pos"],
-                                     "era":era,"whip":whip,"so":so,"sv":st.get("SV",0),"outs":outs,"score":score})
+                    identity=player_identity_payload(r)
+                    identity.update({"era":era,"whip":whip,"so":so,"sv":st.get("SV",0),"outs":outs,"score":score})
+                    pitchers.append(identity)
             qualified=[x for x in hitters if x["pa"]>=max(1,int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])*2)]
             batting=sorted(qualified or hitters,key=lambda x:(x["avg"],x["pa"]),reverse=True)[:10]
             mvp=sorted(hitters,key=lambda x:x["mvp"],reverse=True)[:10]
@@ -5108,8 +5162,15 @@ class H(BaseHTTPRequestHandler):
             finals=c.execute("SELECT COUNT(*) n FROM games WHERE status='FINAL'").fetchone()["n"]
             runs=c.execute("SELECT COALESCE(SUM(away_runs+home_runs),0) n FROM games WHERE status='FINAL'").fetchone()["n"]
             hitters=[]; pitchers=[]
-            for r in c.execute("""SELECT p.id,p.name,p.primary_pos,p.xp_wallet,p.attributes_json,p.season_json,p.franchise_id,u.username
-                                  FROM players p LEFT JOIN users u ON u.id=p.user_id WHERE p.active=1"""):
+            for r in c.execute("""SELECT p.id,p.name,p.primary_pos,p.xp_wallet,p.attributes_json,p.season_json,p.franchise_id,
+                                         p.jersey_number,p.bats,p.throws,p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,
+                                         p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,u.username,
+                                         f.name AS team_name,COALESCE(NULLIF(b.display_name,''),f.name) AS team_display_name
+                                  FROM players p
+                                  LEFT JOIN users u ON u.id=p.user_id
+                                  LEFT JOIN franchises f ON f.id=p.franchise_id
+                                  LEFT JOIN franchise_branding b ON b.franchise_id=p.franchise_id
+                                  WHERE p.active=1"""):
                 d=dict(r); st=json.loads(d["season_json"]); at=json.loads(d["attributes_json"])
                 if "PA" in st:
                     ab=st.get("AB",0);h=st.get("H",0);bb=st.get("BB",0)
@@ -5117,12 +5178,16 @@ class H(BaseHTTPRequestHandler):
                     obp=(h+bb)/(st.get("PA",0)) if st.get("PA",0) else 0
                     tb=st.get("1B",0)+2*st.get("2B",0)+3*st.get("3B",0)+4*st.get("HR",0)
                     slg=tb/ab if ab else 0
-                    hitters.append({"id":d["id"],"name":d["name"],"username":d.get("username"),"team":d["franchise_id"],"pos":d["primary_pos"],"xp":d["xp_wallet"],"avg":avg,"obp":obp,"slg":slg,"ops":obp+slg,"hr":st.get("HR",0),"so":st.get("SO",0),"bb":bb,"pa":st.get("PA",0),"attr_total":sum(at.values())})
+                    identity=player_identity_payload(d)
+                    identity.update({"xp":d["xp_wallet"],"avg":avg,"obp":obp,"slg":slg,"ops":obp+slg,"hr":st.get("HR",0),"so":st.get("SO",0),"bb":bb,"pa":st.get("PA",0),"attr_total":sum(at.values())})
+                    hitters.append(identity)
                 else:
                     outs=st.get("OUTS",0); er=st.get("ER",0); bb=st.get("BB",0); h=st.get("H",0)
                     era=er*27/outs if outs else 0
                     whip=(bb+h)/(outs/3) if outs else 0
-                    pitchers.append({"id":d["id"],"name":d["name"],"username":d.get("username"),"team":d["franchise_id"],"pos":d["primary_pos"],"xp":d["xp_wallet"],"era":era,"whip":whip,"so":st.get("SO",0),"bb":bb,"outs":outs,"attr_total":sum(at.values())})
+                    identity=player_identity_payload(d)
+                    identity.update({"xp":d["xp_wallet"],"era":era,"whip":whip,"so":st.get("SO",0),"bb":bb,"outs":outs,"attr_total":sum(at.values())})
+                    pitchers.append(identity)
             active_h=[x for x in hitters if x["pa"]>0]; active_p=[x for x in pitchers if x["outs"]>0]
             total_pa=sum(x["pa"] for x in active_h); total_h=sum(json.loads(c.execute("SELECT season_json FROM players WHERE id=?",(x["id"],)).fetchone()[0]).get("H",0) for x in active_h)
             total_bb=sum(x["bb"] for x in active_h); total_so=sum(x["so"] for x in active_h); total_hr=sum(x["hr"] for x in active_h)
@@ -5786,8 +5851,11 @@ class H(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
                           ("CONTRACT_SIGNED",u["id"],json.dumps({"player_id":pl["id"],"offer_id":oid,"franchise_id":off["franchise_id"],"bonus":off["bonus"],"salary":off["salary"],"years":off["years"]})))
 
+                brand=c.execute("SELECT display_name FROM franchise_branding WHERE franchise_id=?",(off["franchise_id"],)).fetchone()
+                team_display_name=(brand["display_name"] if brand and brand["display_name"] else f["name"])
                 c.commit()
-                return self.out({"ok":True,"status":"ACCEPTED","player_id":pl["id"],"franchise_id":off["franchise_id"]})
+                return self.out({"ok":True,"status":"ACCEPTED","player_id":pl["id"],"franchise_id":off["franchise_id"],
+                                 "team_name":f["name"],"team_display_name":team_display_name})
 
             except sqlite3.IntegrityError as e:
                 c.rollback()
