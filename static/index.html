@@ -928,6 +928,30 @@ dialog{
 <style id="eblCoachGameSheetRC55">
 .coachGameSheet{display:grid;grid-template-columns:1.15fr .85fr;gap:12px;margin-top:14px}.coachGameSheetPanel{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(15,39,63,.92),rgba(7,22,37,.94));padding:13px}.coachGameSheetHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.coachGameSheetHead h3{margin:2px 0 0}.coachGameLineup{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.coachGameLine{display:grid;grid-template-columns:22px 34px 1fr;align-items:center;gap:7px;min-width:0;padding:7px;border:1px solid rgba(75,103,129,.45);border-radius:9px;background:rgba(4,14,25,.45)}.coachGameLine>span{font-weight:1000;color:var(--gold);text-align:center}.coachGameLine .playerPortrait,.coachGameLine .publicPortrait{width:34px!important;height:34px!important;min-width:34px}.coachGameLine div{min-width:0}.coachGameLine b,.coachGameLine small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.coachGameLine small,.coachGameStaff small{color:var(--muted);font-size:9px}.coachGameStaffList{display:grid;gap:7px}.coachGameStaff{display:grid;grid-template-columns:40px 1fr;gap:2px 9px;align-items:center;padding:8px 9px;border:1px solid rgba(75,103,129,.45);border-radius:9px;background:rgba(4,14,25,.45)}.coachGameStaff>span{grid-row:1/3;color:var(--gold);font-size:10px;font-weight:1000}.coachGameStaff b,.coachGameStaff small{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}@media(max-width:760px){.coachGameSheet{grid-template-columns:1fr}.coachGameLineup{grid-template-columns:1fr}.coachGameSheetHead{align-items:flex-start}.coachGameSheetHead .btn{padding:7px 9px;font-size:10px}}
 </style>
+
+<style id="eblDay2AwardsGamecastPolish">
+/* Day 2 alpha: Award Race rows need dedicated mobile geometry rather than sharing
+   the old generic .race layout. */
+.awardRaceRow{grid-template-columns:34px minmax(0,1fr) 28px;align-items:center;column-gap:10px;padding:11px 4px}
+.awardRaceIdentity{display:grid;grid-template-columns:58px minmax(0,1fr);align-items:center;gap:11px;min-width:0}
+.awardRaceIdentity>.eblPlayerArtV24--sm{width:58px!important;height:66px!important;flex:0 0 58px}
+.awardRaceCopy{min-width:0;line-height:1.25}
+.awardRacePlayer{display:block;min-width:0;margin-bottom:4px}
+.awardRaceDetail{display:flex;align-items:center;flex-wrap:wrap;gap:3px 5px;min-width:0;line-height:1.4;overflow-wrap:anywhere}
+.awardRaceDetail .awardTeamInline{max-width:100%;min-width:0}
+.awardRaceDetail .teamLink{white-space:normal;text-align:left;overflow-wrap:anywhere}
+.awardRaceTrophy{align-self:start;padding-top:7px;text-align:center}
+@media(max-width:560px){
+ .awardRaceRow{grid-template-columns:24px minmax(0,1fr) 22px;gap:7px;padding:10px 0}
+ .awardRaceIdentity{grid-template-columns:50px minmax(0,1fr);gap:9px}
+ .awardRaceIdentity>.eblPlayerArtV24--sm{width:50px!important;height:58px!important;flex-basis:50px}
+ .awardRacePlayer{font-size:.98rem;line-height:1.15}
+ .awardRaceDetail{font-size:.86rem;gap:2px 4px}
+ .awardRaceDetail .awardTeamInline .teamMark{width:20px;height:20px;flex-basis:20px}
+ .awardRaceTrophy{font-size:16px;padding-top:3px}
+}
+</style>
+
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -1423,6 +1447,14 @@ function showPage(id,b){
   // Coach HUD is page-critical: always refresh it when the Coach tab is opened.
   // This also recovers if an unrelated dashboard loader failed during initial refresh.
   if(id==='coach' && ME)loadCoachPortal();
+  // GameCast is an archive of FINAL games. Refresh it on entry so a just-simulated
+  // league day is visible even if another dashboard loader failed or the tab was
+  // already open during Sim Day.
+  if(id==='gamecast' && ME){
+    const gcRoot=document.getElementById('gamecastList');
+    if(gcRoot && !gcRoot.innerHTML.trim())gcRoot.innerHTML='<div class="card" style="margin-top:14px"><span class="muted">Loading completed games…</span></div>';
+    loadSchedule().catch(()=>{});
+  }
 }
 
 
@@ -3480,12 +3512,21 @@ function renderStandings(){
   standingsPane.innerHTML=html;
 }
 async function loadSchedule(){
- let j=await api('/api/schedule');
- SCHEDULE=Array.isArray(j.games)?j.games:[];
- renderSchedule();
- renderTicker();
- renderGamecastList();
- refreshPlayerRecentGames();
+ const gcRoot=document.getElementById('gamecastList');
+ try{
+  const j=await api('/api/schedule');
+  SCHEDULE=Array.isArray(j.games)?j.games:[];
+  // Keep the archive independent from the League schedule/ticker surfaces. A render
+  // problem elsewhere must never leave GameCast blank.
+  renderGamecastList();
+  try{renderSchedule()}catch(e){console.warn('EBL schedule render failed',e)}
+  try{renderTicker()}catch(e){console.warn('EBL ticker render failed',e)}
+  try{refreshPlayerRecentGames()}catch(e){console.warn('EBL recent-game refresh failed',e)}
+  return j;
+ }catch(e){
+  if(gcRoot)gcRoot.innerHTML=`<div class="card" style="margin-top:14px"><b>GameCast archive unavailable.</b><div class="muted">${escapeHtml(String(e?.error||e?.message||'Could not load completed games.'))}</div></div>`;
+  throw e;
+ }
 }
 async function loadPlayoffs(){
   const pane=document.getElementById('playoffsPane');
@@ -3632,7 +3673,7 @@ function awardTeamRef(fid,label=''){
  const resolved=String(label||teamName(fid)||fid);
  return `<span class="awardTeamInline">${teamMark(fid,true)}<button class="teamLink" onclick="openTeam('${jsq(fid)}')">${escapeHtml(resolved)}</button></span>`;
 }
-function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span>${x?.face_id?`<div class="raceIdentity">${eblPublicPortraitV28(x,'sm')}<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div></div>`:`<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div>`}<span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
+function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race awardRaceRow"><span class="medal awardRaceRank">${i+1}</span>${x?.face_id?`<div class="raceIdentity awardRaceIdentity">${eblPublicPortraitV28(x,'sm')}<div class="awardRaceCopy"><b class="awardRacePlayer">${leaguePlayerName(x)}</b><div class="muted awardRaceDetail">${detail(x)}</div></div></div>`:`<div class="awardRaceCopy"><b class="awardRacePlayer">${leaguePlayerName(x)}</b><div class="muted awardRaceDetail">${detail(x)}</div></div>`}<span class="awardRaceTrophy">${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
 function dismissOnboarding(){
  try{localStorage.setItem('ebl_onboarding_dismissed','1')}catch{}
  if(window.onboardingCard)onboardingCard.classList.add('hidden');
