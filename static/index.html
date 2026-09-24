@@ -7150,13 +7150,17 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
 .eblBrandPreviewRC45{border-radius:18px;padding:18px;min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .eblBrandPreviewRC45__logos{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap}
 .eblBrandPreviewRC45__logos img{width:140px;height:140px;object-fit:contain}
-@media(max-width:760px){.eblIdentityStudioRC45{grid-template-columns:1fr}.eblBrandPreviewRC45{min-height:260px}}
+.eblBrandPreviewRC45__wordmark{width:min(92%,390px);max-height:105px;object-fit:contain;margin-top:12px;filter:drop-shadow(0 5px 10px rgba(0,0,0,.28))}
+.eblWordmarkDropRC45{grid-column:1/-1;min-height:118px}
+.eblBrandPreviewRC45__jerseyLabel{margin-top:8px;font-size:10px;letter-spacing:.12em;opacity:.72;font-weight:800}
+@media(max-width:760px){.eblIdentityStudioRC45{grid-template-columns:1fr}.eblBrandPreviewRC45{min-height:260px}.eblWordmarkDropRC45{grid-column:auto}}
 </style>
 <script id="eblFranchiseIdentityRC45">
-let EBL_BRAND_LOGOS_RC45={primary:'',secondary:''};
+let EBL_BRAND_LOGOS_RC45={primary:'',secondary:'',wordmark:''};
 async function eblLogoFileRC45(file,slot){
  if(!file)return;
- const status=document.getElementById(slot==='primary'?'brandPrimaryLogoStatusRC45':'brandSecondaryLogoStatusRC45');
+ const statusId={primary:'brandPrimaryLogoStatusRC45',secondary:'brandSecondaryLogoStatusRC45',wordmark:'brandWordmarkStatusRC45'}[slot];
+ const status=document.getElementById(statusId||'');
  try{
   if(status)status.textContent='Loading '+(file.name||'logo')+'…';
   if(file.size>5*1024*1024)throw new Error('Logo source file must be 5 MB or smaller.');
@@ -7188,15 +7192,15 @@ function eblBrandPreviewRC45(){
  const nick=document.getElementById('brandTeamRC45')?.value.trim()||'BALL CLUB';
  const p=document.getElementById('brandPrimaryRC45')?.value||'#071A31',s=document.getElementById('brandSecondaryRC45')?.value||'#D7262E',a=document.getElementById('brandAccentRC45')?.value||'#D9E0E8';
  const box=document.getElementById('brandPreviewRC45');if(!box)return;
- const primary=EBL_BRAND_LOGOS_RC45.primary,secondary=EBL_BRAND_LOGOS_RC45.secondary;
+ const primary=EBL_BRAND_LOGOS_RC45.primary,secondary=EBL_BRAND_LOGOS_RC45.secondary,wordmark=EBL_BRAND_LOGOS_RC45.wordmark;
  box.style.background=`linear-gradient(145deg,${p},${s})`;box.style.color=a;
- box.innerHTML=`<div class="eblBrandPreviewRC45__logos">${primary?`<img src="${primary}" alt="Primary logo">`:teamLogoMarkup(1,p,s,a,`${city} ${nick}`)}${secondary?`<img src="${secondary}" alt="Secondary logo">`:''}</div><h2 style="margin:14px 0 2px">${escapeHtml(city)} ${escapeHtml(nick)}</h2><div style="opacity:.82">EBL FRANCHISE IDENTITY</div>`;
+ box.innerHTML=`<div class="eblBrandPreviewRC45__logos">${primary?`<img src="${primary}" alt="Primary logo">`:teamLogoMarkup(1,p,s,a,`${city} ${nick}`)}${secondary?`<img src="${secondary}" alt="Secondary logo">`:''}</div>${wordmark?`<div class="eblBrandPreviewRC45__jerseyLabel">JERSEY WORDMARK</div><img class="eblBrandPreviewRC45__wordmark" src="${wordmark}" alt="${escapeHtml(nick)} jersey wordmark">`:''}<h2 style="margin:14px 0 2px">${escapeHtml(city)} ${escapeHtml(nick)}</h2><div style="opacity:.82">EBL FRANCHISE IDENTITY</div>`;
 }
 function eblFranchiseIdentityStudioRC45(j){
  const b=j.branding||{},locked=String(j.phase||'REGULAR').toUpperCase()!=='OFFSEASON'&&Number(j.league_day||0)>0;
  let city=b.city||'',nick=b.team_name||'';
  if((!city||!nick)&&(b.display_name||j.team?.name)){const q=String(b.display_name||j.team.name).trim().split(/\s+/);nick=nick||q.pop()||'';city=city||q.join(' ')}
- EBL_BRAND_LOGOS_RC45={primary:b.primary_logo_url||b.primary_logo||'',secondary:b.secondary_logo_url||b.secondary_logo||b.logo_secondary||''};
+ EBL_BRAND_LOGOS_RC45={primary:b.primary_logo_url||b.primary_logo||'',secondary:b.secondary_logo_url||b.secondary_logo||b.logo_secondary||'',wordmark:b.jersey_wordmark_url||b.jersey_wordmark||''};
  return `<div class="eblIdentityStudioRC45">
  <div>
   <span class="newsMeta">FRANCHISE IDENTITY STUDIO</span><h2>Build Your Club's Identity</h2>
@@ -7206,13 +7210,14 @@ function eblFranchiseIdentityStudioRC45(j){
   <div class="grid">
    <label class="eblLogoDropRC45">Primary Logo<input type="file" accept="image/*" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files&&this.files[0],'primary')"><span id="brandPrimaryLogoStatusRC45">${(b.primary_logo_url||b.primary_logo)?'Primary logo loaded — tap to replace':'Tap to upload primary logo'}<br><small>PNG, JPG or WebP • up to 5 MB</small></span></label>
    <label class="eblLogoDropRC45">Secondary Logo<input type="file" accept="image/*" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files&&this.files[0],'secondary')"><span id="brandSecondaryLogoStatusRC45">${b.secondary_logo?'Secondary logo loaded — tap to replace':'Tap to upload secondary / alternate logo'}<br><small>PNG, JPG or WebP • up to 5 MB</small></span></label>
+   <label class="eblLogoDropRC45 eblWordmarkDropRC45">Jersey Wordmark<input type="file" accept="image/*" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files&&this.files[0],'wordmark')"><span id="brandWordmarkStatusRC45">${b.jersey_wordmark?'Jersey wordmark loaded — tap to replace':'Tap to upload transparent chest wordmark'}<br><small>Wide transparent PNG/WebP recommended • up to 5 MB • used across the jersey chest</small></span></label>
   </div>
   <div class="grid"><label>Home Uniform<select id="brandHomeRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_home||'WHITE')}</select></label><label>Away Uniform<select id="brandAwayRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_away||'NAVY')}</select></label></div>
   <button class="btn" ${locked?'disabled':''} onclick="eblSaveFranchiseIdentityRC45()">${locked?'Identity Locked Until Offseason':'Save Franchise Identity'}</button>
  </div><div><div id="brandPreviewRC45" class="eblBrandPreviewRC45"></div></div></div>`;
 }
 async function eblSaveFranchiseIdentityRC45(){
- const body={city:brandCityRC45.value.trim(),team_name:brandTeamRC45.value.trim(),primary_color:brandPrimaryRC45.value,secondary_color:brandSecondaryRC45.value,accent_color:brandAccentRC45.value,primary_logo:EBL_BRAND_LOGOS_RC45.primary,secondary_logo:EBL_BRAND_LOGOS_RC45.secondary,uniform_home:brandHomeRC45.value,uniform_away:brandAwayRC45.value,logo_style:1};
+ const body={city:brandCityRC45.value.trim(),team_name:brandTeamRC45.value.trim(),primary_color:brandPrimaryRC45.value,secondary_color:brandSecondaryRC45.value,accent_color:brandAccentRC45.value,primary_logo:EBL_BRAND_LOGOS_RC45.primary,secondary_logo:EBL_BRAND_LOGOS_RC45.secondary,jersey_wordmark:EBL_BRAND_LOGOS_RC45.wordmark,uniform_home:brandHomeRC45.value,uniform_away:brandAwayRC45.value,logo_style:1};
  if(!body.city||!body.team_name){alert('Enter both a city/home market and a team name.');return}
  try{await api('/api/coach/branding',{method:'POST',body:JSON.stringify(body)});alert('Franchise identity saved.');await loadLeague();await loadCoachHub()}catch(e){alert(e.detail||e.error||'Could not save franchise identity.')}
 }
@@ -7229,7 +7234,7 @@ window.teamMark=function(fid,small=false){
  if(logo){const n=t.display_name||t.name||fid||'EBL';return `<span class="teamMark ${small?'sm':''}" title="${escapeHtml(n)}" style="overflow:hidden;background:${t.primary_color||'#071A31'}"><img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain"></span>`}
  return eblTeamMarkRC45?eblTeamMarkRC45(fid,small):'';
 };
-window.EBL_FRANCHISE_IDENTITY_RC45={version:'RC45',fields:['city','team-name','primary-color','secondary-color','accent-color','primary-logo','secondary-logo'],offseasonLock:true};
+window.EBL_FRANCHISE_IDENTITY_RC45={version:'RC56',fields:['city','team-name','primary-color','secondary-color','accent-color','primary-logo','secondary-logo','jersey-wordmark'],offseasonLock:true};
 </script>
 
 
@@ -7755,10 +7760,13 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  }
  function logoFor(p,kind='primary',t=null){
    let out='';
-   try{if(p?.franchise_id&&typeof window.teamLogoUrl==='function')out=window.teamLogoUrl(p.franchise_id,kind)||''}catch(_){ }
-   try{if(!out&&p?.franchise_id&&typeof window.EBLTeamLogoById==='function')out=window.EBLTeamLogoById(p.franchise_id,kind)||''}catch(_){ }
+   if(kind!=='wordmark'){
+     try{if(p?.franchise_id&&typeof window.teamLogoUrl==='function')out=window.teamLogoUrl(p.franchise_id,kind)||''}catch(_){ }
+     try{if(!out&&p?.franchise_id&&typeof window.EBLTeamLogoById==='function')out=window.EBLTeamLogoById(p.franchise_id,kind)||''}catch(_){ }
+   }
    t=t||teamFor(p);
    if(out||!t)return out;
+   if(kind==='wordmark')return t.jersey_wordmark_url||t.jersey_wordmark||t.wordmark_url||t.wordmark||t.branding?.jersey_wordmark||t.branding?.jersey_wordmark_url||'';
    if(kind==='secondary')return t.secondary_logo_url||t.secondary_logo||t.logo_secondary||t.secondaryLogoUrl||t.secondaryLogo||t.branding?.secondary_logo||t.branding?.secondary_logo_url||'';
    return t.primary_logo_url||t.primary_logo||t.logo_url||t.logo||t.logo_primary||t.primaryLogoUrl||t.primaryLogo||t.branding?.primary_logo||t.branding?.primary_logo_url||'';
  }
@@ -7782,18 +7790,18 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    let primary='#153c63',secondary='#d7262e',accent='#f7f7f7';
    try{const q=t&&typeof window.teamPalette==='function'?window.teamPalette(t):null;if(q){primary=q.primary||q[0]||primary;secondary=q.secondary||q[1]||secondary;accent=q.accent||q[2]||accent}}catch(_){ }
    if(t){primary=t.primary_color||t.primary||primary;secondary=t.secondary_color||t.secondary||secondary;accent=t.accent_color||t.accent||accent}
-   let primaryLogo=logoFor(p,'primary',t),secondaryLogo=logoFor(p,'secondary',t);
+   let primaryLogo=logoFor(p,'primary',t),secondaryLogo=logoFor(p,'secondary',t),jerseyWordmark=logoFor(p,'wordmark',t);
    primaryLogo=primaryLogo||secondaryLogo;secondaryLogo=secondaryLogo||primaryLogo;
    const safeSize=['xs','sm','md','lg'].includes(size)?size:'md';
    return Object.freeze({
      team:t,primary,secondary,accent,
      nickname:nicknameFor(t),mark:markFor(t),number:String(Number(p.jersey_number??24)).padStart(2,'0').slice(-2),
-     primaryLogo,secondaryLogo,
+     primaryLogo,secondaryLogo,jerseyWordmark,
      showSleevePatches:safeSize!=='xs'&&safeSize!=='sm',
      sleeveId:Number(p.sleeve_id||1),size:safeSize
    });
  };
- window.EBL_UNIFORM_STANDARD_V53=Object.freeze({version:'V53',colors:'franchise',cap:'secondary-logo',chest:'nickname-script',number:'player-number',patches:'primary-left-secondary-right',compactPatchSuppression:true,neutralTrim:'#f7f7f7',singleUniformContract:true});
+ window.EBL_UNIFORM_STANDARD_V53=Object.freeze({version:'V56',colors:'franchise',cap:'secondary-logo',chest:'uploaded-wordmark-or-nickname-script',number:'player-number',patches:'primary-left-secondary-right',compactPatchSuppression:true,neutralTrim:'#f7f7f7',singleUniformContract:true});
 })();
 </script>
 
@@ -7986,13 +7994,26 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    return out.replace('<!-- layered baseball collar -->',patch+'<!-- layered baseball collar -->');
  }
  function jerseyWordmark(html,p){
+   const spec=typeof window.eblUniformSpecV53==='function'?window.eblUniformSpecV53(p||{}):null;
+   const custom=spec?.jerseyWordmark||'';
+   if(custom){
+     const art=`<g data-ebl-team-wordmark="v56-uploaded"><image href="${esc(String(custom))}" xlink:href="${esc(String(custom))}" x="79" y="273" width="139" height="53" preserveAspectRatio="xMidYMid meet"/></g>`;
+     let out=String(html||'');
+     const patterns=[
+       /<text x="103" y="305"[^>]*>[^<]*<\/text>/,
+       /<text x="113" y="300"[^>]*>[^<]*<\/text>/,
+       /<text x="112" y="303"[^>]*>[^<]*<\/text>/,
+       /<text x="92" y="304"[^>]*>[^<]*<\/text>/
+     ];
+     for(const re of patterns){if(re.test(out))return out.replace(re,art)}
+     return out.replace(/(<text[^>]*x="19[0-9]"[^>]*y="31[0-9]"[^>]*>)/,art+'$1');
+   }
    const word=nickname(p); if(word==='EBL')return html;
    const safe=esc(word), len=word.length;
    // Center the nickname across the chest. The number sits below/right, so the script and swash
    // read as one primary jersey mark without colliding with the player's number.
    const fs=len>=13?27:len>=10?31:len>=8?35:40;
    const tw=len>=13?114:len>=10?120:len>=8?127:134;
-   const spec=typeof window.eblUniformSpecV53==='function'?window.eblUniformSpecV53(p||{}):null;
    const sec=spec?.secondary||club(p)?.secondary_color||club(p)?.secondary||'#d7262e';
    const wordmark=`<g data-ebl-team-wordmark="v55"><text x="146" y="308" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" stroke="${sec}" stroke-width="7" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Brush Script MT','Segoe Script','URW Chancery L',cursive" font-style="italic" letter-spacing="-1" transform="rotate(-3 146 308)">${safe}</text><text x="146" y="308" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" stroke="#f7f7f7" stroke-width="4" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Brush Script MT','Segoe Script','URW Chancery L',cursive" font-style="italic" letter-spacing="-1" transform="rotate(-3 146 308)">${safe}</text><text x="146" y="308" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" font-size="${fs}" font-weight="900" font-family="'Brush Script MT','Segoe Script','URW Chancery L',cursive" font-style="italic" letter-spacing="-1" transform="rotate(-3 146 308)">${safe}</text><path data-ebl-wordmark-swish="v55" d="M90 320Q147 326 199 314" fill="none" stroke="${sec}" stroke-width="5.7" stroke-linecap="round"/><path d="M90 320Q147 326 199 314" fill="none" stroke="#f7f7f7" stroke-width="3.2" stroke-linecap="round"/><path d="M90 320Q147 326 199 314" fill="none" stroke="#071a31" stroke-width="1.75" stroke-linecap="round"/></g>`;
    // Replace the generic league chest mark with the franchise nickname.
