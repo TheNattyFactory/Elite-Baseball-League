@@ -413,6 +413,9 @@ def init_db():
       accent_color TEXT NOT NULL DEFAULT '#D9E0E8',
       uniform_home TEXT NOT NULL DEFAULT 'WHITE',
       uniform_away TEXT NOT NULL DEFAULT 'NAVY',
+      primary_logo TEXT NOT NULL DEFAULT '',
+      secondary_logo TEXT NOT NULL DEFAULT '',
+      jersey_wordmark TEXT NOT NULL DEFAULT '',
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -429,6 +432,7 @@ def init_db():
       accent_color TEXT,
       primary_logo TEXT,
       secondary_logo TEXT,
+      jersey_wordmark TEXT,
       started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -675,10 +679,15 @@ def init_db():
         "city":"TEXT NOT NULL DEFAULT ''",
         "team_name":"TEXT NOT NULL DEFAULT ''",
         "primary_logo":"TEXT NOT NULL DEFAULT ''",
-        "secondary_logo":"TEXT NOT NULL DEFAULT ''"
+        "secondary_logo":"TEXT NOT NULL DEFAULT ''",
+        "jersey_wordmark":"TEXT NOT NULL DEFAULT ''"
     }.items():
         if col not in branding_cols:
             c.execute(f"ALTER TABLE franchise_branding ADD COLUMN {col} {ddl}")
+    identity_history_cols={r["name"] for r in c.execute("PRAGMA table_info(franchise_identity_history)").fetchall()}
+    if "jersey_wordmark" not in identity_history_cols:
+        c.execute("ALTER TABLE franchise_identity_history ADD COLUMN jersey_wordmark TEXT")
+
     for row in c.execute("SELECT id,primary_pos,position_group FROM players").fetchall():
         expected=position_group_for_pos(row["primary_pos"])
         if not row["position_group"] or str(row["position_group"]).upper() not in POSITION_GROUPS or (row["position_group"]=="INF" and expected!="INF"):
@@ -758,10 +767,17 @@ def init_db():
             c.execute(f"ALTER TABLE franchises ADD COLUMN {col} {ddl}")
 
 
-    for username,password,role in [("coach","coach123","COACH"),("commish","commish123","COMMISSIONER")]:
+    # Production-safe bootstrap accounts. Existing accounts are never changed.
+    # A fresh database only creates these privileged users when an explicit
+    # environment password is supplied; there are no predictable defaults.
+    for username,env_key,role in [
+        ("coach","EBL_BOOTSTRAP_COACH_PASSWORD","COACH"),
+        ("commish","EBL_BOOTSTRAP_COMMISH_PASSWORD","COMMISSIONER")
+    ]:
         if not c.execute("SELECT 1 FROM users WHERE username=?",(username,)).fetchone():
-            c.execute("INSERT INTO users(username,password_hash,role) VALUES(?,?,?)",(username,pwhash(password),role))
-    coach_id=c.execute("SELECT id FROM users WHERE username='coach'").fetchone()["id"]
+            password=os.environ.get(env_key,"").strip()
+            if password:
+                c.execute("INSERT INTO users(username,password_hash,role) VALUES(?,?,?)",(username,pwhash(password),role))
 
 
     TEAM_NAMES = [
@@ -3812,6 +3828,12 @@ def valid_same_origin(handler):
 
 
 class H(BaseHTTPRequestHandler):
+    def log_message(self,format,*args):
+        # BaseHTTPRequestHandler writes normal access logs to stderr, which
+        # Railway classifies as error severity. Send routine access logs to
+        # stdout so real application errors remain easy to spot.
+        print(f"{self.client_address[0]} - - [{self.log_date_time_string()}] {format % args}")
+
     def end_headers(self):
         self.send_header("X-Content-Type-Options","nosniff")
         self.send_header("X-Frame-Options","DENY")
@@ -3928,7 +3950,7 @@ class H(BaseHTTPRequestHandler):
             teams=[dict(x) for x in c.execute(
                 """SELECT f.id,f.name,f.wins,f.losses,f.runs_for,f.runs_against,
                           fs.division,fs.expansion_team,
-                          b.display_name,b.city,b.team_name,b.logo_style,b.primary_logo,b.secondary_logo,
+                          b.display_name,b.city,b.team_name,b.logo_style,b.primary_logo,b.secondary_logo,b.jersey_wordmark,
                           b.primary_color,b.secondary_color,b.accent_color
                    FROM franchises f
                    JOIN franchise_seasons fs
@@ -3993,7 +4015,7 @@ class H(BaseHTTPRequestHandler):
 
             brand=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(fid,)).fetchone()
             identity_history=[dict(x) for x in c.execute(
-                "SELECT season,city,team_name,display_name,primary_color,secondary_color,accent_color,primary_logo,secondary_logo,started_at FROM franchise_identity_history WHERE franchise_id=? ORDER BY season,id",
+                "SELECT season,city,team_name,display_name,primary_color,secondary_color,accent_color,primary_logo,secondary_logo,jersey_wordmark,started_at FROM franchise_identity_history WHERE franchise_id=? ORDER BY season,id",
                 (fid,)
             )]
             roster=[]
@@ -4776,7 +4798,7 @@ class H(BaseHTTPRequestHandler):
             if pl and pl.get("franchise_id"):
                 f=c.execute(
                     """SELECT f.id,f.name,f.wins,f.losses,f.runs_for,f.runs_against,
-                              b.primary_color,b.secondary_color,b.accent_color
+                              b.primary_color,b.secondary_color,b.accent_color,b.primary_logo,b.secondary_logo,b.jersey_wordmark
                        FROM franchises f
                        LEFT JOIN franchise_branding b ON b.franchise_id=f.id
                        WHERE f.id=?""",
@@ -5934,15 +5956,16 @@ class H(BaseHTTPRequestHandler):
             existing=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(f["id"],)).fetchone()
             primary_logo=str(d.get("primary_logo",existing["primary_logo"] if existing and "primary_logo" in existing.keys() else "") or "")
             secondary_logo=str(d.get("secondary_logo",existing["secondary_logo"] if existing and "secondary_logo" in existing.keys() else "") or "")
-            for logo in (primary_logo,secondary_logo):
-                if logo and (not logo.startswith(("data:image/png;base64,","data:image/webp;base64,","data:image/jpeg;base64,")) or len(logo)>MAX_TEAM_LOGO_DATA_URL_CHARS):
-                    c.close();return self.out({"error":"INVALID_TEAM_LOGO","detail":"Use PNG, JPG or WebP. Each logo must be 5 MB or smaller."},400)
+            jersey_wordmark=str(d.get("jersey_wordmark",existing["jersey_wordmark"] if existing and "jersey_wordmark" in existing.keys() else "") or "")
+            for artwork in (primary_logo,secondary_logo,jersey_wordmark):
+                if artwork and (not artwork.startswith(("data:image/png;base64,","data:image/webp;base64,","data:image/jpeg;base64,")) or len(artwork)>MAX_TEAM_LOGO_DATA_URL_CHARS):
+                    c.close();return self.out({"error":"INVALID_TEAM_ARTWORK","detail":"Use PNG, JPG or WebP. Each branding image must be 5 MB or smaller."},400)
 
             c.execute("""INSERT OR REPLACE INTO franchise_branding(
-                           franchise_id,display_name,city,team_name,logo_style,primary_logo,secondary_logo,
+                           franchise_id,display_name,city,team_name,logo_style,primary_logo,secondary_logo,jersey_wordmark,
                            primary_color,secondary_color,accent_color,uniform_home,uniform_away,updated_at)
-                         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
-                      (f["id"],display_name,city,team_name,logo_style,primary_logo,secondary_logo,pc,sc,ac,home,away))
+                         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
+                      (f["id"],display_name,city,team_name,logo_style,primary_logo,secondary_logo,jersey_wordmark,pc,sc,ac,home,away))
             c.execute("UPDATE franchises SET name=? WHERE id=?",(display_name,f["id"]))
             c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
                       ("FRANCHISE_REBRANDED",u["id"],json.dumps({"franchise_id":f["id"],"display_name":display_name,"city":city,"team_name":team_name})))
@@ -7127,6 +7150,6 @@ if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
     print(f"EBL v7.5 Unified Closed Alpha: http://127.0.0.1:{port}")
-    print("coach/coach123 | commish/commish123 | register player accounts in UI")
+    print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     ThreadingHTTPServer((host,port),H).serve_forever()
