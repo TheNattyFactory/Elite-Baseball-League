@@ -69,6 +69,22 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
 .playerPortrait{display:block;padding:0;background:radial-gradient(circle at 50% 27%,#254d70 0,#102b46 52%,var(--team1,#071a31) 100%);box-shadow:0 7px 18px #0006,inset 0 0 0 1px #ffffff0b}
 .playerPortrait svg{position:absolute;inset:3px 4px 10px;width:calc(100% - 8px);height:calc(100% - 13px)}
 .playerPortrait:after{bottom:4px;text-shadow:0 1px 3px #000;font-size:10px}
+
+.gcArchiveDay{margin-top:18px}
+.gcArchiveDayHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 9px}
+.gcArchiveGrid{display:grid;gap:9px}
+.gcArchiveGame{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:rgba(6,27,47,.78);color:inherit;cursor:pointer}
+.gcArchiveGame.mine{border-color:rgba(222,183,62,.55);box-shadow:inset 3px 0 0 #d9b638}
+.gcArchiveTeams{display:grid;gap:7px;min-width:0}
+.gcArchiveTeam{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;min-width:0;font-weight:800}
+.gcArchiveTeam span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcArchiveTeam b{font-size:1.08rem}
+.gcArchiveWatch{font-size:.77rem;font-weight:900;color:#49d58a;white-space:nowrap}
+@media(max-width:560px){
+ .gcArchiveGame{grid-template-columns:1fr;padding:11px 12px}
+ .gcArchiveWatch{padding-left:32px}
+}
+
 </style><style>
 .profileHero{display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:center}
 .profileLogo{display:flex;justify-content:center;align-items:center}
@@ -1532,7 +1548,7 @@ async function refresh(){
  renderHome();
  startDMPoll();
 }
-function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?t.name:fid}
+function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?(t.display_name||t.name||fid):fid}
 async function openTeamLegacy(fid){
     try{
         const j=await api('/api/team/'+encodeURIComponent(fid));TEAM_ROSTER=j.roster;
@@ -3079,7 +3095,7 @@ const CREATOR_ATTR_HELP={
  ACC:'Arm Accuracy — reduces throwing errors and helps defensive throws finish plays cleanly. Strongest when paired with ARM.',
  REAC:'Reaction — improves first step and range on balls in play. Helps good defenders reach plays that weaker defenders never get to.',
  CALL:'Call Game — catcher-only skill that gives the pitcher a subtle command and break boost while you are catching. Best for defense-first catchers.',
- STA:'Stamina — delays fatigue so command, velocity, and break hold up deeper into outings. Essential for starters; lower priority for short relievers.',
+ STA:'Stamina — extends in-game endurance and also improves between-game fatigue recovery. It helps command, velocity, and break hold up deeper into outings, with diminishing returns at very high ratings.',
  PCLT:'Pitching Clutch — helps retain execution in late, close, high-leverage situations. More valuable for relievers/closers and pitchers who work tight games.',
  CTRL:'Control — governs how often you get the ball into the strike zone. Higher CTRL means fewer free passes and more chances to work from favorable counts.',
  CMD:'Command — governs where your strikes go. Higher CMD improves precision and edge execution, making strikes harder to square up instead of simply throwing more of them.',
@@ -3124,7 +3140,7 @@ const PLAYER_ATTR_INFO={
  ACC:{name:'Arm Accuracy',text:'Improves the accuracy of defensive throws. It lowers throwing-error risk and contributes to catcher defense against steals.',game:'Cleaner throws, fewer throwing errors and better runner control.'},
  REAC:{name:'Reaction',text:'Improves first-step response on balls in play. Reaction combines with Fielding to make difficult defensive plays and also helps reduce errors and catcher steal success against you.',game:'Better range, more great plays and more reliable defense.'},
  CALL:{name:'Call Game',text:'Catcher-only skill. While you are catching, Call Game gives your pitcher a subtle command and breaking-ball execution boost over the course of many plate appearances.',game:'Slightly better pitcher command and pitch movement when you catch.'},
- STA:{name:'Stamina',text:'Determines how long a pitcher can work before fatigue begins reducing command, velocity and break. Starters benefit more because they are expected to work deeper.',game:'Skill holds up longer as pitch workload and innings increase.'},
+ STA:{name:'Stamina',text:'Controls both in-game endurance and between-game recovery. Higher STA delays fatigue penalties during an outing and helps a pitcher shed workload fatigue between league days. Very high ratings use diminishing returns so an uncapped build cannot become permanently fresh.',game:'Longer effective outings and faster recovery between appearances.'},
  PCLT:{name:'Pitching Clutch',text:'Helps a pitcher retain command and movement in high-leverage late-game situations. It does not guarantee an out; it protects your physical skills when the game is tight.',game:'Better execution in late, close games.'},
  CTRL:{name:'Control',text:'Controls how often you reach the strike zone. Better Control cuts free passes and gives you more favorable counts, but it does not guarantee that every strike is well located.',game:'More strikes and fewer walks.'},
  CMD:{name:'Command',text:'Controls precision inside the zone. Command improves edge execution and makes strikes harder to square up, separating strike throwing from true location skill.',game:'Better locations, fewer hittable strikes and stronger edge execution.'},
@@ -3421,7 +3437,21 @@ async function respond(id,action){return onceAction(`offer:${id}`,async()=>{
  // not refresh immediately. The next navigation will fetch that surface again.
  if(failures.length&&action==='ACCEPT')console.warn('Signing committed; one or more views will retry on next open.');
 })}
-async function loadLeague(){let j=await api('/api/league');LEAGUE=j;renderStandings();if(PLAYER)renderPlayer()}
+async function loadLeague(){
+ let j=await api('/api/league');
+ LEAGUE=j;
+ renderStandings();
+ // Schedule and GameCast load in parallel with League on first boot.
+ // Repaint them once canonical franchise names/logos are available so raw EBL-Fxx
+ // ids can never remain on screen after the source of truth arrives.
+ if(Array.isArray(SCHEDULE)){
+   renderSchedule();
+   renderTicker();
+   renderGamecastList();
+   refreshPlayerRecentGames();
+ }
+ if(PLAYER)renderPlayer();
+}
 function playoffPicture(){
   const gamesPlayed=(LEAGUE?.teams||[]).reduce((n,t)=>n+Number(t.wins||0)+Number(t.losses||0),0);
   if((LEAGUE?.day||0)<1 || gamesPlayed===0)return {champs:new Set(),wc1:null,wc2:null,active:false};
@@ -3449,7 +3479,14 @@ function renderStandings(){
   }
   standingsPane.innerHTML=html;
 }
-async function loadSchedule(){let j=await api('/api/schedule');SCHEDULE=j.games;renderSchedule();renderTicker();renderGamecastList();refreshPlayerRecentGames()}
+async function loadSchedule(){
+ let j=await api('/api/schedule');
+ SCHEDULE=Array.isArray(j.games)?j.games:[];
+ renderSchedule();
+ renderTicker();
+ renderGamecastList();
+ refreshPlayerRecentGames();
+}
 async function loadPlayoffs(){
   const pane=document.getElementById('playoffsPane');
   if(!pane)return;
@@ -3490,6 +3527,46 @@ async function loadPlayoffs(){
   }
 }
 function renderSchedule(){let day=LEAGUE?.day||0,filterTeam=PLAYER?.franchise_id;let upcoming=SCHEDULE.filter(g=>g.league_day>=Math.max(1,day) && g.league_day<=day+7);schedulePane.innerHTML=`<div class="subtabs"><button class="subtab active" onclick="scheduleFilter('ALL',this)">ALL EBL</button><button class="subtab" onclick="scheduleFilter('MINE',this)">MY TEAM</button></div><div id="scheduleRows">${scheduleRows(upcoming,'ALL')}</div>`}
+
+function renderGamecastList(){
+ const root=document.getElementById('gamecastList');
+ if(!root)return;
+
+ const finals=(Array.isArray(SCHEDULE)?SCHEDULE:[])
+   .filter(g=>String(g.status||'').toUpperCase()==='FINAL')
+   .sort((a,b)=>Number(b.league_day||0)-Number(a.league_day||0)||String(b.id||'').localeCompare(String(a.id||'')));
+
+ if(!finals.length){
+   root.innerHTML='<div class="card" style="margin-top:14px"><b>No completed games yet.</b><div class="muted">Completed league games will appear here automatically after Sim Day finishes.</div></div>';
+   return;
+ }
+
+ const byDay=new Map();
+ finals.forEach(g=>{
+   const d=Number(g.league_day||0);
+   if(!byDay.has(d))byDay.set(d,[]);
+   byDay.get(d).push(g);
+ });
+
+ const myTeam=PLAYER?.franchise_id||'';
+ const html=[...byDay.entries()].map(([day,games])=>{
+   const cards=games.map(g=>{
+     const awayName=teamName(g.away_id);
+     const homeName=teamName(g.home_id);
+     const mine=myTeam&&(g.away_id===myTeam||g.home_id===myTeam);
+     return `<button class="gcArchiveGame ${mine?'mine':''}" onclick="watch('${jsq(g.id)}')" aria-label="Open ${escapeHtml(awayName)} at ${escapeHtml(homeName)} GameCast">
+       <div class="gcArchiveTeams">
+         <span class="gcArchiveTeam">${teamMark(g.away_id,true)}<span>${escapeHtml(awayName)}</span><b>${Number(g.away_runs??0)}</b></span>
+         <span class="gcArchiveTeam">${teamMark(g.home_id,true)}<span>${escapeHtml(homeName)}</span><b>${Number(g.home_runs??0)}</b></span>
+       </div>
+       <span class="gcArchiveWatch">FINAL • WATCH</span>
+     </button>`;
+   }).join('');
+   return `<section class="gcArchiveDay"><div class="gcArchiveDayHead"><b>League Day ${day}</b><span class="muted">${games.length} game${games.length===1?'':'s'}</span></div><div class="gcArchiveGrid">${cards}</div></section>`;
+ }).join('');
+
+ root.innerHTML=html;
+}
 function scheduleRows(games,mode){
  let arr=mode==='MINE'&&PLAYER?.franchise_id?games.filter(g=>g.away_id===PLAYER.franchise_id||g.home_id===PLAYER.franchise_id):games;
  return arr.map(g=>`<div class="game brandedGame" ${g.status==='FINAL'?`onclick="watch('${g.id}')"`:''}><div class="gameLine"><span><b>Day ${g.league_day}</b> • <span class="gameTeam">${teamMark(g.away_id,true)} ${teamName(g.away_id)}</span> <b>@</b> <span class="gameTeam">${teamMark(g.home_id,true)} ${teamName(g.home_id)}</span></span><span class="${g.status==='FINAL'?'green':'muted'}">${g.status==='FINAL'?`${g.away_runs}-${g.home_runs} • WATCH`:'UPCOMING'}</span></div></div>`).join('')||'<p class="muted">No games in this window.</p>';
@@ -3538,17 +3615,22 @@ async function loadAnalytics(){
 }
 async function loadAwards(){
  let j=await api('/api/awards');const xp=j.xp_values||{};
- mvpPane.innerHTML=`<p class="gold">MVP winner: +${xp.MVP||15} XP</p>`+raceList(j.mvp,x=>`${x.pos} • <span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • OPS ${x.ops.toFixed(3)} • ${x.hr} HR`);
- batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
- pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
- sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
- fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
+ // Awards may load before League on first boot. Resolve the canonical franchise
+ // directory before rendering so internal EBL-Fxx ids never leak into award races.
+ if(!LEAGUE?.teams?.length){try{await loadLeague()}catch(e){}}
+ const teamRef=x=>awardTeamRef(x?.team,x?.team_display_name||x?.team_name||'');
+ mvpPane.innerHTML=`<p class="gold">MVP winner: +${xp.MVP||15} XP</p>`+raceList(j.mvp,x=>`${x.pos} • ${teamRef(x)} • OPS ${x.ops.toFixed(3)} • ${x.hr} HR`);
+ batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`${teamRef(x)} • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
+ pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`${teamRef(x)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`${teamRef(x)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
+ sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`${teamRef(x)} • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
+ fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`${teamRef(x)} • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
  if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${a.award_name}</b> — ${leaguePlayerName(a)} <span class="gold">+${a.xp_awarded} XP</span><div class="muted">Season ${a.season} • ${String(a.period).replaceAll('_',' ')}</div></div>`).join('')}`}
 }
 
-function awardTeamRef(fid){
+function awardTeamRef(fid,label=''){
  if(fid===undefined||fid===null||fid==='')return '';
- return `<span class="awardTeamInline">${teamMark(fid,true)}<button class="teamLink" onclick="openTeam('${jsq(fid)}')">${escapeHtml(teamName(fid))}</button></span>`;
+ const resolved=String(label||teamName(fid)||fid);
+ return `<span class="awardTeamInline">${teamMark(fid,true)}<button class="teamLink" onclick="openTeam('${jsq(fid)}')">${escapeHtml(resolved)}</button></span>`;
 }
 function raceList(rows,detail){return rows.length?rows.map((x,i)=>`<div class="race"><span class="medal">${i+1}</span>${x?.face_id?`<div class="raceIdentity">${eblPublicPortraitV28(x,'sm')}<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div></div>`:`<div><b>${leaguePlayerName(x)}</b><div class="muted">${detail(x)}</div></div>`}<span>${i<3?'🏆':''}</span></div>`).join(''):'<p class="muted">Race begins on Opening Day.</p>'}
 function dismissOnboarding(){
@@ -4081,6 +4163,9 @@ async function loadCoachHub(){
   const next=j.next_game,opp=next?(next.away_id===j.team.id?next.home_id:next.away_id):null;
   const humanCount=j.roster.filter(x=>x.user_id).length;
   const lineupReady=(lineup||[]).length===9,rotationReady=(rot||[]).length>=3&&(rot||[]).length<=5;
+  const rebuildBonusActive=Boolean(j.team?.development_bonus_active) && Number(j.season||1)>1;
+  const rebuildBonusPct=Number(j.team?.development_bonus_effective||0)*100;
+  const rebuildBonusText=rebuildBonusActive?`+${rebuildBonusPct.toFixed(2)}%`:'Starts Season 2';
   coachHub.innerHTML=`<div class="coachDash">
    <div class="card"><div class="identity">${teamMark(j.team.id)}<div><span class="muted">COACH DESK • DAY ${j.league_day}</span><h2>${j.team.name}</h2><div>${j.phase} • ${j.team.wins}-${j.team.losses} • ${humanCount}/16 human players</div></div></div><div class="baseballDivider"></div>
     <div class="grid">
@@ -4097,7 +4182,7 @@ async function loadCoachHub(){
    <div class="statBox"><span class="label">RECORD</span><b>${j.team.wins}-${j.team.losses}</b></div>
    <div class="statBox"><span class="label">XP AVAILABLE</span><b>${(j.team.xp_budget-j.team.xp_spent).toFixed(1)}</b></div>
    <div class="statBox"><span class="label">FRANCHISE RESERVE</span><b>${Number(j.team.xp_reserve||0).toFixed(1)}</b></div>
-   <div class="statBox"><span class="label">REBUILD BONUS</span><b>+${(Number(j.team.development_bonus||0)*100).toFixed(2)}%</b></div>
+   <div class="statBox"><span class="label">REBUILD BONUS</span><b>${rebuildBonusText}</b></div>
    <div class="statBox"><span class="label">OPEN OFFERS</span><b>${j.offers.length}</b></div></div>
    <div class="subtabs"><button class="subtab active" onclick="coachPane('cGameDay',this)">GAME DAY</button><button class="subtab" onclick="coachPane('cRoster',this)">ROSTER & LINEUP</button><button class="subtab" onclick="coachPane('cBrand',this)">TEAM BRANDING</button><button class="subtab" onclick="coachPane('cPitch',this)">PITCHING STAFF</button><button class="subtab" onclick="coachPane('cDepth',this)">OFFENSE</button><button class="subtab" onclick="coachPane('cDefense',this)">DEFENSE</button><button class="subtab" onclick="coachPane('cMarket',this)">CONTRACTS</button><button class="subtab" onclick="coachPane('cUpgrades',this)">FRANCHISE UPGRADES</button></div>
 
@@ -4191,7 +4276,7 @@ async function loadCoachHub(){
    <div id="cUpgrades" class="subpane">
     <h2>Franchise Treasury & Revenue</h2>
     <p class="muted">Bank XP without a rollover cap. Salaries, signing bonuses and franchise investments all compete for the same treasury. Every revenue-upgrade level permanently adds +5 XP to future annual funding.</p>
-    <div class="grid"><div class="statBox"><span class="label">CURRENT TREASURY</span><b>${Number(j.team.xp_budget||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LAST FINISH REWARD</span><b>+${Number(j.team.finish_reward||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LEGACY REVENUE LEVELS</span><b>${Number(j.team.revenue_level||0)}</b></div><div class="statBox"><span class="label">PLAYER DEVELOPMENT</span><b>+${(Number(j.team.development_bonus||0)*100).toFixed(2)}%</b></div></div>
+    <div class="grid"><div class="statBox"><span class="label">CURRENT TREASURY</span><b>${Number(j.team.xp_budget||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LAST FINISH REWARD</span><b>+${Number(j.team.finish_reward||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LEGACY REVENUE LEVELS</span><b>${Number(j.team.revenue_level||0)}</b></div><div class="statBox"><span class="label">PLAYER DEVELOPMENT</span><b>${rebuildBonusText}</b></div></div>
     ${(()=>{const costs=[50,65,80,100,125], branches=[
       ['seating','Stadium Seating','Expand capacity, premium seating and game-day attendance.'],
       ['concessions','Concessions','Improve food, beverage and ballpark sales operations.'],
@@ -4432,7 +4517,13 @@ async function savePitchingStaff(){
 }
 function valOrNull(id){let v=document.querySelector('#'+id).value;return v?+v:null}
 function currentDefense(){return {default_shift:defDefault.value,vs_lhb:defL.value,vs_rhb:defR.value,corners_in:cornersIn.checked,infield_in:infieldIn.checked}}
-async function saveDefense(){try{let j=await api('/api/coach/team');await api('/api/coach/set-strategy',{method:'POST',body:JSON.stringify({bullpen:j.strategy.bullpen,defense:currentDefense(),bench:j.strategy.bench||{},substitutions:j.strategy.substitutions||{}})});alert('Defensive plan saved.')}catch(e){alert(e.error)}}
+async function saveDefense(){
+ try{
+  await api('/api/coach/set-strategy',{method:'POST',body:JSON.stringify({defense:currentDefense()})});
+  alert('Defensive plan saved.');
+  await loadCoachHub();
+ }catch(e){alert(e.detail||e.error||'Could not save defensive plan.')}
+}
 
 
 function depthRow(pos,H,selected){
@@ -4440,20 +4531,17 @@ function depthRow(pos,H,selected){
 }
 function depthId(pos){return 'depth_'+pos.replace('1','one').replace('2','two').replace('3','three')}
 async function saveOffenseRC54(){
- const current=window.__EBL_COACH_STRATEGY||{};
  const substitutions={
    steal_aggression:document.getElementById('stealAgg')?.value||'NORMAL',
    bunt_aggression:document.getElementById('buntAgg')?.value||'NORMAL'
  };
- await api('/api/coach/set-strategy',{method:'POST',body:JSON.stringify({
-   bullpen:current.bullpen||{},
-   defense:current.defense||{},
-   bench:{},
-   substitutions
- })});
- toast('Offensive strategy saved');
- loadCoachHub();
+ try{
+  await api('/api/coach/set-strategy',{method:'POST',body:JSON.stringify({substitutions})});
+  alert('Offensive strategy saved.');
+  await loadCoachHub();
+ }catch(e){alert(e.detail||e.error||'Could not save offensive strategy.')}
 }
+
 async function saveDepthSubs(){
  try{
   let j=await api('/api/coach/team');
