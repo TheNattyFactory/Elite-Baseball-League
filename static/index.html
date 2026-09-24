@@ -952,6 +952,18 @@ dialog{
 }
 </style>
 
+<style id="eblPracticeDevelopmentRC77">
+.teamPracticeRoster,.teamDevelopmentRoster{display:grid;gap:9px;margin-top:12px}
+.teamPracticePlayer,.teamDevelopmentPlayer{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(5,21,36,.48)}
+.teamPracticePlayer .eblPlayerArtV24--sm,.teamDevelopmentPlayer .eblPlayerArtV24--sm{width:52px!important;height:58px!important}
+.teamPracticeCopy,.teamDevelopmentCopy{min-width:0}.teamPracticeCopy b,.teamDevelopmentCopy b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.teamPracticeCopy small,.teamDevelopmentCopy small{display:block;color:var(--mut);margin-top:2px}
+.teamPracticeActions,.teamDevelopmentActions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}.teamXpBadge{display:inline-flex;align-items:center;gap:4px;border:1px solid rgba(212,175,55,.45);background:rgba(212,175,55,.08);color:var(--gold2,var(--gold));border-radius:999px;padding:5px 8px;font-weight:900;font-size:.78rem;white-space:nowrap}
+.practiceCompleteBadge{display:inline-flex;align-items:center;border:1px solid rgba(88,201,139,.45);background:rgba(88,201,139,.08);color:var(--green);border-radius:999px;padding:6px 9px;font-weight:900;font-size:.76rem;white-space:nowrap}
+.playerXpQuickCard{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:13px 14px;border:1px solid rgba(212,175,55,.42);border-left:4px solid var(--gold);border-radius:13px;background:linear-gradient(135deg,rgba(212,175,55,.08),rgba(7,24,41,.72))}.playerXpQuickCard h3{margin:2px 0}.playerXpQuickCard p{margin:3px 0 0}.playerSwitcherButtons{display:flex;gap:7px;flex-wrap:wrap}.playerSwitchBtn{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:138px;text-align:left}.playerSwitchBtn small{font-size:.7rem;color:var(--mut)}.playerSwitchBtn.active small{color:var(--gold2,var(--gold))}
+.developmentHowTo{border-left:3px solid var(--gold);padding:9px 11px;margin:10px 0 12px;background:rgba(212,175,55,.06);border-radius:8px;color:var(--mut);line-height:1.45}.developmentHowTo b{color:var(--txt)}
+@media(max-width:600px){.teamPracticePlayer,.teamDevelopmentPlayer{grid-template-columns:46px minmax(0,1fr);gap:8px}.teamPracticePlayer .eblPlayerArtV24--sm,.teamDevelopmentPlayer .eblPlayerArtV24--sm{width:46px!important;height:52px!important}.teamPracticeActions,.teamDevelopmentActions{grid-column:1/3;justify-content:stretch}.teamPracticeActions .btn,.teamDevelopmentActions .btn{flex:1}.playerXpQuickCard{align-items:flex-start;flex-direction:column}.playerXpQuickCard .btn{width:100%}.playerSwitcherButtons{display:grid;grid-template-columns:1fr 1fr;width:100%}.playerSwitchBtn{min-width:0;width:100%}}
+</style>
+
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -1969,10 +1981,25 @@ async function loadMyTeam(){
     const recentHtml=recentGames.length?recentGames.map(g=>{const home=g.home_id===team.id,us=home?Number(g.home_score||0):Number(g.away_score||0),them=home?Number(g.away_score||0):Number(g.home_score||0),opp=home?g.away_id:g.home_id;return `<div class="roleRow"><b class="${us>them?'green':'red'}">${us>them?'W':'L'} ${us}-${them}</b><span class="compactTeamRef">Day ${g.league_day} • ${home?'vs':'at'} ${teamMark(opp,true)} ${escapeHtml(teamName(opp))}</span></div>`}).join(''):'<p class="muted">No completed games yet.</p>';
     const practice=j.practice||{};
     const attendance=(practice.attendance||[]);
-    const practiceButton=practice.completed
-      ? `<button class="btn" disabled>✓ Practice Complete • +${Number(practice.reward||.25).toFixed(2)} XP</button>`
-      : `<button class="btn" onclick="joinTeamPractice()">Join Today's Practice • +${Number(practice.reward||.25).toFixed(2)} XP</button>`;
-    const attendanceList=attendance.length?attendance.map(a=>`<span class="legacyBadge">✓ ${escapeHtml(String(a.name||a.username||'Player'))}</span>`).join(' '):'<span class="muted">Be the first teammate at practice today.</span>';
+    const attendanceIds=new Set(attendance.map(a=>Number(a.player_id)));
+    const myOwnedTeamIds=new Set((ACTIVE_PLAYERS||[]).filter(x=>String(x.franchise_id||'')===String(team.id||'')).map(x=>Number(x.id)));
+    const myTeamPlayers=TEAM_ROSTER.filter(p=>myOwnedTeamIds.has(Number(p.id)));
+    const playerXp=p=>{const a=(ACTIVE_PLAYERS||[]).find(x=>Number(x.id)===Number(p.id));return Number(a?.xp_wallet??(Number(PLAYER?.id)===Number(p.id)?PLAYER?.xp_wallet:p.xp_wallet)??0)};
+    const myIncompletePractice=myTeamPlayers.filter(p=>!attendanceIds.has(Number(p.id)));
+    const reward=Number(practice.reward||.25);
+    const practiceButton=myTeamPlayers.length>1
+      ? (myIncompletePractice.length
+          ? `<button class="btn" onclick='joinAllTeamPractice(${JSON.stringify(myIncompletePractice.map(p=>Number(p.id)))})'>Practice All My Players • +${reward.toFixed(2)} XP each</button>`
+          : `<button class="btn" disabled>✓ All My Players Practiced Today</button>`)
+      : (practice.completed
+          ? `<button class="btn" disabled>✓ Practice Complete • +${reward.toFixed(2)} XP</button>`
+          : `<button class="btn" onclick="joinTeamPractice()">Join Today's Practice • +${reward.toFixed(2)} XP</button>`);
+    const myPracticeRows=myTeamPlayers.length?myTeamPlayers.map(p=>{
+      const done=attendanceIds.has(Number(p.id));
+      return `<div class="teamPracticePlayer">${eblPublicPortraitV28(p,'sm')}<div class="teamPracticeCopy"><b>${escapeHtml(p.name)}</b><small>${escapeHtml(p.primary_pos||'')} • ${playerXp(p).toFixed(2)} XP available</small></div><div class="teamPracticeActions">${done?'<span class="practiceCompleteBadge">✓ COMPLETE</span>':`<button class="btn" onclick="joinTeamPracticeFor(${Number(p.id)})">JOIN • +${reward.toFixed(2)} XP</button>`}</div></div>`;
+    }).join(''):'';
+    const developmentRows=myTeamPlayers.length?myTeamPlayers.map(p=>`<div class="teamDevelopmentPlayer">${eblPublicPortraitV28(p,'sm')}<div class="teamDevelopmentCopy"><b>${escapeHtml(p.name)}</b><small>${escapeHtml(p.primary_pos||'')} • OVR ${Number(p.overall||0)}</small></div><div class="teamDevelopmentActions"><span class="teamXpBadge">⚡ ${playerXp(p).toFixed(2)} XP</span><button class="btn" onclick="openPlayerDevelopment(${Number(p.id)})">SPEND XP →</button></div></div>`).join(''):'';
+    const attendanceList=attendance.length?attendance.map(a=>`<span class="legacyBadge">✓ ${escapeHtml(String(a.name||a.username||'Player'))}</span>`).join(' '):'<span class="muted">No teammates have checked in yet.</span>';
     const rosterRows=TEAM_ROSTER.map(p=>`<tr><td><div class="rosterIdentity">${eblPublicPortraitV28(p,'sm')}<div>${teamPlayerLink(p)}</div></div></td><td>${escapeHtml(String(p.primary_pos||''))}</td><td>#${Number(p.jersey_number??0)}</td><td>${Number(p.overall||0)}</td><td>${p.user_id?'HUMAN':'CPU'}</td></tr>`).join('');
     const nextOpp=j.next_game?(j.next_game.away_id===team.id?j.next_game.home_id:j.next_game.away_id):null;
     const next=j.next_game?`<span class="legacyNextGame">Day ${j.next_game.league_day} • ${j.next_game.away_id===team.id?'at':'vs'} ${teamMark(nextOpp,true)}<button class="teamLink" onclick="openTeam('${jsq(nextOpp)}')">${escapeHtml(teamName(nextOpp))}</button></span>`:'No game currently scheduled';
@@ -1989,9 +2016,11 @@ async function loadMyTeam(){
       ${teamLeaders}
       <div class="two"><div class="card"><span class="newsMeta">TEAM FORM</span><h2 style="margin:3px 0 8px">Recent Results</h2>${recentHtml}</div><div class="card"><span class="newsMeta">CLUBHOUSE</span><h2 style="margin:3px 0 8px">Team Identity</h2><p class="muted">${escapeHtml(display)} players share this clubhouse, lineup, practice board, and season chase. Coach decisions update here for the whole roster.</p><button class="btn ghost" onclick="openTeam('${jsq(team.id)}')">Open Franchise Profile</button></div></div>
       <div class="card" style="margin-top:14px;border-left:4px solid var(--gold)">
-        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><span class="newsMeta">DAILY TEAM PRACTICE</span><h2 style="margin:4px 0">Clubhouse Practice</h2><p class="muted" style="margin:0">One attendance reward per player each calendar day. No catch-up stacking.</p></div>${practiceButton}</div>
-        <div class="legacyStrip" style="margin-top:12px"><span class="legacyBadge">${attendance.length}/${Number(practice.human_total||0)} Human Players</span>${attendanceList}</div>
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><span class="newsMeta">DAILY TEAM PRACTICE</span><h2 style="margin:4px 0">Clubhouse Practice</h2><p class="muted" style="margin:0">Each of your players can practice once per calendar day. If you have multiple players on this club, send them all with one tap.</p></div>${practiceButton}</div>
+        ${myPracticeRows?`<div class="teamPracticeRoster">${myPracticeRows}</div>`:''}
+        <details style="margin-top:12px"><summary>${attendance.length}/${Number(practice.human_total||0)} human players checked in today</summary><div class="legacyStrip" style="margin-top:10px">${attendanceList}</div></details>
       </div>
+      ${developmentRows?`<div class="card" style="border-left:4px solid var(--blue)"><div><span class="newsMeta">MY PLAYER DEVELOPMENT</span><h2 style="margin:4px 0">Spend XP</h2><p class="muted" style="margin:0">Your players' XP is individual. Pick a player here and go straight to that player's Attributes & XP screen—no manual player switching required.</p></div><div class="teamDevelopmentRoster">${developmentRows}</div></div>`:''}
       <div class="two">
         <div class="card"><h2>Starting Lineup</h2><p class="muted">The coach's currently saved batting order and defensive alignment.</p>${lineupRows}</div>
         <div class="card"><h2>Pitching Staff</h2><p class="muted">Current rotation and bullpen roles.</p><h3>Rotation</h3>${rotationRows}<h3 style="margin-top:14px">Bullpen</h3>${bullpenRows}</div>
@@ -2001,21 +2030,58 @@ async function loadMyTeam(){
     teamPage.innerHTML=`<h1>⚾ Team Clubhouse</h1><p class="red">${escapeHtml(String(e?.error||e?.message||'Could not load team page'))}</p>`;
   }
 }
+async function joinTeamPracticeFor(playerId){
+  const pid=Number(playerId||0);
+  if(!pid){showCareerToast('Choose a player first.');return;}
+  return onceAction(`practice:${pid}`,async()=>{
+    try{
+      const j=await api('/api/team/practice',{method:'POST',body:JSON.stringify({player_id:pid})});
+      const active=(ACTIVE_PLAYERS||[]).find(x=>Number(x.id)===pid);
+      if(active&&j.xp_wallet!=null)active.xp_wallet=Number(j.xp_wallet);
+      if(Number(PLAYER?.id)===pid&&j.xp_wallet!=null)PLAYER.xp_wallet=Number(j.xp_wallet);
+      showCareerToast(j.already_completed?"Today's practice is already complete.":`PRACTICE COMPLETE • +${Number(j.xp||.25).toFixed(2)} XP`);
+      if(Number(PLAYER?.id)===pid)await loadPlayer(pid);
+      await loadMyTeam();
+      renderHome();
+    }catch(e){showCareerToast(e?.error||'Could not join practice');}
+  });
+}
 async function joinTeamPractice(){
   if(!PLAYER?.id){showCareerToast('Select a player first.');return;}
-  return onceAction(`practice:${PLAYER.id}`,async()=>{
-   try{
-    const j=await api('/api/team/practice',{method:'POST',body:JSON.stringify({player_id:PLAYER.id})});
-    if(!j.already_completed){
-      PLAYER.xp_wallet=Number(j.xp_wallet??PLAYER.xp_wallet);
-      showCareerToast(`PRACTICE COMPLETE • +${Number(j.xp||.25).toFixed(2)} XP`);
-    }else{
-      showCareerToast("Today's practice is already complete.");
+  return joinTeamPracticeFor(PLAYER.id);
+}
+async function joinAllTeamPractice(playerIds){
+  const ids=[...new Set((playerIds||[]).map(Number).filter(Boolean))];
+  if(!ids.length){showCareerToast('All of your players have already practiced today.');return;}
+  return onceAction('practice:all',async()=>{
+    let completed=0,earned=0,failed=0;
+    for(const pid of ids){
+      try{
+        const j=await api('/api/team/practice',{method:'POST',body:JSON.stringify({player_id:pid})});
+        if(!j.already_completed){completed++;earned+=Number(j.xp||.25);}
+        const active=(ACTIVE_PLAYERS||[]).find(x=>Number(x.id)===pid);
+        if(active&&j.xp_wallet!=null)active.xp_wallet=Number(j.xp_wallet);
+        if(Number(PLAYER?.id)===pid&&j.xp_wallet!=null)PLAYER.xp_wallet=Number(j.xp_wallet);
+      }catch(e){failed++;}
     }
-    await Promise.all([loadMyTeam(),loadPlayer(PLAYER.id)]);
-    renderHome();renderPlayer();
-   }catch(e){showCareerToast(e?.error||'Could not join practice');}
+    if(PLAYER?.id)await loadPlayer(PLAYER.id);
+    await loadMyTeam();
+    renderHome();
+    if(completed)showCareerToast(`${completed} PLAYER${completed===1?'':'S'} PRACTICED • +${earned.toFixed(2)} XP TOTAL`);
+    else if(failed)showCareerToast('Practice could not be completed for one or more players.');
+    else showCareerToast('All of your players have already practiced today.');
   });
+}
+async function openPlayerDevelopment(playerId){
+  const pid=Number(playerId||PLAYER?.id||0);
+  if(!pid){showCareerToast('Choose a player first.');return;}
+  PLAYER_HQ_TAB='playerDevelopment';
+  if(Number(PLAYER?.id)!==pid)await selectPlayer(pid);
+  goPage('player');
+  renderPlayer();
+  const b=document.querySelector('#playerHQ .subtabs .subtab:nth-child(4)');
+  playerHQ('playerDevelopment',b);
+  requestAnimationFrame(()=>document.getElementById('playerDevelopment')?.scrollIntoView({behavior:'smooth',block:'start'}));
 }
 
 async function openTeam(fid){
@@ -2233,6 +2299,21 @@ async function loadPlayer(playerId=null){try{
  const wanted=playerId||Number(localStorage.getItem('ebl_selected_player')||0)||0;
  let j=await api('/api/my-player'+(wanted?'?player_id='+encodeURIComponent(wanted):''));
  PLAYER=j.player;ACTIVE_PLAYERS=j.players||[];PLAYER_LIMIT=Number(j.player_limit||3);CAREERS=j.careers||[];
+ // Keep every active career's XP visible in the multi-player switcher. Newer
+ // servers include xp_wallet directly; while an older backend is still deployed,
+ // hydrate the two non-selected careers through the same canonical /api/my-player route.
+ if(PLAYER?.id){
+   const selectedSummary=ACTIVE_PLAYERS.find(x=>Number(x.id)===Number(PLAYER.id));
+   if(selectedSummary)selectedSummary.xp_wallet=Number(PLAYER.xp_wallet||0);
+ }
+ const missingWallets=ACTIVE_PLAYERS.filter(x=>x.xp_wallet==null&&Number(x.id)!==Number(PLAYER?.id));
+ if(missingWallets.length){
+   const walletRows=await Promise.all(missingWallets.map(async x=>{
+     try{const r=await api('/api/my-player?player_id='+encodeURIComponent(x.id));return {id:Number(x.id),xp_wallet:Number(r?.player?.xp_wallet||0)};}
+     catch(e){return {id:Number(x.id),xp_wallet:0};}
+   }));
+   for(const w of walletRows){const row=ACTIVE_PLAYERS.find(x=>Number(x.id)===w.id);if(row)row.xp_wallet=w.xp_wallet;}
+ }
  // A selected-player id can survive logout/login in localStorage. If that id belongs
  // to a different account, the backend now falls back to this user's newest player.
  // Keep the browser selection synchronized with the player actually returned.
@@ -2258,7 +2339,7 @@ async function loadPlayer(playerId=null){try{
 async function selectPlayer(pid){localStorage.setItem('ebl_selected_player',String(pid));await loadPlayer(pid);await Promise.all([loadSchedule(),loadLeague()]);renderHome();await Promise.all([loadChat('EBL'),loadChat('TEAM')]);}
 function playerSwitcherHtml(){
  if(!ACTIVE_PLAYERS.length)return '';
- return `<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>MY EBL PLAYERS</b><div class="muted">Closed Alpha: ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} active player slots</div></div><div style="display:flex;gap:6px;flex-wrap:wrap">${ACTIVE_PLAYERS.map(x=>`<button class="btn ${Number(x.id)===Number(PLAYER?.id)?'active':''}" onclick="selectPlayer(${Number(x.id)})">${escapeHtml(x.name)} • ${escapeHtml(x.primary_pos)}</button>`).join('')}${ACTIVE_PLAYERS.length<PLAYER_LIMIT?`<button class="btn" onclick="startAdditionalPlayer()">+ CREATE PLAYER</button>`:''}</div></div></div>`;
+ return `<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>MY EBL PLAYERS</b><div class="muted">Switch players here. XP ready to spend is shown on every active career.</div></div><div class="playerSwitcherButtons">${ACTIVE_PLAYERS.map(x=>`<button class="btn playerSwitchBtn ${Number(x.id)===Number(PLAYER?.id)?'active':''}" onclick="selectPlayer(${Number(x.id)})"><b>${escapeHtml(x.name)}</b><small>${escapeHtml(x.primary_pos)} • ${Number(x.xp_wallet||0).toFixed(2)} XP</small></button>`).join('')}${ACTIVE_PLAYERS.length<PLAYER_LIMIT?`<button class="btn playerSwitchBtn" onclick="startAdditionalPlayer()"><b>+ CREATE PLAYER</b><small>${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} slots used</small></button>`:''}</div></div></div>`;
 }
 function startAdditionalPlayer(){createCard.classList.remove('hidden');setCreatorStep(1);createCard.scrollIntoView({behavior:'smooth',block:'start'});}
 
@@ -2421,7 +2502,7 @@ function renderPlayer(){
                 <div class="bar"><span style="width:${Math.min(100,v)}%"></span></div>
             </div>
             <span>${v}</span>
-            <button class="btn" onclick="spend('${k}')">+1 (${cost(v,p.age||18)} XP)</button>
+            <button class="btn" onclick="spend('${k}')">UPGRADE +1 • ${cost(v,p.age||18)} XP</button>
         </div>`;
     };
     const attrGroup=(title,keys)=>{
@@ -2560,6 +2641,11 @@ function renderPlayer(){
                     </div>
 
 
+                </div>
+
+                <div class="playerXpQuickCard">
+                    <div><span class="newsMeta">PLAYER DEVELOPMENT</span><h3>${Number(p.xp_wallet||0).toFixed(2)} XP available</h3><p class="muted">Turn earned XP into permanent attribute upgrades.</p></div>
+                    <button class="btn" onclick="openPlayerDevelopment(${Number(p.id)})">SPEND XP →</button>
                 </div>
 
                 <div class="card" style="margin-top:14px">
@@ -2720,10 +2806,8 @@ function renderPlayer(){
                 <h2 style="margin-top:16px">Development</h2>
 
 
-                <p class="muted">
-                    Spend earned XP to develop your player.
-                    Higher attributes cost more XP to improve.
-                </p>
+                <p class="muted">Spend earned XP to develop your player.</p>
+                <div class="developmentHowTo"><b>How to spend XP:</b> choose the attribute you want below and tap <b>UPGRADE +1</b>. The displayed XP cost is deducted immediately, and the new rating becomes part of this player's permanent build.</div>
 
 
                 <div class="statBox" style="margin:12px 0">
@@ -2789,9 +2873,10 @@ function renderPlayer(){
     `;
       const tabMap={
         playerOverview:0,
-        playerStats:1,
-        playerDevelopment:2,
-        playerCareer:3
+        playerContracts:1,
+        playerStats:2,
+        playerDevelopment:3,
+        playerCareer:4
     };
 
 
