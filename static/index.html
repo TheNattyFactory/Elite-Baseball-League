@@ -2782,10 +2782,10 @@ let POSITION_DEMAND=[];
 const SKIN_TONES=[{name:'Fair',color:'#f2c59d'},{name:'Light',color:'#e7b58d'},{name:'Warm',color:'#dca47b'},{name:'Tan',color:'#c98c68'},{name:'Medium',color:'#bd7c57'},{name:'Deep',color:'#8d573e'},{name:'Rich',color:'#754733'},{name:'Dark',color:'#633c2e'}];
 const FACE_PRESETS=[
  {skin:'#f0c4a6',hair:'#4a2d20',eye:'#22313f',label:'Classic',radius:'48% 48% 44% 44%',beard:''},
- {skin:'#dca37c',hair:'#2a1b16',eye:'#1e2b35',label:'Square',radius:'43% 43% 37% 37%',beard:'stubble'},
+ {skin:'#dca37c',hair:'#2a1b16',eye:'#1e2b35',label:'Wide',radius:'44% 44% 48% 48%',beard:'stubble'},
  {skin:'#c98d66',hair:'#4b3022',eye:'#283441',label:'Oval',radius:'52% 52% 46% 46%',beard:''},
- {skin:'#b97855',hair:'#261b17',eye:'#17232d',label:'Strong Jaw',radius:'44% 44% 50% 50%',beard:'beard'},
- {skin:'#f1c7a4',hair:'#7a4a24',eye:'#3b4a52',label:'Angular',radius:'50% 50% 36% 36%',beard:'goatee'},
+ {skin:'#b97855',hair:'#261b17',eye:'#17232d',label:'Square',radius:'42% 42% 34% 34%',beard:'beard'},
+ {skin:'#f1c7a4',hair:'#7a4a24',eye:'#3b4a52',label:'Angular',radius:'48% 48% 30% 30%',beard:'goatee'},
  {skin:'#8e5b43',hair:'#1e1714',eye:'#17212a',label:'Narrow',radius:'47% 47% 43% 43%',beard:''},
  {skin:'#6f4937',hair:'#161212',eye:'#111a22',label:'Broad',radius:'42% 42% 46% 46%',beard:'stubble'},
  {skin:'#d7a078',hair:'#3d281d',eye:'#26343e',label:'Round',radius:'54% 54% 44% 44%',beard:''},
@@ -7000,11 +7000,11 @@ const SK=['#f2c59d','#e7b58d','#dca47b','#c98c68','#bd7c57','#8d573e','#754733',
 const HC=['#171411','#2b1b15','#4a2c1d','#6b4128','#8a5b34','#b07842','#d3a060','#9b9b9b','#e5e3dc'];
 const EC=['#4b2d1f','#765133','#3d7b5a','#2f6690','#77736b','#18232d'];
 const F={
-1:'M112 112Q114 79 150 76Q186 79 188 112L185 163Q180 193 150 207Q120 193 115 163Z',
-2:'M101 115Q104 82 150 78Q196 82 199 115L194 166Q187 194 150 204Q113 194 106 166Z',
-3:'M116 108Q119 75 150 72Q181 75 184 108L182 160Q180 190 168 205Q159 215 150 219Q141 215 132 205Q120 190 118 160Z',
-4:'M106 110Q108 78 150 75Q192 78 194 110L193 166Q190 191 179 203Q166 211 150 214Q134 211 121 203Q110 191 107 166Z',
-5:'M111 108Q116 76 150 73Q184 76 189 108L185 158L171 191L150 214L129 191L115 158Z'};
+1:'M111 111Q114 78 150 75Q186 78 189 111L186 162Q182 190 169 202Q160 210 150 213Q140 210 131 202Q118 190 114 162Z',
+2:'M96 114Q99 79 150 76Q201 79 204 114L201 164Q198 190 183 204Q168 216 150 218Q132 216 117 204Q102 190 99 164Z',
+3:'M118 107Q120 72 150 69Q180 72 182 107L181 163Q179 197 165 214Q157 223 150 226Q143 223 135 214Q121 197 119 163Z',
+4:'M103 109Q105 77 150 74Q195 77 197 109L197 169Q196 195 182 210L168 218L132 218L118 210Q104 195 103 169Z',
+5:'M108 108Q113 74 150 71Q187 74 192 108L188 155L176 188L150 220L124 188L112 155Z'};
 function n(v,d=1){v=+v;return Number.isFinite(v)?v:d} function c(v,a,b){return Math.max(a,Math.min(b,v))}
 function model(r){let p=r||{};try{if(typeof eblFullSavedPlayerRC38==='function')p=eblFullSavedPlayerRC38(p)}catch(e){}return p}
 function pal(p){try{if(typeof window.eblUniformSpecV53==='function'){const u=window.eblUniformSpecV53(p||{});return [u.primary,u.secondary,u.accent]}let q=teamPalette(p.franchise_id);return [q.primary||q[0],q.secondary||q[1],q.accent||q[2]]}catch(e){return ['#071a31','#d7262e','#f4f7fb']}}
@@ -7724,28 +7724,33 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  const HAIR=['#171411','#2b1b15','#4a2c1d','#6b4128','#8a5b34','#b07842','#d3a060','#9b9b9b','#e5e3dc'];
  function color(p){return p.hair_color||HAIR[Math.max(0,Math.min(HAIR.length-1,N(p.hair_color_id,3)-1))]}
  function art(id,c,faceId=1){
-   id=N(id,1);
-   const face=Math.max(1,Math.min(5,N(faceId,1)));
-   const J={
-     1:{l:116,r:184,sy:160,cy:211,il:127,ir:173,iy:174,icy:196},
-     2:{l:108,r:192,sy:160,cy:208,il:122,ir:178,iy:174,icy:195},
-     3:{l:121,r:179,sy:158,cy:218,il:130,ir:170,iy:174,icy:201},
-     4:{l:111,r:189,sy:160,cy:214,il:123,ir:177,iy:174,icy:198},
-     5:{l:117,r:183,sy:158,cy:214,il:130,ir:170,iy:173,icy:194}
-   }[face];
+   id=N(id,1); faceId=Math.max(1,Math.min(5,N(faceId,1)));
    const must=`<path d="M132 174 Q140 168 150 173 Q160 168 168 174 Q160 181 150 179 Q140 181 132 174Z" fill="${c}"/>`;
-   const soul=`<path d="M145 188 Q150 191 155 188 L154 198 Q150 202 146 198Z" fill="${c}"/>`;
-   const jawRing=`<path data-ebl-facial-jaw="face-${face}" d="M${J.l} ${J.sy} Q${J.l+2} ${J.cy-24} ${J.l+15} ${J.cy-10} Q136 ${J.cy-2} 150 ${J.cy} Q164 ${J.cy-2} ${J.r-15} ${J.cy-10} Q${J.r-2} ${J.cy-24} ${J.r} ${J.sy} L${J.r-7} ${J.sy+11} Q${J.r-11} ${J.cy-28} ${J.ir} ${J.iy} Q164 ${J.icy-3} 150 ${J.icy} Q136 ${J.icy-3} ${J.il} ${J.iy} Q${J.l+11} ${J.cy-28} ${J.l+7} ${J.sy+11}Z" fill="${c}" fill-rule="evenodd"/>`;
-   const chinStrap=`<path data-ebl-facial-jaw="face-${face}" d="M${J.l+5} ${J.sy+8} Q${J.l+8} ${J.cy-22} ${J.l+18} ${J.cy-10} Q137 ${J.cy-1} 150 ${J.cy+1} Q163 ${J.cy-1} ${J.r-18} ${J.cy-10} Q${J.r-8} ${J.cy-22} ${J.r-5} ${J.sy+8}" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
+   const soulY={1:190,2:193,3:199,4:196,5:199}[faceId]||190;
+   const soul=`<path d="M145 ${soulY} Q150 ${soulY+3} 155 ${soulY} L154 ${soulY+10} Q150 ${soulY+14} 146 ${soulY+10}Z" fill="${c}"/>`;
+   const jaw={
+     1:{l:118,r:182,top:162,midL:129,midR:171,chin:211},
+     2:{l:104,r:196,top:164,midL:121,midR:179,chin:216},
+     3:{l:121,r:179,top:164,midL:134,midR:166,chin:224},
+     4:{l:108,r:192,top:165,midL:123,midR:177,chin:216},
+     5:{l:115,r:185,top:158,midL:128,midR:172,chin:219}
+   }[faceId];
+   const beard=`<path d="M${jaw.l} ${jaw.top} Q${jaw.l+2} ${jaw.chin-27} ${jaw.midL} ${jaw.chin-12} Q140 ${jaw.chin-2} 150 ${jaw.chin+2} Q160 ${jaw.chin-2} ${jaw.midR} ${jaw.chin-12} Q${jaw.r-2} ${jaw.chin-27} ${jaw.r} ${jaw.top} L${jaw.r-8} ${jaw.top+12} Q${jaw.midR+3} ${jaw.chin-18} 150 ${jaw.chin-7} Q${jaw.midL-3} ${jaw.chin-18} ${jaw.l+8} ${jaw.top+12}Z" fill="${c}"/>`;
+   const strap=`<path d="M${jaw.l+5} ${jaw.top+9} Q${jaw.l+9} ${jaw.chin-25} ${jaw.midL} ${jaw.chin-11} Q141 ${jaw.chin-3} 150 ${jaw.chin} Q159 ${jaw.chin-3} ${jaw.midR} ${jaw.chin-11} Q${jaw.r-9} ${jaw.chin-25} ${jaw.r-5} ${jaw.top+9}" fill="none" stroke="${c}" stroke-width="4.8" stroke-linecap="round"/>`;
    if(id===1)return '';
-   if(id===2)return `<g fill="${c}" opacity=".55">${[[123,171],[129,177],[136,182],[143,187],[150,189],[157,187],[164,182],[171,177],[177,171],[130,189],[138,194],[150,196],[162,194],[170,189]].map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="1.15"/>`).join('')}</g>`;
-   if(id===3)return must+`<path d="M141 187 Q150 192 159 187 L158 ${J.cy-7} Q150 ${J.cy-1} 142 ${J.cy-7}Z" fill="${c}"/>`;
+   if(id===2){
+     const pts=faceId===2?[[116,174],[126,181],[137,188],[150,194],[163,188],[174,181],[184,174],[126,196],[138,202],[150,205],[162,202],[174,196]]
+       :faceId===3?[[127,174],[134,183],[141,193],[150,201],[159,193],[166,183],[173,174],[136,204],[150,211],[164,204]]
+       :[[123,171],[129,177],[136,182],[143,187],[150,189],[157,187],[164,182],[171,177],[177,171],[130,189],[138,194],[150,196],[162,194],[170,189]];
+     return `<g fill="${c}" opacity=".55">${pts.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="1.15"/>`).join('')}</g>`;
+   }
+   if(id===3){const y=faceId===3?194:faceId===5?192:187;return must+`<path d="M141 ${y} Q150 ${y+5} 159 ${y} L158 ${y+15} Q150 ${y+22} 142 ${y+15}Z" fill="${c}"/>`;}
    if(id===5)return must;
-   if(id===4)return must+jawRing;
-   if(id===7)return chinStrap;
+   if(id===4)return must+beard;
+   if(id===7)return strap;
    if(id===11)return soul;
    if(id===13)return `<path d="M130 174 Q139 169 147 174 Q138 184 125 180 Q120 179 116 175 Q124 178 130 174Z" fill="${c}"/><path d="M170 174 Q161 169 153 174 Q162 184 175 180 Q180 179 184 175 Q176 178 170 174Z" fill="${c}"/>`;
-   if(id===10)return must+soul+`<path d="M142 187 Q150 192 158 187 L157 ${J.cy-7} Q150 ${J.cy-1} 143 ${J.cy-7}Z" fill="${c}"/>`;
+   if(id===10){const y=faceId===3?194:faceId===5?192:187;return must+soul+`<path d="M142 ${y} Q150 ${y+5} 158 ${y} L157 ${y+15} Q150 ${y+22} 143 ${y+15}Z" fill="${c}"/>`;}
    return '';
  }
  window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){
@@ -8316,97 +8321,116 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 
 <script id="eblFinalPolishV52">window.EBL_FINAL_POLISH_V52={version:'V55',changes:['head-lowered-into-neck','flatter-thinner-brim','athletic-filled-torso','straight-arms-from-sleeves','softer-sleeve-shoulders','smaller-integrated-collar','polished-script-wordmark'],canonical:true,uniformStandard:true,newRendererCreated:false};</script>
 
-<!-- EBL CREATOR LIVE CHOICE FIX V59 — preview candidates bypass saved-player identity cache -->
-<style id="eblCreatorLiveChoiceFixV59Style">
-/* Creator option cards are touch targets and should show a readable head/upper-body crop. */
-#creatorStage .creatorStudioCardV20{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-#creatorStage .creatorStudioCardV20 .faceThumb{
-  position:relative;height:170px!important;display:grid!important;place-items:center!important;
-  padding:0!important;overflow:hidden!important
-}
-#creatorStage .creatorStudioCardV20 .faceThumb:after{
-  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.035)
-}
-#creatorStage .creatorStudioCardV20 .faceThumb>.eblPlayerArtV24{
-  width:138px!important;height:166px!important;max-width:92%!important;max-height:98%!important;
-  border:0!important;background:transparent!important;overflow:visible!important
-}
-#creatorStage .creatorStudioCardV20 .faceThumb>.eblPlayerArtV24 svg{
-  width:100%!important;height:100%!important;
-  transform:scale(1.28) translateY(6%)!important;transform-origin:50% 28%!important
-}
-@media(max-width:760px){
-  #creatorStage .creatorStudioCardV20 .faceThumb{height:166px!important}
-  #creatorStage .creatorStudioCardV20 .faceThumb>.eblPlayerArtV24{width:132px!important;height:160px!important}
-}
+<!-- EBL UNIFIED APPEARANCE PIPELINE V61 — one state, one public renderer -->
+<style id="eblUnifiedAppearanceV61Style">
+#creatorStage .creatorStudioCardV20 .faceThumbV61{height:172px!important;overflow:hidden!important;display:grid!important;place-items:center!important}
+#creatorStage .creatorStudioCardV20 .faceThumbV61>.eblPlayerArtV24{width:100%!important;height:100%!important;overflow:hidden!important}
+#creatorStage .creatorStudioCardV20 .faceThumbV61>.eblPlayerArtV24>svg{width:100%!important;height:100%!important;transform:scale(1.43) translateY(8%)!important;transform-origin:50% 31%!important}
+@media(max-width:760px){#creatorStage .creatorStudioCardV20 .faceThumbV61{height:170px!important}#creatorStage .creatorStudioCardV20 .faceThumbV61>.eblPlayerArtV24>svg{transform:scale(1.46) translateY(8%)!important}}
 </style>
-<script id="eblCreatorLiveChoiceFixV59">
+<script id="eblUnifiedAppearanceV61">
+
 (function(){
-  const APPEARANCE_KEYS=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
-  function num(v,d){const n=Number(v);return Number.isFinite(n)?n:d}
-  function creatorState(){
-    try{if(typeof CREATOR!=='undefined'&&CREATOR)return CREATOR}catch(_){}
-    if(!window.CREATOR)window.CREATOR={};
-    return window.CREATOR;
+  const baseRenderer=window.eblCanonicalAvatarRendererV52||window.eblPlayerArtV24;
+  if(typeof baseRenderer!=='function')return;
+  const esc=typeof window.escapeHtml==='function'?window.escapeHtml:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+  const N=(v,d=1)=>{const q=Number(v);return Number.isFinite(q)?q:d};
+  const HAIR_COLORS_V61=['#171411','#2b1b15','#4a2c1d','#6b4128','#8a5b34','#b07842','#d3a060','#9b9b9b','#e5e3dc'];
+  const FACE_SIDES_V61={1:[111,189],2:[96,204],3:[118,182],4:[103,197],5:[108,192]};
+  const APPEARANCE_KEYS_V61=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
+
+  function creatorState(){try{return CREATOR}catch(_){return {}}}
+  function creatorKey(p={}){
+    const sig=APPEARANCE_KEYS_V61.map(k=>String(N(p[k],k==='hair_color_id'?3:(k==='eye_color_id'?6:(k==='jersey_number'?24:1))))).join('|');
+    let h=2166136261;for(let i=0;i<sig.length;i++){h^=sig.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)||1;
   }
-  function previewKey(p={}){
-    const sig=APPEARANCE_KEYS.map(k=>String(num(p[k],k==='hair_color_id'?3:(k==='eye_color_id'?6:(k==='jersey_number'?24:1))))).join('|');
-    let h=2166136261;
-    for(let i=0;i<sig.length;i++){h^=sig.charCodeAt(i);h=Math.imul(h,16777619)}
-    return (h>>>0)||1;
+  function creatorModel(extra={}){
+    const src={...creatorState(),...(extra||{})},key=creatorKey(src);
+    return {...src,id:-1600000000-key,player_id:-1600000000-key,username:`__ebl_creator_v61_${key}`,name:'EBL Creator Preview',appearance_json:null,appearance:null,avatar:null,__eblCreatorPreviewV61:true};
   }
-  function creatorPreviewModel(extra={}){
-    const src={...creatorState(),...(extra||{})};
-    const key=previewKey(src);
-    return {...src,id:-1000000000-key,player_id:-1000000000-key,username:`__creator_preview_${key}`,appearance_json:null,appearance:null,avatar:null};
+  function productionModel(raw={}){
+    if(raw?.__eblCreatorPreviewV61)return raw;
+    try{return typeof window.eblFullSavedPlayerRC38==='function'?window.eblFullSavedPlayerRC38(raw||{}):(raw||{})}catch(_){return raw||{}}
   }
-  function renderCandidate(raw,size='lg'){
-    const p=creatorPreviewModel(raw);
-    try{if(typeof window.eblPlayerArtV24==='function')return window.eblPlayerArtV24(p,size,'portrait')||''}
-    catch(e){console.warn('EBL creator candidate render failed',e)}
-    return '';
-  }
-  window.eblCreatorPreviewModelV59=creatorPreviewModel;
-  window.faceThumbMarkup=function(f,hairId=1,facialId,eyeColor){
-    const state=creatorState(),faces=window.FACE_PRESETS||[];
-    let faceId=faces.indexOf(f)+1;if(faceId<1)faceId=num(f?.id,1);
-    const extra={face_id:faceId,hair_id:num(hairId,state.hair_id||1),facial_hair_id:num(facialId,state.facial_hair_id||1)};
-    if(eyeColor&&Array.isArray(window.EYE_COLORS)){
-      const ix=window.EYE_COLORS.findIndex(x=>String(x.color).toLowerCase()===String(eyeColor).toLowerCase());
-      if(ix>=0)extra.eye_color_id=ix+1;
+  function hairUnderCap(p={}){
+    const id=Math.max(1,Math.min(3,N(p.hair_id,1)));if(id===1)return '';
+    const fid=Math.max(1,Math.min(5,N(p.face_id,1))),lr=FACE_SIDES_V61[fid]||FACE_SIDES_V61[1],l=lr[0],r=lr[1];
+    const c=HAIR_COLORS_V61[Math.max(0,Math.min(HAIR_COLORS_V61.length-1,N(p.hair_color_id,3)-1))];
+    if(id===2){
+      return `<g data-ebl-hair-under-cap="v61" fill="${c}"><path d="M${l-1} 116Q${l-5} 127 ${l} 143Q${l+4} 135 ${l+8} 124L${l+8} 116Z"/><path d="M${r+1} 116Q${r+5} 127 ${r} 143Q${r-4} 135 ${r-8} 124L${r-8} 116Z"/></g>`;
     }
-    return `<div class="faceThumb faceThumbV59">${renderCandidate(extra,'lg')}</div>`;
-  };
-  window.renderCreator3D=function(hostId='creator3dPreview',source=null){
-    const host=document.getElementById(hostId);if(!host)return;
-    const p=creatorPreviewModel(source||creatorState());
-    host.classList.add('eblAvatarHost','creatorCanonicalV59');
-    host.innerHTML=`<div class="avatar3dBadge">EBL PLAYER</div>${renderCandidate(p,'lg')}`;
-  };
-  function repaint(){
-    try{if(typeof window.creatorAppearance==='function')window.creatorAppearance()}
-    catch(e){console.warn('EBL creator repaint failed',e)}
+    return `<g data-ebl-hair-under-cap="v61" fill="${c}"><path d="M${l-3} 113Q${l-10} 136 ${l-7} 166Q${l-6} 184 ${l+1} 195Q${l+2} 171 ${l+11} 145L${l+10} 116Z"/><path d="M${r+3} 113Q${r+10} 136 ${r+7} 166Q${r+6} 184 ${r-1} 195Q${r-2} 171 ${r-11} 145L${r-10} 116Z"/></g>`;
   }
-  window.pickFace=function(id){const c=creatorState();c.face_id=Math.max(1,Math.min(5,num(id,1)));repaint()};
-  window.pickSkinTone=function(id){const c=creatorState();c.skin_color_id=Math.max(1,Math.min(8,num(id,1)));repaint()};
-  window.pickHair=function(id){const c=creatorState();c.hair_id=Math.max(1,Math.min(3,num(id,1)));repaint()};
-  window.pickHairColor=function(id){const c=creatorState();c.hair_color_id=Math.max(1,Math.min(9,num(id,3)));repaint()};
-  window.pickFacialHair=function(id){const c=creatorState(),allowed=[1,2,3,5,4,7,11,13,10],n=num(id,1);c.facial_hair_id=allowed.includes(n)?n:1;repaint()};
-  window.pickEyeColor=function(id){const c=creatorState();c.eye_color_id=Math.max(1,Math.min(6,num(id,6)));repaint()};
-  window.pickEyeBlack=function(id){const c=creatorState();c.eye_black_id=Math.max(1,num(id,1));repaint()};
-  window.pickEyewear=function(id){const c=creatorState();c.eyewear_id=Math.max(1,num(id,1));repaint()};
-  window.pickChain=function(id){const c=creatorState();c.chain_id=Math.max(1,num(id,1));repaint()};
-  window.pickSleeve=function(id){const c=creatorState();c.sleeve_id=Math.max(1,num(id,1));repaint()};
-  window.EBL_CREATOR_LIVE_CHOICE_FIX_V59=Object.freeze({
-    version:'V60',
-    issue:'creator taps referenced window.CREATOR while the real creator state is a global lexical CREATOR binding',
-    fix:'all touch handlers and previews now share the actual creator state',
-    thumbnails:'large head-and-shoulders crop',
-    facialHair:'jaw geometry varies with face shape',
-    live:['face','skin','hair','hair-color','facial-hair','eyes','eye-black','eyewear','chain','sleeves'],
-    productionPlayerIdentityCacheUntouched:true
-  });
-  try{if(document.getElementById('creatorStage')&&typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(_){}
+  function eyeBlack(p={}){
+    const id=Math.max(1,Math.min(3,N(p.eye_black_id,1)));if(id===1)return '';
+    if(id===2)return `<g data-ebl-eye-black="v61" fill="none" stroke="#111317" stroke-width="5.4" stroke-linecap="round" opacity=".96"><path d="M113 157Q124 160 136 159"/><path d="M164 159Q176 160 187 157"/></g>`;
+    return `<g data-ebl-eye-black="v61" fill="none" stroke="#111317" stroke-width="3.7" stroke-linecap="round" opacity=".96"><path d="M113 154Q124 157 136 156"/><path d="M113 162Q124 165 135 164"/><path d="M164 156Q176 157 187 154"/><path d="M165 164Q176 165 187 162"/></g>`;
+  }
+  function finalAppearancePass(html,p={},action='portrait'){
+    let out=String(html||'');
+    if(!out||!(/^(portrait|auto)?$/i.test(String(action||'portrait'))))return out;
+    // Old creator-sync eye-black marks are removed so only the final compositor owns this feature.
+    out=out.replace(/<path d="M112 154L136 158M164 158L188 154" stroke="#111" stroke-width="6" stroke-linecap="round" opacity="\.92"\/>/g,'')
+           .replace(/<path d="M112 151L136 155M112 160L135 163M164 155L188 151M165 163L188 160" stroke="#111" stroke-width="4" stroke-linecap="round" opacity="\.92"\/>/g,'')
+           .replace(/<g data-ebl-hair-under-cap="v61"[\s\S]*?<\/g>/g,'')
+           .replace(/<g data-ebl-eye-black="v61"[\s\S]*?<\/g>/g,'');
+    const extras=hairUnderCap(p)+eyeBlack(p);
+    if(extras){
+      if(/<path data-ebl-cap-crown=/.test(out))out=out.replace(/(<path data-ebl-cap-crown=)/,extras+'$1');
+      else out=out.replace(/<\/svg>/,extras+'</svg>');
+    }
+    return out;
+  }
+  function unified(raw={},size='md',action='portrait'){
+    const p=productionModel(raw||{});
+    const html=baseRenderer(p,size,action);
+    return finalAppearancePass(html,p,action);
+  }
+  unified.__eblUnifiedAppearanceV61=true;
+  window.eblUnifiedAppearanceRendererV61=unified;
+  window.eblPlayerArtV24=unified;
+  window.eblPublicPortraitV28=(raw={},size='lg')=>unified(raw,size,'portrait');
+  window.eblAvatarHtml=function(raw,size='card'){const map={mini:'xs',sm:'sm',card:'md',hero:'lg',lg:'lg'};return unified(raw,map[size]||'md','portrait')};
+  window.playerPortraitMarkup=function(raw,pose='auto'){
+    const p=productionModel(raw||{}),action=(pose&&pose!=='auto'&&pose!=='portrait')?pose:'portrait';
+    let logo='';try{const spec=typeof window.eblUniformSpecV53==='function'?window.eblUniformSpecV53(p,'lg'):null;logo=spec?.secondaryLogo||(p.franchise_id&&typeof window.teamLogoUrl==='function'?window.teamLogoUrl(p.franchise_id,'secondary'):'')}catch(_){ }
+    return `<div class="playerPortrait playerPortraitV27 playerPortraitTeamBrandV33" data-pos="#${Number(p.jersey_number??24)} • ${esc(p.primary_pos||'EBL')}">${logo?`<div class="playerPortraitTeamBackdropV33"><img src="${esc(logo)}" alt=""></div>`:''}${unified(p,'lg',action)}</div>`;
+  };
+  window.eblIdentityMiniV22=function(raw={},subtitle=''){
+    const p=productionModel(raw),sub=subtitle||[p.primary_pos,p.jersey_number!=null?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+    return `<span class="eblIdentityMiniV22"><span class="eblIdentityMiniV22__art">${unified(p,'sm','portrait')}</span><span class="eblIdentityMiniV22__copy"><b>${esc(p.name||p.player_name||'Player')}</b><small>${esc(sub)}</small></span></span>`;
+  };
+  window.eblPlayerBylineV25=function(raw={},opts={}){
+    const p=productionModel(raw),sub=opts.subtitle||opts.sub||[p.primary_pos,p.jersey_number!=null?`#${p.jersey_number}`:''].filter(Boolean).join(' • ');
+    return `<span class="eblPlayerBylineV25">${unified(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${esc(p.name||p.player_name||'Player')}</strong>${sub?`<span>${esc(sub)}</span>`:''}</span></span>`;
+  };
+
+  window.faceThumbMarkup=function(f,hairId=1,facialId=N(creatorState().facial_hair_id,1),eyeColor){
+    const faces=typeof FACE_PRESETS!=='undefined'?FACE_PRESETS:[];let faceId=faces.indexOf(f)+1;if(faceId<1)faceId=N(f?.id,1);
+    const extra={face_id:faceId,hair_id:N(hairId,1),facial_hair_id:N(facialId,1)};
+    if(eyeColor&&typeof EYE_COLORS!=='undefined'){const ix=EYE_COLORS.findIndex(x=>String(x.color).toLowerCase()===String(eyeColor).toLowerCase());if(ix>=0)extra.eye_color_id=ix+1}
+    return `<div class="faceThumb faceThumbV61">${unified(creatorModel(extra),'sm','portrait')}</div>`;
+  };
+  window.renderCreator3D=function(hostId='creator3dPreview',source){
+    const host=document.getElementById(hostId);if(!host)return;
+    const p=creatorModel(source&&typeof source==='object'?source:{});
+    host.classList.add('eblAvatarHost','creatorCanonicalV61');
+    host.innerHTML=`<div class="avatar3dBadge">EBL PLAYER</div>${unified(p,'lg','portrait')}`;
+  };
+  function repaint(){try{if(typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(e){console.warn('V61 creator repaint',e)}}
+  window.pickFace=id=>{CREATOR.face_id=Math.max(1,Math.min(5,N(id,1)));repaint()};
+  window.pickSkinTone=id=>{CREATOR.skin_color_id=Math.max(1,Math.min(8,N(id,1)));repaint()};
+  window.pickHair=id=>{CREATOR.hair_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
+  window.pickHairColor=id=>{CREATOR.hair_color_id=Math.max(1,Math.min(9,N(id,3)));repaint()};
+  window.pickFacialHair=id=>{const allowed=[1,2,3,5,4,7,11,13,10],q=N(id,1);CREATOR.facial_hair_id=allowed.includes(q)?q:1;repaint()};
+  window.pickEyeColor=id=>{CREATOR.eye_color_id=Math.max(1,Math.min(6,N(id,6)));repaint()};
+  window.pickEyeBlack=id=>{CREATOR.eye_black_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
+  window.pickEyewear=id=>{CREATOR.eyewear_id=Math.max(1,Math.min(2,N(id,1)));repaint()};
+  window.pickChain=id=>{CREATOR.chain_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
+  window.pickSleeve=id=>{CREATOR.sleeve_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
+  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'V61',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'visible under cap and at sides',facialHair:'face-aware V22 geometry fed by selected face',eyeBlack:'final compositor',accessories:['eyewear','chain','sleeves'],teamBranding:'preserved through V52/V53'});
+  try{if(document.getElementById('creatorStage')&&typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(_){ }
 })();
+
 </script>
+
