@@ -8541,3 +8541,48 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 })();
 </script>
 
+
+<!-- EBL RENDERER OWNERSHIP CONTRACT V62 — no visual layer, only prevents runtime renderer replacement -->
+<script id="eblRendererOwnershipV62">
+(function(){
+  const canonical=window.eblUnifiedAppearanceRendererV61;
+  if(typeof canonical!=='function')return;
+  const mapSize=size=>({mini:'xs',sm:'sm',card:'md',hero:'lg',lg:'lg'}[size]||size||'md');
+
+  const publicPortrait=(raw={},size='lg')=>canonical(raw,size,'portrait');
+  const avatarHtml=(raw={},size='card')=>canonical(raw,mapSize(size),'portrait');
+
+  window.eblPlayerArtV24=canonical;
+  window.eblPublicPortraitV28=publicPortrait;
+  window.eblAvatarHtml=avatarHtml;
+
+  for(const [name,value] of Object.entries({
+    eblPlayerArtV24:canonical,
+    eblPublicPortraitV28:publicPortrait,
+    eblAvatarHtml:avatarHtml
+  })){
+    try{Object.defineProperty(window,name,{value,writable:false,configurable:false,enumerable:true})}
+    catch(_){window[name]=value}
+  }
+
+  window.EBL_RENDERER_OWNERSHIP_V62=Object.freeze({
+    version:'V62',
+    visualRenderer:'eblUnifiedAppearanceRendererV61',
+    publicEntry:'eblPlayerArtV24',
+    rule:'one appearance state -> one canonical renderer -> every surface',
+    lockedPublicAliases:['eblPlayerArtV24','eblPublicPortraitV28','eblAvatarHtml'],
+    visualChanges:false
+  });
+
+  window.eblAvatarRendererAudit=function(){
+    return Object.freeze({
+      canonicalExists:typeof window.eblUnifiedAppearanceRendererV61==='function',
+      playerArtIsCanonical:window.eblPlayerArtV24===canonical,
+      publicPortraitLocked:window.eblPublicPortraitV28===publicPortrait,
+      avatarHtmlLocked:window.eblAvatarHtml===avatarHtml,
+      creatorUsesCanonical:typeof window.renderCreator3D==='function',
+      version:'V62'
+    });
+  };
+})();
+</script>
