@@ -8329,14 +8329,13 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 @media(max-width:760px){#creatorStage .creatorStudioCardV20 .faceThumbV61{height:170px!important}#creatorStage .creatorStudioCardV20 .faceThumbV61>.eblPlayerArtV24>svg{transform:scale(1.46) translateY(8%)!important}}
 </style>
 <script id="eblUnifiedAppearanceV61">
-
 (function(){
   const baseRenderer=window.eblCanonicalAvatarRendererV52||window.eblPlayerArtV24;
   if(typeof baseRenderer!=='function')return;
   const esc=typeof window.escapeHtml==='function'?window.escapeHtml:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
   const N=(v,d=1)=>{const q=Number(v);return Number.isFinite(q)?q:d};
   const HAIR_COLORS_V61=['#171411','#2b1b15','#4a2c1d','#6b4128','#8a5b34','#b07842','#d3a060','#9b9b9b','#e5e3dc'];
-  const FACE_SIDES_V61={1:[111,189],2:[96,204],3:[118,182],4:[103,197],5:[108,192]};
+  const FACE_SIDES_V61={1:[111,189],2:[96,204],3:[113,187],4:[103,197],5:[110,190]};
   const APPEARANCE_KEYS_V61=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
 
   function creatorState(){try{return CREATOR}catch(_){return {}}}
@@ -8366,15 +8365,59 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     if(id===2)return `<g data-ebl-eye-black="v61" fill="none" stroke="#111317" stroke-width="5.4" stroke-linecap="round" opacity=".96"><path d="M113 157Q124 160 136 159"/><path d="M164 159Q176 160 187 157"/></g>`;
     return `<g data-ebl-eye-black="v61" fill="none" stroke="#111317" stroke-width="3.7" stroke-linecap="round" opacity=".96"><path d="M113 154Q124 157 136 156"/><path d="M113 162Q124 165 135 164"/><path d="M164 156Q176 157 187 154"/><path d="M165 164Q176 165 187 162"/></g>`;
   }
+  const FACE_PATHS_V61={
+    3:{
+      from:'M118 107Q120 72 150 69Q180 72 182 107L181 163Q179 197 165 214Q157 223 150 226Q143 223 135 214Q121 197 119 163Z',
+      to:'M113 108Q116 72 150 69Q184 72 187 108L186 163Q184 196 168 213Q159 222 150 225Q141 222 132 213Q116 196 114 163Z'
+    },
+    5:{
+      from:'M108 108Q113 74 150 71Q187 74 192 108L188 155L176 188L150 220L124 188L112 155Z',
+      to:'M109 108Q114 74 150 71Q186 74 191 108L188 156Q184 177 174 192L162 205Q157 211 150 213Q143 211 138 205L126 192Q116 177 112 156Z'
+    }
+  };
+  const FACE_JAW_V61={
+    1:{l:116,r:184,top:163,ml:129,mr:171,chin:211},
+    2:{l:101,r:199,top:165,ml:120,mr:180,chin:216},
+    3:{l:114,r:186,top:165,ml:131,mr:169,chin:223},
+    4:{l:106,r:194,top:168,ml:122,mr:178,chin:216},
+    5:{l:113,r:187,top:160,ml:127,mr:173,chin:213}
+  };
+  function tuneFaceGeometry(out,p={}){
+    const fid=Math.max(1,Math.min(5,N(p.face_id,1))),swap=FACE_PATHS_V61[fid];
+    return swap?String(out).replace(swap.from,swap.to):String(out);
+  }
+  function facialHair(p={}){
+    const id=N(p.facial_hair_id,1);if(id===1)return '';
+    const fid=Math.max(1,Math.min(5,N(p.face_id,1))),j=FACE_JAW_V61[fid]||FACE_JAW_V61[1];
+    const c=HAIR_COLORS_V61[Math.max(0,Math.min(HAIR_COLORS_V61.length-1,N(p.hair_color_id,3)-1))];
+    const mouthY=174, chin=j.chin, patchTop=Math.max(186,chin-28);
+    const must=`<path d="M132 ${mouthY}Q140 ${mouthY-6} 149 ${mouthY-1}Q151 ${mouthY} 152 ${mouthY-1}Q160 ${mouthY-6} 168 ${mouthY}Q160 ${mouthY+7} 151 ${mouthY+5}Q150 ${mouthY+7} 149 ${mouthY+5}Q140 ${mouthY+7} 132 ${mouthY}Z" fill="${c}"/>`;
+    const handle=`<path d="M130 ${mouthY}Q139 ${mouthY-7} 147 ${mouthY-1}Q138 ${mouthY+9} 124 ${mouthY+7}Q118 ${mouthY+6} 114 ${mouthY+1}Q123 ${mouthY+5} 130 ${mouthY}ZM170 ${mouthY}Q161 ${mouthY-7} 153 ${mouthY-1}Q162 ${mouthY+9} 176 ${mouthY+7}Q182 ${mouthY+6} 186 ${mouthY+1}Q177 ${mouthY+5} 170 ${mouthY}Z" fill="${c}"/>`;
+    const soul=`<path d="M144 ${patchTop}Q150 ${patchTop+4} 156 ${patchTop}L154 ${patchTop+11}Q150 ${patchTop+15} 146 ${patchTop+11}Z" fill="${c}"/>`;
+    const goatee=`<path d="M141 ${patchTop-2}Q150 ${patchTop+4} 159 ${patchTop-2}L158 ${Math.min(chin,patchTop+22)}Q150 ${Math.min(chin+2,patchTop+29)} 142 ${Math.min(chin,patchTop+22)}Z" fill="${c}"/>`;
+    const jawPath=`M${j.l} ${j.top}Q${j.l+4} ${chin-24} ${j.ml} ${chin-10}Q140 ${chin-1} 150 ${chin+1}Q160 ${chin-1} ${j.mr} ${chin-10}Q${j.r-4} ${chin-24} ${j.r} ${j.top}`;
+    if(id===2)return `<path data-ebl-facial-hair="v61" d="${jawPath}" fill="none" stroke="${c}" stroke-width="5.2" stroke-linecap="round" stroke-dasharray="1.2 5.2" opacity=".42"/>`;
+    if(id===3)return `<g data-ebl-facial-hair="v61">${must}${goatee}</g>`;
+    if(id===5)return `<g data-ebl-facial-hair="v61">${must}</g>`;
+    if(id===4)return `<g data-ebl-facial-hair="v61"><path d="${jawPath}" fill="none" stroke="${c}" stroke-width="11.5" stroke-linecap="round" stroke-linejoin="round"/>${must}</g>`;
+    if(id===7)return `<path data-ebl-facial-hair="v61" d="${jawPath}" fill="none" stroke="${c}" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+    if(id===11)return `<g data-ebl-facial-hair="v61">${soul}</g>`;
+    if(id===13)return `<g data-ebl-facial-hair="v61">${handle}</g>`;
+    if(id===10)return `<g data-ebl-facial-hair="v61">${must}${goatee}${soul}</g>`;
+    return '';
+  }
   function finalAppearancePass(html,p={},action='portrait'){
     let out=String(html||'');
     if(!out||!(/^(portrait|auto)?$/i.test(String(action||'portrait'))))return out;
-    // Old creator-sync eye-black marks are removed so only the final compositor owns this feature.
+    // V61 owns final face geometry, facial hair, under-cap hair, and eye black.
     out=out.replace(/<path d="M112 154L136 158M164 158L188 154" stroke="#111" stroke-width="6" stroke-linecap="round" opacity="\.92"\/>/g,'')
            .replace(/<path d="M112 151L136 155M112 160L135 163M164 155L188 151M165 163L188 160" stroke="#111" stroke-width="4" stroke-linecap="round" opacity="\.92"\/>/g,'')
            .replace(/<g data-ebl-hair-under-cap="v61"[\s\S]*?<\/g>/g,'')
-           .replace(/<g data-ebl-eye-black="v61"[\s\S]*?<\/g>/g,'');
-    const extras=hairUnderCap(p)+eyeBlack(p);
+           .replace(/<g data-ebl-eye-black="v61"[\s\S]*?<\/g>/g,'')
+           .replace(/<g data-ebl-facial-hair="v61"[\s\S]*?<\/g>/g,'')
+           .replace(/<path data-ebl-facial-hair="v61"[^>]*\/>/g,'');
+    out=tuneFaceGeometry(out,p);
+    const extras=hairUnderCap(p)+facialHair(p)+eyeBlack(p);
     if(extras){
       if(/<path data-ebl-cap-crown=/.test(out))out=out.replace(/(<path data-ebl-cap-crown=)/,extras+'$1');
       else out=out.replace(/<\/svg>/,extras+'</svg>');
@@ -8383,7 +8426,10 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   }
   function unified(raw={},size='md',action='portrait'){
     const p=productionModel(raw||{});
-    const html=baseRenderer(p,size,action);
+    // Suppress every older facial-hair layer at the source. The final compositor below
+    // is the only facial-hair authority, which keeps thumbnails/live/saved players identical.
+    const clean={...p,facial_hair_id:1,appearance_json:{facial_hair_id:1},appearance:{...((p.appearance&&typeof p.appearance==='object')?p.appearance:{}),facial_hair_id:1},avatar:{...((p.avatar&&typeof p.avatar==='object')?p.avatar:{}),facial_hair_id:1}};
+    const html=baseRenderer(clean,size,action);
     return finalAppearancePass(html,p,action);
   }
   unified.__eblUnifiedAppearanceV61=true;
@@ -8428,9 +8474,8 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   window.pickEyewear=id=>{CREATOR.eyewear_id=Math.max(1,Math.min(2,N(id,1)));repaint()};
   window.pickChain=id=>{CREATOR.chain_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
   window.pickSleeve=id=>{CREATOR.sleeve_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
-  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'V61',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'visible under cap and at sides',facialHair:'face-aware V22 geometry fed by selected face',eyeBlack:'final compositor',accessories:['eyewear','chain','sleeves'],teamBranding:'preserved through V52/V53'});
+  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'V61.1',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'visible under cap and at sides',facialHair:'single final compositor affixed to selected jaw',eyeBlack:'final compositor',faceTuning:{oval:'fuller while still long',angular:'angled jaw with flattened chin'},accessories:['eyewear','chain','sleeves'],teamBranding:'preserved through V52/V53'});
   try{if(document.getElementById('creatorStage')&&typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(_){ }
 })();
-
 </script>
 
