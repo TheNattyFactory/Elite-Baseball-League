@@ -2199,6 +2199,12 @@ async function loadPlayer(playerId=null){try{
      if(PLAYER?.id)localStorage.setItem('ebl_selected_player',String(PLAYER.id));
    }
  }
+ // Contract cards need the current franchise directory before they render. If the
+ // player payload wins the initial-load race, resolve the league from the same backend
+ // database instead of exposing an internal franchise id such as EBL-F01.
+ if(PLAYER?.offers?.length && !LEAGUE){
+   try{LEAGUE=await api('/api/league');renderStandings()}catch(e){console.warn('Could not resolve contract-offer team names',e)}
+ }
  renderPlayer();
 }catch{PLAYER=null;ACTIVE_PLAYERS=[];CAREERS=[]}}
 async function selectPlayer(pid){localStorage.setItem('ebl_selected_player',String(pid));await loadPlayer(pid);await Promise.all([loadSchedule(),loadLeague()]);renderHome();await Promise.all([loadChat('EBL'),loadChat('TEAM')]);}
@@ -2389,10 +2395,15 @@ function renderPlayer(){
     const activeOffers=p.offers||[];
     const openOfferCount=activeOffers.filter(o=>o.status==='OPEN').length;
     const heldOfferCount=activeOffers.filter(o=>o.status==='HELD').length;
-    const offers=activeOffers.map(o=>`
+    const offers=activeOffers.map(o=>{
+        const fid=o.franchise_id||o.team_id||'';
+        const cachedName=teamName(fid);
+        const offerTeamName=o.team_display_name||o.team_name||((cachedName&&String(cachedName)!==String(fid))?cachedName:fid)||'EBL Club';
+        return `
         <div class="offer">
+            <div class="newsMeta" style="margin-bottom:5px">CONTRACT OFFER FROM</div>
             <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-                <span class="contractTeamRef">${teamMark(o.franchise_id,true)}<button class="teamLink" onclick="openTeam('${jsq(o.franchise_id)}')">${teamName(o.franchise_id)}</button></span>
+                <span class="contractTeamRef">${teamMark(fid,true)}<button class="teamLink" onclick="openTeam('${jsq(fid)}')">${escapeHtml(offerTeamName)}</button></span>
                 <div>
                     ${o.returning_offer?'<span class="pill gold">RETURN OFFER</span>':''}
                     ${o.status==='HELD'?'<span class="pill">HELD</span>':''}
@@ -2408,7 +2419,7 @@ function renderPlayer(){
             ${o.status==='HELD'?'':`<button class="btn" onclick="respond(${o.id},'HOLD')">Hold</button>`}
             <button class="btn" onclick="respond(${o.id},'REJECT')">Reject</button>
         </div>
-    `).join('');
+    `}).join('');
 
 
     playerMain.innerHTML=`
@@ -3346,27 +3357,71 @@ function showCareerToast(message){
  window.EBL_CAREER_TOAST_TIMER=setTimeout(()=>el.classList.remove('show'),4200);
 }
 
+async function refreshPlayerSourceOfTruth(playerId,{includeTeam=false}={}){
+ const failures=[];
+ // The player row is authoritative. Load it first so every downstream view sees the
+ // newly committed franchise_id, contract, jersey number, XP wallet, and team identity.
+ try{await loadPlayer(playerId)}catch(e){failures.push({surface:'player',error:e})}
+ const core=[];
+ if(typeof loadLeague==='function')core.push(['league',()=>loadLeague()]);
+ if(typeof loadSchedule==='function')core.push(['schedule',()=>loadSchedule()]);
+ if(typeof window.loadPublicDirectory==='function')core.push(['directory',()=>window.loadPublicDirectory(true)]);
+ const coreResults=await Promise.allSettled(core.map(x=>x[1]()));
+ coreResults.forEach((r,i)=>{if(r.status==='rejected')failures.push({surface:core[i][0],error:r.reason})});
+
+ // These surfaces all derive player/team identity from the same database state. A failed
+ // secondary refresh must never make a completed signing look like it failed.
+ const downstream=[];
+ if(includeTeam&&typeof loadMyTeam==='function')downstream.push(['team',()=>loadMyTeam()]);
+ if(typeof loadAwards==='function')downstream.push(['awards',()=>loadAwards()]);
+ if(typeof loadAnalytics==='function')downstream.push(['analytics',()=>loadAnalytics()]);
+ if(typeof loadNews==='function')downstream.push(['news',()=>loadNews()]);
+ if(typeof loadCommunity==='function')downstream.push(['community',()=>loadCommunity()]);
+ if(typeof loadDMContacts==='function')downstream.push(['messages',()=>loadDMContacts()]);
+ if(typeof loadChat==='function')downstream.push(['team-chat',()=>loadChat('TEAM')]);
+ const downstreamResults=await Promise.allSettled(downstream.map(x=>x[1]()));
+ downstreamResults.forEach((r,i)=>{if(r.status==='rejected')failures.push({surface:downstream[i][0],error:r.reason})});
+ try{renderHome()}catch(e){failures.push({surface:'home-render',error:e})}
+ try{renderPlayer()}catch(e){failures.push({surface:'player-render',error:e})}
+ if(failures.length)console.warn('EBL source-of-truth refresh had partial failures',failures);
+ return failures;
+}
+
 async function respond(id,action){return onceAction(`offer:${id}`,async()=>{
+ const playerId=PLAYER?.id;
+ if(!playerId){showCareerToast('Select a player first.');return;}
+ const priorOffer=(PLAYER?.offers||[]).find(o=>Number(o.id)===Number(id))||{};
+ const priorFid=priorOffer.franchise_id||priorOffer.team_id||'';
+ const priorCachedName=priorFid?teamName(priorFid):'';
+ const priorTeamName=priorOffer.team_display_name||priorOffer.team_name||((priorCachedName&&String(priorCachedName)!==String(priorFid))?priorCachedName:'');
+ let result;
  try{
-  await api('/api/player/respond-offer',{method:'POST',body:JSON.stringify({offer_id:id,action,player_id:PLAYER?.id})});
-  PLAYER_HQ_TAB=(action==='ACCEPT'?'playerOverview':'playerContracts');
-  await loadPlayer();
-  await Promise.all([loadLeague(),loadSchedule()]);
-  renderHome();
-  renderPlayer();
-  if(action==='ACCEPT'){
-   const team=PLAYER?.team;
-   const name=team?.name||teamName(PLAYER?.franchise_id)||'your new team';
-   showCareerToast(`SIGNED • Welcome to ${name}`);
-   if(PLAYER?.franchise_id){
-    setTimeout(()=>{goPage('team');loadMyTeam()},350);
-   }
-  }else{
-   showCareerToast('Offer declined • Contract HQ updated');
-  }
- }catch(e){showCareerToast(e.error||'Could not update offer')}
+  result=await api('/api/player/respond-offer',{method:'POST',body:JSON.stringify({offer_id:id,action,player_id:playerId})});
+ }catch(e){
+  showCareerToast(e?.detail||e?.error||'Could not update offer');
+  return;
+ }
+
+ PLAYER_HQ_TAB=(action==='ACCEPT'?'playerOverview':'playerContracts');
+ const failures=await refreshPlayerSourceOfTruth(playerId,{includeTeam:action==='ACCEPT'});
+ const fid=PLAYER?.franchise_id||result?.franchise_id||priorFid||'';
+ const cachedName=fid?teamName(fid):'';
+ const name=result?.team_display_name||result?.team_name||priorTeamName||PLAYER?.team?.display_name||PLAYER?.team?.name||((cachedName&&String(cachedName)!==String(fid))?cachedName:'EBL club');
+
+ if(action==='ACCEPT'){
+  showCareerToast(`SIGNED • Welcome to ${name}`);
+  if(fid)goPage('team');
+ }else if(action==='HOLD'){
+  showCareerToast(`Offer held • ${name}`);
+ }else{
+  showCareerToast(`Offer declined • ${name}`);
+ }
+
+ // A successful contract mutation stays successful even if one noncritical screen could
+ // not refresh immediately. The next navigation will fetch that surface again.
+ if(failures.length&&action==='ACCEPT')console.warn('Signing committed; one or more views will retry on next open.');
 })}
-async function loadLeague(){let j=await api('/api/league');LEAGUE=j;renderStandings()}
+async function loadLeague(){let j=await api('/api/league');LEAGUE=j;renderStandings();if(PLAYER)renderPlayer()}
 function playoffPicture(){
   const gamesPlayed=(LEAGUE?.teams||[]).reduce((n,t)=>n+Number(t.wins||0)+Number(t.losses||0),0);
   if((LEAGUE?.day||0)<1 || gamesPlayed===0)return {champs:new Set(),wc1:null,wc2:null,active:false};
@@ -3478,16 +3533,16 @@ async function loadAnalytics(){
  let j=await api('/api/analytics'),L=j.league;
  const xpTable=(ME?.role==='COMMISSIONER'&&Object.keys(j.xp||{}).length)?`<h3>Commissioner XP Economy</h3><table><tr><th>Source</th><th>Total XP</th><th>Events</th></tr>${Object.entries(j.xp).map(([k,v])=>`<tr><td>${k}</td><td>${v.total.toFixed(3)}</td><td>${v.events}</td></tr>`).join('')}</table>`:'';
  aLeague.innerHTML=`<div class="grid">${[['Games',L.games],['Runs/Game',L.runs_per_game.toFixed(2)],['AVG',fmt3(L.avg)],['K%',(L.k_pct*100).toFixed(1)+'%'],['BB%',(L.bb_pct*100).toFixed(1)+'%'],['HR%',(L.hr_pct*100).toFixed(1)+'%']].map(x=>statBox(x[0],x[1])).join('')}</div>${xpTable}`;
- aBat.innerHTML=`<div class="tablewrap"><table><tr><th>#</th><th>Player</th><th>Team</th><th>Pos</th><th>OPS</th><th>HR</th><th>XP</th></tr>${j.leaders.ops.map((x,i)=>`<tr><td>${i+1}</td><td>${leaguePlayerIdentity(x)}</td><td><span class="analyticsTeamRef">${teamMark(x.team,true)}<button class="clickableName" onclick="openTeam('${jsq(x.team)}')">${escapeHtml(teamName(x.team))}</button></span></td><td>${x.pos}</td><td>${x.ops.toFixed(3)}</td><td>${x.hr}</td><td>${x.xp.toFixed(3)}</td></tr>`).join('')}</table></div>`;
- aPitch.innerHTML=`<div class="tablewrap"><table><tr><th>#</th><th>Pitcher</th><th>Team</th><th>ERA</th><th>WHIP</th><th>SO</th><th>XP</th></tr>${j.leaders.pitching.map((x,i)=>`<tr><td>${i+1}</td><td>${leaguePlayerIdentity(x)}</td><td><span class="analyticsTeamRef">${teamMark(x.team,true)}<button class="clickableName" onclick="openTeam('${jsq(x.team)}')">${escapeHtml(teamName(x.team))}</button></span></td><td>${x.era.toFixed(2)}</td><td>${x.whip.toFixed(2)}</td><td>${x.so}</td><td>${x.xp.toFixed(3)}</td></tr>`).join('')}</table></div>`;
+ aBat.innerHTML=`<div class="tablewrap"><table><tr><th>#</th><th>Player</th><th>Team</th><th>Pos</th><th>OPS</th><th>HR</th><th>XP</th></tr>${j.leaders.ops.map((x,i)=>`<tr><td>${i+1}</td><td>${leaguePlayerIdentity(x)}</td><td><span class="analyticsTeamRef">${teamMark(x.team,true)}<button class="clickableName" onclick="openTeam('${jsq(x.team)}')">${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</button></span></td><td>${x.pos}</td><td>${x.ops.toFixed(3)}</td><td>${x.hr}</td><td>${x.xp.toFixed(3)}</td></tr>`).join('')}</table></div>`;
+ aPitch.innerHTML=`<div class="tablewrap"><table><tr><th>#</th><th>Pitcher</th><th>Team</th><th>ERA</th><th>WHIP</th><th>SO</th><th>XP</th></tr>${j.leaders.pitching.map((x,i)=>`<tr><td>${i+1}</td><td>${leaguePlayerIdentity(x)}</td><td><span class="analyticsTeamRef">${teamMark(x.team,true)}<button class="clickableName" onclick="openTeam('${jsq(x.team)}')">${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</button></span></td><td>${x.era.toFixed(2)}</td><td>${x.whip.toFixed(2)}</td><td>${x.so}</td><td>${x.xp.toFixed(3)}</td></tr>`).join('')}</table></div>`;
 }
 async function loadAwards(){
  let j=await api('/api/awards');const xp=j.xp_values||{};
- mvpPane.innerHTML=`<p class="gold">MVP winner: +${xp.MVP||15} XP</p>`+raceList(j.mvp,x=>`${x.pos} • <span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • OPS ${x.ops.toFixed(3)} • ${x.hr} HR`);
- batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
- pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
- sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
- fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${teamName(x.team)}</span> • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
+ mvpPane.innerHTML=`<p class="gold">MVP winner: +${xp.MVP||15} XP</p>`+raceList(j.mvp,x=>`${x.pos} • <span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • OPS ${x.ops.toFixed(3)} • ${x.hr} HR`);
+ batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
+ pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
+ sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
+ fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`<span class="awardTeamRef">${teamMark(x.team,true)} ${escapeHtml(x.team_display_name||x.team_name||teamName(x.team))}</span> • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
  if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${a.award_name}</b> — ${leaguePlayerName(a)} <span class="gold">+${a.xp_awarded} XP</span><div class="muted">Season ${a.season} • ${String(a.period).replaceAll('_',' ')}</div></div>`).join('')}`}
 }
 
@@ -5225,7 +5280,14 @@ setInterval(()=>{if(ME){loadChat('EBL');loadChat('TEAM');loadNotifications()}},1
   const EBL_DIRECTORY={loaded:false,loading:null,byId:new Map(),byKey:new Map(),byName:new Map()};
   function esc(v){return String(v??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));}
   function key(name,team){return String(name||'').trim().toLowerCase()+'|'+String(team||'').trim().toLowerCase();}
-  async function loadPublicDirectory(){
+  async function loadPublicDirectory(force=false){
+    if(force){
+      EBL_DIRECTORY.loaded=false;
+      EBL_DIRECTORY.loading=null;
+      EBL_DIRECTORY.byId.clear();
+      EBL_DIRECTORY.byKey.clear();
+      EBL_DIRECTORY.byName.clear();
+    }
     if(EBL_DIRECTORY.loaded)return EBL_DIRECTORY;
     if(EBL_DIRECTORY.loading)return EBL_DIRECTORY.loading;
     EBL_DIRECTORY.loading=(async()=>{
