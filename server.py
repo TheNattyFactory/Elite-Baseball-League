@@ -1528,10 +1528,56 @@ def enforce_active_rosters(c,season=None):
             occ="HUMAN" if pl.get("user_id") is not None else "CPU"
             c.execute("INSERT INTO roster_slots(franchise_id,slot_no,position_group,player_id,occupant_type) VALUES(?,?,?,?,?)",(fid,i,grp,pl["id"],occ))
         hitter_ids=[int(slots[i]["id"]) for i in range(9)]
-        generated_order=auto_batting_order(c,hitter_ids)
-        rotation,bp=auto_pitching_plan(c,fid)
-        c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(generated_order),json.dumps(rotation[:5]),fid))
-        c.execute("UPDATE team_strategy SET bullpen_json=? WHERE franchise_id=?",(json.dumps(bp),fid))
+        pitcher_ids={int(slots[i]["id"]) for i in range(9,16)}
+        fr_owner=c.execute("SELECT owner_user_id FROM franchises WHERE id=?",(fid,)).fetchone()
+        managed=bool(fr_owner and fr_owner["owner_user_id"] is not None)
+        existing_lineup=c.execute("SELECT batting_order_json,rotation_json FROM lineups WHERE franchise_id=?",(fid,)).fetchone()
+
+        if managed:
+            # A roster integrity pass must never become a silent manager. Preserve the
+            # coach's exact batting order across deploys/restarts whenever the same nine
+            # hitters are still on the active roster. If a signing/replacement changed
+            # the roster, retain every still-valid saved slot and fill only the hole.
+            try:
+                saved_order=[int(x) for x in json.loads(existing_lineup["batting_order_json"] or "[]")] if existing_lineup else []
+            except Exception:
+                saved_order=[]
+            clean_order=[]
+            for pid in saved_order:
+                if pid in hitter_ids and pid not in clean_order:
+                    clean_order.append(pid)
+            for pid in hitter_ids:
+                if pid not in clean_order:
+                    clean_order.append(pid)
+            batting_order=clean_order[:9] if len(clean_order)>=9 else auto_batting_order(c,hitter_ids)
+
+            try:
+                saved_rotation=[int(x) for x in json.loads(existing_lineup["rotation_json"] or "[]")] if existing_lineup else []
+            except Exception:
+                saved_rotation=[]
+            clean_rotation=[]
+            for pid in saved_rotation:
+                if pid in pitcher_ids and pid not in clean_rotation:
+                    clean_rotation.append(pid)
+            auto_rotation,_auto_bp=auto_pitching_plan(c,fid)
+            if not (3<=len(clean_rotation)<=5):
+                for pid in auto_rotation:
+                    if pid in pitcher_ids and pid not in clean_rotation:
+                        clean_rotation.append(pid)
+                    if len(clean_rotation)>=4:
+                        break
+            rotation=clean_rotation[:5]
+
+            c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",
+                      (json.dumps(batting_order),json.dumps(rotation),fid))
+            # Preserve the coach's bullpen hierarchy too. Roster integrity can repair the
+            # active roster, but it should not rewrite strategy on every process restart.
+        else:
+            generated_order=auto_batting_order(c,hitter_ids)
+            rotation,bp=auto_pitching_plan(c,fid)
+            c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",
+                      (json.dumps(generated_order),json.dumps(rotation[:5]),fid))
+            c.execute("UPDATE team_strategy SET bullpen_json=? WHERE franchise_id=?",(json.dumps(bp),fid))
     return True
 
 def gps_xp(g): return round(max(.25,min(.75,.25+.5*g/100)),3)
