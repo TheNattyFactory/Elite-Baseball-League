@@ -6003,14 +6003,14 @@ class H(BaseHTTPRequestHandler):
                 c.close();return self.out({"error":"TEAM_IDENTITY_LOCKED","phase":phase,"league_day":day},400)
 
             city=" ".join(str(d.get("city","")).split()).strip()
-            team_name=" ".join(str(d.get("team_name","")).split()).strip()
+            team_nickname=" ".join(str(d.get("team_name","")).split()).strip()
             # Backward compatibility with the original single display-name field.
             legacy=" ".join(str(d.get("display_name","")).split()).strip()
-            if not city and not team_name and legacy:
-                parts=legacy.rsplit(" ",1);city=parts[0] if len(parts)>1 else "";team_name=parts[-1]
+            if not city and not team_nickname and legacy:
+                parts=legacy.rsplit(" ",1);city=parts[0] if len(parts)>1 else "";team_nickname=parts[-1]
             if not (2<=len(city)<=40):c.close();return self.out({"error":"INVALID_TEAM_CITY"},400)
-            if not (2<=len(team_name)<=40):c.close();return self.out({"error":"INVALID_TEAM_NAME"},400)
-            display_name=f"{city} {team_name}".strip()
+            if not (2<=len(team_nickname)<=40):c.close();return self.out({"error":"INVALID_TEAM_NAME"},400)
+            display_name=f"{city} {team_nickname}".strip()
             if len(display_name)>70:c.close();return self.out({"error":"TEAM_IDENTITY_TOO_LONG"},400)
 
             logo_style=int(d.get("logo_style",1) or 1)
@@ -6033,11 +6033,11 @@ class H(BaseHTTPRequestHandler):
                            franchise_id,display_name,city,team_name,logo_style,primary_logo,secondary_logo,jersey_wordmark,
                            primary_color,secondary_color,accent_color,uniform_home,uniform_away,updated_at)
                          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
-                      (f["id"],display_name,city,team_name,logo_style,primary_logo,secondary_logo,jersey_wordmark,pc,sc,ac,home,away))
+                      (f["id"],display_name,city,team_nickname,logo_style,primary_logo,secondary_logo,jersey_wordmark,pc,sc,ac,home,away))
             c.execute("UPDATE franchises SET name=? WHERE id=?",(display_name,f["id"]))
             c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                      ("FRANCHISE_REBRANDED",u["id"],json.dumps({"franchise_id":f["id"],"display_name":display_name,"city":city,"team_name":team_name})))
-            c.commit();c.close();return self.out({"ok":True,"display_name":display_name,"city":city,"team_name":team_name})
+                      ("FRANCHISE_REBRANDED",u["id"],json.dumps({"franchise_id":f["id"],"display_name":display_name,"city":city,"team_name":team_nickname})))
+            c.commit();c.close();return self.out({"ok":True,"display_name":display_name,"city":city,"team_name":team_nickname})
         if p=="/api/coach/set-lineup":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
