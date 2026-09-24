@@ -5017,7 +5017,7 @@ class H(BaseHTTPRequestHandler):
                 fp=player_obj(c,row["id"])
                 if fp: former.append(fp)
             active_players=[]
-            for row in c.execute("SELECT id,name,type,primary_pos,franchise_id,status FROM players WHERE user_id=? AND active=1 ORDER BY id",(u["id"],)).fetchall():
+            for row in c.execute("SELECT id,name,type,primary_pos,franchise_id,status,xp_wallet FROM players WHERE user_id=? AND active=1 ORDER BY id",(u["id"],)).fetchall():
                 active_players.append(dict(row))
             c.close()
             return self.out({"player":pl,"players":active_players,"player_limit":ALPHA_PLAYER_LIMIT,"careers":former})
@@ -5037,7 +5037,7 @@ class H(BaseHTTPRequestHandler):
             brand=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(fid,)).fetchone()
             roster=[]
             for row in c.execute(
-                """SELECT p.id,p.user_id,p.name,p.hometown,p.franchise_id,p.type,p.primary_pos,p.bats,p.throws,p.jersey_number,p.status,
+                """SELECT p.id,p.user_id,p.name,p.hometown,p.franchise_id,p.type,p.primary_pos,p.bats,p.throws,p.jersey_number,p.status,p.xp_wallet,
                           p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,
                           p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.attributes_json,p.season_json,u.username
                    FROM players p LEFT JOIN users u ON u.id=p.user_id
