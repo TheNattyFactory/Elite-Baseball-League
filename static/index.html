@@ -7004,38 +7004,37 @@ function hair(id,col){id=c(n(id),1,3);if(id===1)return '';if(id===2)return `<pat
 function facial(id,col){id=n(id);if(id===5)return `<path d="M132 174Q141 168 150 173Q159 168 168 174Q159 180 150 178Q141 180 132 174Z" fill="${col}"/>`;if(id===3)return `<path d="M140 181Q150 187 160 181L158 202Q150 209 142 202Z" fill="${col}"/><path d="M136 174Q150 168 164 174" fill="none" stroke="${col}" stroke-width="4"/>`;if(id===4)return `<path d="M115 158Q117 190 130 205Q139 216 150 220Q161 216 170 205Q183 190 185 158L178 170Q174 194 162 205Q150 214 138 205Q126 194 122 170Z" fill="${col}"/><path d="M128 172Q139 165 150 171Q161 165 172 172Q163 181 150 179Q137 181 128 172Z" fill="${col}"/>`;return ''}
 function svg(raw){const p=model(raw),[pri,sec,acc]=pal(p),skin=SK[c(n(p.skin_color_id),1,8)-1],hc=HC[c(n(p.hair_color_id,3),1,9)-1],ec=EC[c(n(p.eye_color_id,6),1,6)-1],fid=c(n(p.face_id),1,5),hid=c(n(p.hair_id),1,3),fac=n(p.facial_hair_id),num=String(n(p.jersey_number,24)).padStart(2,'0').slice(-2);return `<svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg" role="img"><circle cx="150" cy="177" r="134" fill="${pri}" opacity=".13"/><text x="150" y="210" text-anchor="middle" font-size="112" font-weight="900" fill="${acc}" opacity=".03">EBL</text>
 <!-- V45 anatomical jersey: arms tuck naturally below the fitted sleeve hems. -->
-<path data-ebl-arm="left" d="M61 322Q50 330 44 345L40 360H71Q71 349 74 340Q78 329 86 322Q79 320 71 320Q65 320 61 322Z" fill="${skin}" stroke="#2a1712" stroke-width="3.5"/>
-<path data-ebl-arm="right" d="M239 322Q250 330 256 345L260 360H229Q229 349 226 340Q222 329 214 322Q221 320 229 320Q235 320 239 322Z" fill="${skin}" stroke="#2a1712" stroke-width="3.5"/>
+<path data-ebl-arm="left" d="M49 311Q58 316 78 319L73 360H41L44 342Q46 325 49 311Z" fill="${skin}" stroke="#2a1712" stroke-width="3.5"/>
+<path data-ebl-arm="right" d="M251 311Q242 316 222 319L227 360H259L256 342Q254 325 251 311Z" fill="${skin}" stroke="#2a1712" stroke-width="3.5"/>
 <!-- V45 central jersey body with broader baseball shoulders and open arm channels. -->
-<path d="M67 360L76 299Q81 270 111 248L126 239H174L189 248Q219 270 224 299L233 360Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
+<path data-ebl-jersey-body="v54" d="M73 360L80 299Q84 271 112 249L127 240H173L188 249Q216 271 220 299L227 360Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
 <!-- subtle torso shaping / fabric depth -->
-<path d="M79 301Q88 279 112 258L121 252L114 360H70Z" fill="#07101c" opacity=".062"/>
-<path d="M221 301Q212 279 188 258L179 252L186 360H230Z" fill="#07101c" opacity=".062"/>
-<path d="M121 251Q134 258 150 260Q166 258 179 251" fill="none" stroke="#ffffff" stroke-opacity=".06" stroke-width="2"/>
-<path d="M95 279Q89 299 86 319M205 279Q211 299 214 319" fill="none" stroke="#07101c" stroke-opacity=".14" stroke-width="2"/>
-<!-- fitted short sleeves with arm openings that sit over the skin -->
-<path d="M111 246Q92 250 72 261Q50 273 41 293L35 311Q55 321 80 323Q85 305 93 285Q100 264 111 246Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
-<path d="M189 246Q208 250 228 261Q250 273 259 293L265 311Q245 321 220 323Q215 305 207 285Q200 264 189 246Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
+<path d="M84 301Q92 280 113 260L122 253L116 360H76Z" fill="#07101c" opacity=".058"/>
+<path d="M216 301Q208 280 187 260L178 253L184 360H224Z" fill="#07101c" opacity=".058"/>
+<path d="M123 252Q135 258 150 260Q165 258 177 252" fill="none" stroke="#ffffff" stroke-opacity=".055" stroke-width="2"/>
+<path d="M98 279Q92 299 89 317M202 279Q208 299 211 317" fill="none" stroke="#07101c" stroke-opacity=".13" stroke-width="2"/>
+<!-- V54 fitted sleeves: fabric ends above the arm so the limb clearly exits the sleeve opening -->
+<path data-ebl-jersey-sleeve="left-v54" d="M112 247Q94 251 76 262Q57 273 48 291L42 307Q58 316 79 318Q84 301 92 282Q101 261 112 247Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
+<path data-ebl-jersey-sleeve="right-v54" d="M188 247Q206 251 224 262Q243 273 252 291L258 307Q242 316 221 318Q216 301 208 282Q199 261 188 247Z" fill="${pri}" stroke="#07101c" stroke-width="4"/>
 <!-- shoulder seam + sleeve piping follows the fabric -->
-<path d="M50 291Q76 266 109 250M250 291Q224 266 191 250" fill="none" stroke="#07101c" stroke-width="7" stroke-linecap="round"/>
-<path d="M50 291Q76 266 109 250M250 291Q224 266 191 250" fill="none" stroke="#f7f7f7" stroke-width="4.8" stroke-linecap="round"/>
-<path d="M51 292Q77 268 109 252M249 292Q223 268 191 252" fill="none" stroke="${sec}" stroke-width="2.6" stroke-linecap="round"/>
-<path d="M37 310Q57 319 79 321M263 310Q243 319 221 321" fill="none" stroke="#07101c" stroke-width="7" stroke-linecap="round"/>
-<path d="M37 310Q57 319 79 321M263 310Q243 319 221 321" fill="none" stroke="#f7f7f7" stroke-width="4.8" stroke-linecap="round"/>
-<path d="M38 309Q58 317 79 319M262 309Q242 317 221 319" fill="none" stroke="${sec}" stroke-width="2.6" stroke-linecap="round"/>
+<path d="M56 288Q79 267 110 251M244 288Q221 267 190 251" fill="none" stroke="#07101c" stroke-width="6.5" stroke-linecap="round"/>
+<path d="M56 288Q79 267 110 251M244 288Q221 267 190 251" fill="none" stroke="#f7f7f7" stroke-width="4.3" stroke-linecap="round"/>
+<path d="M57 289Q80 269 110 253M243 289Q220 269 190 253" fill="none" stroke="${sec}" stroke-width="2.35" stroke-linecap="round"/>
+<path d="M44 306Q60 314 79 316M256 306Q240 314 221 316" fill="none" stroke="#07101c" stroke-width="6.5" stroke-linecap="round"/>
+<path d="M44 306Q60 314 79 316M256 306Q240 314 221 316" fill="none" stroke="#f7f7f7" stroke-width="4.3" stroke-linecap="round"/>
+<path d="M45 305Q61 312 79 314M255 305Q239 312 221 314" fill="none" stroke="${sec}" stroke-width="2.35" stroke-linecap="round"/>
 <!-- V47 integrated baseball collar -->
-<path d="M125 233Q150 250 175 233" fill="none" stroke="#07101c" stroke-width="11" stroke-linecap="round"/>
-<path d="M125 233Q150 250 175 233" fill="none" stroke="#f7f7f7" stroke-width="7.2" stroke-linecap="round"/>
-<path d="M126 234Q150 247 174 234" fill="none" stroke="${sec}" stroke-width="3.6" stroke-linecap="round"/>
-<path d="M128 235Q150 245 172 235" fill="none" stroke="#f7f7f7" stroke-width="1.4" opacity=".9" stroke-linecap="round"/>
+<path data-ebl-collar="v54" d="M128 234Q150 245 172 234" fill="none" stroke="#07101c" stroke-width="8" stroke-linecap="round"/>
+<path d="M128 234Q150 245 172 234" fill="none" stroke="#f7f7f7" stroke-width="5.2" stroke-linecap="round"/>
+<path d="M129 235Q150 243 171 235" fill="none" stroke="${sec}" stroke-width="2.55" stroke-linecap="round"/>
 <!-- V45 button placket -->
 <path d="M150 250V360" stroke="#07101c" stroke-width="7" opacity=".7"/>
 <path d="M150 250V360" stroke="#f7f7f7" stroke-width="3.2" opacity=".98"/>
 <circle cx="150" cy="269" r="2.2" fill="#07101c"/><circle cx="150" cy="293" r="2.2" fill="#07101c"/><circle cx="150" cy="317" r="2.2" fill="#07101c"/><circle cx="150" cy="341" r="2.2" fill="#07101c"/>
 <text x="103" y="305" text-anchor="middle" fill="#f7f7f7" font-size="15" font-weight="900">EBL</text><g data-ebl-jersey-number="v45"><text x="195" y="347" text-anchor="middle" fill="#f7f7f7" stroke="#07101c" stroke-width="7" paint-order="stroke" font-size="30" font-weight="950">${num}</text><text x="195" y="347" text-anchor="middle" fill="#f7f7f7" stroke="${sec}" stroke-width="4.5" paint-order="stroke" font-size="30" font-weight="950">${num}</text><text x="195" y="347" text-anchor="middle" fill="#f7f7f7" font-size="30" font-weight="950">${num}</text></g>
-<path data-ebl-neck="v47" d="M129 199Q130 207 131 215L129 231Q150 240 171 231L169 215Q170 207 171 199Z" fill="${skin}" stroke="#2a1712" stroke-width="3"/>${hair(hid,hc)}<ellipse cx="105" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><ellipse cx="195" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><path d="${F[fid]}" fill="${skin}" stroke="#2a1712" stroke-width="4"/>
+<path data-ebl-neck="v54" d="M128 196Q129 207 130 218L129 231Q150 238 171 231L170 218Q171 207 172 196Z" fill="${skin}" stroke="#2a1712" stroke-width="3"/><g data-ebl-head-group="v54" transform="translate(0 4)">${hair(hid,hc)}<ellipse cx="105" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><ellipse cx="195" cy="145" rx="9" ry="15" fill="${skin}" stroke="#2a1712" stroke-width="3"/><path d="${F[fid]}" fill="${skin}" stroke="#2a1712" stroke-width="4"/>
 <path d="M116 132Q127 126 139 131M161 131Q173 126 184 132" fill="none" stroke="${hc}" stroke-width="4" stroke-linecap="round"/><path d="M116 145Q128 138 140 145Q128 152 116 145ZM160 145Q172 138 184 145Q172 152 160 145Z" fill="#fff" stroke="#2a1712" stroke-width="2"/><ellipse cx="128" cy="145" rx="4" ry="4.4" fill="${ec}"/><ellipse cx="172" cy="145" rx="4" ry="4.4" fill="${ec}"/><circle cx="128" cy="145" r="1.5"/><circle cx="172" cy="145" r="1.5"/><path d="M150 147Q144 164 148 171Q153 175 158 171" fill="none" stroke="#875344" stroke-width="2.5"/><path d="M134 184Q150 190 166 184" fill="none" stroke="#704038" stroke-width="3" stroke-linecap="round"/>${facial(fac,hc)}
-<path data-ebl-cap-crown="v52" d="M101 116Q103 86 123 69Q144 55 150 55Q156 55 177 69Q197 86 199 116Q177 104 150 103Q123 104 101 116Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><ellipse cx="150" cy="56" rx="3.7" ry="2.7" fill="${sec}" stroke="#07101c" stroke-width="2"/><path d="M110 108Q150 99 190 108" fill="none" stroke="${sec}" stroke-width="4.1"/><path d="M124 72Q117 89 117 108M150 60Q149 82 149 103M176 72Q183 89 183 108" fill="none" stroke="#07101c" stroke-width="1.5" opacity=".25"/><circle cx="121" cy="82" r="2" fill="#07101c" opacity=".36"/><circle cx="179" cy="82" r="2" fill="#07101c" opacity=".36"/><path data-ebl-cap-brim="v52" d="M104 110Q127 105 150 104Q173 105 196 110Q205 112 211 117Q205 122 193 123Q172 124 150 121Q128 124 107 123Q95 122 89 117Q95 112 104 110Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><path data-ebl-cap-underbrim="v52" d="M112 116Q150 113 188 116Q195 117 200 119Q194 121 187 121Q150 120 113 121Q106 121 100 119Q105 117 112 116Z" fill="#07101c" opacity=".24"/><path d="M112 112Q150 108 188 112" fill="none" stroke="${sec}" stroke-width="2.9"/><path d="M113 114Q150 111 187 114" fill="none" stroke="#f7f7f7" stroke-opacity=".18" stroke-width="1.2"/><text x="150" y="95" text-anchor="middle" font-size="19" font-weight="900" fill="#f7f7f7">EBL</text></svg>`}
+<path data-ebl-cap-crown="v54" d="M101 116Q103 86 123 69Q144 55 150 55Q156 55 177 69Q197 86 199 116Q177 104 150 103Q123 104 101 116Z" fill="${pri}" stroke="#07101c" stroke-width="5"/><ellipse cx="150" cy="56" rx="3.7" ry="2.7" fill="${sec}" stroke="#07101c" stroke-width="2"/><path d="M110 108Q150 99 190 108" fill="none" stroke="${sec}" stroke-width="3.7"/><path d="M124 72Q117 89 117 108M150 60Q149 82 149 103M176 72Q183 89 183 108" fill="none" stroke="#07101c" stroke-width="1.5" opacity=".25"/><circle cx="121" cy="82" r="2" fill="#07101c" opacity=".36"/><circle cx="179" cy="82" r="2" fill="#07101c" opacity=".36"/><path data-ebl-cap-brim="v54" d="M101 110Q126 106 150 106Q174 106 199 110Q207 112 211 116Q204 119 193 120Q171 121 150 119Q129 121 107 120Q97 120 89 117Q94 112 101 110Z" fill="${pri}" stroke="#07101c" stroke-width="4.2"/><path data-ebl-cap-underbrim="v54" d="M107 116Q150 113 193 116Q199 117 203 118Q196 120 188 120Q150 118 112 120Q104 120 98 118Q102 117 107 116Z" fill="#07101c" opacity=".18"/><path d="M104 112Q150 108 196 112" fill="none" stroke="${sec}" stroke-width="2.5"/><text x="150" y="95" text-anchor="middle" font-size="19" font-weight="900" fill="#f7f7f7">EBL</text></g></svg>`}
 window.eblPlayerArtV24=function(raw={},size='md',action='portrait'){if(action&&action!=='portrait'&&action!=='auto'&&prior)return prior(raw,size,action);return `<span class="eblPlayerArtV24 eblPortraitV4 eblPlayerArtV24--${size}" data-ebl-avatar="CANONICAL-V16">${svg(raw)}</span>`};
 window.eblPublicPortraitV28=(r={},s='lg')=>window.eblPlayerArtV24(r,s,'portrait');
 window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','Goatee','Beard'],colors:'ID-driven',sameRendererEverywhere:true};
@@ -7893,8 +7892,8 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    const sleeve=Number(raw?.sleeve_id||1); if(sleeve<=1)return '';
    const left=sleeve===2||sleeve===4, right=sleeve===3||sleeve===4;
    let out='';
-   if(left)out+=`<g data-ebl-accessory="left-compression-sleeve-v32"><path d="M30 324 Q55 328 79 329 L70 360 L20 360 Q22 339 30 324Z" fill="#111827" opacity=".97"/><path d="M34 329 Q55 332 76 333" fill="none" stroke="#ffffff" stroke-opacity=".10" stroke-width="1.5"/></g>`;
-   if(right)out+=`<g data-ebl-accessory="right-compression-sleeve-v32"><path d="M270 324 Q245 328 221 329 L230 360 L280 360 Q278 339 270 324Z" fill="#111827" opacity=".97"/><path d="M266 329 Q245 332 224 333" fill="none" stroke="#ffffff" stroke-opacity=".10" stroke-width="1.5"/></g>`;
+   if(left)out+=`<g data-ebl-accessory="left-compression-sleeve-v54"><path d="M48 316Q59 320 78 320L73 360H41L44 341Q46 326 48 316Z" fill="#111827" opacity=".97"/><path d="M49 322Q60 325 76 325" fill="none" stroke="#ffffff" stroke-opacity=".10" stroke-width="1.4"/></g>`;
+   if(right)out+=`<g data-ebl-accessory="right-compression-sleeve-v54"><path d="M252 316Q241 320 222 320L227 360H259L256 341Q254 326 252 316Z" fill="#111827" opacity=".97"/><path d="M251 322Q240 325 224 325" fill="none" stroke="#ffffff" stroke-opacity=".10" stroke-width="1.4"/></g>`;
    return out;
  }
  const clean=function(raw={},size='md',action='portrait'){
@@ -7980,7 +7979,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
      primary=primary||secondary; secondary=secondary||primary;
    }
    if(!primary&&!secondary)return html;
-   const patch=`<g data-ebl-jersey-patches="v47">${primary?`<image href="${esc(String(primary))}" xlink:href="${esc(String(primary))}" x="50" y="292" width="19" height="19" preserveAspectRatio="xMidYMid meet" transform="rotate(-7 59.5 301.5)"/>`:''}${secondary?`<image href="${esc(String(secondary))}" xlink:href="${esc(String(secondary))}" x="231" y="292" width="19" height="19" preserveAspectRatio="xMidYMid meet" transform="rotate(7 240.5 301.5)"/>`:''}</g>`;
+   const patch=`<g data-ebl-jersey-patches="v47">${primary?`<image href="${esc(String(primary))}" xlink:href="${esc(String(primary))}" x="53" y="290" width="18" height="18" preserveAspectRatio="xMidYMid meet" transform="rotate(-7 62 299)"/>`:''}${secondary?`<image href="${esc(String(secondary))}" xlink:href="${esc(String(secondary))}" x="229" y="290" width="18" height="18" preserveAspectRatio="xMidYMid meet" transform="rotate(7 238 299)"/>`:''}</g>`;
    let out=String(html||'');
    const marker='<!-- V47 integrated baseball collar -->';
    if(out.includes(marker))return out.replace(marker,patch+marker);
@@ -7991,11 +7990,11 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
    const safe=esc(word), len=word.length;
    // Center the nickname across the chest. The number sits below/right, so the script and swash
    // read as one primary jersey mark without colliding with the player's number.
-   const fs=len>=13?26:len>=10?30:len>=8?34:39;
-   const tw=len>=13?112:len>=10?118:len>=8?124:130;
+   const fs=len>=13?27:len>=10?31:len>=8?35:40;
+   const tw=len>=13?114:len>=10?120:len>=8?127:134;
    const spec=typeof window.eblUniformSpecV53==='function'?window.eblUniformSpecV53(p||{}):null;
    const sec=spec?.secondary||club(p)?.secondary_color||club(p)?.secondary||'#d7262e';
-   const wordmark=`<g data-ebl-team-wordmark="v52"><text x="146" y="309" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" stroke="${sec}" stroke-width="7.4" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Brush Script MT','Segoe Script',cursive" font-style="italic" transform="rotate(-4 146 309)">${safe}</text><text x="146" y="309" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" stroke="#f7f7f7" stroke-width="4.2" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Brush Script MT','Segoe Script',cursive" font-style="italic" transform="rotate(-4 146 309)">${safe}</text><text x="146" y="309" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" font-size="${fs}" font-weight="900" font-family="'Brush Script MT','Segoe Script',cursive" font-style="italic" transform="rotate(-4 146 309)">${safe}</text><path data-ebl-wordmark-swish="v52" d="M90 323Q146 330 198 317" fill="none" stroke="${sec}" stroke-width="6" stroke-linecap="round"/><path d="M90 323Q146 330 198 317" fill="none" stroke="#f7f7f7" stroke-width="3.3" stroke-linecap="round"/><path d="M90 323Q146 330 198 317" fill="none" stroke="#071a31" stroke-width="1.8" stroke-linecap="round"/></g>`;
+   const wordmark=`<g data-ebl-team-wordmark="v54"><text x="146" y="310" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" stroke="${sec}" stroke-width="7" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Brush Script MT','Segoe Script','URW Chancery L',cursive" font-style="italic" letter-spacing="-1" transform="rotate(-3 146 310)">${safe}</text><text x="146" y="310" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" stroke="#f7f7f7" stroke-width="4" paint-order="stroke" font-size="${fs}" font-weight="900" font-family="'Brush Script MT','Segoe Script','URW Chancery L',cursive" font-style="italic" letter-spacing="-1" transform="rotate(-3 146 310)">${safe}</text><text x="146" y="310" text-anchor="middle" textLength="${tw}" lengthAdjust="spacingAndGlyphs" fill="#071a31" font-size="${fs}" font-weight="900" font-family="'Brush Script MT','Segoe Script','URW Chancery L',cursive" font-style="italic" letter-spacing="-1" transform="rotate(-3 146 310)">${safe}</text><path data-ebl-wordmark-swish="v54" d="M88 323Q147 329 201 316" fill="none" stroke="${sec}" stroke-width="5.7" stroke-linecap="round"/><path d="M88 323Q147 329 201 316" fill="none" stroke="#f7f7f7" stroke-width="3.2" stroke-linecap="round"/><path d="M88 323Q147 329 201 316" fill="none" stroke="#071a31" stroke-width="1.75" stroke-linecap="round"/></g>`;
    // Replace the generic league chest mark with the franchise nickname.
    let out=String(html||'');
    const patterns=[
@@ -8027,7 +8026,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  };
  try{if(typeof renderPlayer==='function')renderPlayer()}catch(e){}
  try{if(typeof renderHome==='function')renderHome()}catch(e){}
- window.EBL_FRANCHISE_GAMEDAY_UNIFORM_V33={version:'V52',dynamicWordmark:true,outlinedScript:true,sleevePatches:true,compactPatchSuppression:true,secondaryWatermark:true,capMark:true,playerNumber:true,referenceJersey:true};
+ window.EBL_FRANCHISE_GAMEDAY_UNIFORM_V33={version:'V54',dynamicWordmark:true,outlinedScript:true,sleevePatches:true,compactPatchSuppression:true,secondaryWatermark:true,capMark:true,playerNumber:true,referenceJersey:true};
 })();
 </script>
 
@@ -8253,4 +8252,4 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 })();
 </script>
 
-<script id="eblFinalPolishV52">window.EBL_FINAL_POLISH_V52={version:'V52',changes:['natural-brim','locked-script','sleeve-arm-layering'],canonical:true,uniformStandard:true};</script>
+<script id="eblFinalPolishV52">window.EBL_FINAL_POLISH_V52={version:'V54',changes:['head-lowered-into-neck','flatter-thinner-brim','slimmer-fitted-jersey','straight-arms-from-sleeves','smaller-integrated-collar','polished-script-wordmark'],canonical:true,uniformStandard:true,newRendererCreated:false};</script>
