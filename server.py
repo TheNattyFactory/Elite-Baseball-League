@@ -3191,7 +3191,7 @@ def simulate_game(c,g):
                 })
 
 
-        participant_ids=set(lineups[fid]) | used_bench[fid]
+        participant_ids=set(lineups[fid])
 
 
         # ---------------------------------------------
@@ -5113,12 +5113,8 @@ class H(BaseHTTPRequestHandler):
             channel=p.split("/")[-1].upper()
             if channel not in ("EBL","TEAM"):return self.out({"error":"INVALID_CHANNEL"},400)
             c=conn();team_id=None
-            # Public/team chat is intentionally temporary. Private DMs are stored separately.
-            c.execute(
-                "DELETE FROM chat_messages WHERE created_at < datetime('now', ?)",
-                (f"-{CHAT_RETENTION_HOURS} hours",)
-            )
-            c.commit()
+            # Public/team chat is temporary, but GET must remain read-only.
+            # Expired rows are hidden below and physically pruned by storage maintenance.
             if channel=="TEAM":
                 pr=owned_active_player(c,u["id"],request_player_id(self))
                 team_id=pr["franchise_id"] if pr else None
@@ -5126,7 +5122,8 @@ class H(BaseHTTPRequestHandler):
             rows=[dict(x) for x in c.execute("""SELECT m.id,m.user_id,m.player_id,m.channel,m.team_id,m.message,m.created_at,u.username
                     FROM chat_messages m JOIN users u ON u.id=m.user_id
                     WHERE m.channel=? AND (? IS NULL OR m.team_id=?)
-                    ORDER BY m.id DESC LIMIT 50""",(channel,team_id,team_id))]
+                      AND m.created_at >= datetime('now', ?)
+                    ORDER BY m.id DESC LIMIT 50""",(channel,team_id,team_id,f"-{CHAT_RETENTION_HOURS} hours"))]
             rows.reverse()
             for msg in rows:
                 pid=msg.get("player_id")
@@ -6706,19 +6703,34 @@ class H(BaseHTTPRequestHandler):
             if not games:
                 c.close()
                 return self.out({"error":"NO_GAMES_SCHEDULED","season":season,"day":day},400)
-            # Notify human players that their club is taking the field.
-            for g in games:
-                for fid in (g["away_id"],g["home_id"]):
-                    for ur in c.execute("SELECT DISTINCT user_id FROM players WHERE franchise_id=? AND active=1 AND user_id IS NOT NULL",(fid,)).fetchall():
-                        notify_user(c,ur["user_id"],"GAME",f"Game Day: {team_name(c,g['away_id'])} @ {team_name(c,g['home_id'])}",f"League Day {day}",g["id"])
-            results=[simulate_game(c,g) for g in games]
-            generate_daily_news(c,day,season)
-            weekly_recap(c,day,season)
-            process_quarter_awards(c,season,day)
-            if day==81:
-                process_season_awards(c,season)
-            c.execute("UPDATE league_state SET v=? WHERE k='league_day'",(str(day),))
-            c.commit();c.close()
+            try:
+                # Notify human players that their club is taking the field.
+                for g in games:
+                    for fid in (g["away_id"],g["home_id"]):
+                        for ur in c.execute("SELECT DISTINCT user_id FROM players WHERE franchise_id=? AND active=1 AND user_id IS NOT NULL",(fid,)).fetchall():
+                            notify_user(c,ur["user_id"],"GAME",f"Game Day: {team_name(c,g['away_id'])} @ {team_name(c,g['home_id'])}",f"League Day {day}",g["id"])
+
+                results=[]
+                for g in games:
+                    results.append(simulate_game(c,g))
+                    c.commit()
+
+                generate_daily_news(c,day,season)
+                weekly_recap(c,day,season)
+                process_quarter_awards(c,season,day)
+                if day==81:
+                    process_season_awards(c,season)
+                c.execute("UPDATE league_state SET v=? WHERE k='league_day'",(str(day),))
+                c.commit()
+            except Exception as exc:
+                try:
+                    c.rollback()
+                except Exception:
+                    pass
+                c.close()
+                print(f"SIM_DAY_ERROR season={season} day={day}: {type(exc).__name__}: {exc}")
+                return self.out({"error":"SIMULATION_FAILED","detail":type(exc).__name__,"day":day},500)
+            c.close()
             try:
                 run_storage_maintenance(season,day,aggressive=False)
             except Exception:
