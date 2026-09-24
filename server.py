@@ -1096,6 +1096,11 @@ def upgrade_cost(level):
     return REVENUE_UPGRADE_COSTS[min(level,len(REVENUE_UPGRADE_COSTS)-1)]
 
 def franchise_development_multiplier(c,fid):
+    # Rebuild/development bonuses are earned from a completed season and therefore
+    # cannot affect Genesis Season 1. This guard also neutralizes stale alpha data
+    # that may survive an older reset.
+    if _season_number(c)<=1:
+        return 1.0
     row=c.execute("SELECT development_bonus FROM franchises WHERE id=?",(fid,)).fetchone()
     return 1.0 + (float(row["development_bonus"] or 0) if row else 0.0)
 
@@ -2000,19 +2005,29 @@ def team_attribute_bonus(c,fid,attribute,season=None):
     return sum(int(x.get("bonus",0) or 0) for x in active_team_sponsorships(c,fid,season)
                if str(x.get("attribute","")).upper()==str(attribute).upper())
 
+def effective_stamina(sta):
+    """Soft-scale uncapped STA so every point helps without creating infinite endurance."""
+    try:
+        raw=max(0.0,float(sta or 0))
+    except Exception:
+        raw=0.0
+    return 100.0*(1.0-math.exp(-raw/60.0))
+
+
 def pitcher_recovery_state(c,pitcher_id,league_day):
     r=c.execute("SELECT fatigue,last_league_day,last_outs FROM pitcher_workload WHERE pitcher_id=?",(int(pitcher_id),)).fetchone()
     p=c.execute("SELECT attributes_json FROM players WHERE id=?",(int(pitcher_id),)).fetchone()
     attrs=json.loads(p["attributes_json"] or "{}") if p else {}
     sta=float(attrs.get("STA",0) or 0)
+    sta_eff=effective_stamina(sta)
     if not r:
         return {"fatigue":0.0,"readiness":100,"days_since":None,"last_outs":0}
     days=max(0,int(league_day)-int(r["last_league_day"] or 0))
-    # Higher STA recovers more workload between league days. A short rotation can
-    # therefore be viable, but heavy starts can carry fatigue into the next turn.
+    # STA improves recovery too, but with diminishing returns because EBL attributes
+    # are uncapped. Recovery Center remains a flat +2 fatigue/day per level.
     fr=c.execute("SELECT recovery_level FROM franchises WHERE id=(SELECT franchise_id FROM players WHERE id=?)",(int(pitcher_id),)).fetchone()
     recovery_level=int(fr["recovery_level"] or 0) if fr else 0
-    recovery_per_day=10.0+sta*0.10+(2.0*recovery_level)
+    recovery_per_day=9.5+sta_eff*0.07+(2.0*recovery_level)
     fatigue=max(0.0,float(r["fatigue"] or 0)-days*recovery_per_day)
     readiness=max(35,int(round(100-fatigue)))
     return {"fatigue":round(fatigue,2),"readiness":readiness,"days_since":days,"last_outs":int(r["last_outs"] or 0)}
@@ -2038,21 +2053,33 @@ def team_strategy_for(c,fid):
             "bench":json.loads(r["bench_json"]),"substitutions":json.loads(r["substitutions_json"])}
 
 
-def choose_reliever(c,fid,strategy,inning,lead_margin,used,rotation_ids=None):
+def choose_reliever(c,fid,strategy,inning,lead_margin,used,rotation_ids=None,league_day=None):
     bp=strategy["bullpen"]
     rotation_ids={int(x) for x in (rotation_ids or [])}
+    if league_day is None:
+        try:
+            league_day=int(league_cfg(c,"league_day",0) or 0)
+        except Exception:
+            league_day=0
 
-    def candidate(pid,role):
+    def candidate(pid,role,allow_tired=False):
         if not pid or int(pid) in used:return None
         r=c.execute("SELECT id,type,primary_pos,attributes_json FROM players WHERE id=? AND franchise_id=? AND type='P' AND active=1",(int(pid),fid)).fetchone()
         if not r or int(r["id"]) in rotation_ids:return None
         attrs=json.loads(r["attributes_json"] or "{}")
-        return (player_overall_from_attrs(attrs,"P",r["primary_pos"]),int(r["id"]),role)
+        recovery=pitcher_recovery_state(c,int(r["id"]),int(league_day))
+        readiness=int(recovery.get("readiness",100) or 100)
+        # A tired arm should be passed over when a rested legal bullpen option exists.
+        # We still allow one as a true emergency so the engine never gets stranded.
+        if readiness<55 and not allow_tired:return None
+        ovr=player_overall_from_attrs(attrs,"P",r["primary_pos"])
+        effective=ovr-max(0,80-readiness)*.30
+        return (effective,int(r["id"]),role)
 
-    def best(items,role):
+    def best(items,role,allow_tired=False):
         choices=[]
         for pid in items:
-            x=candidate(pid,role)
+            x=candidate(pid,role,allow_tired=allow_tired)
             if x:choices.append(x)
         return max(choices) if choices else None
 
@@ -2066,7 +2093,7 @@ def choose_reliever(c,fid,strategy,inning,lead_margin,used,rotation_ids=None):
             if x:choices.append(x)
         if choices:
             x=max(choices);return x[1],x[2]
-    if inning<=6 or lead_margin<=-4:
+    if inning<=6 or abs(lead_margin)>=4:
         x=best(bp.get("LR",[]),"LR")
         if x:return x[1],x[2]
     x=best(bp.get("MR",[]),"MR")
@@ -2077,8 +2104,7 @@ def choose_reliever(c,fid,strategy,inning,lead_margin,used,rotation_ids=None):
     if x:return x[1],x[2]
 
     # If the preferred role for this game state is unavailable, use another
-    # configured bullpen arm rather than leaving setup/closer pitchers stranded
-    # for an entire season. Role labels still affect first preference.
+    # configured bullpen arm rather than leaving setup/closer pitchers stranded.
     fallback=[]
     for k in ("SU1","SU2","CL"):
         x=candidate(bp.get(k),k)
@@ -2086,17 +2112,31 @@ def choose_reliever(c,fid,strategy,inning,lead_margin,used,rotation_ids=None):
     if fallback:
         x=max(fallback);return x[1],x[2]
 
+    # Last-resort fatigue override: only configured bullpen pitchers are legal,
+    # but a tired legal arm is better than inventing a pitcher or crashing the game.
+    tired=[]
+    for k in ("MR","LR","EMERGENCY"):
+        for pid in (bp.get(k,[]) or []):
+            x=candidate(pid,k,allow_tired=True)
+            if x:tired.append(x)
+    for k in ("SU1","SU2","CL"):
+        x=candidate(bp.get(k),k,allow_tired=True)
+        if x:tired.append(x)
+    if tired:
+        x=max(tired);return x[1],x[2]
+
     # Hard roster-management rule: an in-game pitching change may only use a
-    # pitcher explicitly assigned to the saved bullpen. A pitcher's listed SP/RP
-    # position does not control eligibility; rotation/bullpen assignment does.
-    # If every configured bullpen arm is unavailable, there is no legal relief
-    # option and the current pitcher must remain in the game.
+    # pitcher explicitly assigned to the saved bullpen.
     return None,None
 
 
-def should_pull_starter(line, inning):
+def should_pull_starter(line, inning, sta=0, readiness=100):
     if not line or not line.get("GS"):return False
-    outs=line.get("OUTS",0);er=line.get("ER",0);traffic=line.get("H",0)+line.get("BB",0)
+    outs=int(line.get("OUTS",0) or 0);er=int(line.get("ER",0) or 0);traffic=int(line.get("H",0) or 0)+int(line.get("BB",0) or 0)
+    sta=max(0.0,float(sta or 0))
+    sta_eff=effective_stamina(sta)
+    readiness=max(35.0,min(100.0,float(readiness or 100)))
+
     # Catastrophic outings end immediately; no starter is left in just to reach an inning target.
     if er>=10:return True
     if er>=7 and outs<18:return True
@@ -2104,7 +2144,49 @@ def should_pull_starter(line, inning):
     if er>=4 and outs<9:return True
     if traffic>=10 and outs<12:return True
     if inning>=6 and (er>=4 or traffic>=9):return True
-    if inning>=7:return True
+
+    # Typical target is roughly 6-8 innings depending on STA and pregame readiness.
+    # A dominant starter can earn an extra inning; true complete games remain possible
+    # for high-stamina, fully rested pitchers instead of being hard-blocked at the 7th.
+    target_outs=17+int(round(sta_eff*.085))
+    if readiness<85:target_outs-=1
+    if readiness<70:target_outs-=2
+    if readiness<55:target_outs-=2
+    target_outs=max(12,min(24,target_outs))
+
+    dominant=(er<=1 and traffic<=6)
+    very_strong=(er<=2 and traffic<=7)
+    if inning>=9 and outs>=24:
+        return not (dominant and sta_eff>=60 and readiness>=85)
+    if outs>=target_outs:
+        extension=min(24,target_outs+3)
+        if dominant and outs<extension:return False
+        return True
+    if inning>=8 and outs>=21 and not very_strong:return True
+    return False
+
+
+def should_change_reliever(line,inning,role,lead_margin):
+    if not line or line.get("GS"):return False
+    outs=int(line.get("OUTS",0) or 0);er=int(line.get("ER",0) or 0);traffic=int(line.get("H",0) or 0)+int(line.get("BB",0) or 0)
+    role=str(role or "RP").upper()
+
+    # Performance hooks still matter regardless of inning.
+    if er>=3 or traffic>=5:return True
+
+    # Long relief is allowed to actually be long relief in non-leverage games.
+    if role=="LR" and abs(lead_margin)>=4 and outs<9 and er<=1 and traffic<=5:
+        return False
+
+    # Two innings is a normal ceiling for most relievers.
+    if outs>=6:return True
+
+    # Protect the closer role for real save situations. A clean setup/middle arm may
+    # bridge multiple innings instead of forcing three relievers into every game.
+    if inning>=9 and 0<lead_margin<=3 and role!="CL":
+        return True
+    if inning>=8 and abs(lead_margin)<=3 and role not in ("SU1","SU2","CL") and outs>=3:
+        return R.random()<.55
     return False
 
 
@@ -2725,6 +2807,7 @@ def simulate_game(c,g):
     base_runner={away:None,home:None}
     unearned_runners={away:set(),home:set()}
     current_pitcher={}
+    current_pitcher_role={away:"SP",home:"SP"}
     for fid,opp in [(away,home),(home,away)]:
         current_pitcher[fid]=starter_ids[fid]
         used_pitchers[fid].add(current_pitcher[fid])
@@ -2736,22 +2819,49 @@ def simulate_game(c,g):
     for inning in range(1,10):
         for half,fid,opp in [("TOP",away,home),("BOT",home,away)]:
             outs=0;idx=((inning-1)*4)%9
-            # bullpen hook for defending team
+            # Between-inning pitching management. Starters are evaluated by actual
+            # workload/performance; relievers are not automatically replaced just
+            # because the calendar reached the 8th or 9th.
             opp_diff=score[opp]-score[fid]
-            if inning>=7:
-                rp,role=choose_reliever(c,opp,strategies[opp],inning,opp_diff,used_pitchers[opp],rotations[opp])
-                if rp and rp!=current_pitcher[opp] and (inning>=8 or R.random()<.42):
-                    current_pitcher[opp]=rp;used_pitchers[opp].add(rp)
-                    ev={"type":"PITCHING_CHANGE","team":opp,"pitcher_id":rp,"role":role,"inning":inning,"half":half}
+            live_line=pitcher_line(opp,current_pitcher[opp])
+            change_reason=None
+            if live_line.get("GS"):
+                starter_obj=sim_player_obj(c,current_pitcher[opp])
+                sta=float((starter_obj or {}).get("attributes",{}).get("STA",0) or 0)
+                readiness=max(35,100-float(pregame_fatigue.get(opp,{}).get(int(current_pitcher[opp]),0.0) or 0.0))
+                if should_pull_starter(live_line,inning,sta,readiness):
+                    change_reason="STARTER_HOOK"
+            elif should_change_reliever(live_line,inning,current_pitcher_role.get(opp),opp_diff):
+                change_reason="BULLPEN_ROLE"
+
+            if change_reason:
+                rp,role=choose_reliever(c,opp,strategies[opp],inning,opp_diff,used_pitchers[opp],rotations[opp],g["league_day"])
+                if rp and rp!=current_pitcher[opp]:
+                    current_pitcher[opp]=rp;current_pitcher_role[opp]=role or "RP";used_pitchers[opp].add(rp)
+                    ev={"type":"PITCHING_CHANGE","team":opp,"pitcher_id":rp,"role":role,"inning":inning,"half":half,"reason":change_reason}
                     events.append(ev);box["strategy_events"].append(ev)
             while outs<3:
                 live_line=pitcher_line(opp,current_pitcher[opp])
-                if should_pull_starter(live_line,inning):
-                    rp,role=choose_reliever(c,opp,strategies[opp],inning,score[opp]-score[fid],used_pitchers[opp],rotations[opp])
-                    if rp and rp!=current_pitcher[opp]:
-                        current_pitcher[opp]=rp;used_pitchers[opp].add(rp)
-                        ev={"type":"PITCHING_CHANGE","team":opp,"pitcher_id":rp,"role":role,"inning":inning,"half":half,"reason":"STARTER_HOOK"}
-                        events.append(ev);box["strategy_events"].append(ev)
+                if live_line.get("GS"):
+                    starter_obj=sim_player_obj(c,current_pitcher[opp])
+                    sta=float((starter_obj or {}).get("attributes",{}).get("STA",0) or 0)
+                    readiness=max(35,100-float(pregame_fatigue.get(opp,{}).get(int(current_pitcher[opp]),0.0) or 0.0))
+                    if should_pull_starter(live_line,inning,sta,readiness):
+                        rp,role=choose_reliever(c,opp,strategies[opp],inning,score[opp]-score[fid],used_pitchers[opp],rotations[opp],g["league_day"])
+                        if rp and rp!=current_pitcher[opp]:
+                            current_pitcher[opp]=rp;current_pitcher_role[opp]=role or "RP";used_pitchers[opp].add(rp)
+                            ev={"type":"PITCHING_CHANGE","team":opp,"pitcher_id":rp,"role":role,"inning":inning,"half":half,"reason":"STARTER_HOOK"}
+                            events.append(ev);box["strategy_events"].append(ev)
+                else:
+                    # Mid-inning reliever hooks are reserved for genuine trouble, not
+                    # routine role cycling. This keeps clean relievers in the game.
+                    traffic=int(live_line.get("H",0) or 0)+int(live_line.get("BB",0) or 0)
+                    if int(live_line.get("ER",0) or 0)>=3 or traffic>=5:
+                        rp,role=choose_reliever(c,opp,strategies[opp],inning,score[opp]-score[fid],used_pitchers[opp],rotations[opp],g["league_day"])
+                        if rp and rp!=current_pitcher[opp]:
+                            current_pitcher[opp]=rp;current_pitcher_role[opp]=role or "RP";used_pitchers[opp].add(rp)
+                            ev={"type":"PITCHING_CHANGE","team":opp,"pitcher_id":rp,"role":role,"inning":inning,"half":half,"reason":"RELIEVER_TROUBLE"}
+                            events.append(ev);box["strategy_events"].append(ev)
                 starter_batter_id=lineups[fid][idx%9];idx+=1
                 # RC55 — no position-player bench: the scheduled Starting Nine bats.
                 batter=sim_player_obj(c,starter_batter_id)
@@ -2803,9 +2913,10 @@ def simulate_game(c,g):
                     seq_raw=float(pit_attrs.get("SEQ",0) or 0)
                     sta=float(pit_attrs.get("STA",0) or 0)
                     pclt=float(pit_attrs.get("PCLT",0) or 0)
+                    sta_eff=effective_stamina(sta)
 
                     # STA does not award outs directly; it delays skill loss as workload grows.
-                    fatigue_start=(12.0+sta*.55) if pitchline.get("GS") else (3.0+sta*.25)
+                    fatigue_start=(14.0+sta_eff*.15) if pitchline.get("GS") else (3.0+sta_eff*.04)
                     fatigue=max(0.0,float(pitchline.get("OUTS",0))-fatigue_start)
                     carry_fatigue=float(pregame_fatigue.get(opp,{}).get(int(pitcher["id"]),0.0) or 0.0)
                     fatigue_penalty=fatigue*.55 + carry_fatigue*.18
@@ -4970,7 +5081,7 @@ class H(BaseHTTPRequestHandler):
                    WHERE co.franchise_id=? AND p.active=1
                    ORDER BY p.type,p.primary_pos,p.name""",(f["id"],))]
             state={x["k"]:x["v"] for x in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
-            season=int(state.get("season",2));day=int(state.get("league_day",0))
+            season=int(state.get("season",1));day=int(state.get("league_day",0))
             next_game=c.execute(
                 """SELECT id,season,league_day,away_id,home_id,status
                    FROM games WHERE season=? AND league_day>? AND status='SCHEDULED'
@@ -4988,6 +5099,8 @@ class H(BaseHTTPRequestHandler):
             team["spend_pct"]=round((float(team.get("xp_spent") or 0)/float(team.get("xp_budget") or 1))*100,1)
             team["practice_reward"]=practice_reward_for(c,f["id"])
             team["recovery_bonus_per_day"]=2*int(team.get("recovery_level") or 0)
+            team["development_bonus_active"]=season>1
+            team["development_bonus_effective"]=float(team.get("development_bonus") or 0) if season>1 else 0.0
             sponsorships=active_team_sponsorships(c,f["id"],season)
             c.close()
             return self.out({"team":team,"branding":dict(brand) if brand else None,"roster":roster,
@@ -5000,7 +5113,7 @@ class H(BaseHTTPRequestHandler):
                                          "substitutions":json.loads(strat["substitutions_json"]) if strat else {}},
                              "offers":offers,"contracts":contracts,"sponsorships":sponsorships,
                              "next_game":dict(next_game) if next_game else None,
-                             "league_day":day,"phase":state.get("phase","REGULAR")})
+                             "season":season,"league_day":day,"phase":state.get("phase","REGULAR")})
         if p=="/api/friends":
             u=self.auth()
             if not u:return
@@ -5948,24 +6061,46 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             d=self.body();c=conn();f=c.execute("SELECT id FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
             if not f:c.close();return self.out({"error":"NO_FRANCHISE"},404)
-            fid=f["id"];bullpen=d.get("bullpen",{});defense=d.get("defense",{});bench=d.get("bench",{});subs=d.get("substitutions",{})
+            fid=f["id"]
+            existing=team_strategy_for(c,fid)
+            bullpen_supplied="bullpen" in d
+            defense_supplied="defense" in d
+            subs_supplied="substitutions" in d
+
+            bullpen=(d.get("bullpen") or {}) if bullpen_supplied else (existing.get("bullpen") or {})
+            base_defense={"default_shift":"STANDARD","vs_lhb":"STANDARD","vs_rhb":"STANDARD","corners_in":False,"infield_in":False}
+            defense={**base_defense,**(existing.get("defense") or {})}
+            if defense_supplied:
+                defense.update(d.get("defense") or {})
+
+            existing_subs=existing.get("substitutions") or {}
+            incoming_subs=(d.get("substitutions") or {}) if subs_supplied else {}
+            subs={**existing_subs,**incoming_subs}
+
             roster={x["id"]:dict(x) for x in c.execute("SELECT id,type,primary_pos FROM players WHERE franchise_id=? AND active=1",(fid,))}
             lr=c.execute("SELECT rotation_json FROM lineups WHERE franchise_id=?",(fid,)).fetchone()
             try:rotation_ids={int(x) for x in json.loads(lr["rotation_json"] or "[]")} if lr else set()
             except Exception:rotation_ids=set()
-            # validate bullpen role assignments
-            ids=[]
-            for k in ["CL","SU1","SU2"]:
-                v=bullpen.get(k)
-                if v is not None: ids.append(int(v))
-            for k in ["MR","LR","EMERGENCY"]:
-                ids += [int(x) for x in bullpen.get(k,[])]
-            if len(ids)!=len(set(ids)) or any(i not in roster or roster[i]["type"]!="P" for i in ids):
-                c.close();return self.out({"error":"INVALID_BULLPEN"},400)
-            if any(i in rotation_ids for i in ids):
-                c.close();return self.out({"error":"PITCHER_ASSIGNED_TO_ROTATION_AND_BULLPEN"},400)
-            # RC55 — EBL has no position-player bench. Ignore/remove legacy bench
-            # and substitution fields; only steal/bunt aggression remain valid.
+
+            # Bullpen validation runs only when the coach is actually editing bullpen roles.
+            # Defense/offense saves are independent and must not fail because of stale legacy
+            # bullpen data from an earlier alpha build.
+            if bullpen_supplied:
+                try:
+                    ids=[]
+                    for k in ["CL","SU1","SU2"]:
+                        v=bullpen.get(k)
+                        if v is not None:ids.append(int(v))
+                    for k in ["MR","LR","EMERGENCY"]:
+                        ids += [int(x) for x in (bullpen.get(k,[]) or [])]
+                except Exception:
+                    c.close();return self.out({"error":"INVALID_BULLPEN"},400)
+                if len(ids)!=len(set(ids)) or any(i not in roster or roster[i]["type"]!="P" for i in ids):
+                    c.close();return self.out({"error":"INVALID_BULLPEN"},400)
+                if any(i in rotation_ids for i in ids):
+                    c.close();return self.out({"error":"PITCHER_ASSIGNED_TO_ROTATION_AND_BULLPEN"},400)
+
+            # RC55 — EBL has no position-player bench. Only steal/bunt aggression remain.
             bench={}
             subs={
                 "steal_aggression":subs.get("steal_aggression","NORMAL"),
@@ -5979,6 +6114,7 @@ class H(BaseHTTPRequestHandler):
                 c.close();return self.out({"error":"INVALID_STEAL_AGGRESSION"},400)
             if subs.get("bunt_aggression","NORMAL") not in {"LOW","NORMAL","HIGH"}:
                 c.close();return self.out({"error":"INVALID_BUNT_AGGRESSION"},400)
+
             c.execute("UPDATE team_strategy SET bullpen_json=?,defense_json=?,bench_json=?,substitutions_json=?,updated_at=CURRENT_TIMESTAMP WHERE franchise_id=?",
                       (json.dumps(bullpen),json.dumps(defense),json.dumps(bench),json.dumps(subs),fid))
             c.commit();c.close();return self.out({"ok":True})
@@ -6794,7 +6930,7 @@ class H(BaseHTTPRequestHandler):
                 c.execute("DELETE FROM notifications WHERE type IN ('GAME','AWARD')")
 
                 c.execute("UPDATE players SET xp_wallet=0")
-                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0")
+                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0,xp_reserve=0,finish_reward=0,development_bonus=0")
                 enforce_active_rosters(c)
 
                 # Reset every club to its infrastructure-adjusted annual XP pool.
