@@ -85,6 +85,11 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
  .gcArchiveWatch{padding-left:32px}
 }
 
+
+/* EBL positional fielding award readability */
+#fieldTitle>h3{margin:22px 0 8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
+#fieldTitle>h3:first-of-type{margin-top:14px}
+@media(max-width:560px){#fieldTitle .awardRaceDetail{line-height:1.45} #fieldTitle .race{align-items:flex-start}}
 </style><style>
 .profileHero{display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:center}
 .profileLogo{display:flex;justify-content:center;align-items:center}
@@ -2350,9 +2355,9 @@ function hitterStats(p){
  let s=p.season||{},ab=s.AB||0,pa=s.PA||0,h=s.H||0,bb=s.BB||0,tb=(s['1B']||0)+2*(s['2B']||0)+3*(s['3B']||0)+4*(s.HR||0);
  let avg=ab?h/ab:0,obp=pa?(h+bb)/pa:0,slg=ab?tb/ab:0;
  return [{id:'bat',title:'BATTING',stats:[['G',s.G||0],['PA',pa],['AB',ab],['H',h],['AVG',fmt3(avg)],['OBP',fmt3(obp)],['SLG',fmt3(slg)],['HR',s.HR||0],['2B',s['2B']||0],['3B',s['3B']||0],['BB',bb],['SO',s.SO||0],['R',s.R||0],['RBI',s.RBI||0]]},
- {id:'fld',title:'FIELDING',stats:[['G',s.FG||0],['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'1.000'],['OAA',s.OAA||0]]},
+ {id:'fld',title:'FIELDING',stats:[['G',s.FG||0],['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'—'],['OAA',s.OAA||0]]},
  {id:'run',title:'BASERUNNING',stats:[['SB',s.SB||0],['CS',s.CS||0],['SB%',(s.SB||s.CS)?((s.SB||0)/((s.SB||0)+(s.CS||0))*100).toFixed(1)+'%':'0.0%'],['XBT',s.XBT||0],['OOB',s.OOB||0],['BsR',s.BSR||'0.0']]}]}
-function pitcherStats(p){let s=p.season||{},outs=s.OUTS||0,ip=(outs/3).toFixed(1),era=outs?(s.ER||0)*27/outs:0,whip=outs?((s.H||0)+(s.BB||0))/(outs/3):0;return [{id:'pit',title:'PITCHING',stats:[['G',s.G||0],['GS',s.GS||0],['IP',ip],['W',s.W||0],['L',s.L||0],['SV',s.SV||0],['H',s.H||0],['ER',s.ER||0],['BB',s.BB||0],['SO',s.SO||0],['ERA',era.toFixed(2)],['WHIP',whip.toFixed(2)]]},{id:'pfld',title:'FIELDING',stats:[['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'1.000']]}]}
+function pitcherStats(p){let s=p.season||{},outs=s.OUTS||0,ip=(outs/3).toFixed(1),era=outs?(s.ER||0)*27/outs:0,whip=outs?((s.H||0)+(s.BB||0))/(outs/3):0;return [{id:'pit',title:'PITCHING',stats:[['G',s.G||0],['GS',s.GS||0],['IP',ip],['W',s.W||0],['L',s.L||0],['SV',s.SV||0],['H',s.H||0],['ER',s.ER||0],['BB',s.BB||0],['SO',s.SO||0],['ERA',era.toFixed(2)],['WHIP',whip.toFixed(2)]]},{id:'pfld',title:'FIELDING',stats:[['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'—']]}]}
 function careerIP(outs){outs=Number(outs||0);return `${Math.floor(outs/3)}.${outs%3}`}
 function careerLine(row,type){
  const s=row?.stats||{},r=row?.rates||{};
@@ -3749,7 +3754,7 @@ async function loadAwards(){
  batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`${teamRef(x)} • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
  pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`${teamRef(x)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`${teamRef(x)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
  sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`${teamRef(x)} • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
- fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`${teamRef(x)} • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
+ fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p><p class="muted">Position-specific race • minimum ${j.fielding_meta?.min_games||1} fielding game${(j.fielding_meta?.min_games||1)===1?'':'s'} to qualify at the current point of the season.</p>`+Object.entries(j.fielding||{}).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`${teamRef(x)} • ${x.fg||0} G • ${x.ch||0} CH • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.dp||0} DP • ${x.fld_pct||'—'} FLD${x.fielding_qualified===false?' • PROVISIONAL':''}`)}`).join('');
  if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${a.award_name}</b> — ${leaguePlayerName(a)} <span class="gold">+${a.xp_awarded} XP</span><div class="muted">Season ${a.season} • ${String(a.period).replaceAll('_',' ')}</div></div>`).join('')}`}
 }
 
@@ -5649,7 +5654,7 @@ setInterval(()=>{if(ME){loadChat('EBL');loadChat('TEAM');loadNotifications()}},1
     batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`${awardTeamRef(x.team)} • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
     pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`${awardTeamRef(x.team)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`${awardTeamRef(x.team)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
     sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`${awardTeamRef(x.team)} • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
-    fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding||{}).map(([pos,rows])=>`<h3>${esc(pos)}</h3>${raceList(rows,x=>`${awardTeamRef(x.team)} • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
+    fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p><p class="muted">Position-specific race • minimum ${j.fielding_meta?.min_games||1} fielding game${(j.fielding_meta?.min_games||1)===1?'':'s'} to qualify at the current point of the season.</p>`+Object.entries(j.fielding||{}).map(([pos,rows])=>`<h3>${esc(pos)}</h3>${raceList(rows,x=>`${awardTeamRef(x.team)} • ${x.fg||0} G • ${x.ch||0} CH • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.dp||0} DP • ${x.fld_pct||'—'} FLD${x.fielding_qualified===false?' • PROVISIONAL':''}`)}`).join('');
     if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>{const identity={...a,id:a.player_id,name:a.player_name,franchise_id:a.franchise_id||a.team};return `<div class="recordCard awardHistoryIdentityV58"><div>${typeof eblAvatarEverywhereRC39==='function'?eblAvatarEverywhereRC39(identity,{size:'sm'}):memberLink(identity,a.player_name||'Player')}</div><div><b>${esc(a.award_name)}</b> <span class="gold">+${a.xp_awarded} XP</span><div class="muted">${awardTeamRef(a.franchise_id||a.team)} • Season ${a.season} • ${esc(String(a.period).replaceAll('_',' '))}</div></div></div>`}).join('')}`;}
   };
 
