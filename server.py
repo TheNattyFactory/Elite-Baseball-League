@@ -6302,22 +6302,39 @@ class H(BaseHTTPRequestHandler):
             except Exception:rotation_ids=set()
 
             # Bullpen validation runs only when the coach is actually editing bullpen roles.
-            # Defense/offense saves are independent and must not fail because of stale legacy
-            # bullpen data from an earlier alpha build.
+            # CL / SU1 / SU2 are exclusive primary jobs. MR / LR / EMERGENCY are usage
+            # pools and may intentionally overlap (the game engine already supports that).
             if bullpen_supplied:
                 try:
-                    ids=[]
-                    for k in ["CL","SU1","SU2"]:
-                        v=bullpen.get(k)
-                        if v is not None:ids.append(int(v))
-                    for k in ["MR","LR","EMERGENCY"]:
-                        ids += [int(x) for x in (bullpen.get(k,[]) or [])]
+                    def bp_one(v):
+                        return int(v) if v not in (None,"") else None
+                    def bp_many(v):
+                        out=[]
+                        for x in (v or []):
+                            pid=int(x)
+                            if pid not in out:out.append(pid)
+                        return out
+                    bullpen={
+                        "CL":bp_one(bullpen.get("CL")),
+                        "SU1":bp_one(bullpen.get("SU1")),
+                        "SU2":bp_one(bullpen.get("SU2")),
+                        "MR":bp_many(bullpen.get("MR")),
+                        "LR":bp_many(bullpen.get("LR")),
+                        "EMERGENCY":bp_many(bullpen.get("EMERGENCY"))
+                    }
                 except Exception:
-                    c.close();return self.out({"error":"INVALID_BULLPEN"},400)
-                if len(ids)!=len(set(ids)) or any(i not in roster or roster[i]["type"]!="P" for i in ids):
-                    c.close();return self.out({"error":"INVALID_BULLPEN"},400)
+                    c.close();return self.out({"error":"INVALID_BULLPEN","detail":"Choose pitchers from the active pitching staff."},400)
+
+                primary=[bullpen[k] for k in ("CL","SU1","SU2") if bullpen.get(k) is not None]
+                if len(primary)!=len(set(primary)):
+                    c.close();return self.out({"error":"INVALID_BULLPEN","detail":"Closer, Setup 1, and Setup 2 must be different pitchers. MR, LR, and Emergency may overlap."},400)
+
+                ids=list(primary)
+                for k in ("MR","LR","EMERGENCY"):ids.extend(bullpen[k])
+                if any(i not in roster or roster[i]["type"]!="P" for i in ids):
+                    c.close();return self.out({"error":"INVALID_BULLPEN","detail":"Every bullpen assignment must be an active pitcher on this roster."},400)
                 if any(i in rotation_ids for i in ids):
-                    c.close();return self.out({"error":"PITCHER_ASSIGNED_TO_ROTATION_AND_BULLPEN"},400)
+                    c.close();return self.out({"error":"PITCHER_ASSIGNED_TO_ROTATION_AND_BULLPEN","detail":"Move the pitcher out of the starting rotation before assigning a bullpen role."},400)
 
             # RC55 — EBL has no position-player bench. Only steal/bunt aggression remain.
             bench={}
@@ -6414,24 +6431,80 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/coach/set-rotation":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
-            ids=[int(x) for x in self.body().get("rotation",[]) if x not in (None,"")]
-            if not (3<=len(ids)<=5) or len(set(ids))!=len(ids):return self.out({"error":"INVALID_ROTATION","detail":"Choose 3 to 5 unique starting pitchers."},400)
+            d=self.body()
+            ids=[int(x) for x in d.get("rotation",[]) if x not in (None,"")]
+            if not (3<=len(ids)<=5) or len(set(ids))!=len(ids):
+                return self.out({"error":"INVALID_ROTATION","detail":"Choose 3 to 5 unique starting pitchers."},400)
+
             c=conn();f=c.execute("SELECT id FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
             if not f:c.close();return self.out({"error":"NO_FRANCHISE"},404)
             valid={x["id"] for x in c.execute("SELECT id FROM players WHERE franchise_id=? AND type='P' AND active=1",(f["id"],))}
-            if any(i not in valid for i in ids):c.close();return self.out({"error":"STARTER_NOT_ON_ROSTER"},400)
-            # A pitcher cannot be both in the starting rotation and a bullpen role.
-            strat=c.execute("SELECT bullpen_json FROM team_strategy WHERE franchise_id=?",(f["id"],)).fetchone()
-            if strat:
-                try:bp=json.loads(strat["bullpen_json"] or "{}")
-                except Exception:bp={}
-                starter_set=set(ids)
-                for k in ["CL","SU1","SU2"]:
-                    if bp.get(k) is not None and int(bp[k]) in starter_set:bp[k]=None
-                for k in ["MR","LR","EMERGENCY"]:
-                    bp[k]=[int(x) for x in bp.get(k,[]) if int(x) not in starter_set]
-                c.execute("UPDATE team_strategy SET bullpen_json=?,updated_at=CURRENT_TIMESTAMP WHERE franchise_id=?",(json.dumps(bp),f["id"]))
-            c.execute("UPDATE lineups SET rotation_json=? WHERE franchise_id=?",(json.dumps(ids),f["id"]));c.commit();c.close();return self.out({"ok":True,"rotation_size":len(ids)})
+            if any(i not in valid for i in ids):
+                c.close();return self.out({"error":"STARTER_NOT_ON_ROSTER"},400)
+
+            starter_set=set(ids)
+            bullpen_supplied="bullpen" in d
+            saved_bullpen=None
+
+            if bullpen_supplied:
+                raw=d.get("bullpen") or {}
+                try:
+                    def bp_one(v):
+                        return int(v) if v not in (None,"") else None
+                    def bp_many(v):
+                        out=[]
+                        for x in (v or []):
+                            pid=int(x)
+                            if pid not in out:out.append(pid)
+                        return out
+                    bp={
+                        "CL":bp_one(raw.get("CL")),
+                        "SU1":bp_one(raw.get("SU1")),
+                        "SU2":bp_one(raw.get("SU2")),
+                        "MR":bp_many(raw.get("MR")),
+                        "LR":bp_many(raw.get("LR")),
+                        "EMERGENCY":bp_many(raw.get("EMERGENCY"))
+                    }
+                except Exception:
+                    c.close();return self.out({"error":"INVALID_BULLPEN","detail":"Choose pitchers from the active pitching staff."},400)
+
+                primary=[bp[k] for k in ("CL","SU1","SU2") if bp.get(k) is not None]
+                if len(primary)!=len(set(primary)):
+                    c.close();return self.out({"error":"INVALID_BULLPEN","detail":"Closer, Setup 1, and Setup 2 must be different pitchers. MR, LR, and Emergency may overlap."},400)
+
+                all_bp=list(primary)
+                for k in ("MR","LR","EMERGENCY"):all_bp.extend(bp[k])
+                if any(pid not in valid for pid in all_bp):
+                    c.close();return self.out({"error":"INVALID_BULLPEN","detail":"Every bullpen assignment must be an active pitcher on this roster."},400)
+
+                # Rotation wins if a stale browser selection somehow contains the same arm.
+                # This keeps one-tap staff edits from failing while preserving the no-dual-role rule.
+                for k in ("CL","SU1","SU2"):
+                    if bp.get(k) in starter_set:bp[k]=None
+                for k in ("MR","LR","EMERGENCY"):
+                    bp[k]=[pid for pid in bp[k] if pid not in starter_set]
+
+                c.execute("UPDATE team_strategy SET bullpen_json=?,updated_at=CURRENT_TIMESTAMP WHERE franchise_id=?",
+                          (json.dumps(bp),f["id"]))
+                saved_bullpen=bp
+            else:
+                # Backward compatibility for older clients: keep the saved bullpen, but
+                # automatically remove anyone promoted into the new rotation.
+                strat=c.execute("SELECT bullpen_json FROM team_strategy WHERE franchise_id=?",(f["id"],)).fetchone()
+                if strat:
+                    try:bp=json.loads(strat["bullpen_json"] or "{}")
+                    except Exception:bp={}
+                    for k in ["CL","SU1","SU2"]:
+                        if bp.get(k) is not None and int(bp[k]) in starter_set:bp[k]=None
+                    for k in ["MR","LR","EMERGENCY"]:
+                        bp[k]=[int(x) for x in bp.get(k,[]) if int(x) not in starter_set]
+                    c.execute("UPDATE team_strategy SET bullpen_json=?,updated_at=CURRENT_TIMESTAMP WHERE franchise_id=?",
+                              (json.dumps(bp),f["id"]))
+                    saved_bullpen=bp
+
+            c.execute("UPDATE lineups SET rotation_json=? WHERE franchise_id=?",(json.dumps(ids),f["id"]))
+            c.commit();c.close()
+            return self.out({"ok":True,"rotation_size":len(ids),"bullpen":saved_bullpen})
         if p=="/api/team/practice":
             u=self.auth()
             if not u:return
