@@ -5141,6 +5141,7 @@ function renderBoxScore(){
 
     const hitters=GG.box?.hitter_rows || [];
     const pitchers=GG.box?.pitcher_rows || [];
+    const fielders=GG.box?.fielding_rows || [];
 
 
     function batting(teamId){
@@ -5219,6 +5220,38 @@ function renderBoxScore(){
     }
 
 
+    function fielding(teamId){
+        const rows=fielders.filter(x=>x.team_id===teamId);
+        if(!rows.length)return `<div class="card"><span class="muted">No fielding detail was stored for this game.</span></div>`;
+        return `
+            <div class="tablewrap">
+                <table>
+                    <tr>
+                        <th>FIELDER</th>
+                        <th>POS</th>
+                        <th>PO</th>
+                        <th>A</th>
+                        <th>E</th>
+                        <th>DP</th>
+                        <th>FLD%</th>
+                    </tr>
+                    ${rows.map(f=>`
+                        <tr>
+                            <td><button class="clickableName" onclick="openGamePlayer(${f.player_id},\'${teamId}\')">#${Number(f.jersey_number??24)} ${escapeHtml(f.name||'Player')}</button></td>
+                            <td>${escapeHtml(String(f.position||''))}</td>
+                            <td>${Number(f.PO||0)}</td>
+                            <td>${Number(f.A||0)}</td>
+                            <td>${Number(f.E||0)}</td>
+                            <td>${Number(f.DP||0)}</td>
+                            <td>${escapeHtml(String(f.FLD_PCT||'1.000'))}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>
+        `;
+    }
+
+
     document.getElementById('gameView').innerHTML=`
         <h3>Line Score</h3>
 
@@ -5268,6 +5301,12 @@ function renderBoxScore(){
 
         <h3 style="margin-top:18px">${home} Pitching</h3>
         ${pitching(GG.home_id)}
+
+        <h3 style="margin-top:18px">${away} Fielding</h3>
+        ${fielding(GG.away_id)}
+
+        <h3 style="margin-top:18px">${home} Fielding</h3>
+        ${fielding(GG.home_id)}
     `;
 }
 
@@ -5283,7 +5322,7 @@ async function openGamePlayer(playerId,teamId){
   alert('Player profile is not available.');
 }
 function gamecastPlayerById(pid){
- const rows=[...(GG?.box?.hitter_rows||[]),...(GG?.box?.pitcher_rows||[])];
+ const rows=[...(GG?.box?.hitter_rows||[]),...(GG?.box?.pitcher_rows||[]),...(GG?.box?.fielding_rows||[])];
  return rows.find(x=>Number(x.player_id)===Number(pid))||null;
 }
 function gamecastMatchupCard(p,label){
@@ -5340,7 +5379,7 @@ function renderGamecast(){
 
 function renderFullPlayByPlay(){
     const plays=(GG.events || [])
-        .map(e=>`<div class="play${gcStrategyClassRC53(e)}">${describe(e)}</div>`)
+        .map(e=>`<div class="play${gcStrategyClassRC53(e)}">${escapeHtml(describe(e))}</div>`)
         .reverse()
         .join('');
 
@@ -5397,6 +5436,8 @@ function step(){
  if(e.type==='PITCHING_CHANGE'){const p=gamecastPlayerById(e.pitcher_id);gcFlash(`Pitching change • ${teamMark(e.team,true)} ${p?`#${p.jersey_number??''} ${escapeHtml(p.name)}`:escapeHtml(e.role||'Reliever')} enters the game`,'change');gcStrategyDecisionRC53(e)}
  if(['DEFENSIVE_SHIFT','BUNT_ATTEMPT','STEAL_ATTEMPT'].includes(e.type))gcStrategyDecisionRC53(e);
  if(e.type==='GREAT_PLAY'){const p=gamecastPlayerById(e.fielder_id);gcFlash(`⭐ GREAT PLAY${p?` • #${p.jersey_number??''} ${escapeHtml(p.name)}`:''}`,'defense');gcBanner('GREAT PLAY',true)}
+ if(e.type==='FIELDING_ERROR'){const p=gamecastPlayerById(e.fielder_id);gcFlash(`ERROR${p?` • #${p.jersey_number??''} ${escapeHtml(p.name)}`:''}${e.position?` (${escapeHtml(e.position)})`:''}`,'defense');gcBanner('ERROR',true)}
+ if(e.type==='OUTFIELD_HOLD'){const p=gamecastPlayerById(e.fielder_id);gcFlash(`Strong throw${p?` • #${p.jersey_number??''} ${escapeHtml(p.name)}`:''} holds the batter to a single`,'defense')}
  if(e.type==='INNING_END'){GC_STATE.outs=0;GC_STATE.balls=0;GC_STATE.strikes=0;GC_STATE.runner=null;GC_STATE.base=0}
  if(e.type==='GAME_END'){gcFlash(`FINAL • ${teamName(GG.away_id)} ${GC_STATE.score[0]} — ${GC_STATE.score[1]} ${teamName(GG.home_id)}`,'run');gcBanner('FINAL',true)}
  gcUpdateScoreboard();
@@ -5422,7 +5463,49 @@ function gcStrategyClassRC53(e){
  return ['PITCHING_CHANGE','DEFENSIVE_SHIFT','BUNT_ATTEMPT','STEAL_ATTEMPT'].includes(e?.type)?' strategy':'';
 }
 
-function describe(e){switch(e.type){case'GAME_START':return`${e.away_name} at ${e.home_name}`;case'PA_START':{const b=gamecastPlayerById(e.batter_id),p=gamecastPlayerById(e.pitcher_id);return`${e.half} ${e.inning}: #${b?.jersey_number??'—'} ${e.batter} vs #${p?.jersey_number??'—'} ${e.pitcher}`;}case'PITCH':return`${e.pitch_type} ${e.velocity} MPH — ${e.call}`;case'BALL_IN_PLAY':return`${e.result}: ${e.exit_velocity} MPH, ${e.launch_angle}°`;case'PITCHING_CHANGE':{const p=gamecastPlayerById(e.pitcher_id);return`Pitching change: ${teamName(e.team)} brings in ${p?`#${p.jersey_number??'—'} ${p.name}`:(e.role||'reliever')} (${e.role||'RP'})`;}case'PINCH_HITTER':{const p=gamecastPlayerById(e.player_id),r=gamecastPlayerById(e.replaced_id);return`Pinch hitter: ${p?`#${p.jersey_number??'—'} ${p.name}`:'Bench bat'}${r?` for #${r.jersey_number??'—'} ${r.name}`:''}`;}case'PINCH_RUNNER':{const p=gamecastPlayerById(e.player_id),r=gamecastPlayerById(e.replaced_id);return`Pinch runner: ${p?`#${p.jersey_number??'—'} ${p.name}`:'Bench runner'}${r?` for #${r.jersey_number??'—'} ${r.name}`:''}`;}case'DEFENSIVE_SHIFT':return`${teamName(e.team)} uses ${e.mode.replaceAll('_',' ')} alignment`;case'STEAL_ATTEMPT':return`Steal attempt — ${e.success?'SAFE':'OUT'}`;case'PICKOFF':return`Runner picked off`; case'BUNT_ATTEMPT':return`Bunt attempt — ${e.success?'successful':'out recorded'}`;case'DEFENSIVE_REPLACEMENT_WINDOW':return`${teamName(e.team)} goes to late-inning defensive replacements`;case'OUT':return`${e.out_type} — ${e.outs} out(s)`;case'RUN':return`Run scores! ${e.score[0]}-${e.score[1]}`;case'PA_END':return`PA: ${e.result}`;case'INNING_END':return`End ${e.half} ${e.inning}`;case'GAME_END':return`FINAL ${e.final_score[0]}-${e.final_score[1]}`;default:return e.type}}
+function gcPlayerText(pid,pos=''){
+ const p=gamecastPlayerById(pid);
+ if(!p)return pos?`${pos}`:'fielder';
+ return `#${p.jersey_number??'—'} ${p.name}${pos?` (${pos})`:''}`;
+}
+function describe(e){
+ switch(e.type){
+  case'GAME_START':return`${e.away_name} at ${e.home_name}`;
+  case'PA_START':{const b=gamecastPlayerById(e.batter_id),p=gamecastPlayerById(e.pitcher_id);return`${e.half} ${e.inning}: #${b?.jersey_number??'—'} ${e.batter} vs #${p?.jersey_number??'—'} ${e.pitcher}`;}
+  case'PITCH':return`${e.pitch_type} ${e.velocity} MPH — ${e.call}`;
+  case'BALL_IN_PLAY':{
+    const f=e.fielder_id?` toward ${gcPlayerText(e.fielder_id,e.fielder_position||'')}`:'';
+    return`${e.result}: ${e.exit_velocity} MPH, ${e.launch_angle}°${f}`;
+  }
+  case'PITCHING_CHANGE':{const p=gamecastPlayerById(e.pitcher_id);return`Pitching change: ${teamName(e.team)} brings in ${p?`#${p.jersey_number??'—'} ${p.name}`:(e.role||'reliever')} (${e.role||'RP'})`;}
+  case'PINCH_HITTER':{const p=gamecastPlayerById(e.player_id),r=gamecastPlayerById(e.replaced_id);return`Pinch hitter: ${p?`#${p.jersey_number??'—'} ${p.name}`:'Bench bat'}${r?` for #${r.jersey_number??'—'} ${r.name}`:''}`;}
+  case'PINCH_RUNNER':{const p=gamecastPlayerById(e.player_id),r=gamecastPlayerById(e.replaced_id);return`Pinch runner: ${p?`#${p.jersey_number??'—'} ${p.name}`:'Bench runner'}${r?` for #${r.jersey_number??'—'} ${r.name}`:''}`;}
+  case'DEFENSIVE_SHIFT':return`${teamName(e.team)} uses ${String(e.mode||'STANDARD').replaceAll('_',' ')} alignment`;
+  case'STEAL_ATTEMPT':return`Steal attempt — ${e.success?'SAFE':'OUT'}`;
+  case'PICKOFF':return`Runner picked off`;
+  case'BUNT_ATTEMPT':return`Bunt attempt — ${e.success?'successful':'out recorded'}`;
+  case'DEFENSIVE_REPLACEMENT_WINDOW':return`${teamName(e.team)} goes to late-inning defensive replacements`;
+  case'GREAT_PLAY':return`Great play by ${gcPlayerText(e.fielder_id,e.position||'')} — ${e.out_type||'out'} recorded`;
+  case'FIELDING_ERROR':return`${gcPlayerText(e.fielder_id,e.position||'')} charged with a ${String(e.error_type||'field')}ing error`;
+  case'FIELDING_COLLISION':return`Defensive collision involving ${gcPlayerText(e.fielder_id,e.position||'')}`;
+  case'OUTFIELD_HOLD':return`${gcPlayerText(e.fielder_id,e.position||'')} uses the arm to hold the batter to a single`;
+  case'OUT':{
+    if(e.out_type==='Groundout'){
+      const a=(e.assist_ids||[])[0]||e.fielder_id;
+      if(a&&e.putout_id&&Number(a)!==Number(e.putout_id))return`Groundout: ${gcPlayerText(a,e.fielder_position||'')} to ${gcPlayerText(e.putout_id,'1B')} — ${e.outs} out(s)`;
+      if(e.putout_id)return`Groundout: ${gcPlayerText(e.putout_id,e.fielder_position||'1B')} unassisted — ${e.outs} out(s)`;
+    }
+    if((e.out_type==='Flyout'||e.out_type==='Lineout')&&e.putout_id)return`${e.out_type} to ${gcPlayerText(e.putout_id,e.fielder_position||'')} — ${e.outs} out(s)`;
+    return`${e.out_type} — ${e.outs} out(s)`;
+  }
+  case'RUN':return`Run scores! ${e.score[0]}-${e.score[1]}`;
+  case'PA_END':return`PA: ${e.result}`;
+  case'INNING_END':return`End ${e.half} ${e.inning}`;
+  case'GAME_END':return`FINAL ${e.final_score[0]}-${e.final_score[1]}`;
+  default:return e.type;
+ }
+}
+
 loadPolicies();
 (async()=>{if(!(await handleAccountAction()))await refresh()})();
 setInterval(()=>{if(ME){loadChat('EBL');loadChat('TEAM');loadNotifications()}},15000);
