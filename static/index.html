@@ -85,11 +85,6 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
  .gcArchiveWatch{padding-left:32px}
 }
 
-
-/* EBL positional fielding award readability */
-#fieldTitle>h3{margin:22px 0 8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)}
-#fieldTitle>h3:first-of-type{margin-top:14px}
-@media(max-width:560px){#fieldTitle .awardRaceDetail{line-height:1.45} #fieldTitle .race{align-items:flex-start}}
 </style><style>
 .profileHero{display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:center}
 .profileLogo{display:flex;justify-content:center;align-items:center}
@@ -692,7 +687,14 @@ dialog{
 .coachRecoveryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.coachRecoveryCard{display:grid;grid-template-columns:48px 1fr;gap:9px;align-items:center;padding:9px;border:1px solid var(--line);border-radius:10px}.coachRecoveryCard>div:last-child{display:flex;flex-direction:column}.coachRecoveryCard span{font-size:11px;color:var(--mut)}
 .coachRoleGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.coachRoleCard,.coachMultiRole{padding:11px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.02)}.coachRoleTop,.coachRolePlayer{display:flex;align-items:center;gap:9px}.coachRoleTop small{display:block;color:var(--mut);font-size:10px}.coachRolePlayer{margin:10px 0}.coachRoleCard select,.coachMultiRole select{width:100%}.coachMultiRoles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:9px}.coachMultiRole{display:flex;flex-direction:column;gap:5px}.coachMultiRole span{font-size:10px;color:var(--mut)}
 .coachStaffWarning{margin:10px 0;padding:10px;border:1px solid #7c4b24;background:#2a1c0c;color:#ffd28a;border-radius:9px;font-size:12px;font-weight:800}
-@media(max-width:720px){.coachPitchCard{grid-template-columns:42px 50px 1fr 52px}.coachPitchCard>select{grid-column:2/5}.coachPitchCard .coachOrderBtns{grid-column:4;grid-row:1}.coachPitchPortrait{width:48px;height:48px}.coachRecoveryGrid,.coachRoleGrid,.coachMultiRoles{grid-template-columns:1fr}}
+.coachPitchActions{grid-column:4/6;display:flex;flex-direction:column;gap:5px;align-items:stretch}
+.coachBullpenMove{border:1px solid rgba(212,175,55,.48);background:rgba(212,175,55,.08);color:var(--gold2,var(--gold));border-radius:7px;min-height:30px;padding:5px 8px;font-size:10px;font-weight:950;white-space:nowrap}
+.coachBullpenMove:hover{background:rgba(212,175,55,.15)}
+.coachBullpenMove:disabled{opacity:.35;cursor:not-allowed}
+.coachBullpenHelp{margin:9px 0 3px;padding:9px 10px;border:1px solid rgba(66,127,170,.42);background:rgba(24,72,103,.12);border-radius:9px;color:var(--mut);font-size:11px;line-height:1.45}
+.coachBullpenHelp b{color:var(--txt)}
+.coachMultiRole select option:disabled,.coachRoleCard select option:disabled{color:#697887}
+@media(max-width:720px){.coachPitchCard{grid-template-columns:42px 50px 1fr 52px}.coachPitchCard>select{grid-column:2/5}.coachPitchCard .coachOrderBtns{grid-column:4;grid-row:1}.coachPitchActions{grid-column:2/5;grid-row:auto;flex-direction:row}.coachBullpenMove{width:100%}.coachPitchPortrait{width:48px;height:48px}.coachRecoveryGrid,.coachRoleGrid,.coachMultiRoles{grid-template-columns:1fr}}
 </style>
 
 
@@ -2355,9 +2357,9 @@ function hitterStats(p){
  let s=p.season||{},ab=s.AB||0,pa=s.PA||0,h=s.H||0,bb=s.BB||0,tb=(s['1B']||0)+2*(s['2B']||0)+3*(s['3B']||0)+4*(s.HR||0);
  let avg=ab?h/ab:0,obp=pa?(h+bb)/pa:0,slg=ab?tb/ab:0;
  return [{id:'bat',title:'BATTING',stats:[['G',s.G||0],['PA',pa],['AB',ab],['H',h],['AVG',fmt3(avg)],['OBP',fmt3(obp)],['SLG',fmt3(slg)],['HR',s.HR||0],['2B',s['2B']||0],['3B',s['3B']||0],['BB',bb],['SO',s.SO||0],['R',s.R||0],['RBI',s.RBI||0]]},
- {id:'fld',title:'FIELDING',stats:[['G',s.FG||0],['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'—'],['OAA',s.OAA||0]]},
+ {id:'fld',title:'FIELDING',stats:[['G',s.FG||0],['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'1.000'],['OAA',s.OAA||0]]},
  {id:'run',title:'BASERUNNING',stats:[['SB',s.SB||0],['CS',s.CS||0],['SB%',(s.SB||s.CS)?((s.SB||0)/((s.SB||0)+(s.CS||0))*100).toFixed(1)+'%':'0.0%'],['XBT',s.XBT||0],['OOB',s.OOB||0],['BsR',s.BSR||'0.0']]}]}
-function pitcherStats(p){let s=p.season||{},outs=s.OUTS||0,ip=(outs/3).toFixed(1),era=outs?(s.ER||0)*27/outs:0,whip=outs?((s.H||0)+(s.BB||0))/(outs/3):0;return [{id:'pit',title:'PITCHING',stats:[['G',s.G||0],['GS',s.GS||0],['IP',ip],['W',s.W||0],['L',s.L||0],['SV',s.SV||0],['H',s.H||0],['ER',s.ER||0],['BB',s.BB||0],['SO',s.SO||0],['ERA',era.toFixed(2)],['WHIP',whip.toFixed(2)]]},{id:'pfld',title:'FIELDING',stats:[['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'—']]}]}
+function pitcherStats(p){let s=p.season||{},outs=s.OUTS||0,ip=(outs/3).toFixed(1),era=outs?(s.ER||0)*27/outs:0,whip=outs?((s.H||0)+(s.BB||0))/(outs/3):0;return [{id:'pit',title:'PITCHING',stats:[['G',s.G||0],['GS',s.GS||0],['IP',ip],['W',s.W||0],['L',s.L||0],['SV',s.SV||0],['H',s.H||0],['ER',s.ER||0],['BB',s.BB||0],['SO',s.SO||0],['ERA',era.toFixed(2)],['WHIP',whip.toFixed(2)]]},{id:'pfld',title:'FIELDING',stats:[['PO',s.PO||0],['A',s.A||0],['E',s.E||0],['DP',s.DP||0],['FLD%',s.FLD_PCT||'1.000']]}]}
 function careerIP(outs){outs=Number(outs||0);return `${Math.floor(outs/3)}.${outs%3}`}
 function careerLine(row,type){
  const s=row?.stats||{},r=row?.rates||{};
@@ -3754,7 +3756,7 @@ async function loadAwards(){
  batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`${teamRef(x)} • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
  pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`${teamRef(x)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`${teamRef(x)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
  sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`${teamRef(x)} • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
- fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p><p class="muted">Position-specific race • minimum ${j.fielding_meta?.min_games||1} fielding game${(j.fielding_meta?.min_games||1)===1?'':'s'} to qualify at the current point of the season.</p>`+Object.entries(j.fielding||{}).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`${teamRef(x)} • ${x.fg||0} G • ${x.ch||0} CH • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.dp||0} DP • ${x.fld_pct||'—'} FLD${x.fielding_qualified===false?' • PROVISIONAL':''}`)}`).join('');
+ fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding).map(([pos,rows])=>`<h3>${pos}</h3>${raceList(rows,x=>`${teamRef(x)} • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
  if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>`<div class="recordCard"><b>${a.award_name}</b> — ${leaguePlayerName(a)} <span class="gold">+${a.xp_awarded} XP</span><div class="muted">Season ${a.season} • ${String(a.period).replaceAll('_',' ')}</div></div>`).join('')}`}
 }
 
@@ -4352,6 +4354,7 @@ async function loadCoachHub(){
     <div class="coachSection"><h3>Pitcher Recovery</h3><div class="coachRecoveryGrid">${P.map(p=>coachRecoveryCardRC49(p)).join('')}</div></div>
 
     <h3 class="coachSection depthHeading">Bullpen Roles</h3>
+    <div class="coachBullpenHelp"><b>Moving a starter is now one tap.</b> Use <b>Move to Bullpen</b> on a rotation card and EBL will remove him from the rotation, compact the rotation, and place him in Middle Relief. CL, SU1, and SU2 are unique primary jobs. Middle Relief, Long Relief, and Emergency are usage pools and can overlap.</div>
     <div class="coachRoleGrid">
       ${coachSingleRoleRC49('CL','Closer','9th inning',bp.CL,P)}
       ${coachSingleRoleRC49('SU1','Setup 1','Primary setup',bp.SU1,P)}
@@ -4429,6 +4432,7 @@ async function loadCoachHub(){
    </div>
    </div>`;
  if(window.brandPreview){updateBrandPreview();['brandName','brandLogo','brandPrimary','brandSecondary','brandAccent'].forEach(id=>document.querySelector('#'+id)?.addEventListener('input',updateBrandPreview));}
+ setTimeout(()=>{try{refreshPitchStaffRC49()}catch(e){}},0);
  }catch(e){coachHub.innerHTML=`<p class="red">${e.error||'Could not load coach interface'}</p>`}
 }
 async function buyFranchiseUpgrade(kind){try{const j=await api('/api/coach/franchise-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} upgraded to Level ${j.level}. +5 XP/year permanently.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Upgrade failed'))}}
@@ -4449,8 +4453,9 @@ function coachPitchCardRC49(i,id,P){
    <div class="coachPitchTag">SP${i+1}</div>
    <div class="coachPitchPortrait">${p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):''}</div>
    <div class="coachPitchInfo"><b>${escapeHtml(p.name||'Select Starter')}</b><span>${p.id?coachPitchMetaRC49(p):'Rotation slot open'}</span><div class="coachReadiness"><i style="width:${Math.max(0,Math.min(100,Number(r.readiness??100)))}%"></i></div></div>
-   <select id="rot${i}" onchange="refreshPitchStaffRC49()">${i>=3?'<option value="">— Bullpen —</option>':''}${playerOptions(P,id)}</select>
+   <select id="rot${i}" onchange="refreshPitchStaffRC49()">${i>=3?'<option value="">— Open rotation slot —</option>':''}${playerOptions(P,id)}</select>
    <div class="coachOrderBtns"><button type="button" class="coachMove" onclick="moveStarterRC49(${i},-1)" ${i===0?'disabled':''}>▲</button><button type="button" class="coachMove" onclick="moveStarterRC49(${i},1)" ${i===4?'disabled':''}>▼</button></div>
+   <div class="coachPitchActions">${p.id?`<button type="button" class="coachBullpenMove" onclick="moveStarterToBullpenRC80(${i})">Move to Bullpen</button>`:''}</div>
  </div>`;
 }
 function coachRecoveryCardRC49(p={}){
@@ -4464,13 +4469,60 @@ function coachSingleRoleRC49(id,label,desc,value,P){
 function moveStarterRC49(i,dir){
  const j=i+dir;if(j<0||j>4)return;const a=document.querySelector('#rot'+i),b=document.querySelector('#rot'+j);if(!a||!b)return;const t=a.value;a.value=b.value;b.value=t;refreshPitchStaffRC49();
 }
+function bullpenSelectsRC80(){
+ return ['bpCL','bpSU1','bpSU2','bpMR','bpLR','bpEmergency'].map(id=>document.getElementById(id)).filter(Boolean);
+}
+function selectedRotationRC80(){
+ return [...Array(5)].map((_,i)=>Number(document.getElementById('rot'+i)?.value||0)).filter(Boolean);
+}
+function syncBullpenEligibilityRC80(){
+ const starterSet=new Set(selectedRotationRC80());
+ bullpenSelectsRC80().forEach(sel=>{
+   [...sel.options].forEach(opt=>{
+     const pid=Number(opt.value||0);
+     if(!pid)return;
+     const isStarter=starterSet.has(pid);
+     opt.disabled=isStarter;
+     if(isStarter&&opt.selected)opt.selected=false;
+   });
+ });
+}
+function addPitcherToMultiRC80(id,pid){
+ const sel=document.getElementById(id);if(!sel)return;
+ const opt=[...sel.options].find(o=>Number(o.value)===Number(pid));
+ if(opt){opt.disabled=false;opt.selected=true;}
+}
+function removePitcherFromBullpenRC80(pid){
+ ['bpCL','bpSU1','bpSU2'].forEach(id=>{const el=document.getElementById(id);if(el&&Number(el.value)===Number(pid))el.value='';});
+ ['bpMR','bpLR','bpEmergency'].forEach(id=>{const el=document.getElementById(id);if(el)[...el.options].forEach(o=>{if(Number(o.value)===Number(pid))o.selected=false;});});
+}
+function moveStarterToBullpenRC80(i){
+ const slots=[...Array(5)].map((_,n)=>document.getElementById('rot'+n));
+ const pid=Number(slots[i]?.value||0);if(!pid)return;
+ const current=slots.map(x=>Number(x?.value||0)).filter(Boolean);
+ if(current.length<=3){alert('EBL requires at least 3 starting pitchers. Add another starter before moving this one to the bullpen.');return;}
+ const P=window.__EBL_COACH_PITCHERS||[],p=P.find(x=>Number(x.id)===pid)||{};
+ removePitcherFromBullpenRC80(pid);
+ const remaining=current.filter(x=>x!==pid);
+ slots.forEach((sel,n)=>{if(sel)sel.value=remaining[n]?String(remaining[n]):'';});
+ syncBullpenEligibilityRC80();
+ addPitcherToMultiRC80('bpMR',pid);
+ addPitcherToMultiRC80('bpEmergency',pid);
+ refreshPitchStaffRC49();
+ const mr=document.getElementById('bpMR');if(mr)mr.closest('.coachMultiRole')?.scrollIntoView({behavior:'smooth',block:'center'});
+ const warning=document.getElementById('coachPitchWarningRC49');
+ if(warning){warning.classList.remove('hidden');warning.textContent=`${p.name||'Pitcher'} moved out of the rotation and into Middle Relief. He is also available for Emergency duty. Save Pitching Staff when you are ready.`;}
+}
 function refreshPitchStaffRC49(){
  const P=window.__EBL_COACH_PITCHERS||[];
+ syncBullpenEligibilityRC80();
+ const rotationCount=selectedRotationRC80().length;
  document.querySelectorAll('.coachPitchCard').forEach((card,i)=>{
    const id=Number(document.querySelector('#rot'+i)?.value||0),p=P.find(x=>Number(x.id)===id)||{},r=p.recovery||{readiness:100,fatigue:0};
-   const portrait=card.querySelector('.coachPitchPortrait'),info=card.querySelector('.coachPitchInfo');
+   const portrait=card.querySelector('.coachPitchPortrait'),info=card.querySelector('.coachPitchInfo'),action=card.querySelector('.coachPitchActions');
    if(portrait)portrait.innerHTML=p.id&&typeof eblPublicPortraitV28==='function'?eblPublicPortraitV28(p,'sm'):'';
    if(info)info.innerHTML=`<b>${escapeHtml(p.name||'Select Starter')}</b><span>${p.id?coachPitchMetaRC49(p):'Rotation slot open'}</span><div class="coachReadiness"><i style="width:${Math.max(0,Math.min(100,Number(r.readiness??100)))}%"></i></div>`;
+   if(action)action.innerHTML=p.id?`<button type="button" class="coachBullpenMove" onclick="moveStarterToBullpenRC80(${i})" ${rotationCount<=3?'disabled title="Minimum 3 starters"':''}>Move to Bullpen</button>`:'';
  });
  document.querySelectorAll('.coachRoleCard').forEach(card=>{
    const role=card.dataset.role,id=Number(document.querySelector('#bp'+role)?.value||0),p=P.find(x=>Number(x.id)===id)||{};
@@ -4480,7 +4532,8 @@ function refreshPitchStaffRC49(){
  });
  const primary=['CL','SU1','SU2'].map(r=>Number(document.querySelector('#bp'+r)?.value||0)).filter(Boolean);
  const warning=document.querySelector('#coachPitchWarningRC49'),dup=primary.length!==new Set(primary).size;
- if(warning){warning.classList.toggle('hidden',!dup);warning.textContent=dup?'A pitcher is assigned to more than one primary late-inning role. Give CL, SU1, and SU2 unique pitchers for a clear bullpen hierarchy.':'';}
+ if(warning&&dup){warning.classList.remove('hidden');warning.textContent='Closer, Setup 1, and Setup 2 must be three different pitchers. Middle Relief, Long Relief, and Emergency may overlap.';}
+ else if(warning&&!warning.textContent?.includes('moved out of the rotation')){warning.classList.add('hidden');warning.textContent='';}
 }
 
 
@@ -4633,18 +4686,19 @@ async function saveCoachLineup(){
 }
 function multiVals(id){return [...document.querySelector('#'+id).selectedOptions].map(x=>+x.value)}
 async function savePitchingStaff(){
- let rotation=[...Array(5)].map((_,i)=>document.querySelector('#rot'+i).value).filter(Boolean).map(Number);
+ let rotation=selectedRotationRC80();
  if(rotation.length<3||rotation.length>5||new Set(rotation).size!==rotation.length){alert('Choose 3–5 unique starting pitchers.');return}
+ const starterSet=new Set(rotation);
+ const cleanOne=id=>{const v=valOrNull(id);return v&&!starterSet.has(v)?v:null};
+ const cleanMany=id=>[...new Set(multiVals(id).filter(v=>!starterSet.has(v)))];
+ let bullpen={CL:cleanOne('bpCL'),SU1:cleanOne('bpSU1'),SU2:cleanOne('bpSU2'),MR:cleanMany('bpMR'),LR:cleanMany('bpLR'),EMERGENCY:cleanMany('bpEmergency')};
+ const prim=[bullpen.CL,bullpen.SU1,bullpen.SU2].filter(Boolean);
+ if(prim.length!==new Set(prim).size){alert('Closer, Setup 1, and Setup 2 must be different pitchers. Middle Relief, Long Relief, and Emergency may overlap.');return;}
  try{
-  await api('/api/coach/set-rotation',{method:'POST',body:JSON.stringify({rotation})});
-  const starterSet=new Set(rotation);
-  const cleanOne=id=>{const v=valOrNull(id);return v&&!starterSet.has(v)?v:null};
-  const cleanMany=id=>multiVals(id).filter(v=>!starterSet.has(v));
-  let bullpen={CL:cleanOne('bpCL'),SU1:cleanOne('bpSU1'),SU2:cleanOne('bpSU2'),MR:cleanMany('bpMR'),LR:cleanMany('bpLR'),EMERGENCY:cleanMany('bpEmergency')};
-  let j=await api('/api/coach/team');await api('/api/coach/set-strategy',{method:'POST',body:JSON.stringify({bullpen,defense:currentDefense(),bench:j.strategy.bench||{},substitutions:j.strategy.substitutions||{}})});
+  await api('/api/coach/set-rotation',{method:'POST',body:JSON.stringify({rotation,bullpen})});
   alert(`${rotation.length}-man rotation and bullpen saved.`);
   await loadCoachHub();
- }catch(e){alert(e.detail||e.error)}
+ }catch(e){alert(e.detail||e.error||'Could not save pitching staff.')}
 }
 function valOrNull(id){let v=document.querySelector('#'+id).value;return v?+v:null}
 function currentDefense(){return {default_shift:defDefault.value,vs_lhb:defL.value,vs_rhb:defR.value,corners_in:cornersIn.checked,infield_in:infieldIn.checked}}
@@ -5654,7 +5708,7 @@ setInterval(()=>{if(ME){loadChat('EBL');loadChat('TEAM');loadNotifications()}},1
     batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+raceList(j.batting,x=>`${awardTeamRef(x.team)} • AVG ${x.avg.toFixed(3)} • OBP ${x.obp.toFixed(3)}`);
     pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>`${awardTeamRef(x.team)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K`)}<h3 style="margin-top:18px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>`${awardTeamRef(x.team)} • ERA ${x.era.toFixed(2)} • WHIP ${x.whip.toFixed(2)} • ${x.so} K • ${x.sv||0} SV`)}`;
     sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+raceList(j.stolen_bases,x=>`${awardTeamRef(x.team)} • ${x.sb} SB • OBP ${x.obp.toFixed(3)}`);
-    fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p><p class="muted">Position-specific race • minimum ${j.fielding_meta?.min_games||1} fielding game${(j.fielding_meta?.min_games||1)===1?'':'s'} to qualify at the current point of the season.</p>`+Object.entries(j.fielding||{}).map(([pos,rows])=>`<h3>${esc(pos)}</h3>${raceList(rows,x=>`${awardTeamRef(x.team)} • ${x.fg||0} G • ${x.ch||0} CH • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.dp||0} DP • ${x.fld_pct||'—'} FLD${x.fielding_qualified===false?' • PROVISIONAL':''}`)}`).join('');
+    fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+Object.entries(j.fielding||{}).map(([pos,rows])=>`<h3>${esc(pos)}</h3>${raceList(rows,x=>`${awardTeamRef(x.team)} • OAA ${Number(x.oaa||0).toFixed(2)} • ${x.e||0} E • ${x.fld_pct||'1.000'} FLD`)}`).join('');
     if(j.history?.length){fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>{const identity={...a,id:a.player_id,name:a.player_name,franchise_id:a.franchise_id||a.team};return `<div class="recordCard awardHistoryIdentityV58"><div>${typeof eblAvatarEverywhereRC39==='function'?eblAvatarEverywhereRC39(identity,{size:'sm'}):memberLink(identity,a.player_name||'Player')}</div><div><b>${esc(a.award_name)}</b> <span class="gold">+${a.xp_awarded} XP</span><div class="muted">${awardTeamRef(a.franchise_id||a.team)} • Season ${a.season} • ${esc(String(a.period).replaceAll('_',' '))}</div></div></div>`}).join('')}`;}
   };
 
@@ -8886,5 +8940,197 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
       version:'V62'
     });
   };
+})();
+</script>
+
+<style id="eblAwardsSpacingV78">
+/* V78 — dedicated award-race geometry. Player, club and stats each get their own lane. */
+#awards .subpane{min-width:0}
+#awards .awardRaceRowV78{
+  display:grid;
+  grid-template-columns:28px 52px minmax(0,1fr);
+  gap:11px;
+  align-items:center;
+  padding:11px 10px;
+  margin:7px 0;
+  border:1px solid rgba(117,151,184,.17);
+  border-radius:12px;
+  background:linear-gradient(135deg,rgba(12,39,63,.72),rgba(5,21,36,.46));
+}
+#awards .awardRaceRankV78{
+  align-self:start;
+  padding-top:5px;
+  color:var(--gold2,var(--gold));
+  font-size:1.02rem;
+  font-weight:950;
+  text-align:center;
+}
+#awards .awardRacePortraitV78{
+  width:52px;
+  height:60px;
+  overflow:hidden;
+  border-radius:10px;
+  border:1px solid rgba(117,151,184,.2);
+  background:rgba(4,18,31,.55);
+}
+#awards .awardRacePortraitV78 .eblPlayerArtV24--sm{
+  width:52px!important;
+  height:60px!important;
+  border:0!important;
+  border-radius:10px!important;
+}
+#awards .awardRaceBodyV78{min-width:0}
+#awards .awardRaceHeadV78{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  min-width:0;
+  margin-bottom:4px;
+}
+#awards .awardRacePlayerV78{
+  min-width:0;
+  font-size:1rem;
+  line-height:1.15;
+  font-weight:900;
+}
+#awards .awardRacePlayerV78 .clickableName{
+  display:inline;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.15;
+}
+#awards .awardRaceTrophyV78{
+  flex:0 0 auto;
+  font-size:16px;
+  line-height:1;
+}
+#awards .awardRaceDetailV78{
+  display:grid;
+  gap:4px;
+  min-width:0;
+  font-size:.84rem;
+  line-height:1.3;
+}
+#awards .awardRaceMetaV78{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:5px;
+  min-width:0;
+}
+#awards .awardRacePosV78{
+  display:inline-flex;
+  align-items:center;
+  min-height:21px;
+  padding:2px 6px;
+  border-radius:999px;
+  border:1px solid rgba(212,175,55,.32);
+  color:var(--gold2,var(--gold));
+  background:rgba(212,175,55,.06);
+  font-size:.72rem;
+  font-weight:900;
+}
+#awards .awardRaceMetaV78 .awardTeamInline{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+  max-width:100%;
+}
+#awards .awardRaceMetaV78 .awardTeamInline .teamMark{
+  width:20px!important;
+  height:20px!important;
+  flex:0 0 20px!important;
+}
+#awards .awardRaceMetaV78 .awardTeamInline .teamLink{
+  min-width:0;
+  white-space:normal;
+  text-align:left;
+  overflow-wrap:anywhere;
+  line-height:1.2;
+}
+#awards .awardRaceStatsV78{
+  color:var(--mut);
+  overflow-wrap:anywhere;
+}
+#awards .awardFieldGroupV78{
+  margin:14px 0 18px;
+  padding:12px;
+  border:1px solid rgba(117,151,184,.17);
+  border-radius:14px;
+  background:rgba(5,21,36,.34);
+}
+#awards .awardFieldGroupV78>h3{
+  margin:0 0 8px;
+  color:var(--gold2,var(--gold));
+  font-size:1rem;
+  letter-spacing:.04em;
+}
+@media(max-width:560px){
+  #awards .awardRaceRowV78{grid-template-columns:24px 46px minmax(0,1fr);gap:8px;padding:9px 7px;margin:6px 0}
+  #awards .awardRacePortraitV78{width:46px;height:54px}
+  #awards .awardRacePortraitV78 .eblPlayerArtV24--sm{width:46px!important;height:54px!important}
+  #awards .awardRacePlayerV78{font-size:.95rem}
+  #awards .awardRaceDetailV78{font-size:.79rem;gap:3px}
+  #awards .awardRaceTrophyV78{font-size:15px}
+  #awards .awardFieldGroupV78{padding:9px;margin:11px 0 14px}
+}
+</style>
+
+<script id="eblAwardsSpacingV78Js">
+(function(){
+  const esc78=v=>typeof escapeHtml==='function'?escapeHtml(String(v??'')):String(v??'');
+  const playerLink78=x=>{
+    if(typeof leaguePlayerName==='function') return leaguePlayerName(x);
+    return esc78(x?.name||x?.player_name||'Player');
+  };
+  const portrait78=x=>{
+    try{
+      if(typeof eblPublicPortraitV28==='function') return eblPublicPortraitV28(x,'sm');
+      if(typeof eblPlayerArtV24==='function') return eblPlayerArtV24(x,'sm','portrait');
+    }catch(_){ }
+    return '';
+  };
+  const team78=(x)=>{
+    const fid=x?.team||x?.franchise_id||'';
+    const label=x?.team_display_name||x?.team_name||'';
+    return typeof awardTeamRef==='function'?awardTeamRef(fid,label):esc78(label||fid);
+  };
+  const detail78=(x,statsHtml,pos='')=>`<div class="awardRaceDetailV78"><div class="awardRaceMetaV78">${pos?`<span class="awardRacePosV78">${esc78(pos)}</span>`:''}${team78(x)}</div><div class="awardRaceStatsV78">${statsHtml}</div></div>`;
+
+  window.raceList=function(rows,detail){
+    const safe=Array.isArray(rows)?rows:[];
+    if(!safe.length) return '<p class="muted">Race begins on Opening Day.</p>';
+    return safe.map((x,i)=>`<div class="awardRaceRowV78"><span class="awardRaceRankV78">${i+1}</span><div class="awardRacePortraitV78">${portrait78(x)}</div><div class="awardRaceBodyV78"><div class="awardRaceHeadV78"><div class="awardRacePlayerV78">${playerLink78(x)}</div>${i<3?'<span class="awardRaceTrophyV78" aria-label="Top three">🏆</span>':''}</div>${detail(x)}</div></div>`).join('');
+  };
+
+  window.loadAwards=async function(){
+    const [j]=await Promise.all([
+      api('/api/awards'),
+      typeof loadPublicDirectory==='function'?loadPublicDirectory():Promise.resolve()
+    ]);
+    const xp=j.xp_values||{};
+
+    mvpPane.innerHTML=`<p class="gold">MVP winner: +${xp.MVP||15} XP</p>`+
+      raceList(j.mvp||[],x=>detail78(x,`OPS ${Number(x.ops||0).toFixed(3)} &nbsp;•&nbsp; ${Number(x.hr||0)} HR`,x.pos||''));
+
+    batTitle.innerHTML=`<p class="gold">Batting Title: +${xp.BATTING_TITLE||10} XP</p>`+
+      raceList(j.batting||[],x=>detail78(x,`AVG ${Number(x.avg||0).toFixed(3)} &nbsp;•&nbsp; OBP ${Number(x.obp||0).toFixed(3)}`));
+
+    pitchTitle.innerHTML=`<h3>Pitcher of the Season</h3><p class="muted">Eligibility: starting pitchers (SP) only.</p><p class="gold">Winner: +${xp.PITCHER_OF_SEASON||15} XP</p>${raceList(j.starting_pitching||[],x=>detail78(x,`ERA ${Number(x.era||0).toFixed(2)} &nbsp;•&nbsp; WHIP ${Number(x.whip||0).toFixed(2)} &nbsp;•&nbsp; ${Number(x.so||0)} K`,'SP'))}<h3 style="margin-top:22px">Reliever of the Season</h3><p class="muted">Eligibility: relief pitchers only (RP, MR, LR, SU and CL bullpen roles).</p><p class="gold">Winner: +${xp.RELIEVER_OF_SEASON||10} XP</p>${raceList(j.relief_pitching||[],x=>detail78(x,`ERA ${Number(x.era||0).toFixed(2)} &nbsp;•&nbsp; WHIP ${Number(x.whip||0).toFixed(2)} &nbsp;•&nbsp; ${Number(x.so||0)} K &nbsp;•&nbsp; ${Number(x.sv||0)} SV`,x.pos||'RP'))}`;
+
+    sbTitle.innerHTML=`<p class="gold">Stolen Base Title: +${xp.SB_TITLE||10} XP</p>`+
+      raceList(j.stolen_bases||[],x=>detail78(x,`${Number(x.sb||0)} SB &nbsp;•&nbsp; OBP ${Number(x.obp||0).toFixed(3)}`,x.pos||''));
+
+    fieldTitle.innerHTML=`<p class="gold">Each positional Fielding Title: +${xp.FIELDING||10} XP</p>`+
+      Object.entries(j.fielding||{}).map(([pos,rows])=>`<section class="awardFieldGroupV78"><h3>${esc78(pos)} Fielding</h3>${raceList(rows||[],x=>detail78(x,`OAA ${Number(x.oaa||0).toFixed(2)} &nbsp;•&nbsp; ${Number(x.e||0)} E &nbsp;•&nbsp; ${x.fld_pct||'1.000'} FLD`,pos))}</section>`).join('');
+
+    if(j.history?.length){
+      fieldTitle.innerHTML+=`<h2 style="margin-top:20px">Award History</h2>${j.history.slice(0,30).map(a=>{const identity={...a,id:a.player_id,name:a.player_name,franchise_id:a.franchise_id||a.team};return `<div class="recordCard awardHistoryIdentityV58"><div>${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(identity,'sm','portrait'):playerLink78(identity)}</div><div><b>${esc78(a.award_name)}</b> <span class="gold">+${a.xp_awarded} XP</span><div class="muted">${team78(identity)} • Season ${a.season} • ${esc78(String(a.period).replaceAll('_',' '))}</div></div></div>`}).join('')}`;
+    }
+  };
+
+  window.EBL_AWARDS_SPACING_V78=Object.freeze({version:'V78',layout:'rank + portrait + player header + separate club/stat lines',fielding:'position cards',mobile:true});
 })();
 </script>
