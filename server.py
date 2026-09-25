@@ -1198,6 +1198,40 @@ def process_quarter_awards(c,season,end_day):
         if award_player(c,season,period,"QUARTER_PITCHER","Quarter-Season Pitcher",pid,5,{"days":[start_day,end_day]}):winners.append(pid)
     return winners
 
+def fielding_award_metrics(st):
+    fg=int(st.get("FG",0) or 0)
+    po=int(st.get("PO",0) or 0)
+    assists=int(st.get("A",0) or 0)
+    errors=int(st.get("E",0) or 0)
+    dp=int(st.get("DP",0) or 0)
+    chances=po+assists+errors
+    fld_pct=((po+assists)/chances) if chances else None
+    oaa=float(st.get("OAA",0) or 0)
+    score=(
+        oaa*4.0
+        + ((fld_pct-.900)*12.0 if fld_pct is not None else 0.0)
+        - errors*.35
+        + dp*.08
+        + min(chances,300)*.002
+    )
+    return {
+        "fg":fg,"po":po,"a":assists,"e":errors,"dp":dp,"ch":chances,
+        "fld_pct":fld_pct,"oaa":oaa,"fielding_score":round(score,4)
+    }
+
+def fielding_award_min_games(team_games):
+    return max(1,int((max(1,int(team_games))+1)*.5))
+
+def fielding_award_sort_key(x):
+    return (
+        float(x.get("fielding_score",0) or 0),
+        float(x.get("oaa",0) or 0),
+        float(x.get("fld_pct_num",-1) if x.get("fld_pct_num") is not None else -1),
+        -int(x.get("e",0) or 0),
+        int(x.get("dp",0) or 0),
+        int(x.get("ch",0) or 0)
+    )
+
 def process_season_awards(c,season):
     period="REGULAR_SEASON"
     if c.execute("SELECT 1 FROM award_history WHERE season=? AND period=? LIMIT 1",(season,period)).fetchone():return []
@@ -1207,7 +1241,10 @@ def process_season_awards(c,season):
         if "PA" in st:
             ab=st.get("AB",0);h=st.get("H",0);bb=st.get("BB",0);pa=st.get("PA",0);tb=st.get("1B",0)+2*st.get("2B",0)+3*st.get("3B",0)+4*st.get("HR",0)
             avg=h/ab if ab else 0;obp=(h+bb)/pa if pa else 0;slg=tb/ab if ab else 0
-            hitters.append({"id":r["id"],"pos":r["primary_pos"],"avg":avg,"ops":obp+slg,"pa":pa,"hr":st.get("HR",0),"rbi":st.get("RBI",0),"sb":st.get("SB",0),"oaa":float(st.get("OAA",0) or 0),"e":int(st.get("E",0) or 0),"attrs":json.loads(r["attributes_json"] or "{}")})
+            fm=fielding_award_metrics(st)
+            hitters.append({"id":r["id"],"pos":r["primary_pos"],"avg":avg,"ops":obp+slg,"pa":pa,"hr":st.get("HR",0),"rbi":st.get("RBI",0),"sb":st.get("SB",0),
+                            "oaa":fm["oaa"],"e":fm["e"],"fg":fm["fg"],"po":fm["po"],"a":fm["a"],"dp":fm["dp"],"ch":fm["ch"],
+                            "fld_pct_num":fm["fld_pct"],"fielding_score":fm["fielding_score"],"attrs":json.loads(r["attributes_json"] or "{}")})
         else:
             outs=st.get("OUTS",0);er=st.get("ER",0);bb=st.get("BB",0);hh=st.get("H",0);so=st.get("SO",0)
             score=so*1.2-er*2.2-bb*.7+(outs/3)*.3
@@ -1222,11 +1259,17 @@ def process_season_awards(c,season):
         if award_player(c,season,period,"BATTING_TITLE","Batting Title",b["id"],10):made.append("BATTING_TITLE")
         sb=max(hitters,key=lambda x:(x["sb"],x["ops"]))
         if award_player(c,season,period,"SB_TITLE","Stolen Base Title",sb["id"],10):made.append("SB_TITLE")
+        field_min_games=fielding_award_min_games(81)
         for pos in ["C","1B","2B","3B","SS","LF","CF","RF"]:
-            pool=[x for x in hitters if x["pos"]==pos]
+            pool=[x for x in hitters if x["pos"]==pos and x.get("fg",0)>=field_min_games]
+            if not pool:
+                pool=[x for x in hitters if x["pos"]==pos and x.get("fg",0)>0]
             if pool:
-                f=max(pool,key=lambda x:(x.get("oaa",0),-x.get("e",0),x["pa"]))
-                if award_player(c,season,period,f"FIELD_{pos}",f"{pos} Fielding Title",f["id"],10):made.append(f"FIELD_{pos}")
+                f=max(pool,key=fielding_award_sort_key)
+                if award_player(c,season,period,f"FIELD_{pos}",f"{pos} Fielding Title",f["id"],10,{
+                    "FG":f.get("fg",0),"CH":f.get("ch",0),"PO":f.get("po",0),"A":f.get("a",0),"E":f.get("e",0),
+                    "DP":f.get("dp",0),"OAA":f.get("oaa",0),"FLD_PCT":f.get("fld_pct_num"),"FIELDING_SCORE":f.get("fielding_score",0)
+                }):made.append(f"FIELD_{pos}")
     # End-of-season pitching awards have position-specific eligibility.
     # SPs compete only for Pitcher of the Season; RPs compete only for Reliever of the Season.
     starters=[x for x in pitchers if x["pos"]=="SP" and x["outs"]>0]
@@ -3513,7 +3556,7 @@ def simulate_game(c,g):
                 fp["season"][k]=fp["season"].get(k,0)+fline.get(k,0)
             fp["season"]["OAA"]=round(float(fp["season"].get("OAA",0) or 0)+float(fline.get("OAA",0) or 0),2)
             chances=fp["season"].get("PO",0)+fp["season"].get("A",0)+fp["season"].get("E",0)
-            fp["season"]["FLD_PCT"]=f"{((fp['season'].get('PO',0)+fp['season'].get('A',0))/chances if chances else 1.0):.3f}"
+            fp["season"]["FLD_PCT"]=(f"{((fp['season'].get('PO',0)+fp['season'].get('A',0))/chances):.3f}" if chances else "—")
             save_player(c,fp)
 
         # ---------------------------------------------
@@ -5326,13 +5369,17 @@ class H(BaseHTTPRequestHandler):
                     ab=st.get("AB",0);h=st.get("H",0);bb=st.get("BB",0);pa=st.get("PA",0)
                     tb=st.get("1B",0)+2*st.get("2B",0)+3*st.get("3B",0)+4*st.get("HR",0)
                     avg=h/ab if ab else 0;obp=(h+bb)/pa if pa else 0;slg=tb/ab if ab else 0
-                    # MVP proxy deliberately broad: offense + speed/base value; defensive detail expands as event engine records it.
-                    oaa=float(st.get("OAA",0) or 0); ferr=int(st.get("E",0) or 0); fldpct=st.get("FLD_PCT","1.000")
+                    # MVP proxy deliberately broad: offense + speed/base value; defense is derived from actual fielding events.
+                    fm=fielding_award_metrics(st)
+                    oaa=fm["oaa"];ferr=fm["e"]
                     defense_value=oaa*2.0-ferr*.65
                     mvp=(obp+slg)*100 + st.get("HR",0)*1.1 + st.get("SB",0)*.35 + st.get("RBI",0)*.12 + defense_value
                     identity=player_identity_payload(r)
                     identity.update({"avg":avg,"obp":obp,"slg":slg,"ops":obp+slg,"hr":st.get("HR",0),"rbi":st.get("RBI",0),
-                                     "sb":st.get("SB",0),"pa":pa,"mvp":mvp,"oaa":oaa,"e":ferr,"fld_pct":fldpct,"po":st.get("PO",0),"a":st.get("A",0)})
+                                     "sb":st.get("SB",0),"pa":pa,"mvp":mvp,"oaa":oaa,"e":ferr,
+                                     "fg":fm["fg"],"po":fm["po"],"a":fm["a"],"dp":fm["dp"],"ch":fm["ch"],
+                                     "fld_pct_num":fm["fld_pct"],"fld_pct":(f"{fm['fld_pct']:.3f}" if fm["fld_pct"] is not None else "—"),
+                                     "fielding_score":fm["fielding_score"]})
                     hitters.append(identity)
                 else:
                     outs=st.get("OUTS",0);er=st.get("ER",0);bb=st.get("BB",0);h=st.get("H",0);so=st.get("SO",0)
@@ -5355,11 +5402,18 @@ class H(BaseHTTPRequestHandler):
                 key=lambda x:(-(x["score"]+x.get("sv",0)*1.5),-x.get("sv",0),x["era"])
             )[:10]
             pitching=starting_pitching + relief_pitching
-            # Fielding races now use actual defensive events: outs/assists, errors and OAA.
+            # Positional Fielding Title races use the same performance formula as the season award.
+            league_day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"] or 0)
+            field_min_games=fielding_award_min_games(league_day)
             fielding={}
+            fielding_meta={"min_games":field_min_games,"league_day":league_day}
             for pos in ["C","1B","2B","3B","SS","LF","CF","RF"]:
-                pool=[x for x in hitters if x["pos"]==pos]
-                fielding[pos]=sorted(pool,key=lambda x:(x.get("oaa",0),-x.get("e",0),x.get("po",0)+x.get("a",0)),reverse=True)[:5]
+                all_pos=[x for x in hitters if x["pos"]==pos and x.get("fg",0)>0]
+                pool=[x for x in all_pos if x.get("fg",0)>=field_min_games]
+                ranked=sorted(pool or all_pos,key=fielding_award_sort_key,reverse=True)[:5]
+                for x in ranked:
+                    x["fielding_qualified"]=x.get("fg",0)>=field_min_games
+                fielding[pos]=ranked
             history=[dict(x) for x in c.execute("""SELECT ah.*,p.name player_name,u.username,f.name team_name FROM award_history ah
                 LEFT JOIN players p ON p.id=ah.player_id LEFT JOIN users u ON u.id=p.user_id LEFT JOIN franchises f ON f.id=ah.franchise_id
                 ORDER BY ah.season DESC,ah.id DESC LIMIT 100""")]
@@ -5372,6 +5426,7 @@ class H(BaseHTTPRequestHandler):
                 "starting_pitching":starting_pitching,
                 "relief_pitching":relief_pitching,
                 "fielding":fielding,
+                "fielding_meta":fielding_meta,
                 "xp_values":{
                     "MVP":15,
                     "BATTING_TITLE":10,
