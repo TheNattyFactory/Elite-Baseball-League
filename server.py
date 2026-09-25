@@ -2795,8 +2795,15 @@ def simulate_game(c,g):
     def fielding_line(pid):
         key=str(pid)
         if key not in box["fielding"]:
-            box["fielding"][key]={"FG":1,"PO":0,"A":0,"E":0,"DP":0,"OAA":0.0,"CH":0,"OFA":0}
+            box["fielding"][key]={"FG":1,"PO":0,"A":0,"E":0,"DP":0,"OAA":0.0,"CH":0,"OFA":0,"POS":""}
         return box["fielding"][key]
+
+    # Every defender who takes the field receives a fielding-game appearance even
+    # if no ball is hit directly to him. Actual chances are recorded below.
+    for dfid in [away,home]:
+        for dpos,dpid in defense_players.get(dfid,{}).items():
+            dl=fielding_line(dpid)
+            dl["POS"]=dpos
 
     def choose_fielder(dfid,spray,launch):
         if launch>=18:
@@ -2846,6 +2853,8 @@ def simulate_game(c,g):
                 "G":1,"GS":1 if pid==starter_id else 0,"OUTS":0,
                 "H":0,"ER":0,"BB":0,"SO":0,"W":0,"L":0,"SV":0
             }
+            pfl=fielding_line(pid)
+            pfl["POS"]="P"
         return pitcher_live[fid][pid]
 
 
@@ -3080,42 +3089,122 @@ def simulate_game(c,g):
                                 result="1B"
                         else:
                             result="OUT"
-                        # Resolve the actual defensive play from fielder skill.
+                        # Resolve the actual defensive play from the assigned fielder.
+                        # Ground balls are multi-player plays: the infielder must field it,
+                        # make the throw, and the first baseman must receive it. FLD/REAC
+                        # govern range/hands; ARM/ACC govern the throw; batter SPD affects
+                        # whether a cleanly fielded grounder becomes an infield hit.
+                        out_kind="Flyout" if launch_angle>=18 else "Groundout" if launch_angle<=5 else "Lineout"
                         fpos,fielder=choose_fielder(opp,spray,launch_angle)
                         if launch_angle<=5 and abs(spray)<7 and R.random()<.14:
                             fpos,fielder="P",pitcher
                         elif launch_angle>38 and abs(spray)<9 and R.random()<.18:
                             cpid=defense_players.get(opp,{}).get("C")
                             if cpid: fpos,fielder="C",sim_player_obj(c,cpid)
-                        if fielder:
+
+                        fielder_id=int(fielder["id"]) if fielder else None
+                        first_base_id=defense_players.get(opp,{}).get("1B")
+                        putout_id=None
+                        assist_ids=[]
+                        error_fielder_id=None
+                        error_type=None
+                        defensive_note=None
+
+                        if result!="HR" and fielder:
                             fa=fielder.get("attributes",{})
-                            fld=float(fa.get("FLD",0) or 0); reac=float(fa.get("REAC",0) or 0)
-                            arm=float(fa.get("ARM",0) or 0); acc=float(fa.get("ACC",0) or 0)
-                            fl=fielding_line(fielder["id"]); fl["CH"]+=1
-                            out_kind="Flyout" if launch_angle>=18 else "Groundout" if launch_angle<=5 else "Lineout"
+                            fld=float(fa.get("FLD",0) or 0)+team_attribute_bonus(c,opp,"FLD")
+                            reac=float(fa.get("REAC",0) or 0)+team_attribute_bonus(c,opp,"REAC")
+                            arm=float(fa.get("ARM",0) or 0)+team_attribute_bonus(c,opp,"ARM")
+                            acc=float(fa.get("ACC",0) or 0)+team_attribute_bonus(c,opp,"ACC")
+                            fl=fielding_line(fielder_id);fl["POS"]=fpos;fl["CH"]+=1
+                            batter_spd=float(bat_attrs.get("SPD",0) or 0)
+
+                            first_obj=sim_player_obj(c,first_base_id) if first_base_id else None
+                            first_attrs=(first_obj or {}).get("attributes",{})
+                            first_fld=float(first_attrs.get("FLD",0) or 0)+(team_attribute_bonus(c,opp,"FLD") if first_obj else 0.0)
+                            first_reac=float(first_attrs.get("REAC",0) or 0)+(team_attribute_bonus(c,opp,"REAC") if first_obj else 0.0)
+
                             if result=="OUT":
-                                err_p=max(.003,min(.085,.050-fld*.0018-reac*.0010-acc*.0006))
-                                collision=False
-                                if fpos in {"LF","CF","RF"}:
-                                    coll_p=max(.0005,min(.018,.012-(fld+reac)*.00035))
-                                    collision=R.random()<coll_p
-                                if collision or R.random()<err_p:
-                                    result="ROE"; fl["E"]+=1; fl["OAA"]-=0.35
-                                    if collision:
-                                        events.append({"type":"FIELDING_COLLISION","inning":inning,"half":half,"team":opp,"fielder_id":fielder["id"],"position":fpos})
-                                    events.append({"type":"FIELDING_ERROR","inning":inning,"half":half,"team":opp,"fielder_id":fielder["id"],"position":fpos,"error_type":"throw" if out_kind=="Groundout" and acc<fld else "field"})
+                                if out_kind=="Groundout":
+                                    # Unassisted first-base grounder.
+                                    if fpos=="1B" or not first_obj:
+                                        field_err_p=max(.004,min(.070,.036-fld*.00065-reac*.00045))
+                                        if R.random()<field_err_p:
+                                            result="ROE";fl["E"]+=1;fl["OAA"]-=.35
+                                            error_fielder_id=fielder_id;error_type="field"
+                                        else:
+                                            fl["PO"]+=1;putout_id=fielder_id
+                                            if R.random()<max(0.0,min(.10,(fld+reac-24)*.0025)):fl["OAA"]+=.20
+                                    else:
+                                        # 6-3 / 5-3 / 4-3 / 1-3 style play. The throw and
+                                        # first baseman's receiving ability are separate checks.
+                                        field_err_p=max(.004,min(.070,.036-fld*.00065-reac*.00045))
+                                        throw_err_p=max(.003,min(.045,.020-arm*.00025-acc*.00045-first_fld*.00010))
+                                        receive_err_p=max(.002,min(.035,.014-first_fld*.00025-first_reac*.00012))
+                                        beat_throw_p=max(.004,min(.090,.012+batter_spd*.00070-reac*.00015-fld*.00012-arm*.00010-acc*.00018))
+                                        if R.random()<field_err_p:
+                                            result="ROE";fl["E"]+=1;fl["OAA"]-=.35
+                                            error_fielder_id=fielder_id;error_type="field"
+                                        elif R.random()<throw_err_p:
+                                            result="ROE";fl["E"]+=1;fl["OAA"]-=.30
+                                            error_fielder_id=fielder_id;error_type="throw"
+                                        else:
+                                            first_line=fielding_line(first_base_id);first_line["POS"]="1B";first_line["CH"]+=1
+                                            if R.random()<receive_err_p:
+                                                result="ROE";first_line["E"]+=1;first_line["OAA"]-=.30
+                                                fl["A"]+=1;assist_ids=[fielder_id]
+                                                error_fielder_id=int(first_base_id);error_type="receive"
+                                            elif R.random()<beat_throw_p:
+                                                result="1B"
+                                                defensive_note="INFIELD_HIT"
+                                                if fld+reac<18:fl["OAA"]-=.05
+                                            else:
+                                                fl["A"]+=1;first_line["PO"]+=1
+                                                assist_ids=[fielder_id];putout_id=int(first_base_id)
+                                                if R.random()<max(0.0,min(.10,(fld+reac+arm+acc-44)*.0013)):fl["OAA"]+=.20
                                 else:
-                                    if out_kind=="Groundout": fl["A"]+=1
-                                    else: fl["PO"]+=1
-                                    if R.random()<max(0.0,min(.12,(fld+reac-18)*.0035)):
-                                        fl["OAA"]+=0.25
+                                    # Line drives and fly balls are primarily range + hands plays.
+                                    catch_err_p=max(.003,min(.065,.048-fld*.00085-reac*.00055))
+                                    collision=False
+                                    if fpos in {"LF","CF","RF"}:
+                                        coll_p=max(.0005,min(.015,.010-(fld+reac)*.00028))
+                                        collision=R.random()<coll_p
+                                    if collision or R.random()<catch_err_p:
+                                        result="ROE";fl["E"]+=1;fl["OAA"]-=.35
+                                        error_fielder_id=fielder_id;error_type="collision" if collision else "field"
+                                        if collision:
+                                            events.append({"type":"FIELDING_COLLISION","inning":inning,"half":half,"team":opp,"fielder_id":fielder_id,"position":fpos,"batter_id":batter["id"]})
+                                    else:
+                                        fl["PO"]+=1;putout_id=fielder_id
+                                        difficulty=max(0.0,(exit_velo-91.0)*.018+abs(spray)*.003)
+                                        if R.random()<max(0.0,min(.12,(fld*.55+reac*.45-18)*.0030+difficulty*.01)):fl["OAA"]+=.25
+
                             elif result in {"1B","2B","3B"}:
-                                great_p=max(0.0,min(.16,(fld*.55+reac*.45-12)*.0045))
+                                # Exceptional range can turn a marginal hit into an out. This uses
+                                # the individual fielder rather than only the club-average defense.
+                                if out_kind=="Groundout":
+                                    great_p=max(0.0,min(.15,(fld*.38+reac*.32+arm*.14+acc*.16-batter_spd*.18-14)*.0035))
+                                else:
+                                    great_p=max(0.0,min(.15,(fld*.55+reac*.45-16)*.0038-(max(0,exit_velo-96)*.0015)))
                                 if result=="1B" and R.random()<great_p:
-                                    result="OUT"; fl["PO"]+=1; fl["OAA"]+=1.0
-                                    events.append({"type":"GREAT_PLAY","inning":inning,"half":half,"team":opp,"fielder_id":fielder["id"],"position":fpos})
+                                    result="OUT";fl["OAA"]+=1.0
+                                    if out_kind=="Groundout" and fpos!="1B" and first_obj:
+                                        first_line=fielding_line(first_base_id);first_line["POS"]="1B";first_line["CH"]+=1
+                                        fl["A"]+=1;first_line["PO"]+=1;assist_ids=[fielder_id];putout_id=int(first_base_id)
+                                    else:
+                                        fl["PO"]+=1;putout_id=fielder_id
+                                    events.append({"type":"GREAT_PLAY","inning":inning,"half":half,"team":opp,"fielder_id":fielder_id,"position":fpos,"batter_id":batter["id"],"out_type":out_kind})
+                                elif result=="2B" and fpos in {"LF","CF","RF"}:
+                                    # Strong/accurate outfield arms can keep borderline doubles to singles.
+                                    hold_p=max(0.0,min(.18,(arm*.55+acc*.45-batter_spd*.25-18)*.0025))
+                                    if R.random()<hold_p:
+                                        result="1B";defensive_note="HELD_TO_SINGLE"
+                                        events.append({"type":"OUTFIELD_HOLD","inning":inning,"half":half,"team":opp,"fielder_id":fielder_id,"position":fpos,"batter_id":batter["id"]})
                                 elif exit_velo<92 and fld+reac<12:
-                                    fl["OAA"]-=0.08
+                                    fl["OAA"]-=.08
+
+                            if error_fielder_id is not None:
+                                events.append({"type":"FIELDING_ERROR","inning":inning,"half":half,"team":opp,"fielder_id":error_fielder_id,"position":fpos if error_fielder_id==fielder_id else "1B","error_type":error_type or "field","batter_id":batter["id"],"out_type":out_kind})
 
                         events.append({
                             "type":"BALL_IN_PLAY","inning":inning,"half":half,
@@ -3123,7 +3212,10 @@ def simulate_game(c,g):
                             "result":result,"exit_velocity":exit_velo,
                             "launch_angle":launch_angle,"spray_angle":spray,
                             "contact_quality":"Barrel" if exit_velo>103 and 18<=launch_angle<=32 else "Hard" if exit_velo>95 else "Normal",
-                            "shift":shift_mode
+                            "shift":shift_mode,
+                            "out_type":out_kind,"fielder_id":fielder_id,"fielder_position":fpos if fielder else None,
+                            "putout_id":putout_id,"assist_ids":assist_ids,"first_base_id":int(first_base_id) if first_base_id else None,
+                            "defensive_note":defensive_note
                         })
 
 
@@ -3141,8 +3233,10 @@ def simulate_game(c,g):
                             events.append({
                                 "type":"OUT","inning":inning,"half":half,
                                 "batter_id":batter["id"],"pitcher_id":pitcher["id"],
-                                "outs":outs,
-                                "out_type":R.choice(["Groundout","Flyout","Lineout"])
+                                "outs":outs,"out_type":out_kind,
+                                "fielder_id":fielder_id,"fielder_position":fpos if fielder else None,
+                                "putout_id":putout_id,"assist_ids":assist_ids,
+                                "first_base_id":int(first_base_id) if first_base_id else None
                             })
                         else:
                             batline["H"]+=1
@@ -4913,6 +5007,29 @@ class H(BaseHTTPRequestHandler):
 
 
             # ---------------------------------------------
+            # BUILD GAMECAST-FRIENDLY FIELDING ROWS
+            # ---------------------------------------------
+
+            fielding_rows=[]
+            for pid,line in raw_box.get("fielding",{}).items():
+                player=c.execute(
+                    """SELECT id,name,franchise_id,jersey_number,primary_pos
+                       FROM players WHERE id=?""",
+                    (int(pid),)
+                ).fetchone()
+                if not player:
+                    continue
+                po=int(line.get("PO",0) or 0);assists=int(line.get("A",0) or 0);errors=int(line.get("E",0) or 0)
+                chances=po+assists+errors
+                fielding_rows.append({
+                    "player_id":int(pid),"name":player["name"],"team_id":player["franchise_id"],
+                    "jersey_number":player["jersey_number"],
+                    "position":line.get("POS") or player["primary_pos"],
+                    **line,
+                    "FLD_PCT":f"{((po+assists)/chances if chances else 1.0):.3f}"
+                })
+
+            # ---------------------------------------------
             # COMPLETE BOX SCORE
             # ---------------------------------------------
 
@@ -4920,7 +5037,8 @@ class H(BaseHTTPRequestHandler):
             game["box"]={
                 **raw_box,
                 "hitter_rows":hitter_rows,
-                "pitcher_rows":pitcher_rows
+                "pitcher_rows":pitcher_rows,
+                "fielding_rows":fielding_rows
             }
 
 
@@ -4970,7 +5088,7 @@ class H(BaseHTTPRequestHandler):
                         for x in hitter_rows
                         if x["team_id"]==game["away_id"]
                     ),
-                    "E":0
+                    "E":sum(int(x.get("E",0) or 0) for x in fielding_rows if x.get("team_id")==game["away_id"])
                 },
                 "home":{
                     "R":game["home_runs"] or 0,
@@ -4979,7 +5097,7 @@ class H(BaseHTTPRequestHandler):
                         for x in hitter_rows
                         if x["team_id"]==game["home_id"]
                     ),
-                    "E":0
+                    "E":sum(int(x.get("E",0) or 0) for x in fielding_rows if x.get("team_id")==game["home_id"])
                 }
             }
 
