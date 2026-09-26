@@ -2638,6 +2638,143 @@ def rivalry_xp_multiplier(c,a,b):
     return min(1.08,1.02 + intensity*0.0006)
 
 
+
+
+def simulation_lab_matchup(hitter_attrs,pitcher_attrs,pa_count=1000,seed=7500831):
+    """Run isolated hitter-vs-pitcher plate appearances using EBL's live pitch/contact equations.
+
+    Fatigue, leverage, park effects, baserunning and defensive errors are intentionally disabled so
+    the result measures the two builds instead of team context. Neutral defense is kept at the
+    engine baseline (defense_adj == 0).
+    """
+    rng=random.Random(int(seed))
+    pa_count=max(100,min(5000,int(pa_count or 1000)))
+    out={"PA":pa_count,"AB":0,"H":0,"1B":0,"2B":0,"3B":0,"HR":0,"BB":0,"SO":0,
+         "BIP":0,"PITCHES":0,"EV_SUM":0.0,"BARRELS":0}
+
+    def a(src,key):
+        try:return float((src or {}).get(key,0) or 0)
+        except Exception:return 0.0
+
+    con=a(hitter_attrs,"CON");powr=a(hitter_attrs,"POW");vis=a(hitter_attrs,"VIS");disc=a(hitter_attrs,"DISC");tim=a(hitter_attrs,"TIM")
+    ctrl=a(pitcher_attrs,"CTRL");cmd=a(pitcher_attrs,"CMD");vel_attr=a(pitcher_attrs,"VEL");brk=a(pitcher_attrs,"BRK")
+    mov=a(pitcher_attrs,"MOV");dec=a(pitcher_attrs,"DEC");seq=a(pitcher_attrs,"SEQ")
+
+    pitch_types=["Four-Seam","Slider","Changeup","Sinker","Curve"]
+    speed_base={"Four-Seam":90.0,"Sinker":88.5,"Slider":84.5,"Changeup":82.5,"Curve":79.5}
+
+    for _ in range(pa_count):
+        balls=strikes=0
+        prev_pitch_type=None
+        while True:
+            out["PITCHES"]+=1
+            ptype=rng.choice(pitch_types)
+            if prev_pitch_type and ptype==prev_pitch_type and rng.random()<min(.82,seq*.008):
+                ptype=rng.choice([x for x in pitch_types if x!=prev_pitch_type])
+            # Velocity is still sampled because live EBL pitch shape uses the same distribution,
+            # even though the matchup report only summarizes results and contact quality.
+            _velocity=max(72.0,min(103.0,rng.gauss(speed_base[ptype]+vel_attr*.18,1.35)))
+
+            zone_p=max(.44,min(.68,.488+ctrl*.0020))
+            in_zone=rng.random()<zone_p
+            edge=max(0.0,min(1.0,rng.random()+ctrl*.0025+cmd*.0030-.12))
+            if in_zone:
+                swing_p=max(.60,min(.84,.69+vis*.0012+(.025 if strikes==2 else 0)-(.01 if balls==3 else 0)))
+            else:
+                two_strike_seq=(seq*.0014 if strikes==2 else 0.0)
+                swing_p=max(.06,min(.47,.29+brk*.0017+mov*.0008+dec*.0013+two_strike_seq-disc*.0032-vis*.0012+(.035 if strikes==2 else 0)-(.045 if balls==3 else 0)))
+
+            call=None
+            if rng.random()>=swing_p:
+                if in_zone:
+                    strikes+=1;call="Called Strike"
+                else:
+                    balls+=1;call="Ball"
+            else:
+                seq_mix=seq*(.23 if prev_pitch_type and ptype!=prev_pitch_type else .06)
+                pitch_skill=.45*vel_attr+.55*brk+.10*ctrl*edge+.22*cmd*edge+.20*dec+seq_mix
+                hitter_skill=.40*con+.25*vis+.35*tim
+                whiff=max(.08,min(.66,.325+(pitch_skill-hitter_skill)*.0032+(.10 if not in_zone else 0)))
+                if rng.random()<whiff:
+                    strikes+=1;call="Swinging Strike"
+                else:
+                    foul_p=max(.13,min(.36,.29-tim*.0010+brk*.0006))
+                    if rng.random()<foul_p:
+                        if strikes<2:strikes+=1
+                        call="Foul"
+                    else:
+                        call="In Play"
+
+            prev_pitch_type=ptype
+
+            if call=="In Play":
+                out["AB"]+=1;out["BIP"]+=1
+                quality=.30*con+.40*tim+.30*powr-(.11*vel_attr+.09*brk+.11*mov+.055*cmd+.035*dec)
+                exit_velo=max(55.0,min(122.0,rng.gauss(88.8+quality*.24,7.4)))
+                launch_angle=max(-45.0,min(55.0,rng.gauss(12.5+(tim-8)*.08+(powr-8)*.025-mov*.075,15.5)))
+                out["EV_SUM"]+=exit_velo
+                if exit_velo>103 and 18<=launch_angle<=32:out["BARRELS"]+=1
+
+                hr_score=(exit_velo-96.0)/4.4-abs(launch_angle-27.0)/11.5
+                hr_p=max(.002,min(.20,.34/(1.0+math.exp(-hr_score))))
+                hit_score=(exit_velo-87.2)/7.2-abs(launch_angle-14.0)/22.0
+                hit_p=max(.12,min(.64,.145+.38/(1.0+math.exp(-hit_score))))
+                roll=rng.random()
+                if roll<hr_p:
+                    result="HR"
+                elif roll<hit_p:
+                    xbh_p=max(.11,min(.44,.20+(exit_velo-90.0)*.0065+max(0.0,launch_angle-10.0)*.0028))
+                    triple_p=max(.003,min(.035,.006+a(hitter_attrs,"SPD")*.00035))
+                    xb=rng.random()
+                    if xb<triple_p:result="3B"
+                    elif xb<triple_p+xbh_p:result="2B"
+                    else:result="1B"
+                else:
+                    result="OUT"
+                if result!="OUT":
+                    out["H"]+=1;out[result]+=1
+                break
+
+            if balls>=4:
+                out["BB"]+=1
+                break
+            if strikes>=3:
+                out["AB"]+=1;out["SO"]+=1
+                break
+
+    ab=max(1,out["AB"]);pa=max(1,out["PA"])
+    tb=out["1B"]+2*out["2B"]+3*out["3B"]+4*out["HR"]
+    result={
+        "pa":out["PA"],"ab":out["AB"],"h":out["H"],"bb":out["BB"],"so":out["SO"],"hr":out["HR"],
+        "doubles":out["2B"],"triples":out["3B"],"bip":out["BIP"],
+        "avg":round(out["H"]/ab,3),"obp":round((out["H"]+out["BB"])/pa,3),"slg":round(tb/ab,3),
+        "ops":round((out["H"]+out["BB"])/pa+tb/ab,3),
+        "bb_pct":round(out["BB"]/pa,4),"k_pct":round(out["SO"]/pa,4),"hr_pct":round(out["HR"]/pa,4),
+        "avg_ev":round(out["EV_SUM"]/max(1,out["BIP"]),1),
+        "barrel_pct":round(out["BARRELS"]/max(1,out["BIP"]),4),
+        "pitches_per_pa":round(out["PITCHES"]/pa,2)
+    }
+    return result
+
+
+def simulation_lab_player_rows(c):
+    rows=[]
+    for r in c.execute("""SELECT p.id,p.name,p.type,p.primary_pos,p.user_id,p.franchise_id,p.attributes_json,
+                               COALESCE(NULLIF(b.display_name,''),f.name) team_name
+                        FROM players p
+                        LEFT JOIN franchises f ON f.id=p.franchise_id
+                        LEFT JOIN franchise_branding b ON b.franchise_id=p.franchise_id
+                        WHERE p.active=1
+                        ORDER BY CASE WHEN p.user_id IS NOT NULL THEN 0 ELSE 1 END,p.name,p.id"""):
+        d=dict(r)
+        try:attrs=json.loads(d.pop("attributes_json") or "{}")
+        except Exception:attrs={}
+        d["attributes"]={k:int(attrs.get(k,0) or 0) for k in (HITTER_ATTRS if d["type"]=="H" else PITCHER_ATTRS)}
+        d["human"]=bool(d.get("user_id") is not None)
+        d.pop("user_id",None)
+        rows.append(d)
+    return rows
+
 def simulate_game(c,g):
     away,home=g["away_id"],g["home_id"]
     team_names={r["id"]:r["name"] for r in c.execute("SELECT id,name FROM franchises")}
@@ -5481,8 +5618,28 @@ class H(BaseHTTPRequestHandler):
                 msg.pop("user_id",None)
             c.close();return self.out({"messages":rows})
         if p=="/api/simulation-lab":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+            c=conn()
+            players=simulation_lab_player_rows(c)
+            c.close()
+            baseline={}
+            seed=7500831
+            pa_per_test=1000
             fp=os.path.join(ROOT,"simulation_lab_report.json")
-            with open(fp,"r") as f: return self.out(json.load(f))
+            try:
+                with open(fp,"r") as f:
+                    old_report=json.load(f)
+                baseline=old_report.get("baseline",{}) if isinstance(old_report,dict) else {}
+                seed=int(old_report.get("seed",seed)) if isinstance(old_report,dict) else seed
+                pa_per_test=int(old_report.get("pa_per_test",pa_per_test)) if isinstance(old_report,dict) else pa_per_test
+            except Exception:
+                pass
+            return self.out({
+                "seed":seed,"pa_per_test":pa_per_test,"baseline":baseline,"players":players,
+                "engine":"LIVE_PITCH_CONTACT_V1",
+                "isolation":"Fatigue, leverage, park effects, baserunning and defensive errors disabled; neutral defense baseline."
+            })
         if p=="/api/analytics":
             u=self.auth()
             if not u:return
@@ -5543,6 +5700,59 @@ class H(BaseHTTPRequestHandler):
 
 
     def api_post(self,p):
+        if p=="/api/simulation-lab/matchups":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+            d=self.body()
+            try:
+                hitter_ids=[int(x) for x in (d.get("hitter_ids") or [])]
+                pitcher_ids=[int(x) for x in (d.get("pitcher_ids") or [])]
+                pa_per_test=max(100,min(5000,int(d.get("pa_per_test") or 1000)))
+                base_seed=int(d.get("seed") or 7500831)
+            except Exception:
+                return self.out({"error":"INVALID_SIMULATION_LAB_REQUEST"},400)
+            # Keep the browser responsive and the endpoint inexpensive even if every
+            # active player is visible in the selector.
+            hitter_ids=list(dict.fromkeys(hitter_ids))[:10]
+            pitcher_ids=list(dict.fromkeys(pitcher_ids))[:8]
+            if not hitter_ids or not pitcher_ids:
+                return self.out({"error":"SELECT_HITTERS_AND_PITCHERS"},400)
+            c=conn()
+            wanted=list(dict.fromkeys(hitter_ids+pitcher_ids))
+            q=",".join("?" for _ in wanted)
+            rows={}
+            for r in c.execute(f"""SELECT p.id,p.name,p.type,p.primary_pos,p.user_id,p.franchise_id,p.attributes_json,
+                                            COALESCE(NULLIF(b.display_name,''),f.name) team_name
+                                     FROM players p
+                                     LEFT JOIN franchises f ON f.id=p.franchise_id
+                                     LEFT JOIN franchise_branding b ON b.franchise_id=p.franchise_id
+                                     WHERE p.active=1 AND p.id IN ({q})""",wanted):
+                x=dict(r)
+                try:x["attributes"]=json.loads(x.pop("attributes_json") or "{}")
+                except Exception:x["attributes"]={}
+                x["human"]=bool(x.get("user_id") is not None)
+                x.pop("user_id",None)
+                rows[int(x["id"])]=x
+            c.close()
+            hitters=[rows[x] for x in hitter_ids if x in rows and rows[x].get("type")=="H"]
+            pitchers=[rows[x] for x in pitcher_ids if x in rows and rows[x].get("type")=="P"]
+            if not hitters or not pitchers:
+                return self.out({"error":"INVALID_MATCHUP_SELECTION"},400)
+            matchups=[]
+            for h in hitters:
+                for pit in pitchers:
+                    seed_bytes=hashlib.sha256(f"{base_seed}:{h['id']}:{pit['id']}".encode()).digest()[:8]
+                    pair_seed=int.from_bytes(seed_bytes,"big")
+                    stats=simulation_lab_matchup(h.get("attributes",{}),pit.get("attributes",{}),pa_per_test,pair_seed)
+                    matchups.append({
+                        "hitter":{"id":h["id"],"name":h["name"],"team_name":h.get("team_name"),"pos":h.get("primary_pos"),"attributes":{k:int(h.get("attributes",{}).get(k,0) or 0) for k in ("CON","POW","VIS","DISC","TIM","SPD")}},
+                        "pitcher":{"id":pit["id"],"name":pit["name"],"team_name":pit.get("team_name"),"pos":pit.get("primary_pos"),"attributes":{k:int(pit.get("attributes",{}).get(k,0) or 0) for k in ("CTRL","CMD","VEL","BRK","MOV","DEC","SEQ","STA","PCLT")}},
+                        "stats":stats,"seed":pair_seed
+                    })
+            return self.out({
+                "ok":True,"engine":"LIVE_PITCH_CONTACT_V1","pa_per_test":pa_per_test,"seed":base_seed,
+                "neutral_context":True,"hitters":len(hitters),"pitchers":len(pitchers),"matchups":matchups
+            })
         if p=="/api/register":
             d=self.body();username=str(d.get("username","")).strip();password=str(d.get("password",""));email=str(d.get("email","")).strip().lower()
             if d.get("accepted_terms") is not True:return self.out({"error":"TERMS_NOT_ACCEPTED"},400)
