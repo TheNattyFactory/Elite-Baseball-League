@@ -5084,7 +5084,80 @@ async function optimizeStorage(){
     out.innerHTML=`Optimization complete • ${j.compacted_games||0} games compacted • ${j.removed_backups||0} old backups removed<br>DB <b>${fmtBytes(x.db_bytes)}</b> • WAL ${fmtBytes(x.wal_bytes)} • Free <b>${fmtBytes(x.free_bytes)}</b>`;
   }catch(e){out.textContent='Storage optimization failed: '+(e?.error||e?.message||'Unknown error')}
 }
-async function loadLab(){let j=await api('/api/simulation-lab');labBody.innerHTML=`<h2>Developer Simulation Lab</h2><p class="muted">Seed ${j.seed}; ${j.pa_per_test.toLocaleString()} PA/test</p><div class="grid">${Object.entries(j.baseline).map(([k,v])=>statBox(k,typeof v==='number'?v.toFixed(3):v)).join('')}</div>`}
+let EBL_SIM_LAB=null;
+function simLabAttrLine(p){
+  const a=p?.attributes||{};
+  const keys=p?.type==='P'?['CTRL','CMD','VEL','BRK','MOV','DEC','SEQ','STA']:['CON','POW','VIS','DISC','TIM','SPD'];
+  return keys.map(k=>`${k} ${Number(a[k]||0)}`).join(' • ');
+}
+function simLabPlayerCheck(p,kind,checked){
+  return `<label style="display:block;padding:10px 12px;margin:7px 0;border:1px solid #27445f;border-radius:12px;background:#081b2b;cursor:pointer">
+    <input type="checkbox" data-lab-${kind} value="${Number(p.id)}" ${checked?'checked':''} style="margin-right:8px;transform:scale(1.15)">
+    <b>${escapeHtml(p.name||'Player')}</b> <span class="muted">${escapeHtml(p.primary_pos||'')} • ${escapeHtml(p.team_name||'Free Agent')}${p.human?' • HUMAN':' • CPU'}</span>
+    <div class="muted" style="font-size:.78rem;margin:4px 0 0 25px">${escapeHtml(simLabAttrLine(p))}</div>
+  </label>`;
+}
+async function loadLab(){
+  const j=await api('/api/simulation-lab');
+  EBL_SIM_LAB=j;
+  const hitters=(j.players||[]).filter(p=>p.type==='H');
+  const pitchers=(j.players||[]).filter(p=>p.type==='P');
+  let hc=0,pc=0;
+  const hitterHtml=hitters.map(p=>simLabPlayerCheck(p,'hitter',!!p.human&&hc++<10)).join('');
+  const pitcherHtml=pitchers.map(p=>simLabPlayerCheck(p,'pitcher',!!p.human&&pc++<8)).join('');
+  const baseline=Object.keys(j.baseline||{}).length?`<div class="grid" style="margin-top:10px">${Object.entries(j.baseline).map(([k,v])=>statBox(k,typeof v==='number'?v.toFixed(3):v)).join('')}</div>`:'';
+  labBody.innerHTML=`
+    <div class="offer" style="margin-top:18px">
+      <h2 style="margin-top:0">Build vs. Build Simulation Lab</h2>
+      <p class="muted">Runs the current EBL pitch/contact equations head-to-head. Fatigue, leverage, park effects, baserunning and defensive errors are removed so we can see what the builds themselves are doing.</p>
+      ${baseline}
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px">
+        <div><h3>Hitters</h3><div class="muted">Human builds are selected first. Pick up to 10.</div><div style="max-height:390px;overflow:auto;padding-right:4px">${hitterHtml||'<p class="muted">No active hitters.</p>'}</div></div>
+        <div><h3>Pitchers</h3><div class="muted">Pick up to 8. SP/RP labels do not change the isolated test.</div><div style="max-height:390px;overflow:auto;padding-right:4px">${pitcherHtml||'<p class="muted">No active pitchers.</p>'}</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-top:14px">
+        <label style="min-width:155px">PA per matchup
+          <select id="simLabPa" style="width:100%"><option value="500">500</option><option value="1000" selected>1,000</option><option value="2000">2,000</option><option value="5000">5,000</option></select>
+        </label>
+        <button class="btn" onclick="simLabSelectHumans()">Select Human Builds</button>
+        <button class="btn" onclick="runBuildVsBuild()">Run Build vs. Build</button>
+      </div>
+      <div id="simLabStatus" class="muted" style="margin-top:10px">Seed ${Number(j.seed||7500831).toLocaleString()} • ${escapeHtml(j.engine||'EBL engine')}</div>
+      <div id="simLabResults" style="margin-top:14px"></div>
+    </div>`;
+}
+function simLabSelectHumans(){
+  if(!EBL_SIM_LAB)return;
+  const humanIds=new Set((EBL_SIM_LAB.players||[]).filter(p=>p.human).map(p=>Number(p.id)));
+  document.querySelectorAll('[data-lab-hitter],[data-lab-pitcher]').forEach(el=>{el.checked=humanIds.has(Number(el.value))});
+}
+function simLabPct(v){return `${(Number(v||0)*100).toFixed(1)}%`}
+async function runBuildVsBuild(){
+  const hitter_ids=[...document.querySelectorAll('[data-lab-hitter]:checked')].map(x=>Number(x.value));
+  const pitcher_ids=[...document.querySelectorAll('[data-lab-pitcher]:checked')].map(x=>Number(x.value));
+  const pa_per_test=Number(document.getElementById('simLabPa')?.value||1000);
+  const status=document.getElementById('simLabStatus'),out=document.getElementById('simLabResults');
+  if(!hitter_ids.length||!pitcher_ids.length){status.textContent='Select at least one hitter and one pitcher.';return}
+  if(hitter_ids.length>10||pitcher_ids.length>8){status.textContent='Limit this test to 10 hitters and 8 pitchers.';return}
+  status.textContent=`Running ${hitter_ids.length*pitcher_ids.length} matchups × ${pa_per_test.toLocaleString()} PA...`;
+  out.innerHTML='';
+  try{
+    const j=await api('/api/simulation-lab/matchups',{method:'POST',body:JSON.stringify({hitter_ids,pitcher_ids,pa_per_test,seed:Number(EBL_SIM_LAB?.seed||7500831)})});
+    status.textContent=`Complete • ${j.matchups.length} matchups • ${Number(j.pa_per_test).toLocaleString()} PA each • neutral context`;
+    const rows=(j.matchups||[]).map(m=>{
+      const x=m.stats||{};
+      const h=m.hitter||{},p=m.pitcher||{};
+      return `<tr>
+        <td style="min-width:145px"><b>${escapeHtml(h.name||'')}</b><div class="muted" style="font-size:.72rem">${escapeHtml(h.team_name||'')}</div></td>
+        <td style="min-width:145px"><b>${escapeHtml(p.name||'')}</b><div class="muted" style="font-size:.72rem">${escapeHtml(p.team_name||'')}</div></td>
+        <td>${Number(x.avg||0).toFixed(3)}</td><td>${Number(x.obp||0).toFixed(3)}</td><td>${Number(x.slg||0).toFixed(3)}</td><td><b>${Number(x.ops||0).toFixed(3)}</b></td>
+        <td>${simLabPct(x.bb_pct)}</td><td>${simLabPct(x.k_pct)}</td><td>${simLabPct(x.hr_pct)}</td><td>${Number(x.avg_ev||0).toFixed(1)}</td><td>${simLabPct(x.barrel_pct)}</td>
+      </tr>`;
+    }).join('');
+    out.innerHTML=`<div style="overflow-x:auto"><table style="min-width:980px;width:100%"><thead><tr><th>HITTER</th><th>PITCHER</th><th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th><th>BB%</th><th>K%</th><th>HR%</th><th>EV</th><th>BARREL%</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="muted" style="margin-top:10px">This isolates hitter/pitcher attributes. It intentionally does not include fatigue, catcher CALL, fielding, team upgrades, park effects, steals, or game situation.</p>`;
+  }catch(e){status.textContent='Simulation Lab failed: '+(e?.error||e?.message||'Unknown error')}
+}
 async function hydrateGamecastAppearance(game){
     // Box-score rows are historical stat snapshots and may not carry the full
     // appearance payload. Pull the two current team rosters and merge only
