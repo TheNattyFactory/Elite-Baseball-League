@@ -4426,6 +4426,9 @@ async function loadCoachHub(){
       <div class="upgradeCard"><h3>Training Facility</h3><div><b>Level ${tl}/5</b> • Daily practice ${Number(0.25+tl*.01).toFixed(2)} XP</div><div class="muted">Each level adds +0.01 XP to every completed daily team practice.</div><button class="btn" ${tl>=5?'disabled':''} onclick="buyFacilityUpgrade('training')">${tl>=5?'MAX LEVEL':'Upgrade • '+costs[Math.min(4,tl)]+' XP'}</button></div>
       <div class="upgradeCard"><h3>Recovery Center</h3><div><b>Level ${rl}/5</b> • +${rl*2} fatigue recovery/day</div><div class="muted">Pitchers recover faster between league days. Each level adds +2 fatigue recovery per day.</div><button class="btn" ${rl>=5?'disabled':''} onclick="buyFacilityUpgrade('recovery')">${rl>=5?'MAX LEVEL':'Upgrade • '+costs[Math.min(4,rl)]+' XP'}</button></div>
     </div>`})()}
+    <h2 class="coachSection">Seasonal Development Coach</h2>
+    <p class="muted">Hire one specialist for the season using team XP. Development is permanent: players on your active roster at each checkpoint keep the attribute point even if they later change teams.</p>
+    ${(()=>{const coaches=j.development_coaches||[],x=coaches[0],day=Number(j.league_day||0),phase=String(j.phase||'REGULAR').toUpperCase(),open=phase==='REGULAR'&&day<40;return `<div class="upgradeGrid"><div class="upgradeCard"><h3>Speed Coach</h3><div><b>30 XP</b> • Permanent +2 SPD potential</div><div class="muted">+1 SPD after League Day 40 and +1 SPD after League Day 81 for every active roster player at that checkpoint.</div>${x?`<div style="margin-top:8px"><span class="pill">HIRED • SEASON ${Number(x.season||j.season||0)}</span></div><div class="muted" style="margin-top:7px">Midseason: ${Number(x.midseason_applied||0)?'✓ +1 applied':'waiting'} • End of regular season: ${Number(x.endseason_applied||0)?'✓ +1 applied':'waiting'}</div><button class="btn" disabled>SEASON COACH HIRED</button>`:`<div class="muted" style="margin-top:7px">Hiring window: before League Day 40. One seasonal development coach per team.</div><button class="btn" ${open?'':'disabled'} onclick="hireDevelopmentCoach('SPEED')">${open?'Hire Speed Coach • 30 XP':'HIRING WINDOW CLOSED'}</button>`}</div></div>`})()}
     <h2 class="coachSection">Team Sponsorships</h2>
     <p class="muted">A sponsorship costs 25 XP and gives every active player on the club a temporary +1 team modifier for the current season and the next season. It does not permanently change a player's trained attribute.</p>
     ${(()=>{const active=j.sponsorships||[],attrs=[['ARM','Arm Equipment Partner'],['ACC','Precision Equipment Partner'],['FLD','Fielding Equipment Partner'],['REAC','Reaction Training Partner'],['SPD','Performance Footwear Partner']];return `<div class="upgradeGrid">${attrs.map(([a,n])=>{const x=active.find(z=>z.attribute===a);return `<div class="upgradeCard"><h3>${n}</h3><div><b>+1 ${a}</b> • 25 XP • 2 seasons</div>${x?`<div class="muted">ACTIVE • Seasons ${x.start_season}–${x.end_season}</div><button class="btn" disabled>ACTIVE</button>`:`<div class="muted">Applies while a player is on this team's active roster.</div><button class="btn" onclick="buyTeamSponsor('${a}')">Sign Sponsor • 25 XP</button>`}</div>`}).join('')}</div>`})()}
@@ -4438,6 +4441,7 @@ async function loadCoachHub(){
 async function buyFranchiseUpgrade(kind){try{const j=await api('/api/coach/franchise-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} upgraded to Level ${j.level}. +5 XP/year permanently.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Upgrade failed'))}}
 async function buyFacilityUpgrade(kind){try{const j=await api('/api/coach/facility-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} facility upgraded to Level ${j.level}.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Facility upgrade failed'))}}
 async function buyTeamSponsor(attribute){try{const j=await api('/api/coach/sponsor',{method:'POST',body:JSON.stringify({attribute})});alert(`Sponsor signed: +1 ${attribute} for Seasons ${j.start_season}–${j.end_season}.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Sponsorship failed'))}}
+async function hireDevelopmentCoach(coach_type='SPEED'){try{const j=await api('/api/coach/development-coach',{method:'POST',body:JSON.stringify({coach_type})});alert(`${j.name||'Development coach'} hired for Season ${j.coach?.season||''}. +1 at Day 40 and +1 at Day 81.`);await loadCoachHub()}catch(e){if(e.error==='INSUFFICIENT_RESERVE')alert(`Need ${e.cost} treasury XP.`);else alert(e.detail||e.error||'Could not hire development coach.')}}
 
 function coachPane(id,b){switchPane('.subpane',id,b)}
 function playerOptions(arr,selected,multi=[]){return arr.map(x=>`<option value="${x.id}" ${(x.id==selected||multi.includes(x.id))?'selected':''}>${x.name} — ${x.primary_pos}</option>`).join('')}
@@ -7696,14 +7700,14 @@ function eblBrandPreviewRC45(){
  box.innerHTML=`<div class="eblBrandPreviewRC45__logos">${primary?`<img src="${primary}" alt="Primary logo">`:teamLogoMarkup(1,p,s,a,`${city} ${nick}`)}${secondary?`<img src="${secondary}" alt="Secondary logo">`:''}</div>${wordmark?`<div class="eblBrandPreviewRC45__jerseyLabel">JERSEY WORDMARK</div><img class="eblBrandPreviewRC45__wordmark" src="${wordmark}" alt="${escapeHtml(nick)} jersey wordmark">`:''}<h2 style="margin:14px 0 2px">${escapeHtml(city)} ${escapeHtml(nick)}</h2><div style="opacity:.82">EBL FRANCHISE IDENTITY</div>`;
 }
 function eblFranchiseIdentityStudioRC45(j){
- const b=j.branding||{},locked=String(j.phase||'REGULAR').toUpperCase()!=='OFFSEASON'&&Number(j.league_day||0)>0;
+ const b=j.branding||{},phase=String(j.phase||'REGULAR').toUpperCase(),day=Number(j.league_day||0),season=Number(j.season||0),inSeason=phase!=='OFFSEASON'&&day>0,used=!!b.inseason_edit_used||Number(b.inseason_edit_season||0)===season,locked=inSeason&&used;
  let city=b.city||'',nick=b.team_name||'';
  if((!city||!nick)&&(b.display_name||j.team?.name)){const q=String(b.display_name||j.team.name).trim().split(/\s+/);nick=nick||q.pop()||'';city=city||q.join(' ')}
  EBL_BRAND_LOGOS_RC45={primary:b.primary_logo_url||b.primary_logo||'',secondary:b.secondary_logo_url||b.secondary_logo||b.logo_secondary||'',wordmark:b.jersey_wordmark_url||b.jersey_wordmark||''};
  return `<div class="eblIdentityStudioRC45">
  <div>
   <span class="newsMeta">FRANCHISE IDENTITY STUDIO</span><h2>Build Your Club's Identity</h2>
-  <p class="muted">${locked?'Team identity is locked during the active season. You can redesign or relocate the club in the offseason.':'Offseason identity window is open. Changes preserve the franchise ID and all historical records.'}</p>
+  <p class="muted">${locked?`Season ${season} branding edit already used. Your next free identity window opens in the offseason.`:inSeason?`Season ${season} in-season branding edit is available. Saving will use your one active-season identity change for this season.`:'Identity window is open. Preseason/offseason saves do not consume your one in-season edit.'} Changes preserve the franchise ID and all historical records.</p>
   <div class="grid"><label>City / Home Market<input id="brandCityRC45" maxlength="40" value="${escapeHtml(city)}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label><label>Team Name<input id="brandTeamRC45" maxlength="40" value="${escapeHtml(nick)}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label></div>
   <div class="grid"><label>Primary Color<input id="brandPrimaryRC45" type="color" value="${b.primary_color||'#071A31'}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label><label>Secondary Color<input id="brandSecondaryRC45" type="color" value="${b.secondary_color||'#D7262E'}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label><label>Accent Color<input id="brandAccentRC45" type="color" value="${b.accent_color||'#D9E0E8'}" ${locked?'disabled':''} oninput="eblBrandPreviewRC45()"></label></div>
   <div class="grid">
@@ -7712,7 +7716,7 @@ function eblFranchiseIdentityStudioRC45(j){
    <label class="eblLogoDropRC45 eblWordmarkDropRC45">Jersey Wordmark<input type="file" accept="image/*" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files&&this.files[0],'wordmark')"><span id="brandWordmarkStatusRC45">${b.jersey_wordmark?'Jersey wordmark loaded — tap to replace':'Tap to upload transparent chest wordmark'}<br><small>Wide transparent PNG/WebP recommended • up to 5 MB • used across the jersey chest</small></span></label>
   </div>
   <div class="grid"><label>Home Uniform<select id="brandHomeRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_home||'WHITE')}</select></label><label>Away Uniform<select id="brandAwayRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_away||'NAVY')}</select></label></div>
-  <button class="btn" ${locked?'disabled':''} onclick="eblSaveFranchiseIdentityRC45()">${locked?'Identity Locked Until Offseason':'Save Franchise Identity'}</button>
+  <button class="btn" ${locked?'disabled':''} onclick="eblSaveFranchiseIdentityRC45()">${locked?'Season Branding Edit Used':inSeason?'Save Identity • Use Season Edit':'Save Franchise Identity'}</button>
  </div><div><div id="brandPreviewRC45" class="eblBrandPreviewRC45"></div></div></div>`;
 }
 async function eblSaveFranchiseIdentityRC45(){
@@ -7733,7 +7737,7 @@ window.teamMark=function(fid,small=false){
  if(logo){const n=t.display_name||t.name||fid||'EBL';return `<span class="teamMark ${small?'sm':''}" title="${escapeHtml(n)}" style="overflow:hidden;background:${t.primary_color||'#071A31'}"><img src="${logo}" alt="" style="width:100%;height:100%;object-fit:contain"></span>`}
  return eblTeamMarkRC45?eblTeamMarkRC45(fid,small):'';
 };
-window.EBL_FRANCHISE_IDENTITY_RC45={version:'RC56',fields:['city','team-name','primary-color','secondary-color','accent-color','primary-logo','secondary-logo','jersey-wordmark'],offseasonLock:true};
+window.EBL_FRANCHISE_IDENTITY_RC45={version:'RC81',fields:['city','team-name','primary-color','secondary-color','accent-color','primary-logo','secondary-logo','jersey-wordmark'],inSeasonEditsPerSeason:1,preseasonOffseasonOpen:true};
 </script>
 
 
