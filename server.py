@@ -3130,9 +3130,12 @@ def simulate_game(c,g):
                     }[ptype]
                     vel=round(max(72.0,min(103.0,R.gauss(pitch_speed_base+vel_attr*.18,1.35))),1)
 
-                    # CTRL governs how often the pitcher reaches the zone and how well pitches
-                    # live near useful edges. DISC/VIS govern chase decisions outside the zone.
-                    zone_p=max(.44,min(.68,.488+ctrl*.0020))
+                    # RC57 ATTRIBUTE SPECIALIZATION GATES
+                    # CTRL/CMD determine whether the pitcher can actually reach useful locations.
+                    # DEC/SEQ can improve choices, but they cannot substitute for raw command.
+                    # The lower baseline intentionally makes very low-control pitchers pay a
+                    # visible walk penalty while still keeping a playable floor for new builds.
+                    zone_p=max(.41,min(.69,.448+ctrl*.0028+cmd*.0010))
                     in_zone=R.random()<zone_p
                     edge=max(0.0,min(1.0,R.random()+ctrl*.0025+cmd*.0030-.12))
                     if in_zone:
@@ -3143,8 +3146,12 @@ def simulate_game(c,g):
                     else:
                         px=round(R.choice([R.uniform(.02,.18),R.uniform(.82,.98)]),3)
                         pz=round(R.choice([R.uniform(.02,.18),R.uniform(.82,.98)]),3)
-                        two_strike_seq=(seq*.0014 if strikes==2 else 0.0)
-                        swing_p=max(.06,min(.47,.29+brk*.0017+mov*.0008+dec*.0013+two_strike_seq-disc*.0032-vis*.0012+(.035 if strikes==2 else 0)-(.045 if balls==3 else 0)))
+                        # BRK/MOV create the actual chase quality. DEC/SEQ only help when the
+                        # pitcher's physical execution gives those choices something to work with.
+                        physical_chase=brk*.0020+mov*.0010
+                        craft_gate=max(.25,min(1.0,(brk+mov+cmd+vel_attr)/70.0))
+                        craft_chase=(dec*.00045+seq*(.00075 if strikes==2 else .00015))*craft_gate
+                        swing_p=max(.045,min(.44,.255+physical_chase+craft_chase-disc*.0032-vis*.0013+(.030 if strikes==2 else 0)-(.050 if balls==3 else 0)))
 
                     if R.random()>=swing_p:
                         if in_zone:
@@ -3152,11 +3159,15 @@ def simulate_game(c,g):
                         else:
                             balls+=1;call="Ball"
                     else:
-                        # VEL/BRK create swing difficulty; CON/VIS/TIM fight it.
-                        seq_mix=seq*(.23 if prev_pitch_type and ptype!=prev_pitch_type else .06)
-                        pitch_skill=.45*vel_attr+.55*brk+.10*ctrl*edge+.22*cmd*edge+.20*dec+seq_mix
-                        hitter_skill=.52*con+.18*vis+.30*tim
-                        whiff=max(.07,min(.68,.325+(pitch_skill-hitter_skill)*.0040+(.10 if not in_zone else 0)))
+                        # Bat-to-ball is now its own gate. CON/TIM do the physical hitting;
+                        # VIS helps only a little once the swing has already been chosen.
+                        # Likewise, DEC/SEQ amplify executed stuff instead of replacing it.
+                        physical_pitch=.46*vel_attr+.50*brk+.16*mov+.10*ctrl*edge+.20*cmd*edge
+                        craft_gate=max(.20,min(1.0,(vel_attr+brk+mov+cmd)/65.0))
+                        sequencing=(seq*(.10 if prev_pitch_type and ptype!=prev_pitch_type else .025)+dec*.07)*craft_gate
+                        pitch_skill=physical_pitch+sequencing
+                        hitter_skill=.66*con+.30*tim+.04*vis
+                        whiff=max(.06,min(.72,.325+(pitch_skill-hitter_skill)*.0046+(.105 if not in_zone else 0)))
                         if R.random()<whiff:
                             strikes+=1;call="Swinging Strike"
                         else:
@@ -3185,9 +3196,11 @@ def simulate_game(c,g):
                         # falls safely, rather than a hidden H9/HR9 roll deciding the result.
                         # Separate bat-to-ball skill from impact power so specialized builds
                         # produce visibly different outcomes instead of converging on one generic
-                        # contact-quality score. CON/TIM/VIS control how often playable contact
+                        # contact-quality score. CON/TIM control how often playable contact
                         # becomes a hit; POW/TIM drive impact and home-run damage.
-                        contact_matchup=(.52*con+.30*tim+.18*vis)-(.08*vel_attr+.07*brk+.06*mov+.035*cmd+.02*dec)
+                        # Once the ball is in play, VIS/DISC no longer create hits. They got the
+                        # hitter to the right swing decision; CON/TIM must still produce contact.
+                        contact_matchup=(.68*con+.32*tim)-(.08*vel_attr+.08*brk+.05*mov+.04*cmd)
                         impact=.62*powr+.22*tim+.16*con-(.10*vel_attr+.08*brk+.10*mov+.04*cmd+.02*dec)
                         exit_velo=round(max(55.0,min(122.0,R.gauss(88.5+impact*.23,7.1))),1)
                         launch_sd=max(10.0,15.8-tim*.08)
@@ -3200,9 +3213,12 @@ def simulate_game(c,g):
                         hr_p=max(.001,min(.24,power_gate*.30/(1.0+math.exp(-hr_score))))
 
                         hit_score=(exit_velo-87.2)/7.2-abs(launch_angle-14.0)/22.0
-                        contact_bonus=max(-.10,min(.085,(contact_matchup-10.0)*.0024-max(0.0,8.0-con)*.0040))
+                        # Low CON/TIM carries an explicit penalty instead of being rescued by VIS.
+                        # High CON/TIM earns a much larger ceiling so specialization is visible.
+                        low_contact_penalty=max(0.0,10.0-con)*.0055+max(0.0,7.0-tim)*.0030
+                        contact_bonus=max(-.14,min(.16,(contact_matchup-8.0)*.0032-low_contact_penalty))
                         defense_adj=(defense_rating.get(opp,0.0)-5.0)*.0025
-                        hit_p=max(.10,min(.70,.145+.38/(1.0+math.exp(-hit_score))+contact_bonus-defense_adj+shift_adj))
+                        hit_p=max(.08,min(.72,.145+.38/(1.0+math.exp(-hit_score))+contact_bonus-defense_adj+shift_adj))
 
                         roll=R.random()
                         if roll<hr_p:
