@@ -284,6 +284,20 @@ def init_db():
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_team_sponsorships_team ON team_sponsorships(franchise_id,status,end_season);
+    CREATE TABLE IF NOT EXISTS team_development_coaches(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      franchise_id TEXT NOT NULL,
+      season INTEGER NOT NULL,
+      coach_type TEXT NOT NULL,
+      attribute TEXT NOT NULL,
+      cost REAL NOT NULL DEFAULT 30,
+      midseason_applied INTEGER NOT NULL DEFAULT 0,
+      endseason_applied INTEGER NOT NULL DEFAULT 0,
+      hired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(franchise_id,season)
+    );
+    CREATE INDEX IF NOT EXISTS idx_team_development_coaches_team_season
+      ON team_development_coaches(franchise_id,season);
     CREATE TABLE IF NOT EXISTS xp_ledger(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       player_id INTEGER NOT NULL,
@@ -416,6 +430,7 @@ def init_db():
       primary_logo TEXT NOT NULL DEFAULT '',
       secondary_logo TEXT NOT NULL DEFAULT '',
       jersey_wordmark TEXT NOT NULL DEFAULT '',
+      inseason_edit_season INTEGER,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -680,7 +695,8 @@ def init_db():
         "team_name":"TEXT NOT NULL DEFAULT ''",
         "primary_logo":"TEXT NOT NULL DEFAULT ''",
         "secondary_logo":"TEXT NOT NULL DEFAULT ''",
-        "jersey_wordmark":"TEXT NOT NULL DEFAULT ''"
+        "jersey_wordmark":"TEXT NOT NULL DEFAULT ''",
+        "inseason_edit_season":"INTEGER"
     }.items():
         if col not in branding_cols:
             c.execute(f"ALTER TABLE franchise_branding ADD COLUMN {col} {ddl}")
@@ -825,9 +841,10 @@ def init_db():
         VALUES(?,?,?,?,0,1,0,0,0,0)""",(fid,name,owner,TEAM_BUDGET))
 
 
-        # Rename franchises that already exist
+        # Preserve coach-created franchise identities across deploys/restarts.
+        # Defaults only fill a truly blank legacy row; they never overwrite a rebrand.
         c.execute(
-            "UPDATE franchises SET name=? WHERE id=?",
+            "UPDATE franchises SET name=? WHERE id=? AND (name IS NULL OR TRIM(name)='')",
             (name,fid)
         )
 
@@ -844,9 +861,9 @@ def init_db():
         )
 
 
-        # Update display name for existing branding rows
+        # Preserve an existing custom display name.
         c.execute(
-            "UPDATE franchise_branding SET display_name=? WHERE franchise_id=?",
+            "UPDATE franchise_branding SET display_name=? WHERE franchise_id=? AND (display_name IS NULL OR TRIM(display_name)='')",
             (name,fid)
         )
 
@@ -899,7 +916,15 @@ def init_db():
 
 
     current_season_row=c.execute("SELECT v FROM league_state WHERE k='season'").fetchone()
-    ensure_season_membership(c,int(current_season_row["v"]) if current_season_row else 1)
+    current_season=int(current_season_row["v"]) if current_season_row else 1
+    ensure_season_membership(c,current_season)
+
+    # One-time/defensive fatigue epoch migration. Older builds stored pitcher workload
+    # without a season key, which could leak fatigue across a calendar rollover.
+    workload_epoch=c.execute("SELECT v FROM league_state WHERE k='pitcher_workload_season'").fetchone()
+    if not workload_epoch or int(workload_epoch["v"] or 0)!=current_season:
+        c.execute("DELETE FROM pitcher_workload")
+        c.execute("INSERT INTO league_state(k,v) VALUES('pitcher_workload_season',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",(str(current_season),))
 
 
     # Seed CPU roster filler so every team can play while human free agents join over time.
@@ -2074,6 +2099,10 @@ def minimum_offer_salary(c,player_id,franchise_id=None):
 FACILITY_UPGRADE_COSTS=[50,65,80,100,125]
 SPONSORSHIP_COST=25.0
 SPONSORSHIP_ATTRS={"ARM","ACC","FLD","REAC","SPD"}
+DEVELOPMENT_COACH_COST=30.0
+DEVELOPMENT_COACH_TYPES={
+    "SPEED":{"name":"Speed Coach","attribute":"SPD"}
+}
 
 def practice_reward_for(c,fid):
     r=c.execute("SELECT training_level FROM franchises WHERE id=?",(fid,)).fetchone()
@@ -2093,6 +2122,55 @@ def active_team_sponsorships(c,fid,season=None):
 def team_attribute_bonus(c,fid,attribute,season=None):
     return sum(int(x.get("bonus",0) or 0) for x in active_team_sponsorships(c,fid,season)
                if str(x.get("attribute","")).upper()==str(attribute).upper())
+
+def active_team_development_coaches(c,fid,season=None):
+    if season is None:
+        season=_season_number(c)
+    return [dict(x) for x in c.execute(
+        """SELECT * FROM team_development_coaches
+           WHERE franchise_id=? AND season=? ORDER BY id""",
+        (str(fid),int(season))
+    ).fetchall()]
+
+def _apply_team_development_point(c,row,stage):
+    fid=str(row["franchise_id"]);attribute=str(row["attribute"] or "").upper()
+    coach_type=str(row["coach_type"] or "").upper();season=int(row["season"] or 1)
+    if not attribute:return 0
+    players=c.execute(
+        """SELECT id,user_id,name,attributes_json FROM players
+           WHERE franchise_id=? AND active=1 AND status='SIGNED' ORDER BY id""",
+        (fid,)
+    ).fetchall()
+    changed=0
+    for pl in players:
+        try:attrs=json.loads(pl["attributes_json"] or "{}")
+        except Exception:attrs={}
+        attrs[attribute]=float(attrs.get(attribute,0) or 0)+1.0
+        c.execute("UPDATE players SET attributes_json=? WHERE id=?",(json.dumps(attrs),pl["id"]))
+        changed+=1
+        if pl["user_id"]:
+            notify_user(c,pl["user_id"],"DEVELOPMENT",f"Team {DEVELOPMENT_COACH_TYPES.get(coach_type,{}).get('name','Development Coach')}: +1 {attribute}",
+                        f"{pl['name']} earned a permanent +1 {attribute} from the club's seasonal development coach.",str(pl["id"]))
+    c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+              ("TEAM_DEVELOPMENT_MILESTONE",None,json.dumps({"franchise_id":fid,"season":season,"coach_type":coach_type,"attribute":attribute,"stage":stage,"players_updated":changed})))
+    return changed
+
+def apply_team_development_coach_milestones(c,season,league_day):
+    """Apply permanent seasonal coach development exactly once at Day 40 and Day 81."""
+    season=int(season);league_day=int(league_day)
+    if league_day<40:return []
+    rows=c.execute("SELECT * FROM team_development_coaches WHERE season=? ORDER BY id",(season,)).fetchall()
+    applied=[]
+    for row in rows:
+        if league_day>=40 and not int(row["midseason_applied"] or 0):
+            n=_apply_team_development_point(c,row,"MIDSEASON")
+            c.execute("UPDATE team_development_coaches SET midseason_applied=1 WHERE id=?",(row["id"],))
+            applied.append({"id":row["id"],"stage":"MIDSEASON","players":n})
+        if league_day>=81 and not int(row["endseason_applied"] or 0):
+            n=_apply_team_development_point(c,row,"END_REGULAR_SEASON")
+            c.execute("UPDATE team_development_coaches SET endseason_applied=1 WHERE id=?",(row["id"],))
+            applied.append({"id":row["id"],"stage":"END_REGULAR_SEASON","players":n})
+    return applied
 
 def effective_stamina(sta):
     """Soft-scale uncapped STA so every point helps without creating infinite endurance."""
@@ -5318,8 +5396,14 @@ class H(BaseHTTPRequestHandler):
             team["development_bonus_active"]=season>1
             team["development_bonus_effective"]=float(team.get("development_bonus") or 0) if season>1 else 0.0
             sponsorships=active_team_sponsorships(c,f["id"],season)
+            development_coaches=active_team_development_coaches(c,f["id"],season)
+            branding=dict(brand) if brand else None
+            if branding is not None:
+                used_season=branding.get("inseason_edit_season")
+                branding["inseason_edit_used"]=bool(used_season is not None and int(used_season)==season)
+                branding["inseason_edit_available"]=not branding["inseason_edit_used"]
             c.close()
-            return self.out({"team":team,"branding":dict(brand) if brand else None,"roster":roster,
+            return self.out({"team":team,"branding":branding,"roster":roster,
                              "lineup":json.loads(l["batting_order_json"]) if l else [],
                              "field_positions":json.loads(l["field_positions_json"] or "{}") if l else {},
                              "rotation":json.loads(l["rotation_json"]) if l else [],
@@ -5328,6 +5412,7 @@ class H(BaseHTTPRequestHandler):
                                          "bench":json.loads(strat["bench_json"]) if strat else {},
                                          "substitutions":json.loads(strat["substitutions_json"]) if strat else {}},
                              "offers":offers,"contracts":contracts,"sponsorships":sponsorships,
+                             "development_coaches":development_coaches,
                              "next_game":dict(next_game) if next_game else None,
                              "season":season,"league_day":day,"phase":state.get("phase","REGULAR")})
         if p=="/api/friends":
@@ -6284,6 +6369,36 @@ class H(BaseHTTPRequestHandler):
                       ("TEAM_SPONSORSHIP",u["id"],json.dumps({"franchise_id":fr["id"],"attribute":attribute,"bonus":1,"start_season":season,"end_season":end_season,"cost":SPONSORSHIP_COST})))
             c.commit();c.close();return self.out({"ok":True,"attribute":attribute,"bonus":1,"start_season":season,"end_season":end_season,"cost":SPONSORSHIP_COST})
 
+        if p=="/api/coach/development-coach":
+            u=self.auth(["COACH","COMMISSIONER"])
+            if not u:return
+            d=self.body();coach_type=str(d.get("coach_type","SPEED")).upper()
+            if coach_type not in DEVELOPMENT_COACH_TYPES:
+                return self.out({"error":"INVALID_DEVELOPMENT_COACH","allowed":sorted(DEVELOPMENT_COACH_TYPES)},400)
+            c=conn();fr=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
+            if not fr:c.close();return self.out({"error":"NO_FRANCHISE"},404)
+            state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
+            season=int(state.get("season",1));day=int(state.get("league_day",0));phase=str(state.get("phase","REGULAR")).upper()
+            if phase!="REGULAR" or day>=40:
+                c.close();return self.out({"error":"DEVELOPMENT_COACH_HIRING_CLOSED","detail":"Seasonal development coaches must be hired before League Day 40.","season":season,"league_day":day,"phase":phase},400)
+            existing=c.execute("SELECT * FROM team_development_coaches WHERE franchise_id=? AND season=?",(fr["id"],season)).fetchone()
+            if existing:
+                c.close();return self.out({"error":"DEVELOPMENT_COACH_ALREADY_HIRED","coach":dict(existing)},400)
+            finance=signing_pool_state(c,fr["id"])
+            if float(finance["available"] or 0)<DEVELOPMENT_COACH_COST:
+                c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":DEVELOPMENT_COACH_COST,"available":finance["available"]},400)
+            spec=DEVELOPMENT_COACH_TYPES[coach_type]
+            c.execute("UPDATE franchises SET xp_budget=xp_budget-? WHERE id=?",(DEVELOPMENT_COACH_COST,fr["id"]))
+            cur=c.execute("""INSERT INTO team_development_coaches(franchise_id,season,coach_type,attribute,cost)
+                             VALUES(?,?,?,?,?)""",(fr["id"],season,coach_type,spec["attribute"],DEVELOPMENT_COACH_COST))
+            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                      ("DEVELOPMENT_COACH_HIRED",u["id"],json.dumps({"franchise_id":fr["id"],"season":season,"coach_type":coach_type,"attribute":spec["attribute"],"cost":DEVELOPMENT_COACH_COST})))
+            post_news(c,"TEAM",f"{team_name(c,fr['id'])} hire a {spec['name']}",
+                      f"The club committed {DEVELOPMENT_COACH_COST:g} team XP to seasonal development. Players on the active roster at the Day 40 and Day 81 checkpoints can each earn a permanent +1 {spec['attribute']} at those milestones.",
+                      day,fr["id"],None,None,1,season=season)
+            c.commit();row=dict(c.execute("SELECT * FROM team_development_coaches WHERE id=?",(cur.lastrowid,)).fetchone());c.close()
+            return self.out({"ok":True,"coach":row,"name":spec["name"],"cost":DEVELOPMENT_COACH_COST})
+
         if p=="/api/coach/set-strategy":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
@@ -6375,10 +6490,12 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             d=self.body();c=conn();f=c.execute("SELECT id,name FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
             if not f:c.close();return self.out({"error":"NO_FRANCHISE"},404)
-            state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('phase','league_day')")}
-            phase=str(state.get("phase","REGULAR")).upper();day=int(state.get("league_day","0") or 0)
-            if phase!="OFFSEASON" and day>0:
-                c.close();return self.out({"error":"TEAM_IDENTITY_LOCKED","phase":phase,"league_day":day},400)
+            state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','phase','league_day')")}
+            season=int(state.get("season",1));phase=str(state.get("phase","REGULAR")).upper();day=int(state.get("league_day","0") or 0)
+            existing=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(f["id"],)).fetchone()
+            inseason=phase!="OFFSEASON" and day>0
+            if inseason and existing and existing["inseason_edit_season"] is not None and int(existing["inseason_edit_season"])==season:
+                c.close();return self.out({"error":"TEAM_IDENTITY_EDIT_USED","phase":phase,"league_day":day,"season":season},400)
 
             city=" ".join(str(d.get("city","")).split()).strip()
             team_nickname=" ".join(str(d.get("team_name","")).split()).strip()
@@ -6399,7 +6516,6 @@ class H(BaseHTTPRequestHandler):
             allowed={"WHITE","NAVY","RED","GRAY","BLACK","CREAM"}
             if home not in allowed or away not in allowed:c.close();return self.out({"error":"INVALID_UNIFORM"},400)
 
-            existing=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(f["id"],)).fetchone()
             primary_logo=str(d.get("primary_logo",existing["primary_logo"] if existing and "primary_logo" in existing.keys() else "") or "")
             secondary_logo=str(d.get("secondary_logo",existing["secondary_logo"] if existing and "secondary_logo" in existing.keys() else "") or "")
             jersey_wordmark=str(d.get("jersey_wordmark",existing["jersey_wordmark"] if existing and "jersey_wordmark" in existing.keys() else "") or "")
@@ -6407,15 +6523,33 @@ class H(BaseHTTPRequestHandler):
                 if artwork and (not artwork.startswith(("data:image/png;base64,","data:image/webp;base64,","data:image/jpeg;base64,")) or len(artwork)>MAX_TEAM_LOGO_DATA_URL_CHARS):
                     c.close();return self.out({"error":"INVALID_TEAM_ARTWORK","detail":"Use PNG, JPG or WebP. Each branding image must be 5 MB or smaller."},400)
 
-            c.execute("""INSERT OR REPLACE INTO franchise_branding(
+            prior_edit_season=existing["inseason_edit_season"] if existing and "inseason_edit_season" in existing.keys() else None
+            edit_season=season if inseason else prior_edit_season
+            c.execute("""INSERT INTO franchise_branding(
                            franchise_id,display_name,city,team_name,logo_style,primary_logo,secondary_logo,jersey_wordmark,
-                           primary_color,secondary_color,accent_color,uniform_home,uniform_away,updated_at)
-                         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
-                      (f["id"],display_name,city,team_nickname,logo_style,primary_logo,secondary_logo,jersey_wordmark,pc,sc,ac,home,away))
+                           primary_color,secondary_color,accent_color,uniform_home,uniform_away,inseason_edit_season,updated_at)
+                         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+                         ON CONFLICT(franchise_id) DO UPDATE SET
+                           display_name=excluded.display_name,city=excluded.city,team_name=excluded.team_name,logo_style=excluded.logo_style,
+                           primary_logo=excluded.primary_logo,secondary_logo=excluded.secondary_logo,jersey_wordmark=excluded.jersey_wordmark,
+                           primary_color=excluded.primary_color,secondary_color=excluded.secondary_color,accent_color=excluded.accent_color,
+                           uniform_home=excluded.uniform_home,uniform_away=excluded.uniform_away,inseason_edit_season=excluded.inseason_edit_season,
+                           updated_at=CURRENT_TIMESTAMP""",
+                      (f["id"],display_name,city,team_nickname,logo_style,primary_logo,secondary_logo,jersey_wordmark,pc,sc,ac,home,away,edit_season))
             c.execute("UPDATE franchises SET name=? WHERE id=?",(display_name,f["id"]))
+            # Keep the franchise lineage useful: record each distinct saved identity.
+            prev_hist=c.execute("""SELECT display_name,primary_color,secondary_color,accent_color,primary_logo,secondary_logo,jersey_wordmark
+                                      FROM franchise_identity_history WHERE franchise_id=? ORDER BY id DESC LIMIT 1""",(f["id"],)).fetchone()
+            signature=(display_name,pc,sc,ac,primary_logo,secondary_logo,jersey_wordmark)
+            prev_signature=tuple(prev_hist[k] for k in ("display_name","primary_color","secondary_color","accent_color","primary_logo","secondary_logo","jersey_wordmark")) if prev_hist else None
+            if signature!=prev_signature:
+                hist_season=season+1 if phase=="OFFSEASON" else season
+                c.execute("""INSERT INTO franchise_identity_history(franchise_id,season,city,team_name,display_name,primary_color,secondary_color,accent_color,primary_logo,secondary_logo,jersey_wordmark)
+                             VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                          (f["id"],hist_season,city,team_nickname,display_name,pc,sc,ac,primary_logo,secondary_logo,jersey_wordmark))
             c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                      ("FRANCHISE_REBRANDED",u["id"],json.dumps({"franchise_id":f["id"],"display_name":display_name,"city":city,"team_name":team_nickname})))
-            c.commit();c.close();return self.out({"ok":True,"display_name":display_name,"city":city,"team_name":team_nickname})
+                      ("FRANCHISE_REBRANDED",u["id"],json.dumps({"franchise_id":f["id"],"display_name":display_name,"city":city,"team_name":team_nickname,"season":season,"inseason_edit":inseason})))
+            c.commit();c.close();return self.out({"ok":True,"display_name":display_name,"city":city,"team_name":team_nickname,"inseason_edit_used":inseason,"season":season})
         if p=="/api/coach/set-lineup":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
@@ -6841,6 +6975,10 @@ class H(BaseHTTPRequestHandler):
                         )
 
 
+                    # Postseason starts fresh: regular-season pitching workload does not
+                    # carry into the playoff bracket.
+                    c.execute("DELETE FROM pitcher_workload")
+
                     c.execute(
                         "UPDATE league_state SET v='PLAYOFFS' WHERE k='phase'"
                     )
@@ -7155,6 +7293,7 @@ class H(BaseHTTPRequestHandler):
                 generate_daily_news(c,day,season)
                 weekly_recap(c,day,season)
                 process_quarter_awards(c,season,day)
+                apply_team_development_coach_milestones(c,season,day)
                 if day==81:
                     process_season_awards(c,season)
                 c.execute("UPDATE league_state SET v=? WHERE k='league_day'",(str(day),))
@@ -7444,6 +7583,9 @@ class H(BaseHTTPRequestHandler):
                 enforce_active_rosters(c,next_season)
                 summary["rosters_rebuilt"]=True
 
+                # Opening Day starts with every pitcher fully recovered.
+                c.execute("DELETE FROM pitcher_workload")
+
                 active_players=c.execute("SELECT id,type FROM players WHERE active=1").fetchall()
                 for pl in active_players:
                     if pl["type"]=="H":
@@ -7456,7 +7598,7 @@ class H(BaseHTTPRequestHandler):
                     return self.out({"error":"NEXT_SEASON_ALREADY_EXISTS","season":next_season},409)
                 generate_season_schedule(c,next_season)
 
-                for key,value in (("season",str(next_season)),("league_day","0"),("phase","REGULAR"),("playoff_round",""),("champion","")):
+                for key,value in (("season",str(next_season)),("league_day","0"),("phase","REGULAR"),("playoff_round",""),("champion",""),("pitcher_workload_season",str(next_season))):
                     c.execute("INSERT INTO league_state(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",(key,value))
                 c.execute("INSERT INTO league_config(k,v) VALUES('season_number',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",(str(next_season),))
                 post_news(c,"LEAGUE",f"Season {next_season} is open",f"A new EBL season begins. Rosters, contracts, standings, and statistics have rolled forward for Season {next_season}.",0,None,None,None,4,season=next_season)
