@@ -25,9 +25,15 @@ BONUS_CAP=25.0
 REGULAR_SEASON_GAMES=81
 ACTIVE_ROSTER_SIZE=16
 TEAM_BUDGET=480.0
-REVENUE_UPGRADE_COSTS=[50,65,80,100,125]
+CONTRACT_ESCALATION=0.01
+REVENUE_UPGRADE_COST=50.0
+REVENUE_UPGRADE_CAP=10
+FINISH_REWARD_MIN=1.0
 FINISH_REWARD_MAX=30.0
-REBUILD_XP_MAX=0.03
+REBUILD_XP_MAX=0.05
+POOL_GROWTH_TOP=5.0
+POOL_GROWTH_MIDDLE=4.0
+POOL_GROWTH_BOTTOM=3.0
 STORAGE_KEEP_FULL_GAME_DAYS=7
 SP_XP_MULTIPLIER=4.0
 RP_XP_MULTIPLIER=1.75
@@ -306,6 +312,8 @@ def init_db():
       recovery_level INTEGER NOT NULL DEFAULT 0,
       finish_reward REAL NOT NULL DEFAULT 0,
       development_bonus REAL NOT NULL DEFAULT 0,
+      funding_growth REAL NOT NULL DEFAULT 0,
+      last_pool_growth REAL NOT NULL DEFAULT 0,
       identity_locked INTEGER NOT NULL DEFAULT 1,
       wins INTEGER NOT NULL DEFAULT 0,
       losses INTEGER NOT NULL DEFAULT 0,
@@ -340,7 +348,8 @@ def init_db():
       jersey_number INTEGER NOT NULL DEFAULT 24,
       age INTEGER NOT NULL DEFAULT 18,
       hometown TEXT NOT NULL DEFAULT '',
-      skin_color_id INTEGER NOT NULL DEFAULT 1
+      skin_color_id INTEGER NOT NULL DEFAULT 1,
+      career_extension_through INTEGER NOT NULL DEFAULT 12
     );
     CREATE TABLE IF NOT EXISTS offers(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -807,6 +816,8 @@ def init_db():
                 used.add(num)
                 c.execute("UPDATE players SET jersey_number=? WHERE id=?",(num,row["id"]))
         c.execute("UPDATE players SET jersey_number=((id*7)%99)+1 WHERE franchise_id IS NULL")
+    if "career_extension_through" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN career_extension_through INTEGER NOT NULL DEFAULT 12")
 
     chat_cols={r["name"] for r in c.execute("PRAGMA table_info(chat_messages)").fetchall()}
     if "player_id" not in chat_cols:
@@ -1209,7 +1220,7 @@ def init_db():
                 pid=players[i-1]["id"] if i-1<len(players) else None
                 c.execute("""INSERT OR IGNORE INTO roster_slots(franchise_id,slot_no,position_group,player_id,occupant_type)
                              VALUES(?,?,?,?,?)""",(fid,i,posgrp,pid,"CPU" if pid else "OPEN"))
-    # RC74 contract migration: active multi-year salary rises +0.02 XP/game at each season rollover.
+    # RC89 economy: active multi-year salary rises +0.01 XP/game at each season rollover.
     contract_cols={r["name"] for r in c.execute("PRAGMA table_info(contracts)").fetchall()}
     if "years_total" not in contract_cols:
         c.execute("ALTER TABLE contracts ADD COLUMN years_total INTEGER NOT NULL DEFAULT 1")
@@ -1220,7 +1231,7 @@ def init_db():
 
     # Franchise economy migration.
     franchise_cols={r["name"] for r in c.execute("PRAGMA table_info(franchises)").fetchall()}
-    for col,ddl in [("revenue_level","INTEGER NOT NULL DEFAULT 0"),("finish_reward","REAL NOT NULL DEFAULT 0"),("development_bonus","REAL NOT NULL DEFAULT 0")]:
+    for col,ddl in [("revenue_level","INTEGER NOT NULL DEFAULT 0"),("finish_reward","REAL NOT NULL DEFAULT 0"),("development_bonus","REAL NOT NULL DEFAULT 0"),("funding_growth","REAL NOT NULL DEFAULT 0"),("last_pool_growth","REAL NOT NULL DEFAULT 0")]:
         if col not in franchise_cols:
             c.execute(f"ALTER TABLE franchises ADD COLUMN {col} {ddl}")
     # RC73: startup/deploys must never reset an established club treasury.
@@ -1263,6 +1274,34 @@ def player_seasons_completed(c,player_id):
 def development_cost(value,seasons_completed):
     return attr_cost(value)+career_xp_surcharge(seasons_completed)
 
+def veteran_extension_cost(seasons_completed):
+    """Personal XP required to guarantee one more season after 12 completed years."""
+    seasons=max(0,int(seasons_completed or 0))
+    schedule={12:25.0,13:35.0,14:50.0,15:70.0,16:95.0,17:125.0}
+    if seasons<12:return 0.0
+    if seasons in schedule:return schedule[seasons]
+    return 125.0 + 35.0*(seasons-17)
+
+def extension_completed_seasons(c,player_id):
+    completed=player_seasons_completed(c,player_id)
+    state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','phase')")}
+    if str(state.get("phase","REGULAR")).upper()=="OFFSEASON":
+        season=int(state.get("season",1) or 1)
+        already=c.execute("SELECT 1 FROM season_history WHERE player_id=? AND season=?",(player_id,season)).fetchone()
+        pl=c.execute("SELECT active FROM players WHERE id=?",(player_id,)).fetchone()
+        if pl and int(pl["active"] or 0)==1 and not already:
+            completed+=1
+    return completed
+
+def veteran_retirement_due(c,player_id):
+    row=c.execute("SELECT user_id,career_extension_through,active FROM players WHERE id=?",(player_id,)).fetchone()
+    if not row or not int(row["active"] or 0):return False
+    completed=player_seasons_completed(c,player_id)
+    if completed<12:return False
+    if row["user_id"] is None:return True
+    through=int(row["career_extension_through"] or 12)
+    return through < completed+1
+
 REVENUE_BRANCH_COLUMNS={
     "seating":"seating_level",
     "concessions":"concessions_level",
@@ -1278,7 +1317,8 @@ def revenue_upgrade_levels(fr):
     return legacy+branches
 
 def annual_team_budget(fr):
-    return round(TEAM_BUDGET + 5*revenue_upgrade_levels(fr),3)
+    growth=float(fr.get("funding_growth",0) or 0)
+    return round(TEAM_BUDGET + growth + 5*revenue_upgrade_levels(fr),3)
 
 def signing_pool_state(c, fid, exclude_offer_id=None):
     """RC61: dynamic annual club economy.
@@ -1310,7 +1350,8 @@ def signing_pool_state(c, fid, exclude_offer_id=None):
              CASE WHEN salary>? THEN (salary-?)*? ELSE 0 END
            ),0) x
          FROM offers
-         WHERE franchise_id=? AND status IN ('OPEN','HELD')"""
+         WHERE franchise_id=? AND status IN ('OPEN','HELD')
+           AND UPPER(COALESCE(offer_type,'FREE_AGENT'))!='RENEWAL'"""
     args=[SALARY_MIN,SALARY_MIN,REGULAR_SEASON_GAMES,fid]
     if exclude_offer_id is not None:
         q += " AND id<>?"; args.append(int(exclude_offer_id))
@@ -1343,8 +1384,7 @@ def reserve_cap(fr):
     return float("inf")
 
 def upgrade_cost(level):
-    level=max(0,int(level))
-    return REVENUE_UPGRADE_COSTS[min(level,len(REVENUE_UPGRADE_COSTS)-1)]
+    return REVENUE_UPGRADE_COST
 
 def franchise_development_multiplier(c,fid):
     # Rebuild/development bonuses are earned from a completed season and therefore
@@ -1368,12 +1408,18 @@ def apply_finish_economy(c,season,active_ids):
     if champion and champion in ids:
         standings=[x for x in standings if x[0]==champion]+[x for x in standings if x[0]!=champion]
     n=len(standings);out=[]
+    top_cut=max(1,math.ceil(n/3))
+    middle_cut=max(top_cut,math.ceil(2*n/3))
     for rank,(fid,w,l) in enumerate(standings,1):
         frac=0.0 if n<=1 else (n-rank)/(n-1)
-        reward=round(FINISH_REWARD_MAX*frac,3)
+        reward=round(FINISH_REWARD_MIN + (FINISH_REWARD_MAX-FINISH_REWARD_MIN)*frac,3)
         dev=round(REBUILD_XP_MAX*(1.0-frac),5)
-        c.execute("UPDATE franchises SET xp_reserve=xp_reserve+?,finish_reward=?,development_bonus=? WHERE id=?",(reward,reward,dev,fid))
-        out.append({"franchise_id":fid,"rank":rank,"reward":reward,"development_bonus":dev})
+        growth=POOL_GROWTH_TOP if rank<=top_cut else POOL_GROWTH_MIDDLE if rank<=middle_cut else POOL_GROWTH_BOTTOM
+        c.execute("""UPDATE franchises
+                     SET xp_reserve=xp_reserve+?,finish_reward=?,development_bonus=?,
+                         funding_growth=funding_growth+?,last_pool_growth=?
+                     WHERE id=?""",(reward,reward,dev,growth,growth,fid))
+        out.append({"franchise_id":fid,"rank":rank,"reward":reward,"development_bonus":dev,"pool_growth":growth})
     return out
 
 def notify_user(c,user_id,kind,title,body="",ref_id=None):
@@ -2167,7 +2213,14 @@ def player_obj(c,pid):
     d["championships"]=d["career"]["championship_count"] if d.get("career") else 0
     d["awards_count"]=d["career"]["award_count"] if d.get("career") else 0
     state={x["k"]:x["v"] for x in c.execute("SELECT k,v FROM league_state WHERE k IN ('phase','league_day')")}
-    d["position_group_change_open"]=bool(d.get("status")=="FREE_AGENT" and (str(state.get("phase","REGULAR")).upper()=="OFFSEASON" or int(state.get("league_day","0") or 0)==0))
+    phase=str(state.get("phase","REGULAR")).upper()
+    effective_completed=extension_completed_seasons(c,pid) if d.get("active") else int(d.get("career_seasons") or 0)
+    extension_through=int(d.get("career_extension_through") or 12)
+    veteran_eligible=bool(d.get("active") and effective_completed>=12)
+    next_career_season=effective_completed+1
+    extension_paid=bool(veteran_eligible and extension_through>=next_career_season)
+    d["veteran_extension"]={"eligible":veteran_eligible,"window_open":bool(veteran_eligible and phase=="OFFSEASON"),"required":bool(veteran_eligible and phase=="OFFSEASON" and not extension_paid),"paid":extension_paid,"completed_seasons":effective_completed,"next_career_season":next_career_season,"covered_through":extension_through,"cost":veteran_extension_cost(effective_completed) if veteran_eligible else 0.0}
+    d["position_group_change_open"]=bool(d.get("status")=="FREE_AGENT" and (phase=="OFFSEASON" or int(state.get("league_day","0") or 0)==0))
     # Preferred position may be changed within the current roster family even while signed.
     # The actual team role remains the roster-slot assignment controlled by the club.
     d["preferred_position_change_open"]=bool(d.get("active"))
@@ -2378,7 +2431,7 @@ def next_season_payroll_projection(c,franchise_id,replace_player_id=None,propose
         if replace_player_id is not None and pid==int(replace_player_id):
             continue
         if int(con["years_remaining"] or 0)>1:
-            total+=(round(float(con["salary"] or SALARY_MIN)+0.02,2))*REGULAR_SEASON_GAMES
+            total+=(round(float(con["salary"] or SALARY_MIN)+CONTRACT_ESCALATION,2))*REGULAR_SEASON_GAMES
             continue
         renewal=c.execute(
             """SELECT salary FROM offers
@@ -2392,6 +2445,13 @@ def next_season_payroll_projection(c,franchise_id,replace_player_id=None,propose
     if proposed_salary is not None:
         total+=float(proposed_salary)*REGULAR_SEASON_GAMES
     return round(total,3)
+
+def projected_next_season_treasury(c,franchise_id):
+    fr=c.execute("SELECT * FROM franchises WHERE id=?",(franchise_id,)).fetchone()
+    if not fr:return TEAM_BUDGET
+    recurring=annual_team_budget(dict(fr))
+    safe_rollover=signing_pool_state(c,franchise_id)["available"]
+    return round(recurring+safe_rollover,3)
 
 FACILITY_UPGRADE_COSTS=[50,65,80,100,125]
 SPONSORSHIP_COST=25.0
@@ -6019,6 +6079,11 @@ class H(BaseHTTPRequestHandler):
             team["spend_pct"]=round((finance["signed_payroll"]/max(1.0,float(team.get("xp_budget") or 0)))*100,1)
             team["next_season_committed_payroll"]=next_season_payroll_projection(c,f["id"])
             team["next_season_base_budget"]=round(annual_team_budget(team),3)
+            team["next_season_projected_treasury"]=projected_next_season_treasury(c,f["id"])
+            team["base_funding"]=TEAM_BUDGET
+            team["permanent_pool_growth"]=round(float(team.get("funding_growth") or 0),3)
+            team["revenue_upgrades_total"]=revenue_upgrade_levels(team)
+            team["revenue_upgrades_cap"]=REVENUE_UPGRADE_CAP
             team["practice_reward"]=practice_reward_for(c,f["id"])
             team["recovery_bonus_per_day"]=2*int(team.get("recovery_level") or 0)
             team["development_bonus_active"]=season>1
@@ -6534,6 +6599,41 @@ class H(BaseHTTPRequestHandler):
             c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("POSITION_CHANGED",u["id"],json.dumps({"player_id":pl["id"],"from_group":old_group,"to_group":new_group,"from_position":old_pos,"position":new_pos,"team_role_unchanged":pl["status"]=="SIGNED"})))
             c.commit();out=player_obj(c,pl["id"]);c.close();return self.out({"ok":True,"player":out})
 
+        if p=="/api/player/veteran-extension":
+            u=self.auth(["PLAYER","COMMISSIONER"])
+            if not u:return
+            d=self.body();c=conn()
+            try:
+                c.execute("BEGIN IMMEDIATE")
+                phase_row=c.execute("SELECT v FROM league_state WHERE k='phase'").fetchone()
+                phase=str(phase_row["v"] if phase_row else "REGULAR").upper()
+                if phase!="OFFSEASON":
+                    c.rollback();return self.out({"error":"VETERAN_EXTENSION_WINDOW_CLOSED","phase":phase},400)
+                pl=owned_active_player(c,u["id"],request_player_id(self,d))
+                if not pl:
+                    c.rollback();return self.out({"error":"PLAYER_NOT_FOUND"},404)
+                completed=extension_completed_seasons(c,pl["id"])
+                if completed<12:
+                    c.rollback();return self.out({"error":"VETERAN_EXTENSION_NOT_ELIGIBLE","seasons_completed":completed,"required":12},400)
+                target=completed+1
+                through=int(pl["career_extension_through"] or 12)
+                cost=veteran_extension_cost(completed)
+                if through>=target:
+                    c.rollback();return self.out({"ok":True,"already_paid":True,"player_id":pl["id"],"covered_through":through,"next_career_season":target,"cost":cost,"xp_wallet":float(pl["xp_wallet"] or 0)})
+                wallet=float(pl["xp_wallet"] or 0)
+                if wallet+1e-9<cost:
+                    c.rollback();return self.out({"error":"INSUFFICIENT_XP","cost":cost,"xp_wallet":round(wallet,3),"next_career_season":target},400)
+                new_wallet=round(wallet-cost,3)
+                c.execute("UPDATE players SET xp_wallet=?,career_extension_through=? WHERE id=?",(new_wallet,target,pl["id"]))
+                detail={"completed_seasons":completed,"next_career_season":target,"cost":cost}
+                c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(pl["id"],"VETERAN_EXTENSION",-cost,json.dumps(detail)))
+                c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("VETERAN_EXTENSION",u["id"],json.dumps({"player_id":pl["id"],**detail})))
+                notify_user(c,u["id"],"CAREER","Veteran career extended",f"{pl['name']} is cleared to return for career Season {target} after spending {cost:g} XP.",str(pl["id"]))
+                c.commit()
+                return self.out({"ok":True,"player_id":pl["id"],"player_name":pl["name"],"cost":cost,"xp_wallet":new_wallet,"covered_through":target,"next_career_season":target})
+            finally:
+                c.close()
+
         if p=="/api/player/retire":
             u=self.auth(["PLAYER","COMMISSIONER"])
             if not u:return
@@ -6789,8 +6889,9 @@ class H(BaseHTTPRequestHandler):
                 salary=current_rate if mode=="CURRENT" else veteran_min
                 projected=next_season_payroll_projection(c,f["id"],replace_player_id=pid,proposed_salary=salary)
                 base_budget=round(annual_team_budget(dict(f)),3)
-                if projected>base_budget+1e-9:
-                    return self.out({"error":"NEXT_SEASON_PAYROLL_EXCEEDED","projected_payroll":projected,"base_budget":base_budget},400)
+                projected_treasury=projected_next_season_treasury(c,f["id"])
+                if projected>projected_treasury+1e-9:
+                    return self.out({"error":"NEXT_SEASON_PAYROLL_EXCEEDED","projected_payroll":projected,"base_budget":base_budget,"projected_treasury":projected_treasury},400)
                 c.execute("UPDATE offers SET status='SUPERSEDED' WHERE franchise_id=? AND player_id=? AND offer_type='RENEWAL' AND effective_season=? AND status IN ('OPEN','HELD')",(f["id"],pid,season+1))
                 cur=c.execute(
                     """INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status,offer_type,message,effective_season,salary_basis)
@@ -6801,7 +6902,7 @@ class H(BaseHTTPRequestHandler):
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
                           ("RENEWAL_OFFERED",u["id"],json.dumps({"player_id":pid,"franchise_id":f["id"],"salary":salary,"years":years,"salary_mode":mode,"effective_season":season+1,"message":message})))
                 c.commit()
-                return self.out({"ok":True,"offer_id":cur.lastrowid,"salary":salary,"years":years,"salary_mode":mode,"effective_season":season+1,"projected_payroll":projected,"base_budget":base_budget})
+                return self.out({"ok":True,"offer_id":cur.lastrowid,"salary":salary,"years":years,"salary_mode":mode,"effective_season":season+1,"projected_payroll":projected,"base_budget":base_budget,"projected_treasury":projected_treasury})
             finally:
                 c.close()
 
@@ -6893,8 +6994,9 @@ class H(BaseHTTPRequestHandler):
                     projected=next_season_payroll_projection(c,off["franchise_id"],replace_player_id=pl["id"],proposed_salary=float(off["salary"] or SALARY_MIN))
                     fr=c.execute("SELECT * FROM franchises WHERE id=?",(off["franchise_id"],)).fetchone()
                     base_budget=round(annual_team_budget(dict(fr)),3) if fr else TEAM_BUDGET
-                    if projected>base_budget+1e-9:
-                        c.rollback();return self.out({"error":"NEXT_SEASON_PAYROLL_EXCEEDED","projected_payroll":projected,"base_budget":base_budget},400)
+                    projected_treasury=projected_next_season_treasury(c,off["franchise_id"])
+                    if projected>projected_treasury+1e-9:
+                        c.rollback();return self.out({"error":"NEXT_SEASON_PAYROLL_EXCEEDED","projected_payroll":projected,"base_budget":base_budget,"projected_treasury":projected_treasury},400)
                     c.execute("UPDATE offers SET status='ACCEPTED' WHERE id=?",(oid,))
                     c.execute("UPDATE offers SET status='CANCELLED_PLAYER_RENEWED' WHERE player_id=? AND offer_type='RENEWAL' AND id<>? AND status IN ('OPEN','HELD')",(pl["id"],oid))
                     c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
@@ -7060,9 +7162,12 @@ class H(BaseHTTPRequestHandler):
             if not fr:c.close();return self.out({"error":"NO_FRANCHISE"},404)
             col=REVENUE_BRANCH_COLUMNS[kind]
             level=int(fr[col] or 0)
+            total_levels=revenue_upgrade_levels(dict(fr))
+            if total_levels>=REVENUE_UPGRADE_CAP:
+                c.close();return self.out({"error":"REVENUE_UPGRADE_CAP","maximum":REVENUE_UPGRADE_CAP,"current":total_levels},400)
             if level>=5:c.close();return self.out({"error":"MAX_LEVEL"},400)
-            cost=REVENUE_UPGRADE_COSTS[level]
-            # RC63: upgrades are purchased from the club's current spendable treasury.
+            cost=REVENUE_UPGRADE_COST
+            # RC89: ten optional revenue investments, each 50 XP for +5 annual funding.
             finance=signing_pool_state(c,fr["id"])
             if float(finance["available"] or 0)<cost:
                 c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":cost,"available":finance["available"]},400)
@@ -7072,7 +7177,8 @@ class H(BaseHTTPRequestHandler):
                       ("FRANCHISE_UPGRADE",u["id"],json.dumps({"franchise_id":fr["id"],"kind":kind,"level":level+1,"cost":cost,"annual_bonus":5})))
             c.commit();c.close()
             return self.out({"ok":True,"kind":kind,"level":level+1,"cost":cost,
-                             "annual_bonus":5,"future_annual_funding":annual_team_budget(fr2)})
+                             "annual_bonus":5,"revenue_upgrades_total":revenue_upgrade_levels(fr2),
+                             "revenue_upgrades_cap":REVENUE_UPGRADE_CAP,"future_annual_funding":annual_team_budget(fr2)})
 
         if p=="/api/coach/facility-upgrade":
             u=self.auth(["COACH","COMMISSIONER"])
@@ -8179,8 +8285,8 @@ class H(BaseHTTPRequestHandler):
                 c.execute("DELETE FROM chat_messages")
                 c.execute("DELETE FROM notifications WHERE type IN ('GAME','AWARD')")
 
-                c.execute("UPDATE players SET xp_wallet=0")
-                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0,xp_reserve=0,finish_reward=0,development_bonus=0")
+                c.execute("UPDATE players SET xp_wallet=0,career_extension_through=12")
+                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0,xp_reserve=0,finish_reward=0,development_bonus=0,funding_growth=0,last_pool_growth=0")
                 enforce_active_rosters(c)
 
                 # Reset every club to its infrastructure-adjusted annual XP pool.
@@ -8294,6 +8400,8 @@ class H(BaseHTTPRequestHandler):
                 for con in contracts:
                     remaining=int(con["years_remaining"] or 0)-1
                     pid=con["player_id"]
+                    if veteran_retirement_due(c,pid):
+                        continue
                     if remaining<=0:
                         pl=c.execute("SELECT user_id,name FROM players WHERE id=?",(pid,)).fetchone()
                         seen=c.execute("""SELECT 1 FROM contract_history WHERE player_id=? AND franchise_id=? AND ABS(salary-?)<0.0001 AND signed_at=? LIMIT 1""",(pid,con["franchise_id"],con["salary"],con["signed_at"])).fetchone()
@@ -8333,18 +8441,31 @@ class H(BaseHTTPRequestHandler):
                                     })
                                     notify_user(c,pl["user_id"],"CONTRACT","Contract expired",f"{pl['name']} is now an EBL free agent. Your former club will send a return offer for the new season.",str(pid))
                     else:
-                        next_salary=round(float(con["salary"] or SALARY_MIN)+0.02,2)
+                        next_salary=round(float(con["salary"] or SALARY_MIN)+CONTRACT_ESCALATION,2)
                         c.execute("UPDATE contracts SET years_remaining=?,salary=? WHERE player_id=?",(remaining,next_salary,pid))
                         summary["contracts_advanced"]+=1
 
                 c.execute("UPDATE players SET age=age+1 WHERE active=1")
                 c.execute("UPDATE team_sponsorships SET status='EXPIRED' WHERE status='ACTIVE' AND end_season<?",(next_season,))
 
-                cap_rows=c.execute("""SELECT p.id,p.user_id,p.name,p.franchise_id,p.age,COUNT(sh.season) seasons_played
+                cap_rows=c.execute("""SELECT p.id,p.user_id,p.name,p.franchise_id,p.age,p.career_extension_through,COUNT(sh.season) seasons_played
                                       FROM players p JOIN season_history sh ON sh.player_id=p.id
                                       WHERE p.active=1 GROUP BY p.id HAVING COUNT(sh.season)>=12""").fetchall()
                 for pl in cap_rows:
                     pid=pl["id"]
+                    seasons_played=int(pl["seasons_played"] or 0)
+                    if not veteran_retirement_due(c,pid):
+                        continue
+                    # Preserve the final active contract in permanent history before
+                    # retirement removes it from the live roster tables.
+                    retiring_contract=c.execute("SELECT * FROM contracts WHERE player_id=?",(pid,)).fetchone()
+                    if retiring_contract:
+                        seen=c.execute("""SELECT 1 FROM contract_history WHERE player_id=? AND franchise_id=? AND ABS(salary-?)<0.0001 AND signed_at=? LIMIT 1""",
+                                       (pid,retiring_contract["franchise_id"],retiring_contract["salary"],retiring_contract["signed_at"])).fetchone()
+                        if not seen:
+                            c.execute("""INSERT INTO contract_history(player_id,franchise_id,bonus,salary,years,signed_at,ended_at)
+                                         VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
+                                      (pid,retiring_contract["franchise_id"],retiring_contract["bonus"],retiring_contract["salary"],max(1,int(retiring_contract["years_total"] or retiring_contract["years_remaining"] or 1)),retiring_contract["signed_at"]))
                     c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
                     c.execute("UPDATE offers SET status='CANCELLED_RETIRED' WHERE player_id=? AND status IN ('OPEN','HELD','ACCEPTED')",(pid,))
                     c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE player_id=?",(pid,))
@@ -8352,10 +8473,12 @@ class H(BaseHTTPRequestHandler):
                     summary["retired"]+=1
                     if pl["user_id"]:
                         summary["retired_names"].append(pl["name"])
+                    reason="12_SEASON_CPU_CAP" if pl["user_id"] is None else "VETERAN_EXTENSION_NOT_PURCHASED"
                     c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                              ("PLAYER_RETIRED",pl["user_id"],json.dumps({"player_id":pid,"player_name":pl["name"],"franchise_id":pl["franchise_id"],"reason":"12_SEASON_CAP"})))
+                              ("PLAYER_RETIRED",pl["user_id"],json.dumps({"player_id":pid,"player_name":pl["name"],"franchise_id":pl["franchise_id"],"reason":reason,"seasons_played":seasons_played})))
                     if pl["user_id"]:
-                        notify_user(c,pl["user_id"],"CAREER","EBL career complete",f"{pl['name']} has completed the 12-season maximum EBL career.",str(pid))
+                        next_cost=veteran_extension_cost(seasons_played)
+                        notify_user(c,pl["user_id"],"CAREER","Veteran career complete",f"{pl['name']} completed {seasons_played} EBL seasons. The {next_cost:g} XP extension for career Season {seasons_played+1} was not purchased before rollover.",str(pid))
 
                 economy_awards=apply_finish_economy(c,current_season,current_active)
                 summary["franchise_economy"]=economy_awards
@@ -8365,7 +8488,7 @@ class H(BaseHTTPRequestHandler):
                     reserve=float(fr.get("xp_reserve",0) or 0)+unused
                     fr["xp_reserve"]=reserve
                     # RC61: reserve is spendable next season, not merely tracked.
-                    # annual_team_budget already includes +5 XP per revenue upgrade.
+                    # annual_team_budget includes the 480 base, permanent standings growth, and revenue upgrades.
                     next_budget=round(annual_team_budget(fr)+reserve,3)
                     c.execute("""UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,
                                xp_reserve=0,xp_spent=0,xp_budget=? WHERE id=?""",(next_budget,fr["id"]))
@@ -8649,3 +8772,5 @@ if __name__=="__main__":
     httpd.serve_forever()
 
 # EBL member profile identity layer: RC87
+
+# RC89: sustainable franchise economy + veteran career extension
