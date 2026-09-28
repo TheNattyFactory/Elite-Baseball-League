@@ -291,6 +291,7 @@ def init_db():
       coach_type TEXT NOT NULL,
       attribute TEXT NOT NULL,
       cost REAL NOT NULL DEFAULT 30,
+      start_applied INTEGER NOT NULL DEFAULT 0,
       midseason_applied INTEGER NOT NULL DEFAULT 0,
       endseason_applied INTEGER NOT NULL DEFAULT 0,
       hired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -760,6 +761,10 @@ def init_db():
                 changed=True
         if changed:
             c.execute("UPDATE players SET attributes_json=? WHERE id=?",(json.dumps(attrs),row["id"]))
+
+    development_coach_cols={r["name"] for r in c.execute("PRAGMA table_info(team_development_coaches)").fetchall()}
+    if "start_applied" not in development_coach_cols:
+        c.execute("ALTER TABLE team_development_coaches ADD COLUMN start_applied INTEGER NOT NULL DEFAULT 0")
 
     franchise_cols={r["name"] for r in c.execute("PRAGMA table_info(franchises)")}
     for col,ddl in [
@@ -2002,9 +2007,19 @@ def sim_player_obj(c,pid):
     return d
 
 
-def save_player(c,p):
-    c.execute("UPDATE players SET xp_wallet=?,attributes_json=?,season_json=? WHERE id=?",
-              (p["xp_wallet"],json.dumps(p["attributes"]),json.dumps(p["season"]),p["id"]))
+def save_player(c,p,persist_attributes=False):
+    """Persist game/career state without leaking temporary simulation modifiers.
+
+    sim_player_obj() applies team sponsorships only to its in-memory attribute copy.
+    Normal game saves therefore write XP/stat lines only. The player-development
+    endpoint explicitly opts in when a trained attribute really changed.
+    """
+    if persist_attributes:
+        c.execute("UPDATE players SET xp_wallet=?,attributes_json=?,season_json=? WHERE id=?",
+                  (p["xp_wallet"],json.dumps(p["attributes"]),json.dumps(p["season"]),p["id"]))
+    else:
+        c.execute("UPDATE players SET xp_wallet=?,season_json=? WHERE id=?",
+                  (p["xp_wallet"],json.dumps(p["season"]),p["id"]))
 
 
 def hitter_gps(line):
@@ -2101,7 +2116,32 @@ SPONSORSHIP_COST=25.0
 SPONSORSHIP_ATTRS={"ARM","ACC","FLD","REAC","SPD"}
 DEVELOPMENT_COACH_COST=30.0
 DEVELOPMENT_COACH_TYPES={
-    "SPEED":{"name":"Speed Coach","attribute":"SPD"}
+    # Hitting specialists
+    "CONTACT":{"name":"Contact Coach","attribute":"CON","category":"HITTING","applies_to":"HITTERS"},
+    "POWER":{"name":"Power Coach","attribute":"POW","category":"HITTING","applies_to":"HITTERS"},
+    "VISION":{"name":"Vision Coach","attribute":"VIS","category":"HITTING","applies_to":"HITTERS"},
+    "DISCIPLINE":{"name":"Plate Discipline Coach","attribute":"DISC","category":"HITTING","applies_to":"HITTERS"},
+    "TIMING":{"name":"Timing Coach","attribute":"TIM","category":"HITTING","applies_to":"HITTERS"},
+    # Baserunning specialists
+    "SPEED":{"name":"Speed Coach","attribute":"SPD","category":"BASERUNNING","applies_to":"HITTERS"},
+    "BASERUNNING_IQ":{"name":"Baserunning IQ Coach","attribute":"BRIQ","category":"BASERUNNING","applies_to":"HITTERS"},
+    "LEAD":{"name":"Lead & Steal Coach","attribute":"LEAD","category":"BASERUNNING","applies_to":"HITTERS"},
+    # Defensive specialists. FLD/ARM/ACC/REAC exist for hitters and pitchers.
+    "FIELDING":{"name":"Fielding Coach","attribute":"FLD","category":"FIELDING","applies_to":"ALL"},
+    "ARM_STRENGTH":{"name":"Arm Strength Coach","attribute":"ARM","category":"FIELDING","applies_to":"ALL"},
+    "ACCURACY":{"name":"Accuracy Coach","attribute":"ACC","category":"FIELDING","applies_to":"ALL"},
+    "REACTION":{"name":"Reaction Coach","attribute":"REAC","category":"FIELDING","applies_to":"ALL"},
+    "CATCHER_CALL":{"name":"Catcher Game-Calling Coach","attribute":"CALL","category":"FIELDING","applies_to":"CATCHERS"},
+    # Pitching specialists
+    "STAMINA":{"name":"Stamina Coach","attribute":"STA","category":"PITCHING","applies_to":"PITCHERS"},
+    "CLUTCH":{"name":"Pitching Clutch Coach","attribute":"PCLT","category":"PITCHING","applies_to":"PITCHERS"},
+    "CONTROL":{"name":"Control Coach","attribute":"CTRL","category":"PITCHING","applies_to":"PITCHERS"},
+    "COMMAND":{"name":"Command Coach","attribute":"CMD","category":"PITCHING","applies_to":"PITCHERS"},
+    "VELOCITY":{"name":"Velocity Coach","attribute":"VEL","category":"PITCHING","applies_to":"PITCHERS"},
+    "BREAK":{"name":"Breaking Ball Coach","attribute":"BRK","category":"PITCHING","applies_to":"PITCHERS"},
+    "MOVEMENT":{"name":"Movement Coach","attribute":"MOV","category":"PITCHING","applies_to":"PITCHERS"},
+    "DECISION":{"name":"Pitching Decision Coach","attribute":"DEC","category":"PITCHING","applies_to":"PITCHERS"},
+    "SEQUENCING":{"name":"Pitch Sequencing Coach","attribute":"SEQ","category":"PITCHING","applies_to":"PITCHERS"},
 }
 
 def practice_reward_for(c,fid):
@@ -2137,7 +2177,7 @@ def _apply_team_development_point(c,row,stage):
     coach_type=str(row["coach_type"] or "").upper();season=int(row["season"] or 1)
     if not attribute:return 0
     players=c.execute(
-        """SELECT id,user_id,name,attributes_json FROM players
+        """SELECT id,user_id,name,type,primary_pos,attributes_json FROM players
            WHERE franchise_id=? AND active=1 AND status='SIGNED' ORDER BY id""",
         (fid,)
     ).fetchall()
@@ -2145,23 +2185,35 @@ def _apply_team_development_point(c,row,stage):
     for pl in players:
         try:attrs=json.loads(pl["attributes_json"] or "{}")
         except Exception:attrs={}
+        # A specialist only develops ratings the player actually owns. This keeps
+        # hitter coaches off pitchers and pitching coaches off hitters. CALL is an
+        # explicit catcher specialization even though legacy hitters carry CALL=0.
+        if attribute not in attrs:
+            continue
+        if attribute=="CALL" and str(pl["primary_pos"] or "").upper()!="C":
+            continue
         attrs[attribute]=float(attrs.get(attribute,0) or 0)+1.0
         c.execute("UPDATE players SET attributes_json=? WHERE id=?",(json.dumps(attrs),pl["id"]))
         changed+=1
         if pl["user_id"]:
             notify_user(c,pl["user_id"],"DEVELOPMENT",f"Team {DEVELOPMENT_COACH_TYPES.get(coach_type,{}).get('name','Development Coach')}: +1 {attribute}",
-                        f"{pl['name']} earned a permanent +1 {attribute} from the club's seasonal development coach.",str(pl["id"]))
+                        f"{pl['name']} earned a permanent +1 {attribute} from the club's seasonal development coach ({stage.replace('_',' ').title()}).",str(pl["id"]))
     c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
               ("TEAM_DEVELOPMENT_MILESTONE",None,json.dumps({"franchise_id":fid,"season":season,"coach_type":coach_type,"attribute":attribute,"stage":stage,"players_updated":changed})))
     return changed
 
 def apply_team_development_coach_milestones(c,season,league_day):
-    """Apply permanent seasonal coach development exactly once at Day 40 and Day 81."""
+    """Apply the three permanent coach checkpoints exactly once per season."""
     season=int(season);league_day=int(league_day)
-    if league_day<40:return []
     rows=c.execute("SELECT * FROM team_development_coaches WHERE season=? ORDER BY id",(season,)).fetchall()
     applied=[]
     for row in rows:
+        # start_applied was added after the original two-checkpoint coach system.
+        # Catch up an existing seasonal coach safely on its next processing pass.
+        if not int(row["start_applied"] or 0):
+            n=_apply_team_development_point(c,row,"OPENING")
+            c.execute("UPDATE team_development_coaches SET start_applied=1 WHERE id=?",(row["id"],))
+            applied.append({"id":row["id"],"stage":"OPENING","players":n})
         if league_day>=40 and not int(row["midseason_applied"] or 0):
             n=_apply_team_development_point(c,row,"MIDSEASON")
             c.execute("UPDATE team_development_coaches SET midseason_applied=1 WHERE id=?",(row["id"],))
@@ -2363,28 +2415,29 @@ def should_change_reliever(line,inning,role,lead_margin):
 
 def steal_attempt_probability(player,strategy):
     attrs=player["attributes"]
-    spd=attrs.get("SPD",0)
-    briq=attrs.get("BRIQ",attrs.get("BR",0))
-    lead=attrs.get("LEAD",attrs.get("STEAL",0))
-    # Speed creates opportunity, instincts choose the moment, and LEAD
-    # represents getting an aggressive but controlled jump.
-    base=.055 + spd*.0034 + briq*.0025 + lead*.0027
+    spd=float(attrs.get("SPD",0) or 0)
+    briq=float(attrs.get("BRIQ",attrs.get("BR",0)) or 0)
+    lead=float(attrs.get("LEAD",attrs.get("STEAL",0)) or 0)
+    # A runner with no speed/instincts should almost never manufacture a steal
+    # attempt. SPD creates the physical opportunity; BRIQ and LEAD decide whether
+    # that opportunity becomes a controlled attempt.
+    base=.012 + spd*.0024 + briq*.0018 + lead*.0022
     mult={"LOW":.55,"NORMAL":1.0,"HIGH":1.65}.get(strategy["substitutions"].get("steal_aggression","NORMAL"),1.0)
-    return max(.01,min(.48,base*mult))
+    return max(.003,min(.45,base*mult))
 
 
 def steal_success_probability(player,catcher=None):
     attrs=player["attributes"]
-    spd=attrs.get("SPD",0)
-    briq=attrs.get("BRIQ",attrs.get("BR",0))
-    lead=attrs.get("LEAD",attrs.get("STEAL",0))
+    spd=float(attrs.get("SPD",0) or 0)
+    briq=float(attrs.get("BRIQ",attrs.get("BR",0)) or 0)
+    lead=float(attrs.get("LEAD",attrs.get("STEAL",0)) or 0)
     defense=catcher or {}
-    # ARM is the primary caught-stealing weapon; ACC and REAC add smaller
-    # contributions so a complete catcher controls the running game best.
-    catcher_penalty=(float(defense.get("ARM",0) or 0)*.00110 +
-                     float(defense.get("ACC",0) or 0)*.00060 +
-                     float(defense.get("REAC",0) or 0)*.00035)
-    return max(.42,min(.97,.77+spd*.0035+briq*.0027+lead*.0031-catcher_penalty))
+    # Zero-skill runners no longer inherit an average-looking success rate. A
+    # complete catcher can also erase part of the runner's advantage.
+    catcher_penalty=(float(defense.get("ARM",0) or 0)*.00135 +
+                     float(defense.get("ACC",0) or 0)*.00075 +
+                     float(defense.get("REAC",0) or 0)*.00045)
+    return max(.25,min(.96,.52+spd*.0040+briq*.0030+lead*.0035-catcher_penalty))
 
 
 def pickoff_probability(player):
@@ -2406,6 +2459,55 @@ def defensive_shift_modifier(strategy,batter_bats):
     # small, transparent BIP outcome modifiers
     return {"STANDARD":0.0,"PULL":-.010,"OPPO":-.004,"NO_DOUBLES":-.006,"BUNT_DEFENSE":-.002,"INFIELD_IN":.004}.get(mode,0.0),mode
 
+
+def fielding_range_skill(attrs,pos):
+    """Individual range: getting to the ball is separate from catching/throwing it.
+
+    Outfield range leans hardest on SPD, then REAC. Infield range leans on
+    REAC/FLD with a smaller SPD component. ARM never substitutes for range.
+    """
+    a=attrs or {};pos=str(pos or "").upper()
+    spd=max(0.0,float(a.get("SPD",0) or 0))
+    reac=max(0.0,float(a.get("REAC",0) or 0))
+    fld=max(0.0,float(a.get("FLD",0) or 0))
+    if pos in {"LF","CF","RF"}:
+        synergy=math.sqrt(spd*reac) if spd>0 and reac>0 else 0.0
+        return .38*spd+.34*reac+.18*synergy+.10*fld
+    if pos in {"SS","2B","3B","1B","P"}:
+        return .20*spd+.47*reac+.33*fld
+    return .12*spd+.43*reac+.45*fld
+
+
+def fielding_range_miss_probability(attrs,pos,difficulty):
+    difficulty=max(0.0,min(1.0,float(difficulty or 0)))
+    a=attrs or {};skill=fielding_range_skill(a,pos);pos=str(pos or "").upper()
+    spd=max(0.0,float(a.get("SPD",0) or 0));reac=max(0.0,float(a.get("REAC",0) or 0));fld=max(0.0,float(a.get("FLD",0) or 0))
+    if pos in {"LF","CF","RF"}:
+        # Outfielders with near-zero speed are punished non-linearly: reaction can
+        # identify the ball, but it cannot move the defender across the gap.
+        core=.20-skill*.007 + .18*math.exp(-spd/5.0) + .05*math.exp(-fld/5.0)
+        core=max(.010,min(.50,core))
+    else:
+        core=.17-skill*.005 + .08*math.exp(-reac/5.0) + .06*math.exp(-fld/5.0)
+        core=max(.008,min(.34,core))
+    # Routine balls remain catchable even by weak defenders; marginal balls expose
+    # poor range sharply. This makes a 0-SPD center fielder a genuine coverage hole
+    # without turning every ordinary CPU outfielder into a disaster.
+    return max(.001,min(.52,core*(.15+.85*difficulty)))
+
+
+def fielding_catch_error_probability(attrs,out_kind):
+    """Hands check after the defender has actually reached the ball."""
+    a=attrs or {}
+    fld=max(0.0,float(a.get("FLD",0) or 0))
+    reac=max(0.0,float(a.get("REAC",0) or 0))
+    if out_kind=="Lineout":
+        p=.028+max(0.0,7.0-fld)*.008+max(0.0,7.0-reac)*.004
+    else:
+        p=.035+max(0.0,8.0-fld)*.012+max(0.0,5.0-reac)*.004
+    if fld>8:
+        p-=min(.025,(fld-8.0)*.0009)
+    return max(.003,min(.16,p))
 
 
 
@@ -2864,10 +2966,11 @@ def simulate_game(c,g):
         for dr in c.execute("SELECT attributes_json FROM players WHERE franchise_id=? AND type='H' AND active=1 AND status='SIGNED'",(dfid,)).fetchall():
             da=json.loads(dr["attributes_json"] or "{}")
             dvals.append(
-                (float(da.get("FLD",0) or 0)+team_attribute_bonus(c,dfid,"FLD"))*.40+
-                (float(da.get("REAC",0) or 0)+team_attribute_bonus(c,dfid,"REAC"))*.30+
-                (float(da.get("ARM",0) or 0)+team_attribute_bonus(c,dfid,"ARM"))*.15+
-                (float(da.get("ACC",0) or 0)+team_attribute_bonus(c,dfid,"ACC"))*.15
+                (float(da.get("FLD",0) or 0)+team_attribute_bonus(c,dfid,"FLD"))*.30+
+                (float(da.get("REAC",0) or 0)+team_attribute_bonus(c,dfid,"REAC"))*.25+
+                (float(da.get("SPD",0) or 0)+team_attribute_bonus(c,dfid,"SPD"))*.20+
+                (float(da.get("ARM",0) or 0)+team_attribute_bonus(c,dfid,"ARM"))*.125+
+                (float(da.get("ACC",0) or 0)+team_attribute_bonus(c,dfid,"ACC"))*.125
             )
         defense_rating[dfid]=sum(dvals)/len(dvals) if dvals else 0.0
 
@@ -3258,20 +3361,36 @@ def simulate_game(c,g):
 
                         if result!="HR" and fielder:
                             fa=fielder.get("attributes",{})
-                            fld=float(fa.get("FLD",0) or 0)+team_attribute_bonus(c,opp,"FLD")
-                            reac=float(fa.get("REAC",0) or 0)+team_attribute_bonus(c,opp,"REAC")
-                            arm=float(fa.get("ARM",0) or 0)+team_attribute_bonus(c,opp,"ARM")
-                            acc=float(fa.get("ACC",0) or 0)+team_attribute_bonus(c,opp,"ACC")
+                            # sim_player_obj already contains the temporary sponsor bonus.
+                            # Never add it again here or a +1 sponsor becomes +2 in a play check.
+                            fld=float(fa.get("FLD",0) or 0)
+                            reac=float(fa.get("REAC",0) or 0)
+                            arm=float(fa.get("ARM",0) or 0)
+                            acc=float(fa.get("ACC",0) or 0)
                             fl=fielding_line(fielder_id);fl["POS"]=fpos;fl["CH"]+=1
                             batter_spd=float(bat_attrs.get("SPD",0) or 0)
 
                             first_obj=sim_player_obj(c,first_base_id) if first_base_id else None
                             first_attrs=(first_obj or {}).get("attributes",{})
-                            first_fld=float(first_attrs.get("FLD",0) or 0)+(team_attribute_bonus(c,opp,"FLD") if first_obj else 0.0)
-                            first_reac=float(first_attrs.get("REAC",0) or 0)+(team_attribute_bonus(c,opp,"REAC") if first_obj else 0.0)
+                            first_fld=float(first_attrs.get("FLD",0) or 0)
+                            first_reac=float(first_attrs.get("REAC",0) or 0)
 
                             if result=="OUT":
-                                if out_kind=="Groundout":
+                                # The pre-fielding result says the batted ball is normally an out.
+                                # Individual range now decides whether the assigned defender can
+                                # actually reach it. A miss is a hit, not an error.
+                                denominator=max(.001,1.0-hit_p)
+                                difficulty=max(0.0,min(1.0,1.0-((roll-hit_p)/denominator)))
+                                range_miss_p=fielding_range_miss_probability(fa,fpos,difficulty)
+                                if R.random()<range_miss_p:
+                                    if fpos in {"LF","CF","RF"} and launch_angle>=18 and (exit_velo>=94 or difficulty>=.72):
+                                        result="2B" if R.random()<max(.12,min(.42,.18+(exit_velo-90)*.010+difficulty*.10)) else "1B"
+                                    else:
+                                        result="1B"
+                                    defensive_note="OUTFIELD_RANGE_MISS" if fpos in {"LF","CF","RF"} else "RANGE_MISS"
+                                    fl["OAA"]-=round(.25+.55*difficulty,2)
+                                    events.append({"type":"RANGE_MISS","inning":inning,"half":half,"team":opp,"fielder_id":fielder_id,"position":fpos,"batter_id":batter["id"],"difficulty":round(difficulty,3),"range_skill":round(fielding_range_skill(fa,fpos),2)})
+                                elif out_kind=="Groundout":
                                     # Unassisted first-base grounder.
                                     if fpos=="1B" or not first_obj:
                                         field_err_p=max(.004,min(.070,.036-fld*.00065-reac*.00045))
@@ -3309,8 +3428,9 @@ def simulate_game(c,g):
                                                 assist_ids=[fielder_id];putout_id=int(first_base_id)
                                                 if R.random()<max(0.0,min(.10,(fld+reac+arm+acc-44)*.0013)):fl["OAA"]+=.20
                                 else:
-                                    # Line drives and fly balls are primarily range + hands plays.
-                                    catch_err_p=max(.003,min(.065,.048-fld*.00085-reac*.00055))
+                                    # Once the defender reaches the ball, FLD is the hands/catch
+                                    # skill. REAC helps, but speed and arm cannot rescue bad hands.
+                                    catch_err_p=fielding_catch_error_probability(fa,out_kind)
                                     collision=False
                                     if fpos in {"LF","CF","RF"}:
                                         coll_p=max(.0005,min(.015,.010-(fld+reac)*.00028))
@@ -3329,9 +3449,12 @@ def simulate_game(c,g):
                                 # Exceptional range can turn a marginal hit into an out. This uses
                                 # the individual fielder rather than only the club-average defense.
                                 if out_kind=="Groundout":
-                                    great_p=max(0.0,min(.15,(fld*.38+reac*.32+arm*.14+acc*.16-batter_spd*.18-14)*.0035))
+                                    range_skill=fielding_range_skill(fa,fpos)
+                                    throw_skill=arm*.45+acc*.55
+                                    great_p=max(0.0,min(.15,(range_skill*.74+throw_skill*.26-batter_spd*.18-10)*.0032))
                                 else:
-                                    great_p=max(0.0,min(.15,(fld*.55+reac*.45-16)*.0038-(max(0,exit_velo-96)*.0015)))
+                                    range_skill=fielding_range_skill(fa,fpos)
+                                    great_p=max(0.0,min(.15,(range_skill-11)*.0048-(max(0,exit_velo-96)*.0015)))
                                 if result=="1B" and R.random()<great_p:
                                     result="OUT";fl["OAA"]+=1.0
                                     if out_kind=="Groundout" and fpos!="1B" and first_obj:
@@ -5429,6 +5552,7 @@ class H(BaseHTTPRequestHandler):
                                          "substitutions":json.loads(strat["substitutions_json"]) if strat else {}},
                              "offers":offers,"contracts":contracts,"sponsorships":sponsorships,
                              "development_coaches":development_coaches,
+                             "development_coach_options":[{"coach_type":k,**v} for k,v in DEVELOPMENT_COACH_TYPES.items()],
                              "next_game":dict(next_game) if next_game else None,
                              "season":season,"league_day":day,"phase":state.get("phase","REGULAR")})
         if p=="/api/friends":
@@ -5920,7 +6044,7 @@ class H(BaseHTTPRequestHandler):
             surcharge=career_xp_surcharge(seasons_completed)
             cc=development_cost(pl["attributes"][attr],seasons_completed)
             if pl["xp_wallet"]<cc:c.rollback();c.close();return self.out({"error":"INSUFFICIENT_XP","cost":cc,"seasons_completed":seasons_completed,"career_surcharge":surcharge},400)
-            old=pl["attributes"][attr];pl["attributes"][attr]+=1;pl["xp_wallet"]=round(pl["xp_wallet"]-cc,3);save_player(c,pl)
+            old=pl["attributes"][attr];pl["attributes"][attr]+=1;pl["xp_wallet"]=round(pl["xp_wallet"]-cc,3);save_player(c,pl,persist_attributes=True)
             c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(pl["id"],"ATTRIBUTE_UPGRADE",-cc,json.dumps({"attribute":attr,"from":old,"to":old+1,"seasons_completed":seasons_completed,"career_surcharge":surcharge,"cost":cc})));c.commit();c.close();return self.out({"ok":True})
         if p=="/api/player/request-cpu-market":
             u=self.auth(["PLAYER","COMMISSIONER"])
@@ -6407,13 +6531,16 @@ class H(BaseHTTPRequestHandler):
             c.execute("UPDATE franchises SET xp_budget=xp_budget-? WHERE id=?",(DEVELOPMENT_COACH_COST,fr["id"]))
             cur=c.execute("""INSERT INTO team_development_coaches(franchise_id,season,coach_type,attribute,cost)
                              VALUES(?,?,?,?,?)""",(fr["id"],season,coach_type,spec["attribute"],DEVELOPMENT_COACH_COST))
+            coach_row=c.execute("SELECT * FROM team_development_coaches WHERE id=?",(cur.lastrowid,)).fetchone()
+            opening_players=_apply_team_development_point(c,coach_row,"OPENING")
+            c.execute("UPDATE team_development_coaches SET start_applied=1 WHERE id=?",(cur.lastrowid,))
             c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                      ("DEVELOPMENT_COACH_HIRED",u["id"],json.dumps({"franchise_id":fr["id"],"season":season,"coach_type":coach_type,"attribute":spec["attribute"],"cost":DEVELOPMENT_COACH_COST})))
+                      ("DEVELOPMENT_COACH_HIRED",u["id"],json.dumps({"franchise_id":fr["id"],"season":season,"coach_type":coach_type,"attribute":spec["attribute"],"cost":DEVELOPMENT_COACH_COST,"opening_players":opening_players})))
             post_news(c,"TEAM",f"{team_name(c,fr['id'])} hire a {spec['name']}",
-                      f"The club committed {DEVELOPMENT_COACH_COST:g} team XP to seasonal development. Players on the active roster at the Day 40 and Day 81 checkpoints can each earn a permanent +1 {spec['attribute']} at those milestones.",
+                      f"The club committed {DEVELOPMENT_COACH_COST:g} team XP to seasonal development. The active roster receives an immediate permanent +1 {spec['attribute']}, with another +1 available at League Day 40 and League Day 81.",
                       day,fr["id"],None,None,1,season=season)
             c.commit();row=dict(c.execute("SELECT * FROM team_development_coaches WHERE id=?",(cur.lastrowid,)).fetchone());c.close()
-            return self.out({"ok":True,"coach":row,"name":spec["name"],"cost":DEVELOPMENT_COACH_COST})
+            return self.out({"ok":True,"coach":row,"name":spec["name"],"attribute":spec["attribute"],"opening_players":opening_players,"cost":DEVELOPMENT_COACH_COST})
 
         if p=="/api/coach/set-strategy":
             u=self.auth(["COACH","COMMISSIONER"])
