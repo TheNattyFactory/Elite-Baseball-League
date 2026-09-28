@@ -37,6 +37,42 @@ RENEWAL_OPEN_DAY=60
 MAX_REQUEST_BYTES=20*1024*1024
 MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
 
+# RC84: official EBL baseline branding. These are lightweight league defaults
+# for CPU/unclaimed franchises. Existing uploaded/custom artwork is never overwritten.
+OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc84_v1"
+OFFICIAL_FRANCHISE_BRANDS={
+    "EBL-F01":{"city":"Atlanta","team":"Scouts","primary":"#173F35","secondary":"#D7C7A1","accent":"#0A1D2A","style":4,"home":"CREAM","away":"NAVY"},
+    "EBL-F02":{"city":"New York","team":"Empires","primary":"#111827","secondary":"#D4AF37","accent":"#F2F0E8","style":8,"home":"WHITE","away":"BLACK"},
+    "EBL-F03":{"city":"Los Angeles","team":"Stars","primary":"#1E3A8A","secondary":"#F5C542","accent":"#FFFFFF","style":2,"home":"WHITE","away":"NAVY"},
+    "EBL-F04":{"city":"Chicago","team":"Wind","primary":"#5BC0EB","secondary":"#1B365D","accent":"#FFFFFF","style":6,"home":"WHITE","away":"NAVY"},
+    "EBL-F05":{"city":"Houston","team":"Apollos","primary":"#0B1F3A","secondary":"#F47C20","accent":"#F4F1EA","style":5,"home":"WHITE","away":"NAVY"},
+    "EBL-F06":{"city":"Phoenix","team":"Firebirds","primary":"#7A1E2C","secondary":"#F47B20","accent":"#F7D08A","style":5,"home":"CREAM","away":"RED"},
+    "EBL-F07":{"city":"Philadelphia","team":"Founders","primary":"#17324D","secondary":"#A61B2B","accent":"#E7D9B5","style":7,"home":"CREAM","away":"NAVY"},
+    "EBL-F08":{"city":"San Antonio","team":"Defenders","primary":"#171717","secondary":"#A7A9AC","accent":"#8C1D24","style":4,"home":"WHITE","away":"BLACK"},
+    "EBL-F09":{"city":"Birmingham","team":"Hammers","primary":"#15191F","secondary":"#B7372F","accent":"#D9DDE2","style":3,"home":"GRAY","away":"BLACK"},
+    "EBL-F10":{"city":"Dallas","team":"Wranglers","primary":"#17365D","secondary":"#A65A2E","accent":"#F2E6C9","style":1,"home":"CREAM","away":"NAVY"},
+    "EBL-F11":{"city":"Jacksonville","team":"Breakers","primary":"#007C91","secondary":"#0A2342","accent":"#F2F7F7","style":6,"home":"WHITE","away":"NAVY"},
+    "EBL-F12":{"city":"Fort Worth","team":"Longhorns","primary":"#A44A1F","secondary":"#4B2E1E","accent":"#F2E1C2","style":4,"home":"CREAM","away":"BLACK"},
+    "EBL-F13":{"city":"Austin","team":"Outlaws","primary":"#151515","secondary":"#B87333","accent":"#F4E8D0","style":3,"home":"CREAM","away":"BLACK"},
+    "EBL-F14":{"city":"San Jose","team":"Circuit","primary":"#0A6F7A","secondary":"#111827","accent":"#A7F3D0","style":9,"home":"WHITE","away":"BLACK"},
+    "EBL-F15":{"city":"Columbus","team":"Aviators","primary":"#123B63","secondary":"#5DADE2","accent":"#D9E0E8","style":6,"home":"WHITE","away":"NAVY"},
+    "EBL-F16":{"city":"Charlotte","team":"Crowns","primary":"#4B2E83","secondary":"#D4AF37","accent":"#111111","style":5,"home":"WHITE","away":"BLACK"},
+    "EBL-F17":{"city":"Indianapolis","team":"Racers","primary":"#C1121F","secondary":"#1D3557","accent":"#F1FAEE","style":3,"home":"WHITE","away":"NAVY"},
+    "EBL-F18":{"city":"San Francisco","team":"Gold","primary":"#1A1A1A","secondary":"#C99700","accent":"#F5F0E1","style":2,"home":"CREAM","away":"BLACK"},
+    "EBL-F19":{"city":"Seattle","team":"Evergreens","primary":"#0B5D3B","secondary":"#203A43","accent":"#DDE9E4","style":6,"home":"WHITE","away":"NAVY"},
+    "EBL-F20":{"city":"Denver","team":"Summit","primary":"#1E4E8C","secondary":"#7D8790","accent":"#F4F8FB","style":6,"home":"WHITE","away":"NAVY"},
+    "EBL-F21":{"city":"Oklahoma City","team":"Twisters","primary":"#123B63","secondary":"#D7262E","accent":"#F7F9FC","style":7,"home":"WHITE","away":"NAVY"},
+    "EBL-F22":{"city":"Nashville","team":"Sound","primary":"#14213D","secondary":"#D4AF37","accent":"#F6F1E1","style":7,"home":"CREAM","away":"NAVY"},
+    "EBL-F23":{"city":"Washington","team":"Eagles","primary":"#0D2B4E","secondary":"#7D1D2A","accent":"#C8CED4","style":5,"home":"WHITE","away":"NAVY"},
+    "EBL-F24":{"city":"Las Vegas","team":"High Rollers","primary":"#111111","secondary":"#B11226","accent":"#D4AF37","style":3,"home":"BLACK","away":"RED"},
+    "EBL-F25":{"city":"Boston","team":"Minutemen","primary":"#0B2545","secondary":"#A61B2B","accent":"#D8C3A5","style":7,"home":"CREAM","away":"NAVY"},
+    "EBL-F26":{"city":"Portland","team":"Pioneers","primary":"#285943","secondary":"#6B4F2A","accent":"#E8E0C8","style":6,"home":"CREAM","away":"NAVY"},
+    "EBL-F27":{"city":"Detroit","team":"Motors","primary":"#2B2F33","secondary":"#BFC5CA","accent":"#1F4E79","style":4,"home":"GRAY","away":"BLACK"},
+    "EBL-F28":{"city":"Louisville","team":"Thoroughbreds","primary":"#0B5D3B","secondary":"#111111","accent":"#D4AF37","style":5,"home":"WHITE","away":"BLACK"},
+    "EBL-F29":{"city":"Memphis","team":"Kings","primary":"#4B2E83","secondary":"#A7A9AC","accent":"#111111","style":5,"home":"WHITE","away":"BLACK"},
+    "EBL-F30":{"city":"Baltimore","team":"Clippers","primary":"#0C2D48","secondary":"#C96A2B","accent":"#F1E3C6","style":6,"home":"CREAM","away":"NAVY"},
+}
+
 POSITION_GROUPS=("INF","OF","PITCHER")
 INF_POSITIONS={"C","1B","2B","3B","SS"}
 OF_POSITIONS={"LF","CF","RF","DH","UTIL"}
@@ -935,7 +971,7 @@ def init_db():
         "Phoenix Firebirds",
         "Philadelphia Founders",
         "San Antonio Defenders",
-        "San Diego Armada",
+        "Birmingham Hammers",
         "Dallas Wranglers",
         "Jacksonville Breakers",
         "Fort Worth Longhorns",
@@ -1044,6 +1080,27 @@ def init_db():
         c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('playoff_round','')")
         c.execute("INSERT OR IGNORE INTO league_state(k,v) VALUES('champion','')")
 
+
+    # RC84 one-time official branding seed. This fills only franchises that do not
+    # already have uploaded artwork, so Atlanta/Birmingham/OKC and future coach
+    # rebrands remain untouched. The seed key prevents later restarts from
+    # re-applying league defaults over a coach's color-only customization.
+    seeded=c.execute("SELECT v FROM league_config WHERE k=?",(OFFICIAL_BRAND_SEED_KEY,)).fetchone()
+    if not seeded:
+        for fid,brand in OFFICIAL_FRANCHISE_BRANDS.items():
+            row=c.execute("SELECT primary_logo,secondary_logo,jersey_wordmark FROM franchise_branding WHERE franchise_id=?",(fid,)).fetchone()
+            has_uploaded=bool(row and any(str(row[k] or "").strip() for k in ("primary_logo","secondary_logo","jersey_wordmark")))
+            if has_uploaded:
+                continue
+            display=f"{brand['city']} {brand['team']}".strip()
+            c.execute("""UPDATE franchise_branding
+                         SET display_name=?,city=?,team_name=?,logo_style=?,
+                             primary_color=?,secondary_color=?,accent_color=?,
+                             uniform_home=?,uniform_away=?,updated_at=CURRENT_TIMESTAMP
+                         WHERE franchise_id=?""",
+                      (display,brand["city"],brand["team"],int(brand["style"]),brand["primary"],brand["secondary"],brand["accent"],brand["home"],brand["away"],fid))
+            c.execute("UPDATE franchises SET name=? WHERE id=?",(display,fid))
+        c.execute("INSERT OR REPLACE INTO league_config(k,v) VALUES(?,?)",(OFFICIAL_BRAND_SEED_KEY,"1"))
 
     current_season_row=c.execute("SELECT v FROM league_state WHERE k='season'").fetchone()
     current_season=int(current_season_row["v"]) if current_season_row else 1
