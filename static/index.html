@@ -85,7 +85,11 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
  .gcArchiveWatch{padding-left:32px}
 }
 
-</style><style>
+</style>
+<style id="eblOfficialBrandingRC84">
+.officialGeneratedTeamMark{background:radial-gradient(circle at 35% 25%,color-mix(in srgb,var(--tm3) 22%,transparent),transparent 42%),var(--tm1)!important;border-color:var(--tm2)!important;box-shadow:inset 0 0 0 2px var(--tm3),0 3px 9px #0006!important;color:var(--tm3)!important}
+</style>
+<style>
 .profileHero{display:grid;grid-template-columns:240px 1fr;gap:18px;align-items:center}
 .profileLogo{display:flex;justify-content:center;align-items:center}
 .legacyStrip{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
@@ -3930,10 +3934,14 @@ function teamAbbr(name){
  const parts=String(name||'EBL').trim().split(/\s+/);
  return parts.length>1?(parts[0][0]+parts[parts.length-1].slice(0,2)).toUpperCase():parts[0].slice(0,3).toUpperCase();
 }
+function teamGeneratedGlyph(style){
+ const shapes=['⚾','★','◆','⬟','✦','▲','●','◈','✧','⬢'];
+ return shapes[(Number(style||1)-1)%shapes.length];
+}
 function teamLogoMarkup(style,p,s,a,name){
- const shapes=['⚾','★','◆','⬟','✦','▲','●','E','B','L'];
- const mark=shapes[(Number(style||1)-1)%shapes.length];
- return `<div style="width:220px;height:220px;border-radius:${style%2?'50%':'22%'};background:radial-gradient(circle at 38% 30%,${a}22,transparent 35%),${p};border:12px solid ${s};box-shadow:inset 0 0 0 6px ${a},0 12px 30px #0007;display:flex;flex-direction:column;align-items:center;justify-content:center;color:${a};font-weight:950;text-align:center;position:relative"><div style="position:absolute;inset:15px;border:2px dashed ${a}88;border-radius:inherit"></div><div style="font-size:62px;line-height:1">${mark}</div><div style="font-size:24px;letter-spacing:.08em">${teamAbbr(name)}</div><div style="font-size:13px;padding:5px 12px 0">${name}</div></div>`;
+ const mark=teamGeneratedGlyph(style),abbr=teamAbbr(name);
+ const square=Number(style||1)%3===0;
+ return `<div style="width:220px;height:220px;border-radius:${square?'28%':'50%'};background:radial-gradient(circle at 35% 28%,${a}2b,transparent 34%),linear-gradient(145deg,${p},${p}dd);border:11px solid ${s};box-shadow:inset 0 0 0 5px ${a},0 12px 30px #0007;display:flex;flex-direction:column;align-items:center;justify-content:center;color:${a};font-weight:950;text-align:center;position:relative;overflow:hidden"><div style="position:absolute;inset:16px;border:2px solid ${a}66;border-radius:inherit"></div><div style="font-size:72px;line-height:.9;text-shadow:0 3px 0 #0005;z-index:1">${mark}</div><div style="font-size:28px;letter-spacing:.12em;margin-top:8px;z-index:1">${abbr}</div><div style="font-size:12px;letter-spacing:.05em;padding:7px 18px 0;opacity:.92;z-index:1">${escapeHtml(name)}</div></div>`;
 }
 
 function teamLogoUrl(fid,kind='primary'){
@@ -3957,7 +3965,8 @@ function teamMark(fid,small=false){
  if(logo){
    return `<span class="teamMark ${small?'sm':''} uploadedTeamMark" style="--tm1:${p};--tm2:${sec};--tm3:${a}" title="${escapeHtml(n)}" role="img" aria-label="${escapeHtml(n)} logo"><img src="${escapeHtml(String(logo))}" alt="" loading="lazy" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><span class="teamMarkFallback" aria-hidden="true">${teamAbbr(n)}</span></span>`;
  }
- return `<span class="teamMark ${small?'sm':''}" style="--tm1:${p};--tm2:${sec};--tm3:${a}" title="${escapeHtml(n)}" role="img" aria-label="${escapeHtml(n)} team mark">${teamAbbr(n)}</span>`;
+ const glyph=teamGeneratedGlyph(t.logo_style||1),abbr=teamAbbr(n).slice(0,3);
+ return `<span class="teamMark ${small?'sm':''} officialGeneratedTeamMark" style="--tm1:${p};--tm2:${sec};--tm3:${a};position:relative;overflow:hidden" title="${escapeHtml(n)}" role="img" aria-label="${escapeHtml(n)} team mark"><span aria-hidden="true" style="font-size:${small?'12':'16'}px;line-height:1;transform:translateY(-1px)">${glyph}</span><span aria-hidden="true" style="position:absolute;left:1px;right:1px;bottom:${small?'0':'1'}px;font-size:${small?'5':'7'}px;line-height:1;font-weight:950;letter-spacing:.02em;text-shadow:0 1px 2px #000">${escapeHtml(abbr)}</span></span>`;
 }
 
 
