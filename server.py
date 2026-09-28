@@ -14,6 +14,8 @@ SESSIONS={}
 R=random.Random(7500831)
 RATE_STATE={}
 RATE_LOCK=threading.Lock()
+AUTO_ADVANCE_TOKEN=secrets.token_urlsafe(32)
+AUTO_ADVANCE_LOCK=threading.Lock()
 
 
 HITTER_ATTRS=["CON","POW","VIS","DISC","TIM","SPD","BRIQ","LEAD","FLD","ARM","ACC","REAC","CALL"]
@@ -31,6 +33,7 @@ SP_XP_MULTIPLIER=4.0
 RP_XP_MULTIPLIER=1.75
 CHAT_RETENTION_HOURS=12
 ALPHA_PLAYER_LIMIT=3
+RENEWAL_OPEN_DAY=60
 MAX_REQUEST_BYTES=20*1024*1024
 MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
 
@@ -64,6 +67,52 @@ def eligible_roster_slot_groups(player):
     if pref in slots:
         slots=[pref]+[x for x in slots if x!=pref]
     return slots
+
+
+def available_roster_roles(c,fid,player):
+    """Open/CPU roles this player can legally take, preferred role first."""
+    allowed=eligible_roster_slot_groups(player)
+    if str(player.get("type") or "H").upper()=="P":
+        allowed=[x for x in allowed if x in ("SP","RP")]
+    else:
+        allowed=[x for x in allowed if x in ("C","1B","2B","3B","SS","LF","CF","RF","DH")]
+    if not allowed:return []
+    marks=",".join("?" for _ in allowed)
+    rows=c.execute(f"""SELECT position_group,occupant_type,slot_no
+                       FROM roster_slots
+                       WHERE franchise_id=? AND position_group IN ({marks})
+                         AND occupant_type IN ('OPEN','CPU')""",
+                   (fid,*allowed)).fetchall()
+    rank={role:i for i,role in enumerate(allowed)}
+    rows=sorted(rows,key=lambda row:(rank.get(str(row["position_group"] or "").upper(),999),0 if row["occupant_type"]=="OPEN" else 1,int(row["slot_no"] or 0)))
+    seen=set();out=[]
+    for row in rows:
+        role=str(row["position_group"] or "").upper()
+        if role and role not in seen:
+            seen.add(role);out.append(role)
+    return out
+
+
+def roster_offer_slot(c,fid,player,proposed_role=None):
+    """Return the best open/CPU slot, honoring a proposed role when it is available."""
+    roles=available_roster_roles(c,fid,player)
+    target=str(proposed_role or "").upper()
+    if target and target in roles:
+        roles=[target]+[x for x in roles if x!=target]
+    if not roles:return None
+    marks=",".join("?" for _ in roles)
+    return c.execute(f"""SELECT slot_no,player_id,occupant_type,position_group
+                          FROM roster_slots
+                          WHERE franchise_id=? AND position_group IN ({marks})
+                            AND occupant_type IN ('OPEN','CPU')
+                          ORDER BY CASE WHEN position_group=? THEN 0 ELSE 1 END,
+                                   CASE occupant_type WHEN 'OPEN' THEN 0 ELSE 1 END,slot_no
+                          LIMIT 1""",(fid,*roles,roles[0])).fetchone()
+
+
+def human_roster_count(c,fid):
+    row=c.execute("SELECT COUNT(*) n FROM roster_slots WHERE franchise_id=? AND occupant_type='HUMAN'",(fid,)).fetchone()
+    return int(row["n"] or 0) if row else 0
 
 
 def roster_capacity_state(c,fid):
@@ -247,6 +296,11 @@ def init_db():
       salary REAL NOT NULL,
       years INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'OPEN',
+      offer_type TEXT NOT NULL DEFAULT 'FREE_AGENT',
+      message TEXT NOT NULL DEFAULT '',
+      effective_season INTEGER,
+      salary_basis TEXT NOT NULL DEFAULT '',
+      proposed_role TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS contracts(
@@ -288,14 +342,21 @@ def init_db():
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       franchise_id TEXT NOT NULL,
       season INTEGER NOT NULL,
+      coach_slot INTEGER NOT NULL DEFAULT 1,
       coach_type TEXT NOT NULL,
       attribute TEXT NOT NULL,
-      cost REAL NOT NULL DEFAULT 30,
+      cost REAL NOT NULL DEFAULT 0,
+      is_free INTEGER NOT NULL DEFAULT 0,
+      intensity INTEGER NOT NULL DEFAULT 1,
+      checkpoint_days_json TEXT NOT NULL DEFAULT '[0,40,81]',
+      applied_days_json TEXT NOT NULL DEFAULT '[]',
+      hired_day INTEGER NOT NULL DEFAULT 0,
       start_applied INTEGER NOT NULL DEFAULT 0,
       midseason_applied INTEGER NOT NULL DEFAULT 0,
       endseason_applied INTEGER NOT NULL DEFAULT 0,
       hired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(franchise_id,season)
+      UNIQUE(franchise_id,season,coach_slot),
+      UNIQUE(franchise_id,season,coach_type)
     );
     CREATE INDEX IF NOT EXISTS idx_team_development_coaches_team_season
       ON team_development_coaches(franchise_id,season);
@@ -679,6 +740,19 @@ def init_db():
     if "player_id" not in chat_cols:
         c.execute("ALTER TABLE chat_messages ADD COLUMN player_id INTEGER")
 
+    # RC81 contract-renewal negotiation metadata. Existing free-agent offers remain
+    # valid and default to FREE_AGENT; renewals use the same player-facing offer flow.
+    offer_cols={r["name"] for r in c.execute("PRAGMA table_info(offers)").fetchall()}
+    for col,ddl in {
+        "offer_type":"TEXT NOT NULL DEFAULT 'FREE_AGENT'",
+        "message":"TEXT NOT NULL DEFAULT ''",
+        "effective_season":"INTEGER",
+        "salary_basis":"TEXT NOT NULL DEFAULT ''",
+        "proposed_role":"TEXT NOT NULL DEFAULT ''"
+    }.items():
+        if col not in offer_cols:
+            c.execute(f"ALTER TABLE offers ADD COLUMN {col} {ddl}")
+
     news_cols={r["name"] for r in c.execute("PRAGMA table_info(news)").fetchall()}
     if "season" not in news_cols:
         c.execute("ALTER TABLE news ADD COLUMN season INTEGER NOT NULL DEFAULT 1")
@@ -762,9 +836,60 @@ def init_db():
         if changed:
             c.execute("UPDATE players SET attributes_json=? WHERE id=?",(json.dumps(attrs),row["id"]))
 
+    # RC82: development-coach system now supports one free seasonal specialist plus
+    # additional paid specialists with selectable intensity. Older databases used a
+    # UNIQUE(franchise_id,season) table, so rebuild it in place while preserving every
+    # historical coach and its already-applied milestones.
     development_coach_cols={r["name"] for r in c.execute("PRAGMA table_info(team_development_coaches)").fetchall()}
-    if "start_applied" not in development_coach_cols:
-        c.execute("ALTER TABLE team_development_coaches ADD COLUMN start_applied INTEGER NOT NULL DEFAULT 0")
+    development_coach_sql=(c.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='team_development_coaches'").fetchone() or {"sql":""})["sql"] or ""
+    needs_dev_coach_rebuild=(
+        "coach_slot" not in development_coach_cols
+        or "checkpoint_days_json" not in development_coach_cols
+        or "UNIQUE(franchise_id,season)" in development_coach_sql.replace(" ","")
+    )
+    if needs_dev_coach_rebuild:
+        old_rows=[dict(r) for r in c.execute("SELECT * FROM team_development_coaches ORDER BY season,franchise_id,id").fetchall()]
+        c.execute("DROP TABLE IF EXISTS team_development_coaches_rc82")
+        c.execute("""CREATE TABLE team_development_coaches_rc82(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          franchise_id TEXT NOT NULL,
+          season INTEGER NOT NULL,
+          coach_slot INTEGER NOT NULL DEFAULT 1,
+          coach_type TEXT NOT NULL,
+          attribute TEXT NOT NULL,
+          cost REAL NOT NULL DEFAULT 0,
+          is_free INTEGER NOT NULL DEFAULT 0,
+          intensity INTEGER NOT NULL DEFAULT 1,
+          checkpoint_days_json TEXT NOT NULL DEFAULT '[0,40,81]',
+          applied_days_json TEXT NOT NULL DEFAULT '[]',
+          hired_day INTEGER NOT NULL DEFAULT 0,
+          start_applied INTEGER NOT NULL DEFAULT 0,
+          midseason_applied INTEGER NOT NULL DEFAULT 0,
+          endseason_applied INTEGER NOT NULL DEFAULT 0,
+          hired_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(franchise_id,season,coach_slot),
+          UNIQUE(franchise_id,season,coach_type)
+        )""")
+        slots={}
+        for row in old_rows:
+            key=(str(row.get("franchise_id")),int(row.get("season") or 1))
+            slot=slots.get(key,0)+1;slots[key]=slot
+            applied=[]
+            if int(row.get("start_applied") or 0): applied.append(0)
+            if int(row.get("midseason_applied") or 0): applied.append(40)
+            if int(row.get("endseason_applied") or 0): applied.append(81)
+            c.execute("""INSERT INTO team_development_coaches_rc82(
+                         id,franchise_id,season,coach_slot,coach_type,attribute,cost,is_free,intensity,
+                         checkpoint_days_json,applied_days_json,hired_day,start_applied,midseason_applied,endseason_applied,hired_at)
+                         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(
+                         row.get("id"),row.get("franchise_id"),int(row.get("season") or 1),slot,
+                         row.get("coach_type") or "SPEED",row.get("attribute") or "SPD",float(row.get("cost") or 0),
+                         0,1,json.dumps([0,40,81]),json.dumps(applied),0,
+                         int(row.get("start_applied") or 0),int(row.get("midseason_applied") or 0),int(row.get("endseason_applied") or 0),
+                         row.get("hired_at") or datetime.datetime.utcnow().isoformat()))
+        c.execute("DROP TABLE team_development_coaches")
+        c.execute("ALTER TABLE team_development_coaches_rc82 RENAME TO team_development_coaches")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_team_development_coaches_team_season ON team_development_coaches(franchise_id,season)")
 
     franchise_cols={r["name"] for r in c.execute("PRAGMA table_info(franchises)")}
     for col,ddl in [
@@ -977,6 +1102,9 @@ def init_db():
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('phase','RECRUITING')")
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('alpha_cpu_fill','1')")
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('auto_advance','0')")
+        c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('auto_advance_per_day','1')")
+        c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('auto_advance_next_at','0')")
+        c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('auto_advance_last_at','0')")
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('season_number','1')")
         # EBL active roster: 16 players/team = 480 total.
         # Nine everyday hitters + four starting pitchers + three relief pitchers.
@@ -1553,6 +1681,9 @@ def enforce_active_rosters(c,season=None):
     template=["C","1B","2B","3B","SS","LF","CF","RF","DH","SP","SP","SP","SP","RP","RP","RP"]
     season=_season_number(c) if season is None else int(season)
     for fid in active_franchise_ids(c,season):
+        # Preserve the club's current fielding/roster role for human players. Preferred
+        # position is player identity; roster_slots is the coach/team assignment.
+        existing_roles={int(x["player_id"]):str(x["position_group"] or "").upper() for x in c.execute("SELECT player_id,position_group FROM roster_slots WHERE franchise_id=? AND player_id IS NOT NULL",(fid,)).fetchall()}
         rows=[dict(x) for x in c.execute("SELECT * FROM players WHERE franchise_id=? AND active=1 AND status='SIGNED' ORDER BY CASE WHEN user_id IS NOT NULL THEN 0 ELSE 1 END,id",(fid,))]
         humans=[x for x in rows if x.get("user_id") is not None]
         cpus=[x for x in rows if x.get("user_id") is None]
@@ -1564,6 +1695,9 @@ def enforce_active_rosters(c,season=None):
         slots=[None]*len(template)
         def place(pl):
             allowed=eligible_roster_slot_groups(pl)
+            current_role=existing_roles.get(int(pl["id"])) if pl.get("user_id") is not None else None
+            if current_role in allowed:
+                allowed=[current_role]+[x for x in allowed if x!=current_role]
             choices=[]
             for grp in allowed:
                 choices.extend(i for i,t in enumerate(template) if t==grp and slots[i] is None and i not in choices)
@@ -1898,6 +2032,9 @@ def player_obj(c,pid):
     d["username"]=owner["username"] if owner else None
     con=c.execute("SELECT * FROM contracts WHERE player_id=?",(pid,)).fetchone()
     d["contract"]=dict(con) if con else None
+    roster_slot=c.execute("SELECT position_group,slot_no FROM roster_slots WHERE player_id=? LIMIT 1",(pid,)).fetchone()
+    d["roster_role"]=str(roster_slot["position_group"]) if roster_slot else None
+    d["roster_slot_no"]=int(roster_slot["slot_no"]) if roster_slot else None
     last_contract=c.execute("""SELECT ch.*,f.name team_name
                               FROM contract_history ch
                               LEFT JOIN franchises f ON f.id=ch.franchise_id
@@ -1919,15 +2056,29 @@ def player_obj(c,pid):
         (pid,)
     ):
         off=dict(row)
-        off["returning_offer"]=bool(last_contract and off.get("franchise_id")==last_contract["franchise_id"])
+        off["returning_offer"]=bool(str(off.get("offer_type") or "FREE_AGENT").upper()!="RENEWAL" and last_contract and off.get("franchise_id")==last_contract["franchise_id"])
         d["offers"].append(off)
+    agreed=c.execute(
+        """SELECT o.*,f.name AS team_name,COALESCE(NULLIF(b.display_name,''),f.name) AS team_display_name
+           FROM offers o JOIN franchises f ON f.id=o.franchise_id
+           LEFT JOIN franchise_branding b ON b.franchise_id=o.franchise_id
+           WHERE o.player_id=? AND o.offer_type='RENEWAL' AND o.status='ACCEPTED'
+           ORDER BY o.id DESC LIMIT 1""",(pid,)
+    ).fetchone()
+    d["renewal_agreement"]=dict(agreed) if agreed else None
+    renewal_waiting=next((x for x in d["offers"] if str(x.get("offer_type") or "").upper()=="RENEWAL"),None)
+    d["action_required"]={"type":"RENEWAL","offer_id":renewal_waiting["id"],"title":"Contract decision waiting"} if renewal_waiting else None
     d["ledger"]=[dict(x) for x in c.execute("SELECT event_type,xp,detail_json FROM xp_ledger WHERE player_id=? ORDER BY id DESC LIMIT 25",(pid,))]
     d["career"]=career_summary(c,pid,d.get("season"),bool(d.get("active")))
     d["career_seasons"]=d["career"]["seasons_completed"] if d.get("career") else 0
     d["championships"]=d["career"]["championship_count"] if d.get("career") else 0
     d["awards_count"]=d["career"]["award_count"] if d.get("career") else 0
     state={x["k"]:x["v"] for x in c.execute("SELECT k,v FROM league_state WHERE k IN ('phase','league_day')")}
-    d["position_change_open"]=bool(d.get("status")=="FREE_AGENT" and (str(state.get("phase","REGULAR")).upper()=="OFFSEASON" or int(state.get("league_day","0") or 0)==0))
+    d["position_group_change_open"]=bool(d.get("status")=="FREE_AGENT" and (str(state.get("phase","REGULAR")).upper()=="OFFSEASON" or int(state.get("league_day","0") or 0)==0))
+    # Preferred position may be changed within the current roster family even while signed.
+    # The actual team role remains the roster-slot assignment controlled by the club.
+    d["preferred_position_change_open"]=bool(d.get("active"))
+    d["position_change_open"]=d["position_group_change_open"]
     return d
 
 
@@ -2111,10 +2262,55 @@ def player_salary_floor(c,player_id):
 def minimum_offer_salary(c,player_id,franchise_id=None):
     return player_salary_floor(c,player_id)
 
+def renewal_veteran_minimum(c,player_id):
+    """Veteran minimum for the season a Day-60 renewal will begin.
+
+    The current regular season becomes one additional completed service season
+    before the renewal activates, so the next-season floor is one step ahead of
+    the player's live free-agent floor.
+    """
+    completed=player_seasons_completed(c,player_id)+1
+    return round(SALARY_MIN + min(completed,10)*0.01,2)
+
+def next_season_payroll_projection(c,franchise_id,replace_player_id=None,proposed_salary=None):
+    """Project signed payroll for next season from continuing deals + renewals.
+
+    This is deliberately a planning view, not a current-season charge. Accepted
+    renewals do not pay anything until the next season begins.
+    """
+    total=0.0
+    rows=c.execute("SELECT player_id,salary,years_remaining FROM contracts WHERE franchise_id=?",(franchise_id,)).fetchall()
+    for con in rows:
+        pid=int(con["player_id"])
+        if replace_player_id is not None and pid==int(replace_player_id):
+            continue
+        if int(con["years_remaining"] or 0)>1:
+            total+=(round(float(con["salary"] or SALARY_MIN)+0.02,2))*REGULAR_SEASON_GAMES
+            continue
+        renewal=c.execute(
+            """SELECT salary FROM offers
+               WHERE franchise_id=? AND player_id=? AND offer_type='RENEWAL'
+                 AND status IN ('OPEN','HELD','ACCEPTED')
+               ORDER BY CASE status WHEN 'ACCEPTED' THEN 0 ELSE 1 END,id DESC LIMIT 1""",
+            (franchise_id,pid)
+        ).fetchone()
+        if renewal:
+            total+=float(renewal["salary"] or SALARY_MIN)*REGULAR_SEASON_GAMES
+    if proposed_salary is not None:
+        total+=float(proposed_salary)*REGULAR_SEASON_GAMES
+    return round(total,3)
+
 FACILITY_UPGRADE_COSTS=[50,65,80,100,125]
 SPONSORSHIP_COST=25.0
 SPONSORSHIP_ATTRS={"ARM","ACC","FLD","REAC","SPD"}
-DEVELOPMENT_COACH_COST=30.0
+DEVELOPMENT_COACH_BASE_COST=30.0
+DEVELOPMENT_COACH_MAX=3
+DEVELOPMENT_COACH_HIRING_CLOSE_DAY=40
+DEVELOPMENT_COACH_INTENSITY={
+    1:{"name":"Standard","extra_cost":0.0,"days":[0,40,81]},
+    2:{"name":"Focused","extra_cost":5.0,"days":[0,20,40,81]},
+    3:{"name":"Elite","extra_cost":10.0,"days":[0,20,40,60,81]},
+}
 DEVELOPMENT_COACH_TYPES={
     # Hitting specialists
     "CONTACT":{"name":"Contact Coach","attribute":"CON","category":"HITTING","applies_to":"HITTERS"},
@@ -2166,11 +2362,19 @@ def team_attribute_bonus(c,fid,attribute,season=None):
 def active_team_development_coaches(c,fid,season=None):
     if season is None:
         season=_season_number(c)
-    return [dict(x) for x in c.execute(
+    rows=[dict(x) for x in c.execute(
         """SELECT * FROM team_development_coaches
-           WHERE franchise_id=? AND season=? ORDER BY id""",
+           WHERE franchise_id=? AND season=? ORDER BY coach_slot,id""",
         (str(fid),int(season))
     ).fetchall()]
+    for row in rows:
+        try: row["checkpoint_days"]=json.loads(row.get("checkpoint_days_json") or "[]")
+        except Exception: row["checkpoint_days"]=DEVELOPMENT_COACH_INTENSITY.get(int(row.get("intensity") or 1),DEVELOPMENT_COACH_INTENSITY[1])["days"]
+        try: row["applied_days"]=json.loads(row.get("applied_days_json") or "[]")
+        except Exception: row["applied_days"]=[]
+        tier=DEVELOPMENT_COACH_INTENSITY.get(int(row.get("intensity") or 1),DEVELOPMENT_COACH_INTENSITY[1])
+        row["intensity_name"]=tier["name"]
+    return rows
 
 def _apply_team_development_point(c,row,stage):
     fid=str(row["franchise_id"]);attribute=str(row["attribute"] or "").upper()
@@ -2185,9 +2389,6 @@ def _apply_team_development_point(c,row,stage):
     for pl in players:
         try:attrs=json.loads(pl["attributes_json"] or "{}")
         except Exception:attrs={}
-        # A specialist only develops ratings the player actually owns. This keeps
-        # hitter coaches off pitchers and pitching coaches off hitters. CALL is an
-        # explicit catcher specialization even though legacy hitters carry CALL=0.
         if attribute not in attrs:
             continue
         if attribute=="CALL" and str(pl["primary_pos"] or "").upper()!="C":
@@ -2202,27 +2403,52 @@ def _apply_team_development_point(c,row,stage):
               ("TEAM_DEVELOPMENT_MILESTONE",None,json.dumps({"franchise_id":fid,"season":season,"coach_type":coach_type,"attribute":attribute,"stage":stage,"players_updated":changed})))
     return changed
 
+def _development_stage(day):
+    return "OPENING" if int(day)==0 else f"DAY_{int(day)}"
+
+def _development_row_days(row):
+    intensity=int(row["intensity"] or 1) if "intensity" in row.keys() else 1
+    try:
+        days=[int(x) for x in json.loads(row["checkpoint_days_json"] or "[]")]
+    except Exception:
+        days=list(DEVELOPMENT_COACH_INTENSITY.get(intensity,DEVELOPMENT_COACH_INTENSITY[1])["days"])
+    return sorted(set(days))
+
+def _development_applied_days(row):
+    try:return {int(x) for x in json.loads(row["applied_days_json"] or "[]")}
+    except Exception:return set()
+
+def _sync_development_legacy_flags(c,row_id,applied):
+    c.execute("""UPDATE team_development_coaches
+                 SET applied_days_json=?,start_applied=?,midseason_applied=?,endseason_applied=?
+                 WHERE id=?""",(
+                 json.dumps(sorted(applied)),1 if 0 in applied else 0,
+                 1 if any(x in applied for x in (27,40,54,60)) else 0,
+                 1 if 81 in applied else 0,row_id))
+
 def apply_team_development_coach_milestones(c,season,league_day):
-    """Apply the three permanent coach checkpoints exactly once per season."""
+    """Apply each development coach's scheduled permanent +1 checkpoints once."""
     season=int(season);league_day=int(league_day)
-    rows=c.execute("SELECT * FROM team_development_coaches WHERE season=? ORDER BY id",(season,)).fetchall()
-    applied=[]
+    rows=c.execute("SELECT * FROM team_development_coaches WHERE season=? ORDER BY franchise_id,coach_slot,id",(season,)).fetchall()
+    applied_events=[]
     for row in rows:
-        # start_applied was added after the original two-checkpoint coach system.
-        # Catch up an existing seasonal coach safely on its next processing pass.
-        if not int(row["start_applied"] or 0):
-            n=_apply_team_development_point(c,row,"OPENING")
-            c.execute("UPDATE team_development_coaches SET start_applied=1 WHERE id=?",(row["id"],))
-            applied.append({"id":row["id"],"stage":"OPENING","players":n})
-        if league_day>=40 and not int(row["midseason_applied"] or 0):
-            n=_apply_team_development_point(c,row,"MIDSEASON")
-            c.execute("UPDATE team_development_coaches SET midseason_applied=1 WHERE id=?",(row["id"],))
-            applied.append({"id":row["id"],"stage":"MIDSEASON","players":n})
-        if league_day>=81 and not int(row["endseason_applied"] or 0):
-            n=_apply_team_development_point(c,row,"END_REGULAR_SEASON")
-            c.execute("UPDATE team_development_coaches SET endseason_applied=1 WHERE id=?",(row["id"],))
-            applied.append({"id":row["id"],"stage":"END_REGULAR_SEASON","players":n})
-    return applied
+        days=_development_row_days(row);applied=_development_applied_days(row)
+        hired_day=int(row["hired_day"] or 0) if "hired_day" in row.keys() else 0
+        changed=False
+        for checkpoint in days:
+            if checkpoint in applied or checkpoint>league_day:
+                continue
+            # Opening is always the immediate first boost. Other checkpoints that
+            # passed before a late hire are intentionally missed rather than back-paid.
+            if checkpoint>0 and checkpoint<hired_day:
+                applied.add(checkpoint);changed=True
+                continue
+            n=_apply_team_development_point(c,row,_development_stage(checkpoint))
+            applied.add(checkpoint);changed=True
+            applied_events.append({"id":row["id"],"stage":_development_stage(checkpoint),"day":checkpoint,"players":n})
+        if changed:
+            _sync_development_legacy_flags(c,row["id"],applied)
+    return applied_events
 
 def effective_stamina(sta):
     """Soft-scale uncapped STA so every point helps without creating infinite endurance."""
@@ -4005,8 +4231,85 @@ def set_league_cfg(c,k,v):
 
 
 def audit(c,action,detail=""):
-    day=int(league_cfg(c,"league_day",0) or 0)
+    day_row=c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()
+    day=int(day_row["v"] if day_row else 0)
     c.execute("INSERT INTO commissioner_audit(league_day,action,detail) VALUES(?,?,?)",(day,action,detail))
+
+
+def auto_advance_state(c):
+    try:per_day=int(league_cfg(c,"auto_advance_per_day","1") or 1)
+    except (TypeError,ValueError):per_day=1
+    per_day=max(1,min(24,per_day))
+    try:next_at=float(league_cfg(c,"auto_advance_next_at","0") or 0)
+    except (TypeError,ValueError):next_at=0.0
+    try:last_at=float(league_cfg(c,"auto_advance_last_at","0") or 0)
+    except (TypeError,ValueError):last_at=0.0
+    state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
+    return {
+        "enabled":str(league_cfg(c,"auto_advance","0"))=="1",
+        "per_day":per_day,
+        "interval_seconds":round(86400/per_day),
+        "next_at":next_at,
+        "last_at":last_at,
+        "season":int(state.get("season",1) or 1),
+        "league_day":int(state.get("league_day",0) or 0),
+        "phase":state.get("phase","REGULAR") or "REGULAR"
+    }
+
+
+def auto_advance_worker(port):
+    # Persisted commissioner scheduler. It advances regular-season league days at
+    # an even cadence and automatically shuts itself off once the playoffs begin.
+    time.sleep(10)
+    while True:
+        try:
+            c=conn();state=auto_advance_state(c)
+            if not state["enabled"]:
+                c.close();time.sleep(15);continue
+            if str(state["phase"]).upper()!="REGULAR":
+                set_league_cfg(c,"auto_advance",0);set_league_cfg(c,"auto_advance_next_at",0)
+                audit(c,"AUTO_ADVANCE_STOPPED",f"phase={state['phase']}")
+                c.commit();c.close();time.sleep(15);continue
+            now=time.time()
+            if state["next_at"]<=0:
+                set_league_cfg(c,"auto_advance_next_at",now+state["interval_seconds"])
+                c.commit();c.close();time.sleep(15);continue
+            due=now>=state["next_at"]
+            c.close()
+            if not due:
+                time.sleep(15);continue
+
+            with AUTO_ADVANCE_LOCK:
+                c=conn();state=auto_advance_state(c);now=time.time()
+                if not state["enabled"] or str(state["phase"]).upper()!="REGULAR" or now<state["next_at"]:
+                    c.close();time.sleep(1);continue
+                # Move the deadline forward before the request so one slow simulation
+                # cannot launch twice. Missed downtime does not create a catch-up storm.
+                set_league_cfg(c,"auto_advance_next_at",now+state["interval_seconds"])
+                c.commit();c.close()
+                try:
+                    req=Request(
+                        f"http://127.0.0.1:{int(port)}/api/commish/sim-day",
+                        data=b"{}",
+                        headers={"Content-Type":"application/json","X-EBL-Auto":AUTO_ADVANCE_TOKEN},
+                        method="POST"
+                    )
+                    with urlopen(req,timeout=300) as response:
+                        payload=json.loads(response.read().decode("utf-8") or "{}")
+                    c=conn();fresh=auto_advance_state(c)
+                    set_league_cfg(c,"auto_advance_last_at",time.time())
+                    if str(fresh["phase"]).upper()!="REGULAR" or payload.get("phase")=="PLAYOFFS":
+                        set_league_cfg(c,"auto_advance",0);set_league_cfg(c,"auto_advance_next_at",0)
+                        audit(c,"AUTO_ADVANCE_STOPPED","Playoffs reached")
+                    else:
+                        audit(c,"AUTO_ADVANCE_DAY",f"day={payload.get('day',fresh['league_day'])}; per_day={fresh['per_day']}")
+                    c.commit();c.close()
+                except Exception as e:
+                    print("AUTO ADVANCE ERROR:",type(e).__name__,str(e))
+                    c=conn();set_league_cfg(c,"auto_advance_next_at",time.time()+300);c.commit();c.close()
+        except Exception as e:
+            print("AUTO ADVANCE WORKER ERROR:",type(e).__name__,str(e))
+        time.sleep(15)
 
 
 def roster_readiness(c):
@@ -4759,6 +5062,19 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             c=conn();r=c.execute("SELECT email,email_verified,muted_until,suspended_until FROM user_security WHERE user_id=?",(u["id"],)).fetchone()
             c.close();return self.out({"security":dict(r) if r else None})
+        if p=="/api/commish/auto-advance":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+            c=conn();state=auto_advance_state(c);c.close()
+            if state["next_at"]>0:
+                state["next_at_iso"]=datetime.datetime.fromtimestamp(state["next_at"],datetime.timezone.utc).isoformat()
+            else:
+                state["next_at_iso"]=None
+            if state["last_at"]>0:
+                state["last_at_iso"]=datetime.datetime.fromtimestamp(state["last_at"],datetime.timezone.utc).isoformat()
+            else:
+                state["last_at_iso"]=None
+            return self.out(state)
         if p=="/api/commish/storage-status":
             u=self.auth(["COMMISSIONER"])
             if not u:return
@@ -5484,6 +5800,7 @@ class H(BaseHTTPRequestHandler):
                     row["previous_team_salary"]=previous
                     row["minimum_offer_salary"]=minimum_offer_salary(c,row["id"],f["id"])
                     row["returning_player"]=previous is not None
+                    row["offer_roles"]=available_roster_roles(c,f["id"],row)
             c.close();return self.out({"players":rows})
         if p=="/api/coach/team":
             u=self.auth(["COACH","COMMISSIONER"])
@@ -5514,22 +5831,46 @@ class H(BaseHTTPRequestHandler):
                    WHERE co.franchise_id=? AND p.active=1
                    ORDER BY p.type,p.primary_pos,p.name""",(f["id"],))]
             state={x["k"]:x["v"] for x in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
-            season=int(state.get("season",1));day=int(state.get("league_day",0))
+            season=int(state.get("season",1));day=int(state.get("league_day",0));phase=str(state.get("phase","REGULAR")).upper()
+            renewal_window_open=bool(phase=="REGULAR" and day>=RENEWAL_OPEN_DAY and day<=REGULAR_SEASON_GAMES)
+            for con in contracts:
+                con["renewal_eligible"]=bool(renewal_window_open and con.get("user_id") is not None and int(con.get("years_remaining") or 0)==1)
+                con["renewal_same_rate"]=round(float(con.get("salary") or SALARY_MIN),2)
+                con["renewal_veteran_minimum"]=renewal_veteran_minimum(c,con["player_id"])
+                renewal=c.execute(
+                    """SELECT id,status,salary,years,message,salary_basis,effective_season,created_at
+                       FROM offers WHERE franchise_id=? AND player_id=? AND offer_type='RENEWAL'
+                         AND effective_season=? AND status IN ('OPEN','HELD','ACCEPTED')
+                       ORDER BY CASE status WHEN 'ACCEPTED' THEN 0 ELSE 1 END,id DESC LIMIT 1""",
+                    (f["id"],con["player_id"],season+1)
+                ).fetchone()
+                con["renewal"]=dict(renewal) if renewal else None
             next_game=c.execute(
                 """SELECT id,season,league_day,away_id,home_id,status
                    FROM games WHERE season=? AND league_day>? AND status='SCHEDULED'
                      AND (away_id=? OR home_id=?)
                    ORDER BY league_day,id LIMIT 1""",(season,day,f["id"],f["id"])).fetchone()
-            reserved=float(c.execute("SELECT COALESCE(SUM(bonus),0) x FROM offers WHERE franchise_id=? AND status IN ('OPEN','HELD')",(f["id"],)).fetchone()["x"] or 0)
             salary_rate=sum(float(x.get("salary") or 0) for x in contracts)
+            finance=team_finance_snapshot(c,f["id"])
             for player in roster:
                 if player.get("type")=="P":
                     player["recovery"]=pitcher_recovery_state(c,player["id"],day)
             team=dict(f)
-            team["xp_available"]=max(0.0,float(team.get("xp_budget") or 0)-float(team.get("xp_spent") or 0)-reserved)
-            team["reserved_offers"]=reserved
+            # RC78: show the full current-season cost of every signed human contract
+            # immediately. Players are still paid XP game-by-game; this is the
+            # season commitment view so coaches can see what the roster has already
+            # consumed before making another move.
+            team["xp_available"]=finance["available"]
+            team["reserved_offers"]=finance["reserved"]
+            team["signed_payroll_commitment"]=finance["signed_payroll"]
+            team["open_roster_minimum_reserve"]=finance["open_job_minimum_reserve"]
+            team["protected_player_commitment"]=finance["protected_payroll"]
+            team["salary_paid_to_date"]=round(float(team.get("xp_spent") or 0),3)
+            team["xp_after_signed_players"]=round(max(0.0,float(team.get("xp_budget") or 0)-finance["signed_payroll"]),3)
             team["salary_rate"]=round(salary_rate,3)
-            team["spend_pct"]=round((float(team.get("xp_spent") or 0)/float(team.get("xp_budget") or 1))*100,1)
+            team["spend_pct"]=round((finance["signed_payroll"]/max(1.0,float(team.get("xp_budget") or 0)))*100,1)
+            team["next_season_committed_payroll"]=next_season_payroll_projection(c,f["id"])
+            team["next_season_base_budget"]=round(annual_team_budget(team),3)
             team["practice_reward"]=practice_reward_for(c,f["id"])
             team["recovery_bonus_per_day"]=2*int(team.get("recovery_level") or 0)
             team["development_bonus_active"]=season>1
@@ -5553,30 +5894,33 @@ class H(BaseHTTPRequestHandler):
                              "offers":offers,"contracts":contracts,"sponsorships":sponsorships,
                              "development_coaches":development_coaches,
                              "development_coach_options":[{"coach_type":k,**v} for k,v in DEVELOPMENT_COACH_TYPES.items()],
+                             "development_coach_rules":{"first_free":True,"maximum":DEVELOPMENT_COACH_MAX,"base_cost":DEVELOPMENT_COACH_BASE_COST,
+                                                        "hiring_close_day":DEVELOPMENT_COACH_HIRING_CLOSE_DAY,
+                                                        "intensity":[{"level":k,**v,"cost":DEVELOPMENT_COACH_BASE_COST+float(v["extra_cost"])} for k,v in DEVELOPMENT_COACH_INTENSITY.items()]},
                              "next_game":dict(next_game) if next_game else None,
+                             "renewal_window_open":renewal_window_open,"renewal_open_day":RENEWAL_OPEN_DAY,
                              "season":season,"league_day":day,"phase":state.get("phase","REGULAR")})
         if p=="/api/friends":
             u=self.auth()
             if not u:return
             c=conn()
+            # RC78: friendship is account/profile-level, never player-level. A user
+            # with three active players must still appear exactly once in the friends list.
             accepted=[dict(x) for x in c.execute(
                 """SELECT f.id,
                           CASE WHEN f.requester_user_id=? THEN f.addressee_user_id ELSE f.requester_user_id END user_id,
-                          u.username,p.name player_name,p.franchise_id
+                          u.username,u.role
                    FROM friendships f
                    JOIN users u ON u.id=CASE WHEN f.requester_user_id=? THEN f.addressee_user_id ELSE f.requester_user_id END
-                   LEFT JOIN players p ON p.user_id=u.id AND p.active=1
                    WHERE f.status='ACCEPTED' AND (f.requester_user_id=? OR f.addressee_user_id=?)
                    ORDER BY LOWER(u.username)""",(u["id"],u["id"],u["id"],u["id"]))]
             incoming=[dict(x) for x in c.execute(
-                """SELECT f.id,f.requester_user_id user_id,u.username,p.name player_name,p.franchise_id,f.created_at
+                """SELECT f.id,f.requester_user_id user_id,u.username,u.role,f.created_at
                    FROM friendships f JOIN users u ON u.id=f.requester_user_id
-                   LEFT JOIN players p ON p.user_id=u.id AND p.active=1
                    WHERE f.addressee_user_id=? AND f.status='PENDING' ORDER BY f.id DESC""",(u["id"],))]
             outgoing=[dict(x) for x in c.execute(
-                """SELECT f.id,f.addressee_user_id user_id,u.username,p.name player_name,p.franchise_id,f.created_at
+                """SELECT f.id,f.addressee_user_id user_id,u.username,u.role,f.created_at
                    FROM friendships f JOIN users u ON u.id=f.addressee_user_id
-                   LEFT JOIN players p ON p.user_id=u.id AND p.active=1
                    WHERE f.requester_user_id=? AND f.status='PENDING' ORDER BY f.id DESC""",(u["id"],))]
             c.close();return self.out({"friends":accepted,"incoming":incoming,"outgoing":outgoing})
         if p=="/api/notifications":
@@ -5974,21 +6318,29 @@ class H(BaseHTTPRequestHandler):
             d=self.body();c=conn();c.execute("BEGIN IMMEDIATE")
             pl=owned_active_player(c,u["id"],request_player_id(self,d))
             if not pl:c.close();return self.out({"error":"PLAYER_NOT_FOUND"},404)
-            if pl["status"]!="FREE_AGENT":c.close();return self.out({"error":"POSITION_CHANGE_REQUIRES_FREE_AGENT"},400)
             state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('phase','league_day')")}
             phase=str(state.get("phase","REGULAR")).upper();day=int(state.get("league_day","0") or 0)
-            if phase!="OFFSEASON" and day>0:
-                c.close();return self.out({"error":"POSITION_CHANGE_WINDOW_CLOSED","phase":phase,"league_day":day},400)
             new_group=str(d.get("position_group") or "").upper();new_pos=str(d.get("position") or "").upper()
             old_group=str(pl["position_group"] or position_group_for_pos(pl["primary_pos"])).upper()
             valid_pos={"INF":{"C","1B","2B","3B","SS"},"OF":{"LF","CF","RF"},"PITCHER":{"SP","RP"}}
             if new_group not in POSITION_GROUPS or new_pos not in valid_pos.get(new_group,set()):
-                c.close();return self.out({"error":"INVALID_POSITION_CHANGE"},400)
+                c.rollback();c.close();return self.out({"error":"INVALID_POSITION_CHANGE"},400)
             if (old_group=="PITCHER") != (new_group=="PITCHER"):
-                c.close();return self.out({"error":"CANNOT_SWITCH_HITTER_PITCHER_BUILD"},400)
+                c.rollback();c.close();return self.out({"error":"CANNOT_SWITCH_HITTER_PITCHER_BUILD"},400)
+            changing_group=new_group!=old_group
+            if changing_group:
+                if pl["status"]!="FREE_AGENT":
+                    c.rollback();c.close();return self.out({"error":"ROSTER_GROUP_CHANGE_REQUIRES_FREE_AGENT"},400)
+                if phase!="OFFSEASON" and day>0:
+                    c.rollback();c.close();return self.out({"error":"POSITION_CHANGE_WINDOW_CLOSED","phase":phase,"league_day":day},400)
+            old_pos=str(pl["primary_pos"] or "").upper()
             c.execute("UPDATE players SET position_group=?,primary_pos=? WHERE id=?",(new_group,new_pos,pl["id"]))
-            c.execute("UPDATE offers SET status='CANCELLED_POSITION_CHANGE' WHERE player_id=? AND status IN ('OPEN','HELD')",(pl["id"],))
-            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("POSITION_CHANGED",u["id"],json.dumps({"player_id":pl["id"],"from_group":old_group,"to_group":new_group,"position":new_pos})))
+            # Free-agent market offers are tied to a proposed roster role. Cancel them only
+            # when the player changes roster family; a signed player's preference change
+            # does not alter the club's actual roster-slot assignment.
+            if changing_group:
+                c.execute("UPDATE offers SET status='CANCELLED_POSITION_CHANGE' WHERE player_id=? AND offer_type!='RENEWAL' AND status IN ('OPEN','HELD')",(pl["id"],))
+            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("POSITION_CHANGED",u["id"],json.dumps({"player_id":pl["id"],"from_group":old_group,"to_group":new_group,"from_position":old_pos,"position":new_pos,"team_role_unchanged":pl["status"]=="SIGNED"})))
             c.commit();out=player_obj(c,pl["id"]);c.close();return self.out({"ok":True,"player":out})
 
         if p=="/api/player/retire":
@@ -6017,7 +6369,7 @@ class H(BaseHTTPRequestHandler):
                     (current_season,pid,old_team,pl["type"],pl["season_json"] or "{}")
                 )
                 c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
-                c.execute("UPDATE offers SET status='CANCELLED_RETIRED' WHERE player_id=? AND status IN ('OPEN','HELD')",(pid,))
+                c.execute("UPDATE offers SET status='CANCELLED_RETIRED' WHERE player_id=? AND status IN ('OPEN','HELD','ACCEPTED')",(pid,))
                 c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE player_id=?",(pid,))
                 c.execute("UPDATE players SET active=0,status='RETIRED',franchise_id=NULL WHERE id=?",(pid,))
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
@@ -6065,56 +6417,53 @@ class H(BaseHTTPRequestHandler):
             season=_season_number(c)
             active_ids=active_franchise_ids(c,season)
             q=",".join("?" for _ in active_ids)
-            teams=[dict(x) for x in c.execute(f"SELECT * FROM franchises WHERE id IN ({q}) ORDER BY id",active_ids)]
-            scored=[]
+            # CPU market is a league-population tool as well as a contract market.
+            # Human-controlled clubs recruit for themselves; CPU clubs deliberately
+            # concentrate human players into the fullest compatible club first.
+            teams=[dict(x) for x in c.execute(f"SELECT * FROM franchises WHERE id IN ({q}) AND owner_user_id IS NULL ORDER BY id",active_ids)]
+            last_end=c.execute("SELECT MAX(ended_at) ended_at FROM contract_history WHERE player_id=?",(pr["id"],)).fetchone()["ended_at"]
+            if last_end:
+                rejected={x["franchise_id"] for x in c.execute("SELECT franchise_id FROM offers WHERE player_id=? AND offer_type!='RENEWAL' AND status='REJECTED' AND created_at>?",(pr["id"],last_end)).fetchall()}
+            else:
+                rejected={x["franchise_id"] for x in c.execute("SELECT franchise_id FROM offers WHERE player_id=? AND offer_type!='RENEWAL' AND status='REJECTED'",(pr["id"],)).fetchall()}
+            attempted_teams=existing_teams|rejected
+            candidates=[]
             for f in teams:
-                if f["id"] in existing_teams:
+                if f["id"] in attempted_teams:
                     continue
-                # RC58 — CPU market may only offer where this player can actually sign.
                 cap=roster_capacity_state(c,f["id"])
                 if cap["total_slots"]!=ACTIVE_ROSTER_SIZE or cap["hitter_slots"]!=9 or cap["pitcher_slots"]!=7:
                     enforce_active_rosters(c,season)
                     cap=roster_capacity_state(c,f["id"])
-                allowed=eligible_roster_slot_groups(dict(pr))
-                if pr["type"]=="H":
-                    allowed=[x for x in allowed if x in ("C","1B","2B","3B","SS","LF","CF","RF","DH")]
-                    if cap["open_or_cpu_hitters"]<=0:
-                        continue
-                else:
-                    allowed=[x for x in allowed if x in ("SP","RP")]
-                    if cap["open_or_cpu_pitchers"]<=0:
-                        continue
-                marks=",".join("?" for _ in allowed)
-                legal_slot=c.execute(f"""SELECT 1 FROM roster_slots
-                    WHERE franchise_id=? AND position_group IN ({marks})
-                      AND occupant_type IN ('OPEN','CPU') LIMIT 1""",
-                    (f["id"],*allowed)).fetchone()
-                if not legal_slot:
+                if pr["type"]=="H" and cap["open_or_cpu_hitters"]<=0:
                     continue
-                need=R.uniform(0,12)
-                group=str(pr["position_group"] or position_group_for_pos(pr["primary_pos"])).upper()
-                desired={"INF":5,"OF":4,"PITCHER":7}.get(group,4)
-                roster_n=c.execute("SELECT COUNT(*) n FROM players WHERE franchise_id=? AND position_group=? AND active=1 AND status='SIGNED'",(f["id"],group)).fetchone()["n"]
-                need+=max(0,desired-roster_n)*2.5
-                if pr["primary_pos"]=="C":
-                    human_c=c.execute("SELECT COUNT(*) n FROM roster_slots WHERE franchise_id=? AND position_group='C' AND occupant_type='HUMAN'",(f["id"],)).fetchone()["n"]
-                    if not human_c:need+=5.0
-                scored.append((need+overall*.12+R.uniform(0,4),f))
-            scored.sort(key=lambda x:x[0],reverse=True)
+                if pr["type"]=="P" and cap["open_or_cpu_pitchers"]<=0:
+                    continue
+                role_slot=roster_offer_slot(c,f["id"],dict(pr))
+                if not role_slot:
+                    continue
+                humans=human_roster_count(c,f["id"])
+                preferred_fit=1 if str(role_slot["position_group"]).upper()==str(pr["primary_pos"] or "").upper() else 0
+                candidates.append({"team":f,"human_count":humans,"preferred_fit":preferred_fit,"role":str(role_slot["position_group"]).upper()})
+            # Highest human population wins first. Stable franchise order breaks an empty-league
+            # tie, which creates the first human clubhouse instead of scattering rookies.
+            candidates.sort(key=lambda x:(-x["human_count"],-x["preferred_fit"],x["team"]["id"]))
             made=[]
-            for rank,(_,f) in enumerate(scored[:slots]):
+            # One CPU offer per market request. Players can Hold and request another, preserving
+            # agency, but the default path keeps feeding the most-human compatible club.
+            slots=min(1,max(0,3-open_count))
+            for rank,candidate in enumerate(candidates):
+                if len(made)>=slots:break
+                f=candidate["team"];proposed_role=candidate["role"]
                 bonus=round(min(25,6+overall*.45+R.uniform(0,7)-rank),1)
                 floor=minimum_offer_salary(c,pr["id"],f["id"])
                 history_n=int(c.execute("SELECT COUNT(*) n FROM contract_history WHERE player_id=?",(pr["id"],)).fetchone()["n"] or 0)
                 market_salary=round(0.30+(overall/100.0)*0.10+R.uniform(-0.015,0.015),2)
                 if history_n==0:
-                    salary=round(max(SALARY_MIN,min(0.35,market_salary)),2)
+                    salary=SALARY_MIN
                 else:
                     salary=round(max(floor,market_salary),2)
                 years=R.choice([1,2,2,3])
-
-                # RC59/RC60 — CPU clubs obey the same shared discretionary pool
-                # and the same permanent player salary floor as human coaches.
                 pool=signing_pool_state(c,f["id"])
                 premium=max(0.0,salary-SALARY_MIN)*REGULAR_SEASON_GAMES
                 max_bonus=max(0.0,pool["available"]-premium)
@@ -6122,12 +6471,11 @@ class H(BaseHTTPRequestHandler):
                 offer_cost=round(bonus+premium,3)
                 if offer_cost>pool["available"]+1e-9:
                     continue
-
-                cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,?,'OPEN')",(f["id"],pr["id"],bonus,salary,years))
-                made.append({"offer_id":cur.lastrowid,"team":f["name"],"franchise_id":f["id"],"bonus":bonus,"salary":salary,"years":years})
+                cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status,proposed_role) VALUES(?,?,?,?,?,'OPEN',?)",(f["id"],pr["id"],bonus,salary,years,proposed_role))
+                made.append({"offer_id":cur.lastrowid,"team":f["name"],"franchise_id":f["id"],"bonus":bonus,"salary":salary,"years":years,"proposed_role":proposed_role,"team_humans":candidate["human_count"]})
             c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("CPU_MARKET_OFFERS",u["id"],json.dumps({"player_id":pr["id"],"offers":made})))
             for off in made:
-                notify_user(c,u["id"],"CONTRACT",f"Contract offer from {off['team']}",f"{off['bonus']:g} XP bonus • {off['salary']:g} XP/game • {off['years']} year(s)",str(off["offer_id"]))
+                notify_user(c,u["id"],"CONTRACT",f"Contract offer from {off['team']}",f"Proposed role: {off.get('proposed_role') or pr['primary_pos']} • {off['bonus']:g} XP bonus • {off['salary']:g} XP/game • {off['years']} year(s)",str(off["offer_id"]))
             c.commit();c.close();return self.out({"ok":True,"offers":made})
         if p=="/api/coach/apply":
             u=self.auth()
@@ -6210,10 +6558,66 @@ class H(BaseHTTPRequestHandler):
             finally:
                 c.close()
 
+        if p=="/api/coach/renewal-offer":
+            u=self.auth(["COACH","COMMISSIONER"])
+            if not u:return
+            d=self.body()
+            try:
+                pid=int(d.get("player_id",0));years=int(d.get("years",0))
+            except (TypeError,ValueError):
+                return self.out({"error":"INVALID_RENEWAL"},400)
+            mode=str(d.get("salary_mode") or "").upper().strip()
+            message=" ".join(str(d.get("message") or "").split()).strip()
+            if years not in (1,2,3) or mode not in ("CURRENT","VETERAN_MIN"):
+                return self.out({"error":"INVALID_RENEWAL"},400)
+            if len(message)<10 or len(message)>600:
+                return self.out({"error":"RENEWAL_MESSAGE_REQUIRED","minimum_chars":10,"maximum_chars":600},400)
+            c=conn()
+            try:
+                f=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
+                if not f:return self.out({"error":"NO_FRANCHISE"},404)
+                state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
+                season=int(state.get("season",1));day=int(state.get("league_day",0));phase=str(state.get("phase","REGULAR")).upper()
+                if phase!="REGULAR" or day<RENEWAL_OPEN_DAY or day>REGULAR_SEASON_GAMES:
+                    return self.out({"error":"RENEWAL_WINDOW_CLOSED","opens_day":RENEWAL_OPEN_DAY,"league_day":day,"phase":phase},400)
+                pl=c.execute("SELECT id,user_id,name,franchise_id,active FROM players WHERE id=?",(pid,)).fetchone()
+                con=c.execute("SELECT * FROM contracts WHERE player_id=?",(pid,)).fetchone()
+                if not pl or not con or not pl["active"] or pl["franchise_id"]!=f["id"] or con["franchise_id"]!=f["id"]:
+                    return self.out({"error":"PLAYER_NOT_ON_TEAM"},400)
+                if pl["user_id"] is None:
+                    return self.out({"error":"HUMAN_PLAYER_REQUIRED"},400)
+                if pl["user_id"]==u["id"]:
+                    return self.out({"error":"CANNOT_SIGN_OWN_PLAYER"},403)
+                if int(con["years_remaining"] or 0)!=1:
+                    return self.out({"error":"CONTRACT_NOT_EXPIRING"},400)
+                accepted=c.execute("SELECT id FROM offers WHERE franchise_id=? AND player_id=? AND offer_type='RENEWAL' AND effective_season=? AND status='ACCEPTED' LIMIT 1",(f["id"],pid,season+1)).fetchone()
+                if accepted:
+                    return self.out({"error":"RENEWAL_ALREADY_ACCEPTED"},409)
+                current_rate=round(float(con["salary"] or SALARY_MIN),2)
+                veteran_min=renewal_veteran_minimum(c,pid)
+                salary=current_rate if mode=="CURRENT" else veteran_min
+                projected=next_season_payroll_projection(c,f["id"],replace_player_id=pid,proposed_salary=salary)
+                base_budget=round(annual_team_budget(dict(f)),3)
+                if projected>base_budget+1e-9:
+                    return self.out({"error":"NEXT_SEASON_PAYROLL_EXCEEDED","projected_payroll":projected,"base_budget":base_budget},400)
+                c.execute("UPDATE offers SET status='SUPERSEDED' WHERE franchise_id=? AND player_id=? AND offer_type='RENEWAL' AND effective_season=? AND status IN ('OPEN','HELD')",(f["id"],pid,season+1))
+                cur=c.execute(
+                    """INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status,offer_type,message,effective_season,salary_basis)
+                       VALUES(?,?,?,?,?,'OPEN','RENEWAL',?,?,?)""",
+                    (f["id"],pid,0.0,salary,years,message,season+1,mode)
+                )
+                notify_user(c,pl["user_id"],"CONTRACT",f"Renewal offer from {f['name']}",f"{salary:.2f} XP/game • {years} season(s) • {message}",str(cur.lastrowid))
+                c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                          ("RENEWAL_OFFERED",u["id"],json.dumps({"player_id":pid,"franchise_id":f["id"],"salary":salary,"years":years,"salary_mode":mode,"effective_season":season+1,"message":message})))
+                c.commit()
+                return self.out({"ok":True,"offer_id":cur.lastrowid,"salary":salary,"years":years,"salary_mode":mode,"effective_season":season+1,"projected_payroll":projected,"base_budget":base_budget})
+            finally:
+                c.close()
+
         if p=="/api/coach/offer":
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
-            d=self.body();pid=int(d.get("player_id",0));bonus=float(d.get("bonus",0));salary=float(d.get("salary",0));years=int(d.get("years",0))
+            d=self.body();pid=int(d.get("player_id",0));bonus=float(d.get("bonus",0));salary=float(d.get("salary",0));years=int(d.get("years",0));requested_role=str(d.get("proposed_role") or "").upper()
             salary=round(salary,2)
             if bonus<0 or bonus>BONUS_CAP or years not in [1,2,3]:return self.out({"error":"INVALID_OFFER"},400)
             c=conn();f=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
@@ -6224,11 +6628,11 @@ class H(BaseHTTPRequestHandler):
             is_rookie_contract=int(career_history["n"] or 0)==0
             if salary<minimum_salary:
                 c.close();return self.out({"error":"SALARY_FLOOR_REQUIRED","minimum_salary":minimum_salary,"previous_team_salary":previous_salary},400)
-            # RC60: first contract is intentionally constrained to .30-.35.
-            # Veteran contracts have no artificial salary ceiling; the shared
-            # signing pool is the economic limiter.
-            if is_rookie_contract and salary>0.35:
-                c.close();return self.out({"error":"ROOKIE_SALARY_MAX","minimum_salary":SALARY_MIN,"maximum_salary":0.35},400)
+            # RC78: rookie contracts are fixed at league minimum. This prevents a
+            # coach from front-loading the economy before a player has EBL service time.
+            # Veteran contracts keep the normal service-time floor with no hard ceiling.
+            if is_rookie_contract and abs(salary-SALARY_MIN)>1e-9:
+                c.close();return self.out({"error":"ROOKIE_SALARY_FIXED","required_salary":SALARY_MIN},400)
             pl=c.execute("SELECT * FROM players WHERE id=?",(pid,)).fetchone()
             if not pl or pl["status"]!="FREE_AGENT":c.close();return self.out({"error":"PLAYER_NOT_FREE_AGENT"},400)
             if pl["user_id"]==u["id"]:c.close();return self.out({"error":"CANNOT_SIGN_OWN_PLAYER"},403)
@@ -6238,32 +6642,26 @@ class H(BaseHTTPRequestHandler):
             if cap["total_slots"]!=ACTIVE_ROSTER_SIZE or cap["hitter_slots"]!=9 or cap["pitcher_slots"]!=7:
                 enforce_active_rosters(c)
                 cap=roster_capacity_state(c,f["id"])
-            allowed=eligible_roster_slot_groups(dict(pl))
-            if pl["type"]=="H":
-                allowed=[x for x in allowed if x in ("C","1B","2B","3B","SS","LF","CF","RF","DH")]
-                if cap["open_or_cpu_hitters"]<=0:
-                    c.close();return self.out({"error":"HITTER_ROSTER_FULL","detail":"All nine position-player jobs are occupied by human players."},400)
-            else:
-                allowed=[x for x in allowed if x in ("SP","RP")]
-                if cap["open_or_cpu_pitchers"]<=0:
-                    c.close();return self.out({"error":"PITCHER_ROSTER_FULL"},400)
-            marks=",".join("?" for _ in allowed)
-            legal_slot=c.execute(f"""SELECT 1 FROM roster_slots
-                WHERE franchise_id=? AND position_group IN ({marks})
-                  AND occupant_type IN ('OPEN','CPU') LIMIT 1""",
-                (f["id"],*allowed)).fetchone()
-            if not legal_slot:
+            if pl["type"]=="H" and cap["open_or_cpu_hitters"]<=0:
+                c.close();return self.out({"error":"HITTER_ROSTER_FULL","detail":"All nine position-player jobs are occupied by human players."},400)
+            if pl["type"]=="P" and cap["open_or_cpu_pitchers"]<=0:
+                c.close();return self.out({"error":"PITCHER_ROSTER_FULL"},400)
+            roles=available_roster_roles(c,f["id"],dict(pl))
+            if not roles:
                 c.close();return self.out({"error":"ROSTER_POSITION_FULL"},400)
+            if requested_role and requested_role not in roles:
+                c.close();return self.out({"error":"PROPOSED_ROLE_UNAVAILABLE","available_roles":roles},400)
+            proposed_role=requested_role or roles[0]
 
             pool=signing_pool_state(c,f["id"])
             offer_cost=round(bonus + max(0.0,salary-SALARY_MIN)*REGULAR_SEASON_GAMES,3)
             if offer_cost>pool["available"]+1e-9:
                 c.close();return self.out({"error":"SIGNING_POOL_EXCEEDED","signing_pool":pool,"offer_cost":offer_cost},400)
-            cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,?,'OPEN')",(f["id"],pid,bonus,salary,years))
+            cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status,proposed_role) VALUES(?,?,?,?,?,'OPEN',?)",(f["id"],pid,bonus,salary,years,proposed_role))
             owner=c.execute("SELECT user_id,name FROM players WHERE id=?",(pid,)).fetchone()
             if owner and owner["user_id"]:
-                notify_user(c,owner["user_id"],"CONTRACT",f"Contract offer from {f['name']}",f"{bonus:g} XP bonus • {salary:g} XP/game • {years} year(s)",str(cur.lastrowid))
-            c.commit();oid=cur.lastrowid;c.close();return self.out({"ok":True,"offer_id":oid})
+                notify_user(c,owner["user_id"],"CONTRACT",f"Contract offer from {f['name']}",f"Proposed role: {proposed_role} • {bonus:g} XP bonus • {salary:g} XP/game • {years} year(s)",str(cur.lastrowid))
+            c.commit();oid=cur.lastrowid;c.close();return self.out({"ok":True,"offer_id":oid,"proposed_role":proposed_role})
         if p=="/api/player/respond-offer":
             u=self.auth()
             if not u:return
@@ -6283,6 +6681,36 @@ class H(BaseHTTPRequestHandler):
                 off=c.execute("SELECT * FROM offers WHERE id=? AND player_id=?",(oid,pl["id"])).fetchone()
                 if not off or off["status"] not in ["OPEN","HELD"]:
                     c.rollback();return self.out({"error":"OFFER_NOT_AVAILABLE"},400)
+
+                if str(off["offer_type"] or "FREE_AGENT").upper()=="RENEWAL":
+                    con=c.execute("SELECT * FROM contracts WHERE player_id=?",(pl["id"],)).fetchone()
+                    state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
+                    season=int(state.get("season",1));day=int(state.get("league_day",0));phase=str(state.get("phase","REGULAR")).upper()
+                    if not con or con["franchise_id"]!=off["franchise_id"] or int(con["years_remaining"] or 0)!=1:
+                        c.rollback();return self.out({"error":"RENEWAL_NO_LONGER_VALID"},400)
+                    if phase!="REGULAR" or day<RENEWAL_OPEN_DAY or int(off["effective_season"] or 0)!=season+1:
+                        c.rollback();return self.out({"error":"RENEWAL_WINDOW_CLOSED"},400)
+                    owner=c.execute("SELECT owner_user_id,name FROM franchises WHERE id=?",(off["franchise_id"],)).fetchone()
+                    if action=="HOLD":
+                        c.execute("UPDATE offers SET status='HELD' WHERE id=?",(oid,))
+                        c.commit();return self.out({"ok":True,"status":"HELD","player_id":pl["id"],"renewal":True})
+                    if action=="REJECT":
+                        c.execute("UPDATE offers SET status='REJECTED' WHERE id=?",(oid,))
+                        if owner and owner["owner_user_id"]:
+                            notify_user(c,owner["owner_user_id"],"COACH_CONTRACT","Renewal declined",f"{pl['name']} declined the renewal offer. You can revise the plan while the Day {RENEWAL_OPEN_DAY}–81 window remains open.",str(pl["id"]))
+                        c.commit();return self.out({"ok":True,"status":"REJECTED","player_id":pl["id"],"renewal":True})
+                    projected=next_season_payroll_projection(c,off["franchise_id"],replace_player_id=pl["id"],proposed_salary=float(off["salary"] or SALARY_MIN))
+                    fr=c.execute("SELECT * FROM franchises WHERE id=?",(off["franchise_id"],)).fetchone()
+                    base_budget=round(annual_team_budget(dict(fr)),3) if fr else TEAM_BUDGET
+                    if projected>base_budget+1e-9:
+                        c.rollback();return self.out({"error":"NEXT_SEASON_PAYROLL_EXCEEDED","projected_payroll":projected,"base_budget":base_budget},400)
+                    c.execute("UPDATE offers SET status='ACCEPTED' WHERE id=?",(oid,))
+                    c.execute("UPDATE offers SET status='CANCELLED_PLAYER_RENEWED' WHERE player_id=? AND offer_type='RENEWAL' AND id<>? AND status IN ('OPEN','HELD')",(pl["id"],oid))
+                    c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                              ("RENEWAL_ACCEPTED",u["id"],json.dumps({"player_id":pl["id"],"offer_id":oid,"franchise_id":off["franchise_id"],"salary":off["salary"],"years":off["years"],"effective_season":off["effective_season"]})))
+                    if owner and owner["owner_user_id"]:
+                        notify_user(c,owner["owner_user_id"],"COACH_CONTRACT","Renewal accepted",f"{pl['name']} accepted {float(off['salary']):.2f} XP/game for {int(off['years'])} season(s), beginning next season.",str(pl["id"]))
+                    c.commit();return self.out({"ok":True,"status":"ACCEPTED","player_id":pl["id"],"renewal":True,"effective_season":off["effective_season"]})
 
                 if action=="HOLD":
                     c.execute("UPDATE offers SET status='HELD' WHERE id=?",(oid,))
@@ -6314,8 +6742,8 @@ class H(BaseHTTPRequestHandler):
                     },400)
                 career_history=c.execute("SELECT COUNT(*) n FROM contract_history WHERE player_id=?",(pl["id"],)).fetchone()
                 is_rookie_contract=int(career_history["n"] or 0)==0
-                if is_rookie_contract and float(off["salary"] or 0)>0.35+1e-9:
-                    c.rollback();return self.out({"error":"ROOKIE_SALARY_MAX","minimum_salary":SALARY_MIN,"maximum_salary":0.35},400)
+                if is_rookie_contract and abs(float(off["salary"] or 0)-SALARY_MIN)>1e-9:
+                    c.rollback();return self.out({"error":"ROOKIE_SALARY_FIXED","required_salary":SALARY_MIN},400)
                 if float(off["bonus"] or 0)<0 or float(off["bonus"] or 0)>BONUS_CAP or int(off["years"] or 0) not in (1,2,3):
                     c.rollback();return self.out({"error":"INVALID_OFFER"},400)
 
@@ -6329,31 +6757,17 @@ class H(BaseHTTPRequestHandler):
                 if cap["total_slots"]!=ACTIVE_ROSTER_SIZE or cap["hitter_slots"]!=9 or cap["pitcher_slots"]!=7:
                     enforce_active_rosters(c)
                     cap=roster_capacity_state(c,off["franchise_id"])
-                allowed=eligible_roster_slot_groups(dict(pl))
-                if pl["type"]=="H":
-                    allowed=[x for x in allowed if x in ("C","1B","2B","3B","SS","LF","CF","RF","DH")]
-                    if cap["open_or_cpu_hitters"]<=0:
-                        c.rollback();return self.out({"error":"HITTER_ROSTER_FULL","detail":"EBL clubs carry exactly nine position players and no position-player bench."},400)
-                else:
-                    allowed=[x for x in allowed if x in ("SP","RP")]
-                    if cap["open_or_cpu_pitchers"]<=0:
-                        c.rollback();return self.out({"error":"PITCHER_ROSTER_FULL"},400)
-                marks=",".join("?" for _ in allowed)
-                slot=c.execute(f"""
-                    SELECT slot_no,player_id,occupant_type,position_group
-                    FROM roster_slots
-                    WHERE franchise_id=?
-                      AND position_group IN ({marks})
-                      AND occupant_type IN ('OPEN','CPU')
-                    ORDER BY
-                        CASE WHEN position_group=? THEN 0 ELSE 1 END,
-                        CASE occupant_type WHEN 'OPEN' THEN 0 ELSE 1 END,
-                        slot_no
-                    LIMIT 1
-                """,(off["franchise_id"],*allowed,pl["primary_pos"])).fetchone()
-
+                if pl["type"]=="H" and cap["open_or_cpu_hitters"]<=0:
+                    c.rollback();return self.out({"error":"HITTER_ROSTER_FULL","detail":"EBL clubs carry exactly nine position players and no position-player bench."},400)
+                if pl["type"]=="P" and cap["open_or_cpu_pitchers"]<=0:
+                    c.rollback();return self.out({"error":"PITCHER_ROSTER_FULL"},400)
+                # The contract carries a proposed role. Honor it when possible; if another
+                # signing took that job first, fall through to the next compatible CPU/open
+                # role rather than breaking the signing flow.
+                slot=roster_offer_slot(c,off["franchise_id"],dict(pl),off["proposed_role"] if "proposed_role" in off.keys() else None)
                 if not slot:
                     c.rollback();return self.out({"error":"ROSTER_POSITION_FULL"},400)
+                assigned_role=str(slot["position_group"] or "").upper()
 
                 displaced_id=slot["player_id"]
                 if displaced_id:
@@ -6386,7 +6800,7 @@ class H(BaseHTTPRequestHandler):
                         c.execute("UPDATE lineups SET rotation_json=? WHERE franchise_id=?",
                                   (json.dumps(rotation),off["franchise_id"]))
 
-                c.execute("UPDATE offers SET status='ACCEPTED' WHERE id=?",(oid,))
+                c.execute("UPDATE offers SET status='ACCEPTED',proposed_role=? WHERE id=?",(assigned_role,oid))
                 c.execute("""UPDATE offers
                              SET status='CANCELLED_PLAYER_SIGNED'
                              WHERE player_id=? AND id<>?
@@ -6412,13 +6826,13 @@ class H(BaseHTTPRequestHandler):
                              VALUES(?,?,?,?)""",
                           (pl["id"],"SIGNING_BONUS",off["bonus"],json.dumps({"offer_id":oid,"franchise_id":off["franchise_id"]})))
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                          ("CONTRACT_SIGNED",u["id"],json.dumps({"player_id":pl["id"],"offer_id":oid,"franchise_id":off["franchise_id"],"bonus":off["bonus"],"salary":off["salary"],"years":off["years"]})))
+                          ("CONTRACT_SIGNED",u["id"],json.dumps({"player_id":pl["id"],"offer_id":oid,"franchise_id":off["franchise_id"],"bonus":off["bonus"],"salary":off["salary"],"years":off["years"],"assigned_role":assigned_role,"preferred_position":pl["primary_pos"]})))
 
                 brand=c.execute("SELECT display_name FROM franchise_branding WHERE franchise_id=?",(off["franchise_id"],)).fetchone()
                 team_display_name=(brand["display_name"] if brand and brand["display_name"] else f["name"])
                 c.commit()
                 return self.out({"ok":True,"status":"ACCEPTED","player_id":pl["id"],"franchise_id":off["franchise_id"],
-                                 "team_name":f["name"],"team_display_name":team_display_name})
+                                 "team_name":f["name"],"team_display_name":team_display_name,"assigned_role":assigned_role})
 
             except sqlite3.IntegrityError as e:
                 c.rollback()
@@ -6513,34 +6927,59 @@ class H(BaseHTTPRequestHandler):
             u=self.auth(["COACH","COMMISSIONER"])
             if not u:return
             d=self.body();coach_type=str(d.get("coach_type","SPEED")).upper()
+            try:intensity=int(d.get("intensity",1) or 1)
+            except (TypeError,ValueError):intensity=1
             if coach_type not in DEVELOPMENT_COACH_TYPES:
                 return self.out({"error":"INVALID_DEVELOPMENT_COACH","allowed":sorted(DEVELOPMENT_COACH_TYPES)},400)
+            if intensity not in DEVELOPMENT_COACH_INTENSITY:
+                return self.out({"error":"INVALID_COACH_INTENSITY","allowed":sorted(DEVELOPMENT_COACH_INTENSITY)},400)
             c=conn();fr=c.execute("SELECT * FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
             if not fr:c.close();return self.out({"error":"NO_FRANCHISE"},404)
             state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
             season=int(state.get("season",1));day=int(state.get("league_day",0));phase=str(state.get("phase","REGULAR")).upper()
-            if phase!="REGULAR" or day>=40:
-                c.close();return self.out({"error":"DEVELOPMENT_COACH_HIRING_CLOSED","detail":"Seasonal development coaches must be hired before League Day 40.","season":season,"league_day":day,"phase":phase},400)
-            existing=c.execute("SELECT * FROM team_development_coaches WHERE franchise_id=? AND season=?",(fr["id"],season)).fetchone()
-            if existing:
-                c.close();return self.out({"error":"DEVELOPMENT_COACH_ALREADY_HIRED","coach":dict(existing)},400)
+            if phase!="REGULAR" or day>=DEVELOPMENT_COACH_HIRING_CLOSE_DAY:
+                c.close();return self.out({"error":"DEVELOPMENT_COACH_HIRING_CLOSED","detail":f"Seasonal development coaches must be hired before League Day {DEVELOPMENT_COACH_HIRING_CLOSE_DAY}.","season":season,"league_day":day,"phase":phase},400)
+            existing=[dict(x) for x in c.execute("SELECT * FROM team_development_coaches WHERE franchise_id=? AND season=? ORDER BY coach_slot,id",(fr["id"],season)).fetchall()]
+            if len(existing)>=DEVELOPMENT_COACH_MAX:
+                c.close();return self.out({"error":"DEVELOPMENT_COACH_LIMIT","maximum":DEVELOPMENT_COACH_MAX},400)
+            if any(str(x.get("coach_type") or "").upper()==coach_type for x in existing):
+                c.close();return self.out({"error":"DEVELOPMENT_COACH_DUPLICATE_SPECIALTY","coach_type":coach_type},400)
+            is_free=len(existing)==0
+            if is_free:
+                intensity=1
+            tier=DEVELOPMENT_COACH_INTENSITY[intensity]
+            cost=0.0 if is_free else DEVELOPMENT_COACH_BASE_COST+float(tier["extra_cost"])
             finance=signing_pool_state(c,fr["id"])
-            if float(finance["available"] or 0)<DEVELOPMENT_COACH_COST:
-                c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":DEVELOPMENT_COACH_COST,"available":finance["available"]},400)
+            if float(finance["available"] or 0)<cost:
+                c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":cost,"available":finance["available"]},400)
             spec=DEVELOPMENT_COACH_TYPES[coach_type]
-            c.execute("UPDATE franchises SET xp_budget=xp_budget-? WHERE id=?",(DEVELOPMENT_COACH_COST,fr["id"]))
-            cur=c.execute("""INSERT INTO team_development_coaches(franchise_id,season,coach_type,attribute,cost)
-                             VALUES(?,?,?,?,?)""",(fr["id"],season,coach_type,spec["attribute"],DEVELOPMENT_COACH_COST))
+            slot=len(existing)+1
+            if cost>0:
+                c.execute("UPDATE franchises SET xp_budget=xp_budget-? WHERE id=?",(cost,fr["id"]))
+            cur=c.execute("""INSERT INTO team_development_coaches(
+                             franchise_id,season,coach_slot,coach_type,attribute,cost,is_free,intensity,
+                             checkpoint_days_json,applied_days_json,hired_day)
+                             VALUES(?,?,?,?,?,?,?,?,?,?,?)""",(
+                             fr["id"],season,slot,coach_type,spec["attribute"],cost,1 if is_free else 0,intensity,
+                             json.dumps(tier["days"]),json.dumps([]),day))
             coach_row=c.execute("SELECT * FROM team_development_coaches WHERE id=?",(cur.lastrowid,)).fetchone()
+            # Apply the opening/hire boost now. If a paid coach is hired after one of
+            # its optional early checkpoints, that missed checkpoint is not back-paid.
+            applied=set()
             opening_players=_apply_team_development_point(c,coach_row,"OPENING")
-            c.execute("UPDATE team_development_coaches SET start_applied=1 WHERE id=?",(cur.lastrowid,))
+            applied.add(0)
+            for checkpoint in tier["days"]:
+                if checkpoint>0 and checkpoint<day:
+                    applied.add(int(checkpoint))
+            _sync_development_legacy_flags(c,cur.lastrowid,applied)
             c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                      ("DEVELOPMENT_COACH_HIRED",u["id"],json.dumps({"franchise_id":fr["id"],"season":season,"coach_type":coach_type,"attribute":spec["attribute"],"cost":DEVELOPMENT_COACH_COST,"opening_players":opening_players})))
+                      ("DEVELOPMENT_COACH_HIRED",u["id"],json.dumps({"franchise_id":fr["id"],"season":season,"coach_slot":slot,"coach_type":coach_type,"attribute":spec["attribute"],"cost":cost,"free":is_free,"intensity":intensity,"checkpoints":tier["days"],"opening_players":opening_players})))
+            schedule_text=", ".join("Opening" if x==0 else f"Day {x}" for x in tier["days"])
             post_news(c,"TEAM",f"{team_name(c,fr['id'])} hire a {spec['name']}",
-                      f"The club committed {DEVELOPMENT_COACH_COST:g} team XP to seasonal development. The active roster receives an immediate permanent +1 {spec['attribute']}, with another +1 available at League Day 40 and League Day 81.",
+                      f"The club added a {tier['name'].lower()} development plan for {spec['attribute']} ({schedule_text}). {'The first seasonal coach is free.' if is_free else f'The club committed {cost:g} team XP.'}",
                       day,fr["id"],None,None,1,season=season)
             c.commit();row=dict(c.execute("SELECT * FROM team_development_coaches WHERE id=?",(cur.lastrowid,)).fetchone());c.close()
-            return self.out({"ok":True,"coach":row,"name":spec["name"],"attribute":spec["attribute"],"opening_players":opening_players,"cost":DEVELOPMENT_COACH_COST})
+            return self.out({"ok":True,"coach":row,"name":spec["name"],"attribute":spec["attribute"],"opening_players":opening_players,"cost":cost,"free":is_free,"intensity":intensity,"intensity_name":tier["name"],"checkpoints":tier["days"],"maximum":DEVELOPMENT_COACH_MAX})
 
         if p=="/api/coach/set-strategy":
             u=self.auth(["COACH","COMMISSIONER"])
@@ -7071,9 +7510,35 @@ class H(BaseHTTPRequestHandler):
                 "state":state,
                 "games":games
             })
-        if p=="/api/commish/sim-day":
+        if p=="/api/commish/auto-advance":
             u=self.auth(["COMMISSIONER"])
             if not u:return
+            d=self.body();enabled=bool(d.get("enabled",False))
+            try:per_day=int(d.get("per_day",1) or 1)
+            except (TypeError,ValueError):return self.out({"error":"INVALID_ADVANCES_PER_DAY"},400)
+            if per_day<1 or per_day>24:
+                return self.out({"error":"INVALID_ADVANCES_PER_DAY","minimum":1,"maximum":24},400)
+            c=conn();state=auto_advance_state(c)
+            if enabled and str(state["phase"]).upper()!="REGULAR":
+                c.close();return self.out({"error":"AUTO_ADVANCE_REGULAR_SEASON_ONLY","phase":state["phase"]},400)
+            set_league_cfg(c,"auto_advance_per_day",per_day)
+            set_league_cfg(c,"auto_advance",1 if enabled else 0)
+            next_at=time.time()+(86400/per_day) if enabled else 0
+            set_league_cfg(c,"auto_advance_next_at",next_at)
+            audit(c,"AUTO_ADVANCE_ENABLED" if enabled else "AUTO_ADVANCE_DISABLED",f"per_day={per_day}")
+            c.commit();state=auto_advance_state(c);c.close()
+            if state["next_at"]>0:
+                state["next_at_iso"]=datetime.datetime.fromtimestamp(state["next_at"],datetime.timezone.utc).isoformat()
+            else:
+                state["next_at_iso"]=None
+            return self.out({"ok":True,**state})
+        if p=="/api/commish/sim-day":
+            internal_auto=hmac.compare_digest(str(self.headers.get("X-EBL-Auto") or ""),AUTO_ADVANCE_TOKEN)
+            if internal_auto:
+                u={"id":0,"username":"AUTO_ADVANCE","role":"COMMISSIONER"}
+            else:
+                u=self.auth(["COMMISSIONER"])
+                if not u:return
             c=conn();day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])+1
             if day>81:
                 season=int(c.execute(
@@ -7437,6 +7902,17 @@ class H(BaseHTTPRequestHandler):
                 weekly_recap(c,day,season)
                 process_quarter_awards(c,season,day)
                 apply_team_development_coach_milestones(c,season,day)
+                if day==RENEWAL_OPEN_DAY:
+                    for fr in c.execute("SELECT id,name,owner_user_id FROM franchises WHERE owner_user_id IS NOT NULL").fetchall():
+                        count=c.execute(
+                            """SELECT COUNT(*) n FROM contracts co JOIN players p ON p.id=co.player_id
+                               WHERE co.franchise_id=? AND co.years_remaining=1 AND p.active=1 AND p.user_id IS NOT NULL""",
+                            (fr["id"],)
+                        ).fetchone()["n"]
+                        if count:
+                            ref=f"renewal-window:{season}:{fr['id']}"
+                            if not c.execute("SELECT 1 FROM notifications WHERE user_id=? AND type='COACH_CONTRACT' AND ref_id=? LIMIT 1",(fr["owner_user_id"],ref)).fetchone():
+                                notify_user(c,fr["owner_user_id"],"COACH_CONTRACT","Renewal window is open",f"{count} expiring human contract{'s' if count!=1 else ''} need a decision before the postseason. Open Franchise Operations to review them.",ref)
                 if day==81:
                     process_season_awards(c,season)
                 c.execute("UPDATE league_state SET v=? WHERE k='league_day'",(str(day),))
@@ -7592,7 +8068,7 @@ class H(BaseHTTPRequestHandler):
                     return self.out({"error":"SEASON_NOT_COMPLETE","phase":phase},400)
 
                 next_season=current_season+1
-                summary={"contracts_expired":0,"contracts_advanced":0,"retired":0,"retired_names":[],"free_agents":[],"offers_expired":0,"return_offers":0,"rosters_rebuilt":False}
+                summary={"contracts_expired":0,"contracts_advanced":0,"renewals_activated":0,"retired":0,"retired_names":[],"free_agents":[],"offers_expired":0,"return_offers":0,"rosters_rebuilt":False}
                 return_offer_candidates=[]
 
                 # Active players are archived here. Voluntary offseason retirees
@@ -7632,21 +8108,39 @@ class H(BaseHTTPRequestHandler):
                         seen=c.execute("""SELECT 1 FROM contract_history WHERE player_id=? AND franchise_id=? AND ABS(salary-?)<0.0001 AND signed_at=? LIMIT 1""",(pid,con["franchise_id"],con["salary"],con["signed_at"])).fetchone()
                         if not seen:
                             c.execute("""INSERT INTO contract_history(player_id,franchise_id,bonus,salary,years,signed_at,ended_at) VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)""",(pid,con["franchise_id"],con["bonus"],con["salary"],max(1,int(con["years_total"] or con["years_remaining"] or 1)),con["signed_at"]))
-                        c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
-                        c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE player_id=?",(pid,))
-                        c.execute("UPDATE players SET franchise_id=NULL,status='FREE_AGENT' WHERE id=? AND active=1",(pid,))
-                        summary["contracts_expired"]+=1
-                        if pl:
-                            summary["free_agents"].append(pl["name"])
-                            if pl["user_id"]:
-                                return_offer_candidates.append({
-                                    "player_id":pid,
-                                    "user_id":pl["user_id"],
-                                    "player_name":pl["name"],
-                                    "franchise_id":con["franchise_id"],
-                                    "previous_salary":float(con["salary"] or SALARY_MIN)
-                                })
-                                notify_user(c,pl["user_id"],"CONTRACT","Contract expired",f"{pl['name']} is now an EBL free agent. Your former club will send a return offer for the new season.",str(pid))
+                        renewal=c.execute(
+                            """SELECT * FROM offers WHERE player_id=? AND franchise_id=? AND offer_type='RENEWAL'
+                               AND status='ACCEPTED' AND effective_season=? ORDER BY id DESC LIMIT 1""",
+                            (pid,con["franchise_id"],next_season)
+                        ).fetchone()
+                        if renewal:
+                            c.execute(
+                                """UPDATE contracts SET bonus=0,salary=?,years_remaining=?,years_total=?,starting_salary=?,signed_at=CURRENT_TIMESTAMP
+                                   WHERE player_id=?""",
+                                (renewal["salary"],renewal["years"],renewal["years"],renewal["salary"],pid)
+                            )
+                            c.execute("UPDATE offers SET status='ACTIVATED_RENEWAL' WHERE id=?",(renewal["id"],))
+                            summary["renewals_activated"]+=1
+                            if pl and pl["user_id"]:
+                                notify_user(c,pl["user_id"],"CONTRACT","Renewal begins",f"{pl['name']} remains with {team_name(c,con['franchise_id'])} at {float(renewal['salary']):.2f} XP/game for {int(renewal['years'])} season(s).",str(pid))
+                            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                                      ("RENEWAL_ACTIVATED",pl["user_id"] if pl else None,json.dumps({"player_id":pid,"franchise_id":con["franchise_id"],"salary":renewal["salary"],"years":renewal["years"],"season":next_season})))
+                        else:
+                            c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
+                            c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE player_id=?",(pid,))
+                            c.execute("UPDATE players SET franchise_id=NULL,status='FREE_AGENT' WHERE id=? AND active=1",(pid,))
+                            summary["contracts_expired"]+=1
+                            if pl:
+                                summary["free_agents"].append(pl["name"])
+                                if pl["user_id"]:
+                                    return_offer_candidates.append({
+                                        "player_id":pid,
+                                        "user_id":pl["user_id"],
+                                        "player_name":pl["name"],
+                                        "franchise_id":con["franchise_id"],
+                                        "previous_salary":float(con["salary"] or SALARY_MIN)
+                                    })
+                                    notify_user(c,pl["user_id"],"CONTRACT","Contract expired",f"{pl['name']} is now an EBL free agent. Your former club will send a return offer for the new season.",str(pid))
                     else:
                         next_salary=round(float(con["salary"] or SALARY_MIN)+0.02,2)
                         c.execute("UPDATE contracts SET years_remaining=?,salary=? WHERE player_id=?",(remaining,next_salary,pid))
@@ -7661,7 +8155,7 @@ class H(BaseHTTPRequestHandler):
                 for pl in cap_rows:
                     pid=pl["id"]
                     c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
-                    c.execute("UPDATE offers SET status='CANCELLED_RETIRED' WHERE player_id=? AND status IN ('OPEN','HELD')",(pid,))
+                    c.execute("UPDATE offers SET status='CANCELLED_RETIRED' WHERE player_id=? AND status IN ('OPEN','HELD','ACCEPTED')",(pid,))
                     c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE player_id=?",(pid,))
                     c.execute("UPDATE players SET active=0,status='RETIRED',franchise_id=NULL WHERE id=?",(pid,))
                     summary["retired"]+=1
@@ -7954,4 +8448,6 @@ if __name__=="__main__":
     print(f"EBL v7.5 Unified Closed Alpha: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
-    ThreadingHTTPServer((host,port),H).serve_forever()
+    httpd=ThreadingHTTPServer((host,port),H)
+    threading.Thread(target=auto_advance_worker,args=(port,),daemon=True,name="EBL-AutoAdvance").start()
+    httpd.serve_forever()
