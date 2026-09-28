@@ -1047,6 +1047,17 @@ dialog{
 
     <div id="simout" class="muted"></div>
 
+    <div class="offer" style="margin:14px 0">
+      <h2 style="margin-top:0">Automatic League Advance</h2>
+      <p class="muted">Advance the regular season automatically at an even cadence. Choose how many league days should run per real-world day. Auto advance stops itself when the playoffs begin.</p>
+      <div class="grid" style="grid-template-columns:minmax(180px,260px) auto auto;align-items:end">
+        <label>League Days Per Day<input id="autoAdvancePerDay" type="number" min="1" max="24" step="1" value="1"></label>
+        <button class="btn" onclick="saveAutoAdvance(true)">Start / Update Auto Advance</button>
+        <button class="btn ghost" onclick="saveAutoAdvance(false)">Stop Auto Advance</button>
+      </div>
+      <div id="autoAdvanceStatus" class="muted" style="margin-top:8px">Loading auto-advance status...</div>
+    </div>
+
     <div class="offer" style="margin-bottom:14px">
       <h2 style="margin-top:0">League Size</h2>
       <p class="muted">Choose how many franchises are active in Genesis. EBL supports any even league size from 8 up to the available franchise pool. Changing the current Genesis size performs a Day 0 league reset while keeping accounts and player identities.</p>
@@ -1466,6 +1477,7 @@ function showPage(id,b){
   // Coach HUD is page-critical: always refresh it when the Coach tab is opened.
   // This also recovers if an unrelated dashboard loader failed during initial refresh.
   if(id==='coach' && ME)loadCoachPortal();
+  if(id==='admin' && ME?.role==='COMMISSIONER')loadAutoAdvanceStatus();
   // GameCast is an archive of FINAL games. Refresh it on entry so a just-simulated
   // league day is visible even if another dashboard loader failed or the tab was
   // already open during Sim Day.
@@ -2297,7 +2309,8 @@ async function openNotification(id){
   await markNotificationsRead(id);
   closeNotifications();
   if(n.type==='DM'&&n.ref_id){goPage('messages');await openDM(Number(n.ref_id));return;}
-  if(n.type==='CONTRACT'){PLAYER_HQ_TAB='playerOverview';goPage('player');await loadPlayer();return;}
+  if(n.type==='CONTRACT'){PLAYER_HQ_TAB='playerContracts';goPage('player');await loadPlayer();return;}
+  if(n.type==='COACH_CONTRACT'){goPage('coach');await loadCoachHub();setTimeout(()=>openCoachContracts(),0);return;}
   if(n.type==='GAME'&&n.ref_id){try{await watch(n.ref_id)}catch(e){goPage('gamecast')}return;}
   if(n.type==='AWARD'){goPage('awards');return;}
 }
@@ -2535,22 +2548,22 @@ function renderPlayer(){
         const fid=o.franchise_id||o.team_id||'';
         const cachedName=teamName(fid);
         const offerTeamName=o.team_display_name||o.team_name||((cachedName&&String(cachedName)!==String(fid))?cachedName:fid)||'EBL Club';
+        const renewal=String(o.offer_type||'FREE_AGENT').toUpperCase()==='RENEWAL';
         return `
-        <div class="offer">
-            <div class="newsMeta" style="margin-bottom:5px">CONTRACT OFFER FROM</div>
+        <div class="offer ${renewal?'renewalOffer':''}">
+            <div class="newsMeta" style="margin-bottom:5px">${renewal?'RENEWAL OFFER FROM':'CONTRACT OFFER FROM'}</div>
             <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
                 <span class="contractTeamRef">${teamMark(fid,true)}<button class="teamLink" onclick="openTeam('${jsq(fid)}')">${escapeHtml(offerTeamName)}</button></span>
                 <div>
+                    ${renewal?'<span class="pill gold">RENEWAL</span>':''}
                     ${o.returning_offer?'<span class="pill gold">RETURN OFFER</span>':''}
                     ${o.status==='HELD'?'<span class="pill">HELD</span>':''}
                 </div>
             </div>
-            ${o.returning_offer?'<div class="muted" style="margin:4px 0 6px">Your former team wants you back.</div>':''}
-            ${o.bonus} XP signing bonus •
-            ${o.salary} XP/game •
-            ${o.years} year(s)<br>
-
-
+            ${renewal?`<div class="muted" style="margin:4px 0 6px">Begins Season ${Number(o.effective_season||0)} if accepted. Your current contract remains unchanged through this season.</div>`:(o.returning_offer?'<div class="muted" style="margin:4px 0 6px">Your former team wants you back.</div>':'')}
+            ${!renewal&&o.proposed_role?`<div class="taskCard" style="margin:8px 0"><b>Proposed team role: ${escapeHtml(o.proposed_role)}</b>${String(o.proposed_role)!==String(p.primary_pos)?`<div class="muted">Your preferred position is ${escapeHtml(p.primary_pos)}. You can change that preference later without changing the coach-assigned role.</div>`:'<div class="muted">Matches your current preferred position.</div>'}</div>`:''}
+            ${renewal?'':`${o.bonus} XP signing bonus • `}${Number(o.salary||0).toFixed(2)} XP/game • ${o.years} season(s)<br>
+            ${renewal&&o.message?`<div class="taskCard" style="margin:9px 0"><b>Coach's plan</b><div class="muted">${escapeHtml(o.message)}</div></div>`:''}
             <button class="btn" onclick="respond(${o.id},'ACCEPT')">Accept</button>
             ${o.status==='HELD'?'':`<button class="btn" onclick="respond(${o.id},'HOLD')">Hold</button>`}
             <button class="btn" onclick="respond(${o.id},'REJECT')">Reject</button>
@@ -2568,7 +2581,7 @@ function renderPlayer(){
 
 
                 <div>
-                    <div class="gold">${p.position_group|| (p.type==='P'?'PITCHER':'INF')} • Preferred ${p.primary_pos}</div>
+                    <div class="gold">${p.position_group|| (p.type==='P'?'PITCHER':'INF')} • Preferred ${p.primary_pos}${p.roster_role?` • Team role ${p.roster_role}`:''}</div>
                     <h1>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h1>
 
 
@@ -2650,6 +2663,8 @@ function renderPlayer(){
 
                 </div>
 
+                ${(activeOffers||[]).some(o=>String(o.offer_type||'').toUpperCase()==='RENEWAL')?`<div class="taskCard" style="margin-top:14px"><span class="newsMeta">ACTION REQUIRED</span><h3 style="margin-top:4px">Contract renewal decision waiting</h3><p class="muted">Your club has sent a renewal plan for next season. Review the rate, term, and coach's explanation before you decide.</p><button class="btn" onclick="playerHQ('playerContracts',document.querySelector('#playerHQ .subtabs .subtab:nth-child(2)'))">Review Renewal</button></div>`:''}
+
                 <div class="playerXpQuickCard">
                     <div><span class="newsMeta">PLAYER DEVELOPMENT</span><h3>${Number(p.xp_wallet||0).toFixed(2)} XP available</h3><p class="muted">Turn earned XP into permanent attribute upgrades.</p></div>
                     <button class="btn" onclick="openPlayerDevelopment(${Number(p.id)})">SPEND XP →</button>
@@ -2699,10 +2714,14 @@ function renderPlayer(){
 
 
                     <div class="statBox">
-                        <span class="label">POSITION</span>
+                        <span class="label">PREFERRED POSITION</span>
                         <b>${p.primary_pos}</b>
                     </div>
 
+                    <div class="statBox">
+                        <span class="label">TEAM ROLE</span>
+                        <b>${p.roster_role||'—'}</b>
+                    </div>
 
                     <div class="statBox">
                         <span class="label">BATS</span>
@@ -2737,12 +2756,13 @@ function renderPlayer(){
                         <h3 class="contractTeamHero">${p.franchise_id?teamMark(p.franchise_id,true):''}<span>${escapeHtml(team)}</span></h3>
                         <p><b>${Number(p.contract.salary||0).toFixed(2)} XP/game</b> • ${p.contract.years_remaining} year(s) remaining • ${Number(p.contract.bonus||0).toFixed(1)} XP signing bonus</p>
                     </div>
+                    ${p.renewal_agreement?`<div class="card" style="border-left:4px solid var(--green)"><span class="newsMeta">NEXT CONTRACT AGREED</span><h3>Staying with ${escapeHtml(p.renewal_agreement.team_display_name||p.renewal_agreement.team_name||team)}</h3><p><b>${Number(p.renewal_agreement.salary||0).toFixed(2)} XP/game</b> • ${Number(p.renewal_agreement.years||0)} season(s) • begins Season ${Number(p.renewal_agreement.effective_season||0)}</p>${p.renewal_agreement.message?`<div class="muted"><b>Coach's plan:</b> ${escapeHtml(p.renewal_agreement.message)}</div>`:''}</div>`:''}
                 ` : `
                     <div class="card">
                         <span class="newsMeta">FREE AGENT</span>
                         <h3>${p.former_team?`<span class="contractTeamHero">${teamMark(p.former_team.franchise_id,true)}<span>Most recent team: <button class="teamLink" onclick="openTeam('${jsq(p.former_team.franchise_id)}')">${escapeHtml(p.former_team.team_name||p.former_team.franchise_id)}</button></span></span>`:'Choose your EBL team'}</h3>
-                        <p class="muted">You can keep held offers while continuing to shop. The market can show up to three <b>open</b> offers at once. You currently have ${openOfferCount} open${heldOfferCount?` and ${heldOfferCount} held`:''}.</p>
-                        ${openOfferCount<3?'<button class="btn" onclick="market()">Load More Offers</button>':'<span class="pill">3 OPEN OFFERS</span>'}
+                        <p class="muted">CPU clubs now build human clubhouses instead of scattering players across the league. Your first CPU-market offer comes from the fullest compatible CPU-run team. Hold it if you want to keep shopping; you can still carry up to three open offers. You currently have ${openOfferCount} open${heldOfferCount?` and ${heldOfferCount} held`:''}.</p>
+                        ${openOfferCount<3?'<button class="btn" onclick="market()">Request Another CPU Offer</button>':'<span class="pill">3 OPEN OFFERS</span>'}
                     </div>
                 `}
                 <h3>Active Offers</h3>
@@ -2771,10 +2791,14 @@ function renderPlayer(){
 
 
                     <div class="statBox">
-                        <span class="label">POSITION</span>
+                        <span class="label">PREFERRED POSITION</span>
                         <b>${p.primary_pos}</b>
                     </div>
 
+                    <div class="statBox">
+                        <span class="label">TEAM ROLE</span>
+                        <b>${p.roster_role||'—'}</b>
+                    </div>
 
                     <div class="statBox">
                         <span class="label">STATUS</span>
@@ -2790,16 +2814,16 @@ function renderPlayer(){
 
                 </div>
 
-                ${p.position_change_open ? `
+                ${p.preferred_position_change_open ? `
                 <div class="card" style="margin-top:14px">
-                    <h3>Position Change Window</h3>
-                    <p class="muted">Free agents may change roster group before the season begins or during the offseason. Once games are underway, your group is locked. Hitter builds may switch between INF and OF; pitcher builds stay PITCHER.</p>
+                    <h3>Preferred Position</h3>
+                    <p class="muted">${p.status==='SIGNED'?`Your club currently uses you as <b>${escapeHtml(p.roster_role||p.primary_pos)}</b>. You may change your preferred position within ${escapeHtml(p.position_group||'your roster group')} at any time; this does not move you out of the coach-assigned team role.`:'Set the position you prefer to play. During the offseason or before Opening Day, free agents may also change roster group. Once games are underway, roster-family changes lock, but your preferred position within the same group can still change.'}</p>
                     <div class="grid">
-                        <div><label class="label">ROSTER GROUP</label><select id="changeGroup" onchange="refreshChangePositions()">${(p.type==='P'?['PITCHER']:['INF','OF']).map(g=>`<option ${g===(p.position_group|| (p.type==='P'?'PITCHER':'INF'))?'selected':''}>${g}</option>`).join('')}</select></div>
+                        <div><label class="label">ROSTER GROUP</label><select id="changeGroup" onchange="refreshChangePositions()" ${p.position_group_change_open?'':'disabled'}>${(p.type==='P'?['PITCHER']:['INF','OF']).map(g=>`<option ${g===(p.position_group|| (p.type==='P'?'PITCHER':'INF'))?'selected':''}>${g}</option>`).join('')}</select></div>
                         <div><label class="label">PREFERRED POSITION</label><select id="changePos"></select></div>
                     </div>
                     <div id="changePosNote" class="muted" style="margin:8px 0"></div>
-                    <button class="btn" onclick="changePlayerPosition()">Save Position Change</button>
+                    <button class="btn" onclick="changePlayerPosition()">Save Preferred Position</button>
                 </div>` : ''}
 
             </div>
@@ -3549,7 +3573,7 @@ async function respond(id,action){return onceAction(`offer:${id}`,async()=>{
  const name=result?.team_display_name||result?.team_name||priorTeamName||PLAYER?.team?.display_name||PLAYER?.team?.name||((cachedName&&String(cachedName)!==String(fid))?cachedName:'EBL club');
 
  if(action==='ACCEPT'){
-  showCareerToast(`SIGNED • Welcome to ${name}`);
+  showCareerToast(`SIGNED • Welcome to ${name}${result?.assigned_role?` • Role: ${result.assigned_role}`:''}`);
   if(fid)goPage('team');
  }else if(action==='HOLD'){
   showCareerToast(`Offer held • ${name}`);
@@ -3792,7 +3816,7 @@ function renderHome(){
   }else onboardingCard.classList.add('hidden');
  }
  if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
- let p=PLAYER,t=p.team;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap homeAvatarBranded">${p.franchise_id?`<div class="homePlayerTeamBackdrop">${teamLogoImg(p.franchise_id,'secondary','homePlayerBackdropLogo')}</div>`:''}${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos}${p.hometown?` • ${escapeHtml(p.hometown)}`:''} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${homePlayerCycleHtml()}`;
+ let p=PLAYER,t=p.team;const renewalAction=(p.offers||[]).find(o=>String(o.offer_type||'').toUpperCase()==='RENEWAL');homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap homeAvatarBranded">${p.franchise_id?`<div class="homePlayerTeamBackdrop">${teamLogoImg(p.franchise_id,'secondary','homePlayerBackdropLogo')}</div>`:''}${typeof eblPlayerArtV24==='function'?eblPlayerArtV24(p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" onclick="openUserProfile('${jsq(ME.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos}${p.hometown?` • ${escapeHtml(p.hometown)}`:''} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost" style="margin-top:8px" onclick="goPage('player')">Open Player HQ</button></div></div>${renewalAction?`<div class="taskCard" style="margin-top:12px"><b>📄 Renewal decision waiting</b><div class="muted">${Number(renewalAction.salary||0).toFixed(2)} XP/game • ${Number(renewalAction.years||0)} season(s)</div><button class="btn" style="margin-top:7px" onclick="PLAYER_HQ_TAB='playerContracts';goPage('player');renderPlayer()">Review Contract</button></div>`:''}${homePlayerCycleHtml()}`;
  homeTeam.innerHTML=t?`<div class="identity">${teamMark(p.franchise_id)}<div><span class="muted">MY TEAM</span><h2><button class="clickableName" onclick="openTeam('${p.franchise_id}')">${t.name}</button></h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div></div></div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Request CPU contract offers to begin your EBL career.</p><button class="btn" onclick="market()">REQUEST CONTRACT OFFERS</button><button class="btn ghost" onclick="PLAYER_HQ_TAB='playerContracts';goPage('player');renderPlayer()">OPEN CONTRACT HQ</button>`;
  let ng=p.franchise_id?SCHEDULE.find(g=>g.status==='SCHEDULED'&&(g.away_id===p.franchise_id||g.home_id===p.franchise_id)&&g.league_day>=(LEAGUE?.day||0)):null;
  nextGame.innerHTML=ng?`<span class="muted">NEXT GAME • DAY ${ng.league_day}</span><div class="homeNextMatchup"><span>${teamMark(ng.away_id,true)}<button class="teamLink" onclick="openTeam('${jsq(ng.away_id)}')">${teamName(ng.away_id)}</button></span><b>@</b><span>${teamMark(ng.home_id,true)}<button class="teamLink" onclick="openTeam('${jsq(ng.home_id)}')">${teamName(ng.home_id)}</button></span></div><p>${ng.away_id===p.franchise_id?'Road game':'Home game'}</p><button class="btn ghost" onclick="goPage('schedule')">VIEW SCHEDULE</button>`:`<h2>Next Game</h2><p class="muted">${p.franchise_id?'Your next scheduled game will appear here.':'Accept a contract and your first EBL game will appear here automatically.'}</p>${!p.franchise_id?`<div class="launchPath"><span>1. Request offers</span><span>2. Choose a team</span><span>3. Play ball</span></div>`:''}`;
@@ -3863,8 +3887,8 @@ async function loadCommunity(){
   rivalryBoard.innerHTML=rv.rivalries.length?rv.rivalries.map(r=>`<div class="rivalry"><div class="rivalryTeams"><span>${teamMark(r.team_a||r.team_a_id,true)}<button class="teamLink" onclick="openTeam('${jsq(r.team_a||r.team_a_id)}')">${escapeHtml(String(r.team_a_name))}</button></span><b>VS</b><span>${teamMark(r.team_b||r.team_b_id,true)}<button class="teamLink" onclick="openTeam('${jsq(r.team_b||r.team_b_id)}')">${escapeHtml(String(r.team_b_name))}</button></span></div><div class="muted">${r.games} meetings • ${r.a_wins}-${r.b_wins} • ${r.one_run_games} one-run games</div><div class="heat"><span style="width:${Math.min(100,r.intensity)}%"></span></div><small>Intensity ${Math.round(r.intensity)}/100</small></div>`).join(''):'<p class="muted">No rivalries yet. They have to be earned.</p>';
   recordBook.innerHTML=rc.records.length?rc.records.map(r=>`<div class="recordCard"><span class="newsMeta">${escapeHtml(String(r.record_label||'EBL RECORD'))}</span><br><div class="recordHolderBrand">${r.franchise_id?teamMark(r.franchise_id,true):''}<b>${r.holder_type==='PLAYER'?leaguePlayerIdentity({player_id:r.holder_id,name:r.holder_name,username:r.username,face_id:r.face_id,hair_id:r.hair_id,hair_color_id:r.hair_color_id,facial_hair_id:r.facial_hair_id,eye_color_id:r.eye_color_id,eye_black_id:r.eye_black_id,eyewear_id:r.eyewear_id,chain_id:r.chain_id,sleeve_id:r.sleeve_id,jersey_number:r.jersey_number,primary_pos:r.primary_pos,franchise_id:r.franchise_id}):escapeHtml(String(r.holder_name||r.holder_id||''))}</b></div> — ${escapeHtml(String(r.record_value??''))}<div class="muted">${escapeHtml(String(r.detail||''))} • Day ${Number(r.league_day||0)}</div></div>`).join(''):'<p class="muted">Genesis begins with a blank record book.</p>';
   if(window.friendsPanel){
-   const incoming=(fr.incoming||[]).map(x=>`<div class="friendCard"><div><div class="friendIdentity">${x.franchise_id?teamMark(x.franchise_id,true):''}<b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b></div><div class="muted">${x.player_name?`<button class="clickableName muted" onclick="openUserProfile('${jsq(x.username)}')">${escapeHtml(x.player_name)}</button>`:'EBL member'}</div></div><div><button class="btn" onclick="friendAccept(${x.user_id},'${jsq(x.username)}')">Accept</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
-   const friends=(fr.friends||[]).map(x=>`<div class="friendCard"><div>${x.franchise_id?teamMark(x.franchise_id,true):''} <b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b><div class="muted">${x.player_name?`<button class="clickableName muted" onclick="openUserProfile('${jsq(x.username)}')">${escapeHtml(x.player_name)}</button>`:'EBL member'}</div></div><div><button class="btn" onclick="startDM(${x.user_id},'${jsq(x.username)}')">Message</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
+   const incoming=(fr.incoming||[]).map(x=>`<div class="friendCard"><div><div class="friendIdentity"><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b></div><div class="muted">EBL member profile${x.role?` • ${escapeHtml(x.role)}`:''}</div></div><div><button class="btn" onclick="friendAccept(${x.user_id},'${jsq(x.username)}')">Accept</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
+   const friends=(fr.friends||[]).map(x=>`<div class="friendCard"><div><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b><div class="muted">EBL member profile${x.role?` • ${escapeHtml(x.role)}`:''}</div></div><div><button class="btn" onclick="startDM(${x.user_id},'${jsq(x.username)}')">Message</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
    const outgoing=(fr.outgoing||[]).map(x=>`<div class="friendCard"><div><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b><div class="muted">Friend request pending</div></div><button class="btn" onclick="friendRemove(${x.user_id},'${jsq(x.username)}')">Cancel</button></div>`).join('');
    friendsPanel.innerHTML=(incoming?`<h3>Requests</h3>${incoming}`:'')+(friends?`<h3 style="margin-top:12px">Friends</h3>${friends}`:'')+(outgoing?`<h3 style="margin-top:12px">Sent</h3>${outgoing}`:'')||'<p class="muted">No friends yet. Open a user profile and send a friend request.</p>';
   }
@@ -4299,23 +4323,36 @@ async function loadCoachHub(){
   const rebuildBonusActive=Boolean(j.team?.development_bonus_active) && Number(j.season||1)>1;
   const rebuildBonusPct=Number(j.team?.development_bonus_effective||0)*100;
   const rebuildBonusText=rebuildBonusActive?`+${rebuildBonusPct.toFixed(2)}%`:'Starts Season 2';
+  const expiring=(j.contracts||[]).filter(c=>c.user_id&&Number(c.years_remaining)===1);
+  const renewalUnsent=expiring.filter(c=>j.renewal_window_open&&!c.renewal);
+  const renewalPending=expiring.filter(c=>['OPEN','HELD'].includes(String(c.renewal?.status||'')));
+  const renewalAccepted=expiring.filter(c=>String(c.renewal?.status||'')==='ACCEPTED');
+  const devCoaches=j.development_coaches||[],devRules=j.development_coach_rules||{first_free:true,maximum:3,hiring_close_day:40};
+  const devHiringOpen=String(j.phase||'REGULAR').toUpperCase()==='REGULAR'&&Number(j.league_day||0)<Number(devRules.hiring_close_day||40);
+  const coachActions=[];
+  if(devHiringOpen&&devCoaches.length===0)coachActions.push(`<div class="taskCard" onclick="openCoachUpgrades()" style="cursor:pointer"><b>🎯 Choose your free development coach</b><div class="red">Every club gets one specialist free each season. Pick the direction you want this roster to grow.</div></div>`);
+  if(!lineupReady)coachActions.push(`<div class="taskCard" onclick="openCoachRoster()" style="cursor:pointer"><b>📋 Set your lineup</b><div class="red">9 starters required before game day.</div></div>`);
+  if(!rotationReady)coachActions.push(`<div class="taskCard" onclick="openCoachPitching()" style="cursor:pointer"><b>🔥 Set your rotation</b><div class="red">Choose 3–5 starters.</div></div>`);
+  if(j.renewal_window_open&&renewalUnsent.length)coachActions.push(`<div class="taskCard" onclick="openCoachContracts()" style="cursor:pointer"><b>📄 ${renewalUnsent.length} renewal decision${renewalUnsent.length===1?'':'s'} needed</b><div class="red">Expiring contracts can be negotiated now through the end of the regular season.</div></div>`);
+  if(renewalPending.length)coachActions.push(`<div class="taskCard" onclick="openCoachContracts()" style="cursor:pointer"><b>⏳ ${renewalPending.length} renewal offer${renewalPending.length===1?'':'s'} waiting</b><div class="muted">Players have not decided yet.</div></div>`);
   coachHub.innerHTML=`<div class="coachDash">
    <div class="card"><div class="identity">${teamMark(j.team.id)}<div><span class="muted">COACH DESK • DAY ${j.league_day}</span><h2>${j.team.name}</h2><div>${j.phase} • ${j.team.wins}-${j.team.losses} • ${humanCount}/16 human players</div></div></div><div class="baseballDivider"></div>
     <div class="grid">
       <div class="taskCard"><b>⚾ Next Game</b><div>${next?`<span class="compactTeamRef">Day ${next.league_day} • ${next.away_id===j.team.id?'@':'vs'} ${teamMark(opp,true)} ${teamName(opp)}</span>`:'No game scheduled'}</div></div>
-      <div class="taskCard"><b>📋 Lineup</b><div class="${lineupReady?'green':'red'}">${lineupReady?'Ready • 9 starters':'Needs attention'}</div></div>
-      <div class="taskCard"><b>🔥 Rotation</b><div class="${rotationReady?'green':'red'}">${rotationReady?`Ready • ${rot.length}-man rotation`:'Needs attention • choose 3–5 starters'}</div></div>
-      <div class="taskCard"><b>📄 Contracts</b><div>${j.contracts?.length||0} signed • ${j.offers.length} open offers</div></div>
+      <div class="taskCard" ${lineupReady?'':'onclick="openCoachRoster()" style="cursor:pointer"'}><b>📋 Lineup</b><div class="${lineupReady?'green':'red'}">${lineupReady?'Ready • 9 starters':'Needs attention • tap to fix'}</div></div>
+      <div class="taskCard" ${rotationReady?'':'onclick="openCoachPitching()" style="cursor:pointer"'}><b>🔥 Rotation</b><div class="${rotationReady?'green':'red'}">${rotationReady?`Ready • ${rot.length}-man rotation`:'Needs attention • tap to fix'}</div></div>
+      <div class="taskCard" onclick="openCoachContracts()" style="cursor:pointer"><b>📄 Contracts</b><div>${j.renewal_window_open?(renewalUnsent.length?`<span class="red">${renewalUnsent.length} renewal${renewalUnsent.length===1?'':'s'} need action</span>`:`<span class="green">${renewalAccepted.length} renewed</span>${renewalPending.length?` • ${renewalPending.length} waiting`:''}`):`${j.contracts?.length||0} signed • renewals open Day ${Number(j.renewal_open_day||60)}`}</div></div>
     </div>
+    <div class="coachSection"><h3>Action Center</h3>${coachActions.length?`<div class="grid">${coachActions.join('')}</div>`:'<div class="taskCard" style="border-left-color:var(--green)"><b>✓ Nothing urgent right now</b><div class="muted">The Coach Desk will surface lineup, rotation, development, contract, and renewal work here when it needs attention.</div></div>'}</div>
    </div>
-   <div class="card"><h3>Franchise XP</h3><div class="big">${Number(j.team.xp_available||0).toFixed(1)}</div><div class="muted">available after ${Number(j.team.reserved_offers||0).toFixed(1)} XP reserved for offers</div><div class="moneyBar" style="margin:10px 0"><span style="width:${Math.min(100,Number(j.team.spend_pct||0))}%"></span></div><div>${Number(j.team.xp_spent||0).toFixed(1)} / ${Number(j.team.xp_budget||0).toFixed(1)} spent (${Number(j.team.spend_pct||0).toFixed(1)}%)</div><div class="muted">Treasury ${Number(j.team.xp_reserve||0).toFixed(1)} • Unspent annual XP rolls over in full</div></div>
+   <div class="card"><h3>Franchise XP</h3><div class="big">${Number(j.team.xp_after_signed_players||0).toFixed(1)}</div><div class="muted"><b>XP left after signed-player payroll</b> • full 81-game salary commitments are shown immediately when a human player signs</div><div class="moneyBar" style="margin:10px 0"><span style="width:${Math.min(100,Number(j.team.spend_pct||0))}%"></span></div><div><b>${Number(j.team.signed_payroll_commitment||0).toFixed(1)} XP</b> current-season signed payroll • ${Number(j.team.salary_paid_to_date||0).toFixed(1)} paid so far</div><div class="muted">Safe spendable XP: <b>${Number(j.team.xp_available||0).toFixed(1)}</b> • ${Number(j.team.open_roster_minimum_reserve||0).toFixed(1)} held for unsigned/CPU roster jobs • ${Number(j.team.reserved_offers||0).toFixed(1)} reserved for open offers</div>${j.renewal_window_open?`<div style="margin-top:7px"><b>${Number(j.team.next_season_committed_payroll||0).toFixed(1)} XP</b> projected next-season signed payroll • base funding ${Number(j.team.next_season_base_budget||0).toFixed(1)} XP before carryover/finish rewards</div>`:''}<div class="muted">Players still receive salary XP game-by-game. This commitment view simply makes the entire season cost visible up front.</div></div>
    </div>
    <div class="grid">
    <div class="statBox"><span class="label">FRANCHISE</span><b class="coachFranchiseIdentity">${teamMark(j.team.id,true)} ${j.team.name}</b></div>
    <div class="statBox"><span class="label">RECORD</span><b>${j.team.wins}-${j.team.losses}</b></div>
-   <div class="statBox"><span class="label">XP AVAILABLE</span><b>${(j.team.xp_budget-j.team.xp_spent).toFixed(1)}</b></div>
-   <div class="statBox"><span class="label">FRANCHISE RESERVE</span><b>${Number(j.team.xp_reserve||0).toFixed(1)}</b></div>
-   <div class="statBox"><span class="label">REBUILD BONUS</span><b>${rebuildBonusText}</b></div>
+   <div class="statBox"><span class="label">XP AFTER PLAYERS</span><b>${Number(j.team.xp_after_signed_players||0).toFixed(1)}</b></div>
+   <div class="statBox"><span class="label">SAFE SPENDABLE</span><b>${Number(j.team.xp_available||0).toFixed(1)}</b></div>
+   <div class="statBox"><span class="label">ANNUAL PAYROLL</span><b>${Number(j.team.signed_payroll_commitment||0).toFixed(1)}</b></div>
    <div class="statBox"><span class="label">OPEN OFFERS</span><b>${j.offers.length}</b></div></div>
    <div class="subtabs"><button class="subtab active" onclick="coachPane('cGameDay',this)">GAME DAY</button><button class="subtab" onclick="coachPane('cRoster',this)">ROSTER & LINEUP</button><button class="subtab" onclick="coachPane('cBrand',this)">TEAM BRANDING</button><button class="subtab" onclick="coachPane('cPitch',this)">PITCHING STAFF</button><button class="subtab" onclick="coachPane('cDepth',this)">OFFENSE</button><button class="subtab" onclick="coachPane('cDefense',this)">DEFENSE</button><button class="subtab" onclick="coachPane('cMarket',this)">CONTRACTS</button><button class="subtab" onclick="coachPane('cUpgrades',this)">FRANCHISE UPGRADES</button></div>
 
@@ -4403,8 +4440,13 @@ async function loadCoachHub(){
     <div class="coachSaveBar"><span class="muted">The saved field plan becomes the club's defensive strategy.</span><button class="btn" onclick="saveDefense()">Save Defensive Plan</button></div>
    </div>
    <div id="cMarket" class="subpane">
-    <div class="coachGrid"><div><h2>Free Agents</h2><p class="muted">Offer up to 25 XP as a one-time signing bonus, salary per game, and a 1–3 season contract. Veteran minimum salary rises .01 per completed service season. Multi-year contracts rise .02 XP/game at each season rollover.</p><button class="btn" onclick="loadCoachFreeAgents()">Refresh Free Agents</button><div id="coachFAs"></div></div>
-    <div><h2>Open Offers</h2>${j.offers.length?j.offers.map(o=>`<div class="offer"><b>${o.username?`<button class="clickableName" onclick="openUserProfile('${jsq(o.username)}')">${escapeHtml(o.name)}</button>`:escapeHtml(o.name)}</b> • ${o.primary_pos}${o.username?` • <button class="clickableName" onclick="openUserProfile('${jsq(o.username)}')">@${escapeHtml(o.username)}</button>`:''}<br>${o.bonus} XP bonus • ${o.salary}/G • ${o.years} yr<br><button class="btn" onclick="cancelOffer(${o.id})">Cancel Offer</button></div>`).join(''):'<p class="muted">No open offers.</p>'}
+    <div class="card" style="border-left:4px solid ${j.renewal_window_open?'var(--red)':'var(--line)'}">
+      <span class="newsMeta">CONTRACT PLANNING</span><h2>${j.renewal_window_open?'Renewal Window Open':'Renewals Open on Day '+Number(j.renewal_open_day||60)}</h2>
+      <p class="muted">${j.renewal_window_open?'Expiring human contracts can be negotiated now through the end of the regular season. Choose either the player’s current rate or next season’s veteran minimum, choose 1–3 seasons, and explain the roster/XP plan. Accepted renewals begin next season; no XP is paid early.':'Until Day '+Number(j.renewal_open_day||60)+', expiring contracts remain locked. When the window opens, every renewal that needs attention will appear in the Coach Desk Action Center.'}</p>
+      ${j.renewal_window_open?(expiring.length?`<div class="upgradeGrid">${expiring.map(c=>{const r=c.renewal||null;const status=String(r?.status||'');return `<div class="upgradeCard"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><h3>${escapeHtml(c.name)}</h3><div class="muted">${escapeHtml(c.primary_pos)} • current ${Number(c.salary||0).toFixed(2)}/G • expires after this season</div></div>${status==='ACCEPTED'?'<span class="pill green">RENEWED</span>':status?'<span class="pill">OFFER SENT</span>':'<span class="pill red">ACTION</span>'}</div>${status==='ACCEPTED'?`<p><b>${Number(r.salary||0).toFixed(2)}/G • ${Number(r.years||0)} season(s)</b> beginning Season ${Number(r.effective_season||j.season+1)}</p>${r.message?`<div class="muted"><b>Plan:</b> ${escapeHtml(r.message)}</div>`:''}`:status?`<p><b>${Number(r.salary||0).toFixed(2)}/G • ${Number(r.years||0)} season(s)</b> • waiting on player</p>${r.message?`<div class="muted"><b>Your plan:</b> ${escapeHtml(r.message)}</div>`:''}<button class="btn ghost" style="margin-top:8px" onclick="cancelOffer(${Number(r.id)})">Cancel & Revise</button>`:`<div class="grid" style="margin-top:10px"><label>Rate<select id="renewMode${Number(c.player_id)}"><option value="CURRENT">Keep current rate • ${Number(c.renewal_same_rate||c.salary||0).toFixed(2)}/G</option><option value="VETERAN_MIN">Veteran minimum • ${Number(c.renewal_veteran_minimum||.30).toFixed(2)}/G</option></select></label><label>Term<select id="renewYears${Number(c.player_id)}"><option value="1">1 season</option><option value="2" selected>2 seasons</option><option value="3">3 seasons</option></select></label></div><label class="label" style="display:block;margin-top:8px">Coach's plan / explanation</label><textarea id="renewMsg${Number(c.player_id)}" maxlength="600" rows="4" placeholder="Explain why you want them back and how you plan to use the club's XP — roster, development coach, facilities, future signings, etc."></textarea><div class="muted" style="margin:6px 0">Future years of a multi-season renewal still rise +.02 XP/game at each rollover.</div><button class="btn" onclick="sendRenewalOffer(${Number(c.player_id)})">Send Renewal Offer</button>`}</div>`}).join('')}</div>`:'<p class="muted">No human contracts expire after this season.</p>') : ''}
+    </div>
+    <div class="coachGrid"><div><h2>Free Agents</h2><p class="muted">Offer up to 25 XP as a one-time signing bonus and a 1–3 season contract. Every rookie contract is fixed at <b>.30 XP/game</b>. Veteran minimum salary rises .01 per completed service season, and multi-year veteran contracts rise .02 XP/game at each season rollover.</p><button class="btn" onclick="loadCoachFreeAgents()">Refresh Free Agents</button><div id="coachFAs"></div></div>
+    <div><h2>Open Free-Agent Offers</h2>${j.offers.filter(o=>String(o.offer_type||'FREE_AGENT').toUpperCase()!=='RENEWAL').length?j.offers.filter(o=>String(o.offer_type||'FREE_AGENT').toUpperCase()!=='RENEWAL').map(o=>`<div class="offer"><b>${o.username?`<button class="clickableName" onclick="openUserProfile('${jsq(o.username)}')">${escapeHtml(o.name)}</button>`:escapeHtml(o.name)}</b> • ${o.primary_pos}${o.username?` • <button class="clickableName" onclick="openUserProfile('${jsq(o.username)}')">@${escapeHtml(o.username)}</button>`:''}<br>${o.proposed_role?`Proposed role ${escapeHtml(o.proposed_role)} • `:''}${o.bonus} XP bonus • ${o.salary}/G • ${o.years} yr<br><button class="btn" onclick="cancelOffer(${o.id})">Cancel Offer</button></div>`).join(''):'<p class="muted">No open free-agent offers.</p>'}
     <h2 class="coachSection">Active Contracts</h2>${(j.contracts||[]).length?`<div class="tablewrap"><table><thead><tr><th>Player</th><th>Pos</th><th>Salary</th><th>Bonus</th><th>Years</th></tr></thead><tbody>${j.contracts.map(c=>`<tr><td>${typeof eblAvatarEverywhereRC39==='function'?eblAvatarEverywhereRC39({player_id:c.player_id,name:c.name,username:c.username,franchise_id:j.team.id},{size:'xs'}):(c.username?`<button class="clickableName" onclick="openUserProfile('${jsq(c.username)}')">${escapeHtml(c.name)}</button> <button class="clickableName muted" onclick="openUserProfile('${jsq(c.username)}')">@${escapeHtml(c.username)}</button>`:escapeHtml(c.name))}</td><td>${c.primary_pos}</td><td>${Number(c.salary||0).toFixed(2)}/G</td><td>${Number(c.bonus||0).toFixed(1)}</td><td>${c.years_remaining}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No active contracts.</p>'}</div></div>
    </div>
    <div id="cUpgrades" class="subpane">
@@ -4426,15 +4468,31 @@ async function loadCoachHub(){
       <div class="upgradeCard"><h3>Training Facility</h3><div><b>Level ${tl}/5</b> • Daily practice ${Number(0.25+tl*.01).toFixed(2)} XP</div><div class="muted">Each level adds +0.01 XP to every completed daily team practice.</div><button class="btn" ${tl>=5?'disabled':''} onclick="buyFacilityUpgrade('training')">${tl>=5?'MAX LEVEL':'Upgrade • '+costs[Math.min(4,tl)]+' XP'}</button></div>
       <div class="upgradeCard"><h3>Recovery Center</h3><div><b>Level ${rl}/5</b> • +${rl*2} fatigue recovery/day</div><div class="muted">Pitchers recover faster between league days. Each level adds +2 fatigue recovery per day.</div><button class="btn" ${rl>=5?'disabled':''} onclick="buyFacilityUpgrade('recovery')">${rl>=5?'MAX LEVEL':'Upgrade • '+costs[Math.min(4,rl)]+' XP'}</button></div>
     </div>`})()}
-    <h2 class="coachSection">Seasonal Development Coach</h2>
-    <p class="muted">Hire one specialist for the season using team XP. Development is permanent: players on your active roster at each checkpoint keep the attribute point even if they later change teams.</p>
+    <h2 class="coachSection">Seasonal Development Staff</h2>
+    <p class="muted">Every franchise gets its first development specialist <b>free each season</b>. Add up to two more specialists with team XP, then choose how intense each paid program should be. Permanent coach points stay with players even if they later change teams.</p>
     ${(()=>{
-      const coaches=j.development_coaches||[],x=coaches[0],day=Number(j.league_day||0),phase=String(j.phase||'REGULAR').toUpperCase(),open=phase==='REGULAR'&&day<40;
+      const coaches=j.development_coaches||[],rules=j.development_coach_rules||{first_free:true,maximum:3,base_cost:30,hiring_close_day:40,intensity:[{level:1,name:'Standard',cost:30,days:[0,40,81]},{level:2,name:'Focused',cost:35,days:[0,20,40,81]},{level:3,name:'Elite',cost:40,days:[0,20,40,60,81]}]},day=Number(j.league_day||0),phase=String(j.phase||'REGULAR').toUpperCase(),open=phase==='REGULAR'&&day<Number(rules.hiring_close_day||40);
       const options=(j.development_coach_options&&j.development_coach_options.length)?j.development_coach_options:[{coach_type:'SPEED',name:'Speed Coach',attribute:'SPD',category:'BASERUNNING',applies_to:'HITTERS'}];
-      const hiredSpec=x?(options.find(o=>o.coach_type===x.coach_type)||{name:x.coach_type,attribute:x.attribute,applies_to:'ELIGIBLE PLAYERS'}):null;
+      const used=new Set(coaches.map(x=>String(x.coach_type||'').toUpperCase()));
+      const available=options.filter(o=>!used.has(String(o.coach_type||'').toUpperCase()));
       const cats=['HITTING','BASERUNNING','FIELDING','PITCHING'];
-      const chooser=cats.map(cat=>{const rows=options.filter(o=>o.category===cat);if(!rows.length)return '';return `<optgroup label="${cat}">${rows.map(o=>`<option value="${escapeHtml(o.coach_type)}">${escapeHtml(o.name)} • +${escapeHtml(o.attribute)} • ${escapeHtml(o.applies_to||'ELIGIBLE')}</option>`).join('')}</optgroup>`}).join('');
-      return `<div class="upgradeGrid"><div class="upgradeCard"><h3>${x?escapeHtml(hiredSpec.name):'Choose a Development Specialist'}</h3><div><b>30 XP</b> • Permanent +3 attribute potential</div><div class="muted">+1 immediately when hired, +1 after League Day 40, and +1 after League Day 81. Each checkpoint applies only to eligible active-roster players, and those points stay with the player.</div>${x?`<div style="margin-top:8px"><span class="pill">HIRED • SEASON ${Number(x.season||j.season||0)}</span></div><div style="margin-top:7px"><b>Focus: +${escapeHtml(hiredSpec.attribute)} • ${escapeHtml(hiredSpec.applies_to||'ELIGIBLE PLAYERS')}</b></div><div class="muted" style="margin-top:7px">Opening: ${Number(x.start_applied||0)?'✓ +1 applied':'waiting'} • Midseason: ${Number(x.midseason_applied||0)?'✓ +1 applied':'waiting'} • End of regular season: ${Number(x.endseason_applied||0)?'✓ +1 applied':'waiting'}</div><button class="btn" disabled>SEASON COACH HIRED</button>`:`<label class="label" style="display:block;margin-top:10px">SPECIALIST</label><select id="seasonDevCoachSelect" style="width:100%;margin-top:6px">${chooser}</select><div class="muted" style="margin-top:7px">Use last season's weaknesses to shape this season's roster. One specialist per team per season; hiring remains open before League Day 40.</div><button class="btn" ${open?'':'disabled'} onclick="hireDevelopmentCoach(document.getElementById('seasonDevCoachSelect')?.value||'SPEED')">${open?'Hire Selected Coach • 30 XP':'HIRING WINDOW CLOSED'}</button>`}</div></div>`
+      const chooser=cats.map(cat=>{const rows=available.filter(o=>o.category===cat);if(!rows.length)return '';return `<optgroup label="${cat}">${rows.map(o=>`<option value="${escapeHtml(o.coach_type)}">${escapeHtml(o.name)} • +${escapeHtml(o.attribute)} • ${escapeHtml(o.applies_to||'ELIGIBLE')}</option>`).join('')}</optgroup>`}).join('');
+      const parseList=(raw,fallback=[])=>{if(Array.isArray(raw))return raw.map(Number);try{return JSON.parse(raw||'[]').map(Number)}catch{return fallback}};
+      const existing=coaches.map(x=>{
+        const spec=options.find(o=>o.coach_type===x.coach_type)||{name:x.coach_type,attribute:x.attribute,applies_to:'ELIGIBLE PLAYERS'};
+        const checkpoints=parseList(x.checkpoint_days??x.checkpoint_days_json,[0,40,81]);
+        const applied=parseList(x.applied_days??x.applied_days_json,[]);
+        const hiredDay=Number(x.hired_day||0);
+        const schedule=checkpoints.map(d=>{const label=d===0?'Opening':`Day ${d}`;if(applied.includes(Number(d))){if(d>0&&d<hiredDay)return `<span class="pill">${label} • missed</span>`;return `<span class="pill green">✓ ${label}</span>`}return `<span class="pill">${label} • waiting</span>`}).join(' ');
+        return `<div class="upgradeCard"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><h3>${escapeHtml(spec.name)}</h3><div><b>+${escapeHtml(spec.attribute)}</b> • ${escapeHtml(spec.applies_to||'ELIGIBLE PLAYERS')}</div></div><span class="pill ${Number(x.is_free||0)?'green':''}">${Number(x.is_free||0)?'FREE':Number(x.cost||0).toFixed(0)+' XP'}</span></div><div class="muted" style="margin-top:6px">${escapeHtml(x.intensity_name||({1:'Standard',2:'Focused',3:'Elite'}[Number(x.intensity||1)]||'Standard'))} intensity • Slot ${Number(x.coach_slot||1)}/${Number(rules.maximum||3)}</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">${schedule}</div></div>`;
+      }).join('');
+      const firstFree=coaches.length===0;
+      const intensityRows=(rules.intensity||[]).length?rules.intensity:[{level:1,name:'Standard',cost:30,days:[0,40,81]},{level:2,name:'Focused',cost:35,days:[0,20,40,81]},{level:3,name:'Elite',cost:40,days:[0,20,40,60,81]}];
+      const intensitySelect=intensityRows.map(t=>`<option value="${Number(t.level)}">${escapeHtml(t.name)} • ${Number(t.cost||30).toFixed(0)} XP • ${((t.days||[]).map(d=>Number(d)===0?'Opening':'Day '+Number(d))).join(', ')}</option>`).join('');
+      const canAdd=open&&coaches.length<Number(rules.maximum||3)&&available.length>0;
+      const addCard=canAdd?`<div class="upgradeCard"><h3>${firstFree?'Your Free Seasonal Coach':'Add Development Coach'}</h3><div><b>${firstFree?'FREE':'30–40 XP'}</b> • choose one roster direction</div><label class="label" style="display:block;margin-top:10px">SPECIALIST</label><select id="seasonDevCoachSelect" style="width:100%;margin-top:6px">${chooser}</select>${firstFree?`<div class="muted" style="margin-top:8px"><b>Standard intensity:</b> +1 when selected, +1 at Day 40, +1 at Day 81. Your first coach is free every season.</div>`:`<label class="label" style="display:block;margin-top:10px">INTENSITY</label><select id="seasonDevCoachIntensity" style="width:100%;margin-top:6px">${intensitySelect}</select><div class="muted" style="margin-top:8px">Standard: 30 XP / 3 boosts • Focused: 35 XP / 4 boosts • Elite: 40 XP / 5 boosts. Hiring after an early checkpoint does not back-pay the missed boost.</div>`}<button class="btn" style="margin-top:10px" onclick="hireDevelopmentCoach(document.getElementById('seasonDevCoachSelect')?.value||'SPEED',${firstFree?'1':'Number(document.getElementById(\'seasonDevCoachIntensity\')?.value||1)'})">${firstFree?'Choose Free Coach':'Add Paid Coach'}</button></div>`:'';
+      const closed=!open?`<div class="upgradeCard"><h3>Hiring Window Closed</h3><div class="muted">Development staff must be chosen before League Day ${Number(rules.hiring_close_day||40)}. Current staff continue through all remaining scheduled checkpoints.</div></div>`:'';
+      return `<div class="grid"><div class="statBox"><span class="label">COACHES</span><b>${coaches.length}/${Number(rules.maximum||3)}</b></div><div class="statBox"><span class="label">FREE COACH</span><b>${coaches.length?'USED':'AVAILABLE'}</b></div><div class="statBox"><span class="label">HIRING WINDOW</span><b>${open?'OPEN':'CLOSED'}</b></div></div><div class="upgradeGrid" style="margin-top:10px">${existing}${addCard}${closed}</div>`
     })()}
     <h2 class="coachSection">Team Sponsorships</h2>
     <p class="muted">A sponsorship costs 25 XP and gives every active player on the club a temporary +1 team modifier for the current season and the next season. It does not permanently change a player's trained attribute.</p>
@@ -4448,9 +4506,22 @@ async function loadCoachHub(){
 async function buyFranchiseUpgrade(kind){try{const j=await api('/api/coach/franchise-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} upgraded to Level ${j.level}. +5 XP/year permanently.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Upgrade failed'))}}
 async function buyFacilityUpgrade(kind){try{const j=await api('/api/coach/facility-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} facility upgraded to Level ${j.level}.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Facility upgrade failed'))}}
 async function buyTeamSponsor(attribute){try{const j=await api('/api/coach/sponsor',{method:'POST',body:JSON.stringify({attribute})});alert(`Sponsor signed: +1 ${attribute} for Seasons ${j.start_season}–${j.end_season}.`);await loadCoachHub()}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Sponsorship failed'))}}
-async function hireDevelopmentCoach(coach_type='SPEED'){try{const j=await api('/api/coach/development-coach',{method:'POST',body:JSON.stringify({coach_type})});alert(`${j.name||'Development coach'} hired for Season ${j.coach?.season||''}. Opening +1 ${j.attribute||j.coach?.attribute||''} applied; +1 follows at Day 40 and Day 81.`);await loadCoachHub()}catch(e){if(e.error==='INSUFFICIENT_RESERVE')alert(`Need ${e.cost} treasury XP.`);else alert(e.detail||e.error||'Could not hire development coach.')}}
+async function hireDevelopmentCoach(coach_type='SPEED',intensity=1){try{const j=await api('/api/coach/development-coach',{method:'POST',body:JSON.stringify({coach_type,intensity:Number(intensity||1)})});const schedule=(j.checkpoints||[]).map(d=>Number(d)===0?'Opening':'Day '+Number(d)).join(', ');alert(`${j.name||'Development coach'} added • ${j.free?'FREE':Number(j.cost||0).toFixed(0)+' XP'} • ${j.intensity_name||'Standard'} intensity. +1 ${j.attribute||j.coach?.attribute||''} applied now; schedule: ${schedule}.`);await loadCoachHub()}catch(e){if(e.error==='INSUFFICIENT_RESERVE')alert(`Need ${e.cost} treasury XP.`);else if(e.error==='DEVELOPMENT_COACH_LIMIT')alert(`Development staff is capped at ${e.maximum||3} coaches per season.`);else if(e.error==='DEVELOPMENT_COACH_DUPLICATE_SPECIALTY')alert('That specialist is already on your staff this season. Choose a different development focus.');else alert(e.detail||e.error||'Could not hire development coach.')}}
+async function sendRenewalOffer(pid){
+ const mode=document.getElementById('renewMode'+pid)?.value||'CURRENT';
+ const years=Number(document.getElementById('renewYears'+pid)?.value||2);
+ const message=document.getElementById('renewMsg'+pid)?.value.trim()||'';
+ if(message.length<10){alert('Add a short explanation of the contract and your XP/roster plan.');return}
+ try{const r=await api('/api/coach/renewal-offer',{method:'POST',body:JSON.stringify({player_id:pid,salary_mode:mode,years,message})});alert(`Renewal sent • ${Number(r.salary||0).toFixed(2)} XP/game • ${years} season(s)`);await loadCoachHub();setTimeout(()=>openCoachContracts(),0)}
+ catch(e){alert(e.error==='NEXT_SEASON_PAYROLL_EXCEEDED'?`That renewal would project ${Number(e.projected_payroll||0).toFixed(1)} XP of next-season payroll against ${Number(e.base_budget||0).toFixed(1)} XP of guaranteed base funding.`:e.error==='RENEWAL_MESSAGE_REQUIRED'?'Add a short explanation so the player understands the plan.':(e.error||'Could not send renewal offer'))}
+}
+function openCoachPaneById(id){const pane=document.getElementById(id);if(!pane)return;const btn=[...document.querySelectorAll('#coachHub .subtabs .subtab')].find(x=>(x.getAttribute('onclick')||'').includes(`'${id}'`));coachPane(id,btn||null);setTimeout(()=>pane.scrollIntoView({behavior:'smooth',block:'start'}),0)}
+function openCoachContracts(){openCoachPaneById('cMarket')}
+function openCoachRoster(){openCoachPaneById('cRoster')}
+function openCoachPitching(){openCoachPaneById('cPitch')}
+function openCoachUpgrades(){openCoachPaneById('cUpgrades')}
 
-function coachPane(id,b){switchPane('.subpane',id,b)}
+function coachPane(id,b){if(b)switchPane('.subpane',id,b);else{document.querySelectorAll('#coachHub .subpane').forEach(x=>x.classList.remove('active'));document.getElementById(id)?.classList.add('active');}}
 function playerOptions(arr,selected,multi=[]){return arr.map(x=>`<option value="${x.id}" ${(x.id==selected||multi.includes(x.id))?'selected':''}>${x.name} — ${x.primary_pos}</option>`).join('')}
 
 function coachPitchMetaRC49(p={}){
@@ -4758,8 +4829,8 @@ async function saveDepthSubs(){
  }catch(e){alert(e.error||'Could not save depth chart')}
 }
 let COACH_FREE_AGENTS={};
-async function loadCoachFreeAgents(){try{let j=await api('/api/coach/free-agents');COACH_FREE_AGENTS=Object.fromEntries((j.players||[]).map(p=>[p.id,p]));coachFAs.innerHTML=j.players.slice(0,75).map(p=>`<div class="offer"><b>${p.username?`<button class="clickableName" onclick="openUserProfile('${jsq(p.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</b> • ${p.primary_pos}${p.username?` • <button class="clickableName muted" onclick="openUserProfile('${jsq(p.username)}')">@${escapeHtml(p.username)}</button>`:''}${p.returning_player?`<br><span class="muted returningPlayerTeam">${p.previous_franchise_id?teamMark(p.previous_franchise_id,true):''}<span>Veteran • Previous ${Number(p.previous_team_salary).toFixed(2)}/G • Service-time minimum ${Number(p.minimum_offer_salary).toFixed(2)}/G</span></span>`:`<br><span class="muted">Rookie contract • .30–.35/G</span>`}<br><span class="muted">${Object.entries(p.attributes).slice(0,6).map(([k,v])=>`${k} ${v}`).join(' • ')}</span><br><button class="btn" onclick="coachOffer(${p.id})">Offer Contract</button></div>`).join('')||'<p class="muted">No free agents.</p>'}catch(e){alert(e.error)}}
-async function coachOffer(pid){let p=COACH_FREE_AGENTS[pid]||{},min=Number(p.minimum_offer_salary??.30),returning=!!p.returning_player,defaultSalary=returning?min:.35;let bonus=+prompt('Signing bonus XP (0–25; one-time bonus)','0'),salary=+prompt(returning?`Veteran salary XP/game (service-time minimum ${min.toFixed(2)}). Multi-year deals rise .02/G each season.`:'Rookie salary XP/game (.30 to .35). Multi-year deals rise .02/G each season.',defaultSalary.toFixed(2)),years=+prompt('Years (1-3)','2');try{await api('/api/coach/offer',{method:'POST',body:JSON.stringify({player_id:pid,bonus,salary,years})});await loadCoachHub();alert('Offer sent.')}catch(e){alert(e.error==='RE_SIGN_RAISE_REQUIRED'?`Re-signing requires at least ${Number(e.minimum_salary).toFixed(2)} XP/game.`:e.error==='SIGNING_POOL_EXCEEDED'?`That offer would exceed the protected signing pool. Available: ${Number(e.signing_pool?.available||0).toFixed(1)} XP. Salary above the .30 minimum also uses this pool.`:(e.error||'Could not send offer'))}}
+async function loadCoachFreeAgents(){try{let j=await api('/api/coach/free-agents');COACH_FREE_AGENTS=Object.fromEntries((j.players||[]).map(p=>[p.id,p]));coachFAs.innerHTML=j.players.slice(0,75).map(p=>{const roles=p.offer_roles||[];return `<div class="offer"><b>${p.username?`<button class="clickableName" onclick="openUserProfile('${jsq(p.username)}')">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</b> • Preferred ${p.primary_pos}${p.username?` • <button class="clickableName muted" onclick="openUserProfile('${jsq(p.username)}')">@${escapeHtml(p.username)}</button>`:''}${p.returning_player?`<br><span class="muted returningPlayerTeam">${p.previous_franchise_id?teamMark(p.previous_franchise_id,true):''}<span>Veteran • Previous ${Number(p.previous_team_salary).toFixed(2)}/G • Service-time minimum ${Number(p.minimum_offer_salary).toFixed(2)}/G</span></span>`:`<br><span class="muted">Rookie contract • fixed .30/G</span>`}<br><span class="muted">${Object.entries(p.attributes).slice(0,6).map(([k,v])=>`${k} ${v}`).join(' • ')}</span><div style="margin:8px 0"><label class="label">OFFER AS</label><select id="coachOfferRole${p.id}" ${roles.length?'':'disabled'}>${roles.map(r=>`<option value="${escapeHtml(r)}">${escapeHtml(r)}${r===p.primary_pos?' • preferred':''}</option>`).join('')||'<option>No compatible roster role</option>'}</select></div><button class="btn" ${roles.length?'':'disabled'} onclick="coachOffer(${p.id})">Offer Contract</button></div>`}).join('')||'<p class="muted">No free agents.</p>'}catch(e){alert(e.error)}}
+async function coachOffer(pid){let p=COACH_FREE_AGENTS[pid]||{},min=Number(p.minimum_offer_salary??.30),returning=!!p.returning_player,proposed_role=document.getElementById('coachOfferRole'+pid)?.value||'';let bonus=+prompt('Signing bonus XP (0–25; one-time bonus)','0'),salary=returning?+prompt(`Veteran salary XP/game (service-time minimum ${min.toFixed(2)}). Multi-year deals rise .02/G each season.`,min.toFixed(2)):.30,years=+prompt(returning?'Years (1-3)':'Rookie contract is fixed at .30 XP/game. Years (1-3)','2');try{let r=await api('/api/coach/offer',{method:'POST',body:JSON.stringify({player_id:pid,bonus,salary,years,proposed_role})});await loadCoachHub();alert(`${returning?'Offer sent.':'Rookie offer sent at the league-standard .30 XP/game.'} Proposed role: ${r.proposed_role||proposed_role}.`)}catch(e){alert(e.error==='ROOKIE_SALARY_FIXED'?'Rookie contracts are fixed at .30 XP/game.':e.error==='PROPOSED_ROLE_UNAVAILABLE'?`That role just filled. Available now: ${(e.available_roles||[]).join(', ')||'none'}.`:e.error==='RE_SIGN_RAISE_REQUIRED'?`Re-signing requires at least ${Number(e.minimum_salary).toFixed(2)} XP/game.`:e.error==='SIGNING_POOL_EXCEEDED'?`That offer would exceed the protected signing pool. Available: ${Number(e.signing_pool?.available||0).toFixed(1)} XP.`:(e.error||'Could not send offer'))}}
 async function cancelOffer(id){try{await api('/api/coach/cancel-offer',{method:'POST',body:JSON.stringify({offer_id:id})});await loadCoachHub()}catch(e){alert(e.error)}}
 async function retirePlayer(){
     if(!PLAYER)return;
@@ -4779,6 +4850,31 @@ async function retirePlayer(){
             alert(e?.error||e?.message||'Could not retire player.');
         }
     }
+}
+
+async function loadAutoAdvanceStatus(){
+    const out=document.getElementById('autoAdvanceStatus');
+    if(!out)return;
+    try{
+        const j=await api('/api/commish/auto-advance');
+        const input=document.getElementById('autoAdvancePerDay');
+        if(input)input.value=Number(j.per_day||1);
+        const next=j.next_at_iso?new Date(j.next_at_iso):null;
+        const last=j.last_at_iso?new Date(j.last_at_iso):null;
+        const cadence=Number(j.per_day||1)===1?'once per day':`${Number(j.per_day||1)} times per day`;
+        out.innerHTML=j.enabled
+          ? `<b class="green">AUTO ADVANCE ON</b> • ${cadence} • next run ${next&&!Number.isNaN(next.getTime())?escapeHtml(next.toLocaleString()):'scheduled'} • regular-season Day ${Number(j.league_day||0)}`
+          : `<b>AUTO ADVANCE OFF</b> • Regular-season Day ${Number(j.league_day||0)}${last&&!Number.isNaN(last.getTime())?` • last automatic run ${escapeHtml(last.toLocaleString())}`:''}`;
+    }catch(e){out.textContent='Could not load auto-advance status: '+(e?.error||e?.message||'Unknown error')}
+}
+async function saveAutoAdvance(enabled){
+    const out=document.getElementById('autoAdvanceStatus');
+    const perDay=Math.max(1,Math.min(24,Math.floor(Number(document.getElementById('autoAdvancePerDay')?.value||1))));
+    try{
+        out.textContent=enabled?'Saving automatic schedule...':'Stopping automatic schedule...';
+        await api('/api/commish/auto-advance',{method:'POST',body:JSON.stringify({enabled,per_day:perDay})});
+        await loadAutoAdvanceStatus();
+    }catch(e){out.textContent='Auto advance update failed: '+(e?.error||e?.message||'Unknown error')}
 }
 
 async function simDay(){return onceAction('simDay',async()=>{
