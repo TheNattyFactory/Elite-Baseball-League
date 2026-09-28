@@ -37,6 +37,23 @@ RENEWAL_OPEN_DAY=60
 MAX_REQUEST_BYTES=20*1024*1024
 MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
 
+# RC85: public support links are configured at deploy time so payment providers can
+# be changed without editing application code. These are public URLs, never secrets.
+def support_public_config():
+    def safe_url(value):
+        value=str(value or "").strip()
+        return value if value.startswith(("https://","http://")) else ""
+    one_time=safe_url(os.environ.get("EBL_SUPPORT_URL",""))
+    monthly=safe_url(os.environ.get("EBL_SUPPORT_MONTHLY_URL",""))
+    provider=str(os.environ.get("EBL_SUPPORT_PROVIDER","Support").strip() or "Support")[:40]
+    return {
+        "enabled":bool(one_time or monthly),
+        "provider":provider,
+        "one_time_url":one_time,
+        "monthly_url":monthly,
+        "currency":"USD"
+    }
+
 # RC84: official EBL baseline branding. These are lightweight league defaults
 # for CPU/unclaimed franchises. Existing uploaded/custom artwork is never overwritten.
 OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc84_v1"
@@ -4849,6 +4866,7 @@ class H(BaseHTTPRequestHandler):
         if p in ("/health","/api/health"):
             return self.out({"ok":True,"service":"EBL","version":"1.2.0"})
         if p=="/api/me":return self.out({"user":u})
+        if p=="/api/support":return self.out(support_public_config())
         if p=="/api/league":
             c=conn()
 
