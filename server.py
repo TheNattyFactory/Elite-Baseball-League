@@ -26,6 +26,7 @@ REGULAR_SEASON_GAMES=81
 ACTIVE_ROSTER_SIZE=16
 TEAM_BUDGET=480.0
 CONTRACT_ESCALATION=0.01
+# RC90: contract renewal human identity is carried through the coach contract payload.
 REVENUE_UPGRADE_COST=50.0
 REVENUE_UPGRADE_CAP=10
 FINISH_REWARD_MIN=1.0
@@ -6005,9 +6006,12 @@ class H(BaseHTTPRequestHandler):
             if f:
                 for row in rows:
                     previous=previous_team_salary(c,row["id"],f["id"])
+                    service_seasons=player_seasons_completed(c,row["id"])
                     row["previous_team_salary"]=previous
                     row["minimum_offer_salary"]=minimum_offer_salary(c,row["id"],f["id"])
                     row["returning_player"]=previous is not None
+                    row["service_seasons"]=service_seasons
+                    row["is_rookie_contract"]=service_seasons==0
                     row["offer_roles"]=available_roster_roles(c,f["id"],row)
             c.close();return self.out({"players":rows})
         if p=="/api/coach/team":
@@ -6033,7 +6037,7 @@ class H(BaseHTTPRequestHandler):
             brand=c.execute("SELECT * FROM franchise_branding WHERE franchise_id=?",(f["id"],)).fetchone()
             contracts=[dict(x) for x in c.execute(
                 """SELECT co.id,co.player_id,co.bonus,co.salary,co.years_remaining,co.signed_at,
-                          p.name,p.primary_pos,p.type,u.username
+                          p.name,p.primary_pos,p.type,p.user_id,u.username
                    FROM contracts co JOIN players p ON p.id=co.player_id
                    LEFT JOIN users u ON u.id=p.user_id
                    WHERE co.franchise_id=? AND p.active=1
@@ -6748,9 +6752,9 @@ class H(BaseHTTPRequestHandler):
                 f=candidate["team"];proposed_role=candidate["role"]
                 bonus=round(min(25,6+overall*.45+R.uniform(0,7)-rank),1)
                 floor=minimum_offer_salary(c,pr["id"],f["id"])
-                history_n=int(c.execute("SELECT COUNT(*) n FROM contract_history WHERE player_id=?",(pr["id"],)).fetchone()["n"] or 0)
+                service_seasons=player_seasons_completed(c,pr["id"])
                 market_salary=round(0.30+(overall/100.0)*0.10+R.uniform(-0.015,0.015),2)
-                if history_n==0:
+                if service_seasons==0:
                     salary=SALARY_MIN
                 else:
                     salary=round(max(floor,market_salary),2)
@@ -6916,8 +6920,11 @@ class H(BaseHTTPRequestHandler):
             if not f:c.close();return self.out({"error":"NO_FRANCHISE"},404)
             previous_salary=previous_team_salary(c,pid,f["id"])
             minimum_salary=minimum_offer_salary(c,pid,f["id"])
-            career_history=c.execute("SELECT COUNT(*) n FROM contract_history WHERE player_id=?",(pid,)).fetchone()
-            is_rookie_contract=int(career_history["n"] or 0)==0
+            # RC91: rookie/veteran status is service-time based, not tied to whether
+            # this coach has previously employed the player or whether a contract-history
+            # row happens to exist. A free agent with completed EBL seasons is a veteran.
+            service_seasons=player_seasons_completed(c,pid)
+            is_rookie_contract=service_seasons==0
             if salary<minimum_salary:
                 c.close();return self.out({"error":"SALARY_FLOOR_REQUIRED","minimum_salary":minimum_salary,"previous_team_salary":previous_salary},400)
             # RC78: rookie contracts are fixed at league minimum. This prevents a
@@ -7033,8 +7040,8 @@ class H(BaseHTTPRequestHandler):
                         "minimum_salary":minimum_salary,
                         "offered_salary":round(float(off["salary"] or 0),2)
                     },400)
-                career_history=c.execute("SELECT COUNT(*) n FROM contract_history WHERE player_id=?",(pl["id"],)).fetchone()
-                is_rookie_contract=int(career_history["n"] or 0)==0
+                service_seasons=player_seasons_completed(c,pl["id"])
+                is_rookie_contract=service_seasons==0
                 if is_rookie_contract and abs(float(off["salary"] or 0)-SALARY_MIN)>1e-9:
                     c.rollback();return self.out({"error":"ROOKIE_SALARY_FIXED","required_salary":SALARY_MIN},400)
                 if float(off["bonus"] or 0)<0 or float(off["bonus"] or 0)>BONUS_CAP or int(off["years"] or 0) not in (1,2,3):
