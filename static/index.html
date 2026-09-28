@@ -1,6 +1,14 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Elite Baseball League — Genesis</title>
+<meta name="description" content="Create your ballplayer, earn a contract, develop across seasons, and build a legacy in the Elite Baseball League.">
+<meta name="theme-color" content="#071426">
+<meta property="og:title" content="Elite Baseball League">
+<meta property="og:description" content="Make your player. Earn your spot. Build your legacy.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://elite-baseball.com/">
+<meta property="og:image" content="https://elite-baseball.com/assets/ebl_logo.png">
+<link rel="icon" href="/favicon.ico">
 <style>
 :root{
 --bg:#040b14;
@@ -977,16 +985,46 @@ dialog{
 @media(max-width:600px){.teamPracticePlayer,.teamDevelopmentPlayer{grid-template-columns:46px minmax(0,1fr);gap:8px}.teamPracticePlayer .eblPlayerArtV24--sm,.teamDevelopmentPlayer .eblPlayerArtV24--sm{width:46px!important;height:52px!important}.teamPracticeActions,.teamDevelopmentActions{grid-column:1/3;justify-content:stretch}.teamPracticeActions .btn,.teamDevelopmentActions .btn{flex:1}.playerXpQuickCard{align-items:flex-start;flex-direction:column}.playerXpQuickCard .btn{width:100%}.playerSwitcherButtons{display:grid;grid-template-columns:1fr 1fr;width:100%}.playerSwitchBtn{min-width:0;width:100%}}
 </style>
 
+
+<style id="eblLaunchAuditRC86Css">
+.authOnly.hidden{display:none!important}
+.policyReview{margin:-2px 0 10px 27px;font-size:12px;color:var(--mut)}
+.policyReview button{border:0;background:none;color:var(--gold);padding:0 4px;cursor:pointer;text-decoration:underline;font:inherit}
+.publicWelcome{margin:12px 0 0;padding:12px;border:1px solid var(--line-soft);border-radius:12px;background:rgba(7,24,40,.62)}
+.publicWelcome b{display:block;margin-bottom:3px}.publicWelcome span{color:var(--mut);font-size:13px;line-height:1.4}
+@media(max-width:560px){.policyReview{margin-left:0}.standingsTable th:nth-child(n+7),.standingsTable td:nth-child(n+7){display:none}.standingsTable{min-width:520px}}
+</style>
+
+<style id="eblMemberProfileRC87">
+#profileModal{width:min(1120px,calc(100vw - 24px));max-height:92vh;overflow:auto;padding:0;border-radius:20px}
+#profileContent{--profile-accent:#d4af37}
+.memberProfileHeroV87{position:relative;overflow:hidden;display:grid;grid-template-columns:170px 1fr auto;gap:20px;align-items:center;padding:24px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,#102844,#071522 72%)}
+.memberProfileHeroV87.theme-DUGOUT{background:linear-gradient(135deg,#183426,#0a1b19 58%,#071522)}
+.memberProfileHeroV87.theme-NIGHT{background:linear-gradient(135deg,#11162f,#071522 68%,#020810)}
+.memberProfileHeroV87.theme-GOLD{background:linear-gradient(135deg,#332b12,#102844 58%,#071522)}
+.memberProfileHeroV87:before{content:'';position:absolute;inset:0 auto 0 0;width:6px;background:var(--profile-accent)}
+.memberProfilePhotoV87{width:150px;height:150px;border-radius:24px;border:2px solid var(--profile-accent);background:#071522;overflow:hidden;display:grid;place-items:center;box-shadow:0 15px 34px #0008;position:relative}
+.memberProfilePhotoV87>img{width:100%;height:100%;object-fit:cover}.memberProfilePhotoV87 .eblPlayerArtV24{width:100%;height:100%;display:grid;place-items:center}.memberProfilePhotoV87 .eblPlayerArtV24 svg{width:122%;height:122%;transform:translateY(8%)}
+.memberProfileInitialsV87{font-size:42px;font-weight:1000;color:var(--profile-accent)}
+.memberProfileHandleV87{font-size:12px;letter-spacing:.15em;font-weight:900;color:var(--profile-accent)}
+.memberProfileNameV87{font-size:clamp(30px,5vw,52px);line-height:1;margin:5px 0 8px}.memberProfileBioV87{max-width:680px;color:#c5d0da;margin-top:10px;white-space:pre-wrap}.memberProfileMottoV87{margin-top:10px;font-style:italic;color:#e3e9ef}
+.memberProfileActionsV87{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.memberProfileStatsV87{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:14px 0}.memberProfileStatsV87 .statBox{border-top:2px solid var(--profile-accent)}
+.profileAccoladeGridV87{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}.profileAccoladeV87{border:1px solid #3b536a;border-left:3px solid var(--profile-accent);border-radius:11px;padding:10px;background:#07182a}.profileAccoladeV87 b{display:block;color:#f0d77f}.profileAccoladeV87 small{display:block;color:var(--mut);margin-top:4px}
+.profilePlayer.featuredProfilePlayerV87{outline:2px solid color-mix(in srgb,var(--profile-accent),transparent 35%);box-shadow:0 0 0 4px color-mix(in srgb,var(--profile-accent),transparent 88%)}
+.profileFeaturedFlagV87{display:inline-block;margin-left:7px;padding:3px 7px;border-radius:999px;background:var(--profile-accent);color:#071522;font-size:9px;font-weight:950;letter-spacing:.08em;vertical-align:middle}
+#profileEditModal{width:min(650px,calc(100vw - 24px));max-height:90vh;overflow:auto}.profileEditGridV87{display:grid;grid-template-columns:1fr 1fr;gap:10px}.profileEditGridV87 .full{grid-column:1/-1}.profileEditGridV87 label{display:block;font-size:11px;font-weight:850;letter-spacing:.06em;color:#b8c6d4;margin:5px 0}.profileEditGridV87 input,.profileEditGridV87 textarea,.profileEditGridV87 select{width:100%}.profileEditPreviewV87{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#071522}.profileEditPreviewV87 img{width:86px;height:86px;border-radius:18px;object-fit:cover;border:2px solid var(--gold)}
+@media(max-width:800px){.memberProfileHeroV87{grid-template-columns:92px 1fr;padding:16px;gap:12px}.memberProfilePhotoV87{width:88px;height:88px;border-radius:17px}.memberProfileActionsV87{grid-column:1/-1;justify-content:flex-start}.memberProfileStatsV87{grid-template-columns:repeat(2,1fr)}.profileEditGridV87{grid-template-columns:1fr}.profileEditGridV87 .full{grid-column:auto}}
+</style>
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
 <nav id="mainNav">
-<button class="navbtn active" data-page="home">HOME</button><button class="navbtn" data-page="news">NEWS</button><button class="navbtn" data-page="community">COMMUNITY</button><button class="navbtn" data-page="support">SUPPORT</button><button class="navbtn" data-page="messages">MESSAGES</button><button class="navbtn" data-page="player">PLAYER</button><button class="navbtn" data-page="team">TEAM</button><button id="coachNav" class="navbtn" data-page="coach">COACH</button><button class="navbtn" data-page="league">LEAGUE</button><button class="navbtn" data-page="analytics">ANALYTICS</button><button class="navbtn" data-page="awards">AWARDS</button><button class="navbtn" data-page="gamecast">GAMECAST</button><button class="navbtn" data-page="rules">RULES</button><button id="adminNav" class="navbtn hidden" data-page="admin">ADMIN</button>
+<button class="navbtn active" data-page="home">HOME</button><button class="navbtn" data-page="news">NEWS</button><button class="navbtn" data-page="community">COMMUNITY</button><button class="navbtn" data-page="support">SUPPORT</button><button class="navbtn authOnly hidden" data-page="messages">MESSAGES</button><button class="navbtn authOnly hidden" data-page="player">PLAYER</button><button class="navbtn authOnly hidden" data-page="team">TEAM</button><button id="coachNav" class="navbtn authOnly hidden" data-page="coach">COACH</button><button class="navbtn" data-page="league">LEAGUE</button><button class="navbtn authOnly hidden" data-page="analytics">ANALYTICS</button><button class="navbtn" data-page="awards">AWARDS</button><button class="navbtn" data-page="gamecast">GAMECAST</button><button class="navbtn" data-page="rules">RULES</button><button id="adminNav" class="navbtn hidden" data-page="admin">ADMIN</button>
 </nav>
 <main>
 <section id="home" class="page active">
-<div id="loginCard" class="card"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><h2>Welcome to the EBL</h2><div class="grid"><div><h3>Create Player Account</h3><input id="ru" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" placeholder="username" aria-label="Create username"><input id="rp" name="new-password" type="password" autocomplete="new-password" minlength="8" placeholder="8+ character password" aria-label="Create password"><input id="re" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="verified email" aria-label="Verified email"><label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:13px"><input id="rterms" type="checkbox" style="width:auto;margin-top:3px"> <span>I agree to the EBL Community Rules, Beta Terms, and Privacy Summary.</span></label><button class="btn" onclick="register()">Register</button></div><div><h3>Login</h3><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><button class="btn" onclick="login()">Login</button></div></div><div class="card" style="margin-top:10px"><h3>Password Recovery</h3><div class="grid"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></div><div id="loginMsg" class="muted"></div></div>
+<div id="loginCard" class="card"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><h2>Welcome to the EBL</h2><p class="supportLead">Create your ballplayer, earn a contract, develop across seasons, and build a career that becomes part of league history.</p><div class="grid"><div><h3>Create Player Account</h3><input id="ru" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" placeholder="username" aria-label="Create username"><input id="rp" name="new-password" type="password" autocomplete="new-password" minlength="8" placeholder="8+ character password" aria-label="Create password"><input id="re" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="verified email" aria-label="Verified email"><label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0 4px;font-size:13px"><input id="rterms" type="checkbox" style="width:auto;margin-top:3px"> <span>I agree to the EBL Community Rules, Beta Terms, and Privacy Summary.</span></label><div class="policyReview">Review: <button type="button" onclick="openPolicy('communityRules')">Community Rules</button> • <button type="button" onclick="openPolicy('termsPolicy')">Terms</button> • <button type="button" onclick="openPolicy('privacyPolicy')">Privacy</button></div><button class="btn" onclick="register()">Create EBL Account</button><div class="publicWelcome"><b>Make your player. Earn your spot. Build your legacy.</b><span>No pay-to-win boosts. Your career grows through games, development, contracts, awards, and the history you create.</span></div></div><div><h3>Login</h3><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><button class="btn" onclick="login()">Login</button></div></div><div class="card" style="margin-top:10px"><h3>Password Recovery</h3><div class="grid"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></div><div id="loginMsg" class="muted"></div></div>
 <div id="dashboard" class="hidden">
 <div id="ticker" class="ticker"><div id="tickerTrack" class="tickerTrack"></div></div>
 <div id="onboardingCard" class="card onboardingCard hidden"></div>
@@ -1123,8 +1161,10 @@ dialog{
 </dialog>
 <dialog id="profileModal">
   <div id="profileContent"></div>
-  <br>
-  <button class="btn" onclick="document.getElementById('profileModal').close()">Close</button>
+  <div style="padding:0 18px 18px"><button class="btn" onclick="document.getElementById('profileModal').close()">Close</button></div>
+</dialog>
+<dialog id="profileEditModal">
+  <div id="profileEditContent"></div>
 </dialog>
 
   <style>
@@ -1594,14 +1634,21 @@ async function completePasswordReset(){
 }
 
 async function refresh(){
- let me=await api('/api/me');ME=me.user;
- if(!ME){accountTag.textContent='Not signed in';return}
+ let me=await api('/api/me');ME=me.user;window.ME=ME;
+ if(!ME){
+  accountTag.textContent='Not signed in';
+  document.querySelectorAll('.authOnly').forEach(x=>x.classList.add('hidden'));
+  await Promise.allSettled([loadLeague(),loadSchedule(),loadAwards(),loadNews(),loadCommunity(),loadPlayoffs()]);
+  return;
+ }
+ document.querySelectorAll('.authOnly').forEach(x=>x.classList.remove('hidden'));
  if(ME.role==='PLAYER'){
   try{
    const sj=await api('/api/account/security');
    if(sj.security && !sj.security.email_verified){
     accountTag.innerHTML=`${ME.username} • EMAIL CONFIRMATION REQUIRED &nbsp; <button class="btn" onclick="logout()">Logout</button>`;
     dashboard.classList.add('hidden');loginCard.classList.remove('hidden');
+    document.querySelectorAll('.authOnly').forEach(x=>x.classList.add('hidden'));
     loginMsg.innerHTML='Please confirm your email before creating your EBL player. <button class="btn" onclick="resendVerification()">Resend Email</button>';
     return;
    }
@@ -3594,7 +3641,7 @@ async function respond(id,action){return onceAction(`offer:${id}`,async()=>{
 })}
 async function loadLeague(){
  let j=await api('/api/league');
- LEAGUE=j;
+ LEAGUE=j;window.LEAGUE=LEAGUE;
  renderStandings();
  // Schedule and GameCast load in parallel with League on first boot.
  // Repaint them once canonical franchise names/logos are available so raw EBL-Fxx
@@ -3691,6 +3738,17 @@ async function loadPlayoffs(){
   }
 }
 function renderSchedule(){let day=LEAGUE?.day||0,filterTeam=PLAYER?.franchise_id;let upcoming=SCHEDULE.filter(g=>g.league_day>=Math.max(1,day) && g.league_day<=day+7);schedulePane.innerHTML=`<div class="subtabs"><button class="subtab active" onclick="scheduleFilter('ALL',this)">ALL EBL</button><button class="subtab" onclick="scheduleFilter('MINE',this)">MY TEAM</button></div><div id="scheduleRows">${scheduleRows(upcoming,'ALL')}</div>`}
+function scheduleFilter(mode,b){
+ const pane=document.getElementById('schedulePane');
+ if(!pane)return;
+ pane.querySelectorAll('.subtab').forEach(x=>x.classList.remove('active'));
+ if(b)b.classList.add('active');
+ const day=Number(LEAGUE?.day||0);
+ const upcoming=(Array.isArray(SCHEDULE)?SCHEDULE:[]).filter(g=>Number(g.league_day)>=Math.max(1,day)&&Number(g.league_day)<=day+7);
+ const rows=document.getElementById('scheduleRows');
+ if(rows)rows.innerHTML=scheduleRows(upcoming,mode);
+}
+
 
 function renderGamecastList(){
  const root=document.getElementById('gamecastList');
@@ -3890,18 +3948,24 @@ async function sendDM(){
 }
 async function loadCommunity(){
  try{
-  let [rv,rc,fr]=await Promise.all([api('/api/rivalries'),api('/api/records'),api('/api/friends')]);
+  const [rv,rc]=await Promise.all([api('/api/rivalries'),api('/api/records')]);
   rivalryBoard.innerHTML=rv.rivalries.length?rv.rivalries.map(r=>`<div class="rivalry"><div class="rivalryTeams"><span>${teamMark(r.team_a||r.team_a_id,true)}<button class="teamLink" onclick="openTeam('${jsq(r.team_a||r.team_a_id)}')">${escapeHtml(String(r.team_a_name))}</button></span><b>VS</b><span>${teamMark(r.team_b||r.team_b_id,true)}<button class="teamLink" onclick="openTeam('${jsq(r.team_b||r.team_b_id)}')">${escapeHtml(String(r.team_b_name))}</button></span></div><div class="muted">${r.games} meetings • ${r.a_wins}-${r.b_wins} • ${r.one_run_games} one-run games</div><div class="heat"><span style="width:${Math.min(100,r.intensity)}%"></span></div><small>Intensity ${Math.round(r.intensity)}/100</small></div>`).join(''):'<p class="muted">No rivalries yet. They have to be earned.</p>';
   recordBook.innerHTML=rc.records.length?rc.records.map(r=>`<div class="recordCard"><span class="newsMeta">${escapeHtml(String(r.record_label||'EBL RECORD'))}</span><br><div class="recordHolderBrand">${r.franchise_id?teamMark(r.franchise_id,true):''}<b>${r.holder_type==='PLAYER'?leaguePlayerIdentity({player_id:r.holder_id,name:r.holder_name,username:r.username,face_id:r.face_id,hair_id:r.hair_id,hair_color_id:r.hair_color_id,facial_hair_id:r.facial_hair_id,eye_color_id:r.eye_color_id,eye_black_id:r.eye_black_id,eyewear_id:r.eyewear_id,chain_id:r.chain_id,sleeve_id:r.sleeve_id,jersey_number:r.jersey_number,primary_pos:r.primary_pos,franchise_id:r.franchise_id}):escapeHtml(String(r.holder_name||r.holder_id||''))}</b></div> — ${escapeHtml(String(r.record_value??''))}<div class="muted">${escapeHtml(String(r.detail||''))} • Day ${Number(r.league_day||0)}</div></div>`).join(''):'<p class="muted">Genesis begins with a blank record book.</p>';
   if(window.friendsPanel){
-   const incoming=(fr.incoming||[]).map(x=>`<div class="friendCard"><div><div class="friendIdentity"><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b></div><div class="muted">EBL member profile${x.role?` • ${escapeHtml(x.role)}`:''}</div></div><div><button class="btn" onclick="friendAccept(${x.user_id},'${jsq(x.username)}')">Accept</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
-   const friends=(fr.friends||[]).map(x=>`<div class="friendCard"><div><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b><div class="muted">EBL member profile${x.role?` • ${escapeHtml(x.role)}`:''}</div></div><div><button class="btn" onclick="startDM(${x.user_id},'${jsq(x.username)}')">Message</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
-   const outgoing=(fr.outgoing||[]).map(x=>`<div class="friendCard"><div><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b><div class="muted">Friend request pending</div></div><button class="btn" onclick="friendRemove(${x.user_id},'${jsq(x.username)}')">Cancel</button></div>`).join('');
-   friendsPanel.innerHTML=(incoming?`<h3>Requests</h3>${incoming}`:'')+(friends?`<h3 style="margin-top:12px">Friends</h3>${friends}`:'')+(outgoing?`<h3 style="margin-top:12px">Sent</h3>${outgoing}`:'')||'<p class="muted">No friends yet. Open a user profile and send a friend request.</p>';
+   if(!ME){friendsPanel.innerHTML='<p class="muted">Sign in to add friends and send private messages. Rivalries and the EBL record book remain public.</p>';return;}
+   try{
+    const fr=await api('/api/friends');
+    const incoming=(fr.incoming||[]).map(x=>`<div class="friendCard"><div><div class="friendIdentity"><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b></div><div class="muted">EBL member profile${x.role?` • ${escapeHtml(x.role)}`:''}</div></div><div><button class="btn" onclick="acceptFriend(${x.user_id},'${jsq(x.username)}')">Accept</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
+    const friends=(fr.friends||[]).map(x=>`<div class="friendCard"><div><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b><div class="muted">EBL member profile${x.role?` • ${escapeHtml(x.role)}`:''}</div></div><div><button class="btn" onclick="messageProfile(${x.user_id})">Message</button> <button class="btn" onclick="openUserProfile('${jsq(x.username)}')">Profile</button></div></div>`).join('');
+    const outgoing=(fr.outgoing||[]).map(x=>`<div class="friendCard"><div><b><button class="clickableName" onclick="openUserProfile('${jsq(x.username)}')">@${escapeHtml(x.username)}</button></b><div class="muted">Friend request pending</div></div><button class="btn" onclick="removeFriend(${x.user_id},'${jsq(x.username)}')">Cancel</button></div>`).join('');
+    friendsPanel.innerHTML=(incoming?`<h3>Requests</h3>${incoming}`:'')+(friends?`<h3 style="margin-top:12px">Friends</h3>${friends}`:'')+(outgoing?`<h3 style="margin-top:12px">Sent</h3>${outgoing}`:'')||'<p class="muted">No friends yet. Open a user profile and send a friend request.</p>';
+   }catch(e){friendsPanel.innerHTML='<p class="muted">Could not load friends.</p>'}
   }
- }catch(e){if(window.friendsPanel)friendsPanel.innerHTML='<p class="muted">Could not load friends.</p>'}
+ }catch(e){
+  if(window.rivalryBoard)rivalryBoard.innerHTML='<p class="muted">Rivalry board is temporarily unavailable.</p>';
+  if(window.recordBook)recordBook.innerHTML='<p class="muted">Record book is temporarily unavailable.</p>';
+ }
 }
-
 
 async function loadReadiness(){
  try{
@@ -5181,6 +5245,14 @@ async function resetTestAccount(){
 } 
  
 function policyPane(id,b){switchPane('.subpane',id,b)}
+function openPolicy(id){
+ goPage('rules');
+ const tabs=[...document.querySelectorAll('#rules .subtab')];
+ const target=tabs.find(b=>String(b.getAttribute('onclick')||'').includes("'"+id+"'"));
+ policyPane(id,target||tabs[0]);
+ document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 async function loadPolicies(){
  communityRules.innerHTML=`<h2>Community Rules</h2><p>Keep EBL competitive, welcoming, and baseball-focused.</p><ol><li>No harassment, threats, hate speech, sexual content, or targeted abuse.</li><li>No spam, scams, impersonation, or attempts to manipulate other users.</li><li>No cheating, exploits, multi-account collusion, or intentionally corrupting league systems.</li><li>Respect team and league moderation decisions. Use reports instead of escalating conflicts.</li><li>Private messages are not a loophole around community rules.</li><li>Franchise names, logos, chat, and player names must be appropriate for a general audience.</li></ol><p class="muted">Violations may lead to warnings, mutes, suspensions, account removal, or competitive penalties.</p>`;
  termsPolicy.innerHTML=`<h2>Beta Terms</h2><p>EBL is currently a beta service. Features, balance, league formats, virtual progression, and Genesis records may change or reset before the hard launch.</p><p>Users must provide accurate account information, protect their credentials, avoid exploiting the service, and follow community rules. EBL may suspend accounts or pause league activity to protect competitive integrity and service safety.</p><p>Virtual XP, awards, franchise rights, and other in-game items have no cash value unless a future published policy explicitly says otherwise.</p><p class="muted">These beta terms are a product draft and should receive legal review before commercial/public launch.</p>`;
@@ -5782,7 +5854,7 @@ setInterval(()=>{if(ME){loadChat('EBL');loadChat('TEAM');loadNotifications()}},1
 
   function wireAccountTag(){
     const tag=document.getElementById('accountTag');
-    if(!tag || !window.ME || !ME?.username) return;
+    if(!tag || !ME || !ME?.username) return;
     if(document.getElementById('myPublicProfileBtn')) return;
     const btn=document.createElement('button');
     btn.id='myPublicProfileBtn';
@@ -5808,7 +5880,7 @@ setInterval(()=>{if(ME){loadChat('EBL');loadChat('TEAM');loadNotifications()}},1
     let tries=0;
     const attempt=async()=>{
       tries++;
-      if(window.ME && typeof window.goPage==='function' &&
+      if(ME && typeof window.goPage==='function' &&
          typeof window.loadDMContacts==='function' &&
          typeof window.openDM==='function'){
         try{
@@ -5968,7 +6040,7 @@ function eblPlayerIdentityBadgeV11(p={},opts={}){
 </style>
 
 
-<script id="eblSportsCartoonV20">
+<script id="eblSportsCartoonV20Js">
 /* V20 — one public identity surface for future roster/profile/GameCast work. */
 function eblCanonicalPlayerV20(player){
   if(typeof eblAppearancePlayerV11==='function') return eblAppearancePlayerV11(player||{});
@@ -5985,7 +6057,7 @@ function eblActionV20(player,action='batting',cls=''){
 }
 </script>
 
-<script id="eblSportsCartoonV21">
+<script id="eblSportsCartoonV21Js">
 /* Stable identity payload helper for creator -> saved player -> league surfaces. */
 function eblIdentityPayloadV21(player){
  const p=eblCanonicalPlayerV20(player||{});
@@ -8230,7 +8302,60 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
 })();
 </script>
 
-</body></html>
+<script id="eblMemberProfileControllerRC87">
+(function(){
+ const esc=typeof window.escapeHtml==='function'?window.escapeHtml:(v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c])));
+ const js=typeof window.jsq==='function'?window.jsq:(v=>String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
+ let profilePhotoDraft=null;
+ function initials(v){return String(v||'EBL').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()}
+ function profilePathUser(){const m=location.pathname.match(/^\/profile\/([^/]+)\/?$/i);return m?decodeURIComponent(m[1]):''}
+ function orderedPlayers(j){const featured=Number(j?.profile?.featured_player_id||0);return [...(j?.players||[])].sort((a,b)=>(Number(b.id)===featured)-(Number(a.id)===featured)||Number(b.active||0)-Number(a.active||0)||Number(b.id||0)-Number(a.id||0))}
+ function portrait(u,j){
+   const players=orderedPlayers(j),featured=players.find(p=>Number(p.id)===Number(u.featured_player_id))||players[0];
+   if(u.profile_photo)return `<div class="memberProfilePhotoV87"><img src="${esc(u.profile_photo)}" alt="${esc(u.display_name||u.username)} profile photo"></div>`;
+   if(featured&&typeof window.eblPlayerArtV24==='function')return `<div class="memberProfilePhotoV87">${window.eblPlayerArtV24(featured,'lg','portrait')}</div>`;
+   return `<div class="memberProfilePhotoV87"><span class="memberProfileInitialsV87">${esc(initials(u.display_name||u.username))}</span></div>`;
+ }
+ function accolades(j){
+   const rows=[];
+   for(const p of j.players||[]){for(const a of p.career?.awards||[])rows.push({kind:'AWARD',season:Number(a.season||0),name:a.award_name||'EBL Award',player:p.name,franchise_id:a.franchise_id,team_name:a.team_name||'',period:a.period||''})}
+   for(const c of j.championships||[])rows.push({kind:'TITLE',season:Number(c.season||0),name:'EBL Championship',player:'Account Legacy',franchise_id:c.franchise_id,team_name:c.team_name||''});
+   rows.sort((a,b)=>b.season-a.season||(a.kind==='TITLE'?-1:1));
+   return rows;
+ }
+ function accoladeHtml(j){const rows=accolades(j);if(!rows.length)return '<p class="muted">No EBL accolades yet. Every award and championship earned by this account will collect here.</p>';return `<div class="profileAccoladeGridV87">${rows.map(x=>`<div class="profileAccoladeV87"><b>${x.kind==='TITLE'?'🏆':'⭐'} ${esc(x.name)}</b><div>${esc(x.player)} • Season ${x.season||'—'}</div><small>${x.franchise_id?teamMark(x.franchise_id,true):''}${esc(x.team_name||'EBL')} ${x.period?`• ${esc(x.period)}`:''}</small></div>`).join('')}</div>`}
+ function actions(j){const u=j.profile||{},f=j.friendship;if(!ME)return `<a class="btn" href="/">Sign in to connect</a>`;if(j.is_self)return `<button class="btn" onclick="openProfileEditorRC87()">Edit Profile</button><button class="btn ghost" onclick="document.getElementById('profileModal').close();">My EBL Dashboard</button>`;let out=`<button class="btn" onclick="messageProfile(${Number(u.id)})">Message</button> <button class="btn ghost" onclick="reportProfile(${Number(u.id)},'${js(u.username)}')">Report</button> <button class="btn ghost" onclick="blockProfile(${Number(u.id)},'${js(u.username)}')">Block</button>`;if(!f)out+=` <button class="btn" onclick="friendRequest(${Number(u.id)},'${js(u.username)}')">Add Friend</button>`;else if(f.status==='PENDING'&&Number(f.addressee_user_id)===Number(ME?.id))out+=` <button class="btn" onclick="acceptFriend(${Number(u.id)},'${js(u.username)}')">Accept Friend</button>`;else if(f.status==='PENDING')out+=` <button class="btn" disabled>Friend Request Sent</button>`;else if(f.status==='ACCEPTED')out+=` <button class="btn" onclick="removeFriend(${Number(u.id)},'${js(u.username)}')">Friends ✓</button>`;return out}
+ function decoratedPlayerCard(p,u){let html=typeof window.profilePlayerCard==='function'?window.profilePlayerCard(p):`<div class="profilePlayer"><b>${esc(p.name||'Player')}</b></div>`;if(Number(p.id)===Number(u.featured_player_id)){html=html.replace('class="profilePlayer"','class="profilePlayer featuredProfilePlayerV87"').replace(/(<h3[^>]*>[^<]*)/,`$1 <span class="profileFeaturedFlagV87">FEATURED</span>`)}return html}
+ async function ensureProfileGlobals(){try{if(!LEAGUE&&typeof loadLeague==='function')await loadLeague();else if(!LEAGUE){LEAGUE=await api('/api/league');window.LEAGUE=LEAGUE}else window.LEAGUE=LEAGUE}catch(_){ }try{const m=await api('/api/me');ME=m.user||null;window.ME=ME}catch(_){ME=null;window.ME=null}}
+ window.openUserProfile=async function(username,opts={}){
+   if(!username)return;
+   await ensureProfileGlobals();
+   try{
+     const j=await api('/api/profile/'+encodeURIComponent(username));window.EBL_OPEN_PROFILE_RC87=j;
+     const u=j.profile||{},legacy=j.legacy||{},players=orderedPlayers(j),current=players.filter(p=>p.active),former=players.filter(p=>!p.active);
+     const accent=/^#[0-9a-f]{6}$/i.test(String(u.profile_accent||''))?u.profile_accent:'#d4af37';const theme=['CLASSIC','DUGOUT','NIGHT','GOLD'].includes(String(u.profile_theme||'').toUpperCase())?String(u.profile_theme).toUpperCase():'CLASSIC';
+     const created=u.created_at?String(u.created_at).slice(0,10):'EBL Genesis';const display=u.display_name||u.username||username;
+     const content=document.getElementById('profileContent');
+     content.style.setProperty('--profile-accent',accent);
+     content.innerHTML=`<section class="memberProfileHeroV87 theme-${theme}">${portrait(u,j)}<div><div class="memberProfileHandleV87">@${esc(u.username||username)} • EBL MEMBER</div><h1 class="memberProfileNameV87">${esc(display)}</h1><div class="muted">${esc(u.role||'PLAYER')} • Member since ${esc(created)} • ${current.length} active player${current.length===1?'':'s'}</div>${u.profile_bio?`<div class="memberProfileBioV87">${esc(u.profile_bio)}</div>`:''}<div class="memberProfileMottoV87">“${esc(u.profile_motto||'Every season adds another line to the story.')}”</div></div><div class="memberProfileActionsV87">${actions(j)}</div></section>
+     <div style="padding:0 18px 18px"><div class="memberProfileStatsV87"><div class="statBox"><span class="label">CAREER PLAYERS</span><b>${legacy.players??players.length}</b></div><div class="statBox"><span class="label">COMPLETED SEASONS</span><b>${legacy.completed_seasons||0}</b></div><div class="statBox"><span class="label">AWARDS</span><b>${legacy.awards||0}</b></div><div class="statBox"><span class="label">CHAMPIONSHIPS</span><b>${legacy.championships??(j.championships||[]).length}</b></div></div>
+     <div class="card"><h2>Accolade Case</h2><p class="muted">Every award and championship collected by every player on this account.</p>${accoladeHtml(j)}</div>
+     <div class="card"><h2>Current Players</h2>${current.length?current.map(p=>decoratedPlayerCard(p,u)).join(''):'<p class="muted">No active players.</p>'}</div>
+     <div class="card"><h2>Former Players</h2>${former.length?former.map(p=>decoratedPlayerCard(p,u)).join(''):'<p class="muted">No former players yet.</p>'}</div></div>`;
+     const modal=document.getElementById('profileModal');if(!modal.open)modal.showModal();document.title=`${display} • EBL Profile`;
+     if(!opts.keepUrl){const path='/profile/'+encodeURIComponent(String(u.username||username));if(location.pathname!==path)history.pushState({eblProfile:u.username||username},'',path)}
+   }catch(e){alert(e?.error||e?.message||'Could not load member profile')}
+ };
+ window.openProfileEditorRC87=function(){const j=window.EBL_OPEN_PROFILE_RC87;if(!j?.is_self)return;const u=j.profile||{},players=j.players||[];profilePhotoDraft=u.profile_photo||'';const box=document.getElementById('profileEditContent');box.innerHTML=`<h2>Customize My EBL Profile</h2><p class="muted">Your profile photo and bio are public. Player appearances still come from each player's saved EBL avatar.</p><div class="profileEditPreviewV87"><div id="profilePhotoPreviewRC87">${u.profile_photo?`<img src="${esc(u.profile_photo)}" alt="Profile preview">`:`<div class="memberProfileInitialsV87">${esc(initials(u.display_name||u.username))}</div>`}</div><div><b>@${esc(u.username)}</b><div class="muted">Profile identity, separate from your ballplayers.</div></div></div><div class="profileEditGridV87"><div><label>DISPLAY NAME</label><input id="profileDisplayNameRC87" maxlength="48" value="${esc(u.display_name||'')}"></div><div><label>FEATURED PLAYER</label><select id="profileFeaturedPlayerRC87"><option value="">Automatic</option>${players.map(p=>`<option value="${Number(p.id)}" ${Number(p.id)===Number(u.featured_player_id)?'selected':''}>${esc(p.name)} • ${esc(p.primary_pos||'')}</option>`).join('')}</select></div><div class="full"><label>BIO</label><textarea id="profileBioRC87" rows="4" maxlength="320">${esc(u.profile_bio||'')}</textarea></div><div class="full"><label>MOTTO / STATUS LINE</label><input id="profileMottoRC87" maxlength="120" value="${esc(u.profile_motto||'')}"></div><div><label>PROFILE THEME</label><select id="profileThemeRC87">${['CLASSIC','DUGOUT','NIGHT','GOLD'].map(x=>`<option ${String(u.profile_theme||'CLASSIC').toUpperCase()===x?'selected':''}>${x}</option>`).join('')}</select></div><div><label>ACCENT COLOR</label><input id="profileAccentRC87" type="color" value="${/^#[0-9a-f]{6}$/i.test(String(u.profile_accent||''))?esc(u.profile_accent):'#d4af37'}"></div><div class="full"><label>PROFILE PHOTO</label><input id="profilePhotoInputRC87" type="file" accept="image/png,image/jpeg,image/webp" onchange="profilePhotoChangedRC87(this)"><div class="muted">Images are resized to a web-friendly 512×512 profile image.</div><button class="btn ghost" style="margin-top:7px" onclick="removeProfilePhotoRC87()">Remove Photo</button></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn" onclick="saveProfileRC87()">Save Profile</button><button class="btn ghost" onclick="document.getElementById('profileEditModal').close()">Cancel</button></div>`;const modal=document.getElementById('profileEditModal');if(!modal.open)modal.showModal()};
+ window.profilePhotoChangedRC87=function(input){const file=input?.files?.[0];if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)){alert('Use PNG, JPG or WebP.');input.value='';return}if(file.size>6*1024*1024){alert('Choose an image under 6 MB. It will be resized for your profile.');input.value='';return}const img=new Image(),r=new FileReader();r.onload=()=>{img.onload=()=>{const side=Math.min(img.naturalWidth,img.naturalHeight),sx=(img.naturalWidth-side)/2,sy=(img.naturalHeight-side)/2,cv=document.createElement('canvas');cv.width=512;cv.height=512;cv.getContext('2d').drawImage(img,sx,sy,side,side,0,0,512,512);profilePhotoDraft=cv.toDataURL('image/webp',.86);document.getElementById('profilePhotoPreviewRC87').innerHTML=`<img src="${profilePhotoDraft}" alt="Profile preview">`};img.src=String(r.result)};r.readAsDataURL(file)};
+ window.removeProfilePhotoRC87=function(){profilePhotoDraft='';const u=window.EBL_OPEN_PROFILE_RC87?.profile||{};document.getElementById('profilePhotoPreviewRC87').innerHTML=`<div class="memberProfileInitialsV87">${esc(initials(u.display_name||u.username))}</div>`};
+ window.saveProfileRC87=async function(){const j=window.EBL_OPEN_PROFILE_RC87;if(!j?.is_self)return;const payload={display_name:document.getElementById('profileDisplayNameRC87').value,profile_bio:document.getElementById('profileBioRC87').value,profile_motto:document.getElementById('profileMottoRC87').value,profile_theme:document.getElementById('profileThemeRC87').value,profile_accent:document.getElementById('profileAccentRC87').value,featured_player_id:document.getElementById('profileFeaturedPlayerRC87').value||null,profile_photo:profilePhotoDraft||''};try{await api('/api/profile/update',{method:'POST',body:JSON.stringify(payload)});document.getElementById('profileEditModal').close();await window.openUserProfile(j.profile.username,{keepUrl:true})}catch(e){alert(e?.detail||e?.error||'Could not save profile')}};
+ const modal=document.getElementById('profileModal');modal?.addEventListener('close',()=>{if(profilePathUser())history.pushState({},'', '/');document.title='Elite Baseball League'});
+ window.addEventListener('popstate',()=>{const u=profilePathUser();if(u)window.openUserProfile(u,{keepUrl:true});else if(modal?.open)modal.close()});
+ window.addEventListener('load',()=>{const u=profilePathUser();if(u)setTimeout(()=>window.openUserProfile(u,{keepUrl:true}),0)});
+ window.EBL_MEMBER_PROFILE_RC87={version:'RC87',playerAvatars:'canonical',accountAccolades:true,profilePhoto:true,themes:['CLASSIC','DUGOUT','NIGHT','GOLD']};
+})();
+</script>\n</body></html>
 
 <!-- EBL PLAYER CREATOR STUDIO V20 — tabbed sports-game creator -->
 <style id="eblCreatorStudioV20Style">
@@ -8522,7 +8647,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
 .playerPortraitTeamBrandV32>.playerPortraitTeamBackdropV32 img{width:88%;height:88%;object-fit:contain;opacity:.13;filter:saturate(.9) drop-shadow(0 5px 12px #0008);transform:translateX(-10%)}
 .playerPortraitTeamBrandV32>.eblPlayerArtV24{position:relative;z-index:1}
 </style>
-<script id="eblPlayerPortraitBrandV32">
+<script id="eblPlayerPortraitBrandV32Js">
 (function(){
  const prior=window.eblPlayerArtV24;
  if(typeof prior!=='function'||prior.__eblPortraitBrandV32)return;
