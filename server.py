@@ -36,6 +36,7 @@ ALPHA_PLAYER_LIMIT=3
 RENEWAL_OPEN_DAY=60
 MAX_REQUEST_BYTES=20*1024*1024
 MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
+MAX_PROFILE_PHOTO_DATA_URL_CHARS=900_000
 
 # RC85: public support links are configured at deploy time so payment providers can
 # be changed without editing application code. These are public URLs, never secrets.
@@ -483,6 +484,8 @@ def init_db():
       box_json TEXT NOT NULL DEFAULT '{}',
       events_json TEXT NOT NULL DEFAULT '[]'
     );
+    CREATE INDEX IF NOT EXISTS idx_games_season_day_id ON games(season,league_day,id);
+
     CREATE TABLE IF NOT EXISTS league_state(
       k TEXT PRIMARY KEY,
       v TEXT NOT NULL
@@ -747,6 +750,22 @@ def init_db():
 """)
 
     # Safe in-place schema migrations for existing Railway databases.
+    user_cols={r["name"] for r in c.execute("PRAGMA table_info(users)")}
+    if "display_name" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''")
+    if "profile_bio" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN profile_bio TEXT NOT NULL DEFAULT ''")
+    if "profile_motto" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN profile_motto TEXT NOT NULL DEFAULT ''")
+    if "profile_photo" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN profile_photo TEXT NOT NULL DEFAULT ''")
+    if "profile_accent" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN profile_accent TEXT NOT NULL DEFAULT '#d4af37'")
+    if "profile_theme" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN profile_theme TEXT NOT NULL DEFAULT 'CLASSIC'")
+    if "featured_player_id" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN featured_player_id INTEGER")
+
     player_cols={r["name"] for r in c.execute("PRAGMA table_info(players)")}
     if "age" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN age INTEGER NOT NULL DEFAULT 18")
@@ -4812,55 +4831,107 @@ class H(BaseHTTPRequestHandler):
         if roles and u["role"] not in roles:self.out({"error":"FORBIDDEN"},403);return None
         return u
         
+    def _raw_response(self, body, content_type="text/plain; charset=utf-8", status=200, head_only=False, headers=None):
+        if isinstance(body,str):
+            body=body.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type",content_type)
+        self.send_header("Content-Length",str(len(body)))
+        if headers:
+            for k,v in headers.items():
+                self.send_header(k,v)
+        self.end_headers()
+        if not head_only:
+            self.wfile.write(body)
+
+    def _public_static_target(self, path):
+        p=path
+        if p in ("/", "/verify-email", "/reset-password"):
+            p="/index.html"
+        elif p.startswith("/profile/"):
+            username=p[len("/profile/"):].strip("/")
+            p="/index.html" if username else "/index.html"
+        elif p in ("/favicon.ico","/favicon.png"):
+            p="/assets/ebl_logo.png"
+        return p
+
+    def _robots_body(self):
+        public=os.environ.get("PUBLIC_BASE_URL","https://elite-baseball.com").strip().rstrip("/") or "https://elite-baseball.com"
+        indexable=str(os.environ.get("EBL_PUBLIC_INDEXING","0")).strip().lower() in ("1","true","yes","on")
+        if indexable:
+            return f"User-agent: *\nAllow: /\nSitemap: {public}/sitemap.xml\n"
+        return "User-agent: *\nDisallow: /\n"
+
+    def _sitemap_body(self):
+        public=os.environ.get("PUBLIC_BASE_URL","https://elite-baseball.com").strip().rstrip("/") or "https://elite-baseball.com"
+        return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>{public}/</loc></url>
+</urlset>
+"""
+
     def do_GET(self):
         p=urlparse(self.path).path
 
-
+        if p=="/robots.txt":
+            return self._raw_response(self._robots_body(),"text/plain; charset=utf-8")
+        if p=="/sitemap.xml":
+            return self._raw_response(self._sitemap_body(),"application/xml; charset=utf-8")
         if p=="/health" or p.startswith("/api/"):
             return self.api_get(p)
 
-
-        if p in ("/", "/verify-email", "/reset-password"):
-            p="/index.html"
-
-        # Public EBL member profiles:
-        # /profile/tmoney -> static/profile.html
-        if p.startswith("/profile/"):
-            username=p[len("/profile/"):].strip("/")
-            if username:
-                p="/profile.html"
-            else:
-                p="/index.html"
-
-
+        p=self._public_static_target(p)
         fp=os.path.normpath(os.path.join(STATIC,p.lstrip("/")))
-
-
         if not fp.startswith(STATIC) or not os.path.isfile(fp):
             self.send_error(404)
             return
-
-
         b=open(fp,"rb").read()
-        self.send_response(200)
-        self.send_header(
-            "Content-Type",
-            mimetypes.guess_type(fp)[0] or "application/octet-stream"
-        )
-        self.send_header("Content-Length",len(b))
-        self.end_headers()
-        self.wfile.write(b)
+        return self._raw_response(b,mimetypes.guess_type(fp)[0] or "application/octet-stream")
 
+    def do_HEAD(self):
+        p=urlparse(self.path).path
+        if p=="/robots.txt":
+            return self._raw_response(self._robots_body(),"text/plain; charset=utf-8",head_only=True)
+        if p=="/sitemap.xml":
+            return self._raw_response(self._sitemap_body(),"application/xml; charset=utf-8",head_only=True)
+        if p in ("/health","/api/health"):
+            body=json.dumps({"ok":True,"service":"EBL","version":"1.2.0"}).encode("utf-8")
+            return self._raw_response(body,"application/json",head_only=True)
+        if p=="/api/support":
+            body=json.dumps(support_public_config()).encode("utf-8")
+            return self._raw_response(body,"application/json",head_only=True)
+        if p.startswith("/api/"):
+            self.send_response(405)
+            self.send_header("Allow","GET")
+            self.send_header("Content-Length","0")
+            self.end_headers()
+            return
+        p=self._public_static_target(p)
+        fp=os.path.normpath(os.path.join(STATIC,p.lstrip("/")))
+        if not fp.startswith(STATIC) or not os.path.isfile(fp):
+            self.send_error(404)
+            return
+        size=os.path.getsize(fp)
+        self.send_response(200)
+        self.send_header("Content-Type",mimetypes.guess_type(fp)[0] or "application/octet-stream")
+        self.send_header("Content-Length",str(size))
+        self.end_headers()
 
     def do_POST(self):
         if not valid_same_origin(self):
             return self.out({"error":"INVALID_ORIGIN"},403)
         try:
-            return self.api_post(urlparse(self.path).path)
+            result=self.api_post(urlparse(self.path).path)
+            if result is None:
+                return self.out({"error":"NOT_FOUND"},404)
+            return result
         except ValueError as e:
             code=str(e)
             return self.out({"error":code if code in ("REQUEST_TOO_LARGE","INVALID_JSON") else "BAD_REQUEST"},413 if code=="REQUEST_TOO_LARGE" else 400)
-        
+        except Exception as e:
+            print("POST ERROR:",type(e).__name__,str(e))
+            return self.out({"error":"SERVER_ERROR"},500)
+
     def api_get(self,p):
         u=session_user(self.headers)
         if p in ("/health","/api/health"):
@@ -5012,7 +5083,9 @@ class H(BaseHTTPRequestHandler):
             username=p.split("/")[-1].strip()
             c=conn()
             profile=c.execute(
-                "SELECT id,username,role,created_at FROM users WHERE lower(username)=lower(?)",
+                """SELECT id,username,role,created_at,display_name,profile_bio,profile_motto,profile_photo,
+                          profile_accent,profile_theme,featured_player_id
+                   FROM users WHERE lower(username)=lower(?)""",
                 (username,)
             ).fetchone()
             if not profile:
@@ -6261,6 +6334,49 @@ class H(BaseHTTPRequestHandler):
             c.execute("UPDATE account_recovery SET recovery_hash=?,created_at=CURRENT_TIMESTAMP WHERE user_id=?",(recovery_hash(newcode),u["id"]))
             c.execute("DELETE FROM persistent_sessions WHERE user_id=?",(u["id"],))
             c.commit();c.close();return self.out({"ok":True,"new_recovery_code":newcode})
+        if p=="/api/profile/update":
+            u=self.auth()
+            if not u:return
+            d=self.body()
+            display_name=" ".join(str(d.get("display_name","") or "").split()).strip()
+            profile_bio=str(d.get("profile_bio","") or "").strip()
+            profile_motto=str(d.get("profile_motto","") or "").strip()
+            profile_theme=str(d.get("profile_theme","CLASSIC") or "CLASSIC").strip().upper()
+            profile_accent=str(d.get("profile_accent","#d4af37") or "#d4af37").strip()
+            if len(display_name)>48:
+                return self.out({"error":"DISPLAY_NAME_TOO_LONG"},400)
+            if len(profile_bio)>320:
+                return self.out({"error":"PROFILE_BIO_TOO_LONG"},400)
+            if len(profile_motto)>120:
+                return self.out({"error":"PROFILE_MOTTO_TOO_LONG"},400)
+            if profile_theme not in {"CLASSIC","DUGOUT","NIGHT","GOLD"}:
+                return self.out({"error":"INVALID_PROFILE_THEME"},400)
+            if not valid_hex_color(profile_accent):
+                return self.out({"error":"INVALID_PROFILE_ACCENT"},400)
+            c=conn()
+            current=c.execute("SELECT profile_photo FROM users WHERE id=?",(u["id"],)).fetchone()
+            photo=(current["profile_photo"] if current else "") or ""
+            if "profile_photo" in d:
+                photo=str(d.get("profile_photo","") or "").strip()
+                if photo and (not photo.startswith(("data:image/png;base64,","data:image/webp;base64,","data:image/jpeg;base64,")) or len(photo)>MAX_PROFILE_PHOTO_DATA_URL_CHARS):
+                    c.close();return self.out({"error":"INVALID_PROFILE_PHOTO"},400)
+            featured=d.get("featured_player_id",None)
+            if featured in (None,""):
+                featured=None
+            else:
+                try:featured=int(featured)
+                except Exception:
+                    c.close();return self.out({"error":"INVALID_FEATURED_PLAYER"},400)
+                if not c.execute("SELECT 1 FROM players WHERE id=? AND user_id=?",(featured,u["id"])).fetchone():
+                    c.close();return self.out({"error":"INVALID_FEATURED_PLAYER"},400)
+            c.execute("""UPDATE users SET display_name=?,profile_bio=?,profile_motto=?,profile_photo=?,
+                         profile_accent=?,profile_theme=?,featured_player_id=? WHERE id=?""",
+                      (display_name,profile_bio,profile_motto,photo,profile_accent,profile_theme,featured,u["id"]))
+            c.commit()
+            updated=c.execute("""SELECT id,username,role,created_at,display_name,profile_bio,profile_motto,profile_photo,
+                                        profile_accent,profile_theme,featured_player_id FROM users WHERE id=?""",(u["id"],)).fetchone()
+            c.close();return self.out({"ok":True,"profile":dict(updated)})
+
         if p=="/api/account/rotate-recovery":
             u=self.auth()
             if not u:return
@@ -8465,12 +8581,10 @@ class H(BaseHTTPRequestHandler):
             for p_row in players:
                 pid=p_row["id"]
 
-
                 slots=c.execute(
                     "SELECT franchise_id,slot_no FROM roster_slots WHERE player_id=?",
                     (pid,)
                 ).fetchall()
-
 
                 for slot in slots:
                     c.execute(
@@ -8479,9 +8593,12 @@ class H(BaseHTTPRequestHandler):
                     )
                     restored_slots+=1
 
-
-            c.execute("DELETE FROM players WHERE id=?",(pid,))
-            removed_players+=1
+                c.execute("DELETE FROM offers WHERE player_id=?",(pid,))
+                c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
+                c.execute("DELETE FROM team_practice WHERE player_id=?",(pid,))
+                c.execute("DELETE FROM xp_ledger WHERE player_id=?",(pid,))
+                c.execute("DELETE FROM players WHERE id=?",(pid,))
+                removed_players+=1
             c.execute("DELETE FROM persistent_sessions WHERE user_id=?",(uid,))
             c.execute("DELETE FROM account_recovery WHERE user_id=?",(uid,))
             c.execute("DELETE FROM user_security WHERE user_id=?",(uid,))
@@ -8516,6 +8633,10 @@ class H(BaseHTTPRequestHandler):
                 "restored_slots":restored_slots
             })
 
+        # Every unknown mutation route must return a real HTTP response. Falling off
+        # BaseHTTPRequestHandler makes reverse proxies report a misleading 502.
+        return self.out({"error":"NOT_FOUND"},404)
+
 
 if __name__=="__main__":
     init_db()
@@ -8526,3 +8647,5 @@ if __name__=="__main__":
     httpd=ThreadingHTTPServer((host,port),H)
     threading.Thread(target=auto_advance_worker,args=(port,),daemon=True,name="EBL-AutoAdvance").start()
     httpd.serve_forever()
+
+# EBL member profile identity layer: RC87
