@@ -5129,7 +5129,7 @@ class H(BaseHTTPRequestHandler):
             for row in c.execute(
                 """SELECT p.id,p.user_id,p.name,p.franchise_id,p.type,p.primary_pos,p.bats,p.throws,p.xp_wallet,
                           p.season_json,p.attributes_json,p.status,p.active,p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,
-                          p.facial_hair_id,p.eye_color_id,p.nose_id,p.eye_shape_id,p.mouth_id,p.ear_size_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.jersey_number,u.username
+                          p.facial_hair_id,p.eye_color_id,p.nose_id,p.eye_shape_id,p.mouth_id,p.ear_size_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.body_build_id,p.jersey_number,u.username
                    FROM players p LEFT JOIN users u ON u.id=p.user_id
                    WHERE p.franchise_id=? AND p.active=1
                    ORDER BY CASE p.type WHEN 'H' THEN 0 ELSE 1 END,p.primary_pos,p.name""",
@@ -5761,7 +5761,7 @@ class H(BaseHTTPRequestHandler):
             for pid,line in raw_box.get("hitters",{}).items():
                 player=c.execute(
                     """
-                    SELECT id,name,franchise_id,face_id,skin_color_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number,primary_pos,bats,throws
+                    SELECT id,name,franchise_id,face_id,skin_color_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number,primary_pos,bats,throws
                     FROM players
                     WHERE id=?
                     """,
@@ -5782,7 +5782,7 @@ class H(BaseHTTPRequestHandler):
                     "nose_id":player["nose_id"],"eye_shape_id":player["eye_shape_id"],
                     "mouth_id":player["mouth_id"],"ear_size_id":player["ear_size_id"],
                     "eye_black_id":player["eye_black_id"],"eyewear_id":player["eyewear_id"],
-                    "chain_id":player["chain_id"],"sleeve_id":player["sleeve_id"],
+                    "chain_id":player["chain_id"],"sleeve_id":player["sleeve_id"],"body_build_id":player["body_build_id"],
                     "jersey_number":player["jersey_number"],"primary_pos":player["primary_pos"],
                     "bats":player["bats"],"throws":player["throws"],
                     **line
@@ -5804,7 +5804,7 @@ class H(BaseHTTPRequestHandler):
 
                     player=c.execute(
                         """
-                        SELECT name,face_id,skin_color_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number,primary_pos,bats,throws
+                        SELECT name,face_id,skin_color_id,hair_id,hair_color_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number,primary_pos,bats,throws
                         FROM players
                         WHERE id=?
                         """,
@@ -5830,6 +5830,7 @@ class H(BaseHTTPRequestHandler):
                         "eyewear_id":player["eyewear_id"] if player else 1,
                         "chain_id":player["chain_id"] if player else 1,
                         "sleeve_id":player["sleeve_id"] if player else 1,
+                        "body_build_id":player["body_build_id"] if player else 1,
                         "jersey_number":player["jersey_number"] if player else 24,
                         "primary_pos":player["primary_pos"] if player else "P",
                         "bats":player["bats"] if player else "R",
@@ -5989,7 +5990,7 @@ class H(BaseHTTPRequestHandler):
             for row in c.execute(
                 """SELECT p.id,p.user_id,p.name,p.hometown,p.franchise_id,p.type,p.primary_pos,p.bats,p.throws,p.jersey_number,p.status,p.xp_wallet,
                           p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,p.nose_id,p.eye_shape_id,p.mouth_id,p.ear_size_id,
-                          p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.attributes_json,p.season_json,u.username
+                          p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.body_build_id,p.attributes_json,p.season_json,u.username
                    FROM players p LEFT JOIN users u ON u.id=p.user_id
                    WHERE p.franchise_id=? AND p.active=1
                    ORDER BY CASE p.type WHEN 'H' THEN 0 ELSE 1 END,p.primary_pos,p.name""",(fid,)):
@@ -6060,7 +6061,7 @@ class H(BaseHTTPRequestHandler):
             roster=[dict(x) for x in c.execute(
                 """SELECT p.id,p.user_id,p.name,p.franchise_id,p.type,p.primary_pos,p.bats,p.throws,p.jersey_number,p.xp_wallet,p.status,
                           p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,p.nose_id,p.eye_shape_id,p.mouth_id,p.ear_size_id,
-                          p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,u.username,
+                          p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.body_build_id,u.username,
                           co.salary,co.bonus,co.years_remaining
                    FROM players p
                    LEFT JOIN users u ON u.id=p.user_id
@@ -6194,7 +6195,7 @@ class H(BaseHTTPRequestHandler):
             for r in c.execute("""SELECT p.id,p.name,p.franchise_id,p.primary_pos,p.season_json,p.jersey_number,p.bats,p.throws,
                                          p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,
                                          p.nose_id,p.eye_shape_id,p.mouth_id,p.ear_size_id,
-                                         p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,u.username,
+                                         p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.body_build_id,u.username,
                                          f.name AS team_name,COALESCE(NULLIF(b.display_name,''),f.name) AS team_display_name
                                   FROM players p
                                   LEFT JOIN users u ON u.id=p.user_id
@@ -6299,18 +6300,18 @@ class H(BaseHTTPRequestHandler):
                 player=None
                 if pid:
                     player=c.execute("""SELECT id,name,franchise_id,face_id,skin_color_id,hair_id,hair_color_id,
-                                      facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,
+                                      facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,
                                       jersey_number,primary_pos,bats,throws
                                       FROM players WHERE id=?""",(pid,)).fetchone()
                 if not player and msg.get("team_id"):
                     player=c.execute("""SELECT id,name,franchise_id,face_id,skin_color_id,hair_id,hair_color_id,
-                                      facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,
+                                      facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,
                                       jersey_number,primary_pos,bats,throws
                                       FROM players WHERE user_id=? AND active=1 AND franchise_id=?
                                       ORDER BY id DESC LIMIT 1""",(msg["user_id"],msg["team_id"])).fetchone()
                 if not player:
                     player=c.execute("""SELECT id,name,franchise_id,face_id,skin_color_id,hair_id,hair_color_id,
-                                      facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,
+                                      facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,
                                       jersey_number,primary_pos,bats,throws
                                       FROM players WHERE user_id=? AND active=1
                                       ORDER BY id DESC LIMIT 1""",(msg["user_id"],)).fetchone()
@@ -6330,7 +6331,7 @@ class H(BaseHTTPRequestHandler):
             hitters=[]; pitchers=[]
             for r in c.execute("""SELECT p.id,p.name,p.primary_pos,p.xp_wallet,p.attributes_json,p.season_json,p.franchise_id,
                                          p.jersey_number,p.bats,p.throws,p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,
-                                         p.facial_hair_id,p.eye_color_id,p.nose_id,p.eye_shape_id,p.mouth_id,p.ear_size_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,u.username,
+                                         p.facial_hair_id,p.eye_color_id,p.nose_id,p.eye_shape_id,p.mouth_id,p.ear_size_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.body_build_id,u.username,
                                          f.name AS team_name,COALESCE(NULLIF(b.display_name,''),f.name) AS team_display_name
                                   FROM players p
                                   LEFT JOIN users u ON u.id=p.user_id
@@ -6599,7 +6600,7 @@ class H(BaseHTTPRequestHandler):
                     or eye_color_id not in range(1,7) or nose_id not in range(1,5) or eye_shape_id not in range(1,5)
                     or mouth_id not in range(1,5) or ear_size_id not in range(1,4) or hair_color_id not in range(1,10)
                     or eye_black_id not in range(1,6) or eyewear_id not in range(1,6)
-                    or chain_id not in range(1,4) or sleeve_id not in range(1,5) or body_build_id not in range(1,4)
+                    or chain_id not in range(1,8) or sleeve_id not in range(1,5) or body_build_id not in range(1,4)
                     or jersey_number not in range(0,100)):
                     c.rollback();return self.out({"error":"INVALID_APPEARANCE"},400)
                 cur=c.execute("""INSERT INTO players(user_id,name,hometown,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number)
