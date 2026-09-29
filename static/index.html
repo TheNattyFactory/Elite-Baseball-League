@@ -1144,9 +1144,10 @@ dialog{
     <div id="storageOut" class="muted" style="margin-top:8px"></div>
 
 
-    <h3 style="margin-top:14px">Reset Test Account</h3>
+    <h3 style="margin-top:14px">Reset Test Player State</h3>
+    <p class="muted">Keeps the login, password, verified email, and account profile. Clears test players/career state and coach assignment so the Player Creator is available again. COACH returns to PLAYER; COMMISSIONER stays COMMISSIONER.</p>
     <input id="resetTestTarget" placeholder="username or email">
-    <button class="btn" onclick="resetTestAccount()">Reset Test Account</button>
+    <button class="btn" onclick="resetTestAccount()">Reset Test Player State</button>
     <div id="resetTestOut" class="muted"></div>
 
 
@@ -1159,6 +1160,7 @@ dialog{
 
 
 </main>
+<script>window.EBL_TEST_PLAYER_RESET_BUILD="RC93";</script>
 
 
  <dialog id="gc">
@@ -5239,29 +5241,28 @@ async function resetTestAccount(){
     const target=document.getElementById('resetTestTarget').value.trim();
     const out=document.getElementById('resetTestOut');
 
-
     if(!target){
         out.textContent='Enter a username or email.';
         return;
     }
 
-
-    if(!confirm(`Reset test account "${target}"? This will delete that test account and its player.`)){
+    if(!confirm(`Reset player test state for "${target}"? The login, password and verified email stay intact, but all EBL test players/career state and coach assignment for this account will be cleared.`)){
         return;
     }
 
-
-    out.textContent='Resetting account...';
-
+    out.textContent='Resetting player state...';
 
     try{
         const j=await api('/api/commish/reset-test-account',{
             method:'POST',
             body:JSON.stringify({target})
         });
-
-
-        out.textContent=`Reset complete: ${j.username}. Removed ${j.removed_players || 0} player(s) and restored ${j.restored_slots || 0} roster slot(s).`;
+        const coach=j.coach_state_cleared||{};
+        const coachBits=[];
+        if(Number(coach.assignments||0))coachBits.push(`${Number(coach.assignments)} coach assignment(s)`);
+        if(Number(coach.applications||0))coachBits.push(`${Number(coach.applications)} coach application(s)`);
+        if(coach.role_reset)coachBits.push('COACH → PLAYER');
+        out.textContent=`Reset complete: ${j.username} • ${j.resulting_role||j.original_role||'PLAYER'}. Removed ${j.removed_players||0} player(s) and restored ${j.restored_slots||0} roster slot(s)${coachBits.length?` • cleared ${coachBits.join(', ')}`:''}. Login preserved; Player Creator is ready.`;
         document.getElementById('resetTestTarget').value='';
         await refresh();
     }catch(e){
