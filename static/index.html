@@ -1022,18 +1022,27 @@ dialog{
 #profileEditModal{width:min(650px,calc(100vw - 24px));max-height:90vh;overflow:auto}.profileEditGridV87{display:grid;grid-template-columns:1fr 1fr;gap:10px}.profileEditGridV87 .full{grid-column:1/-1}.profileEditGridV87 label{display:block;font-size:11px;font-weight:850;letter-spacing:.06em;color:#b8c6d4;margin:5px 0}.profileEditGridV87 input,.profileEditGridV87 textarea,.profileEditGridV87 select{width:100%}.profileEditPreviewV87{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#071522}.profileEditPreviewV87 img{width:86px;height:86px;border-radius:18px;object-fit:cover;border:2px solid var(--gold)}
 @media(max-width:800px){.memberProfileHeroV87{grid-template-columns:92px 1fr;padding:16px;gap:12px}.memberProfilePhotoV87{width:88px;height:88px;border-radius:17px}.memberProfileActionsV87{grid-column:1/-1;justify-content:flex-start}.memberProfileStatsV87{grid-template-columns:repeat(2,1fr)}.profileEditGridV87{grid-template-columns:1fr}.profileEditGridV87 .full{grid-column:auto}}
 </style>
+
+<style id="eblAcceleratedBetaV68">
+.betaSiteBadge,.betaTesterBadge{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(212,175,55,.62);background:rgba(212,175,55,.12);color:#f4d77a;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:950;letter-spacing:.08em;vertical-align:middle;white-space:nowrap}
+.betaSiteBadge{margin-right:6px}.betaTesterBadge{margin-left:7px}
+.betaStatusCard{border-left:4px solid var(--gold);background:linear-gradient(135deg,rgba(212,175,55,.08),rgba(7,24,41,.86));margin-top:10px}
+.betaStatusHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.betaStatusHead h2{margin:2px 0 4px}.betaStatusGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.betaStatusStat{border:1px solid var(--line);border-radius:11px;padding:10px;background:rgba(4,15,26,.42)}.betaStatusStat b,.betaStatusStat span{display:block}.betaStatusStat span{color:var(--mut);font-size:11px;margin-top:3px}.betaResetAck{display:flex;gap:8px;align-items:flex-start;margin:9px 0 4px;padding:9px 10px;border:1px solid rgba(212,175,55,.3);border-radius:9px;background:rgba(212,175,55,.05);font-size:13px}.betaResetAck input,.rememberMeRow input{width:auto!important;margin-top:3px}.rememberMeRow{display:flex;gap:8px;align-items:center;margin:9px 0 10px;font-size:13px;color:#d6e0e9}.betaFeedbackFab{position:fixed;right:16px;bottom:16px;z-index:55;border-color:var(--gold)!important;box-shadow:0 10px 28px rgba(0,0,0,.38)}#betaFeedbackModal{width:min(560px,calc(100vw - 24px));max-height:88vh;overflow:auto}.betaFeedbackGrid{display:grid;gap:9px}.betaFeedbackGrid textarea{min-height:150px}.betaFeedbackThanks{border-left:4px solid var(--green);padding:10px;border-radius:8px;background:rgba(88,201,139,.08)}
+@media(max-width:620px){.betaStatusGrid{grid-template-columns:1fr}.betaFeedbackFab{right:10px;bottom:10px;padding:9px 11px;font-size:11px}}
+</style>
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
-<header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season">GENESIS • CLOSED ALPHA • ALPHA HISTORY MAY RESET AT HARD LAUNCH</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
+<header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season"><span class="betaSiteBadge">BETA</span> ACCELERATED STRESS TEST • 81-GAME TEST SEASONS • PROGRESS MAY RESET</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
 <nav id="mainNav">
 <button class="navbtn active" data-page="home">HOME</button><button class="navbtn" data-page="news">NEWS</button><button class="navbtn" data-page="community">COMMUNITY</button><button class="navbtn" data-page="support">SUPPORT</button><button class="navbtn authOnly hidden" data-page="messages">MESSAGES</button><button class="navbtn authOnly hidden" data-page="player">PLAYER</button><button class="navbtn authOnly hidden" data-page="team">TEAM</button><button id="coachNav" class="navbtn authOnly hidden" data-page="coach">COACH</button><button class="navbtn" data-page="league">LEAGUE</button><button class="navbtn authOnly hidden" data-page="analytics">ANALYTICS</button><button class="navbtn" data-page="awards">AWARDS</button><button class="navbtn" data-page="gamecast">GAMECAST</button><button class="navbtn" data-page="rules">RULES</button><button id="adminNav" class="navbtn hidden" data-page="admin">ADMIN</button>
 </nav>
 <main>
 <section id="home" class="page active">
-<div id="loginCard" class="card"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><h2>Welcome to the EBL</h2><p class="supportLead">Create your ballplayer, earn a contract, develop across seasons, and build a career that becomes part of league history.</p><div class="grid"><div><h3>Create Player Account</h3><input id="ru" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" placeholder="username" aria-label="Create username"><input id="rp" name="new-password" type="password" autocomplete="new-password" minlength="8" placeholder="8+ character password" aria-label="Create password"><input id="re" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="verified email" aria-label="Verified email"><label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0 4px;font-size:13px"><input id="rterms" type="checkbox" style="width:auto;margin-top:3px"> <span>I agree to the EBL Community Rules, Beta Terms, and Privacy Summary.</span></label><div class="policyReview">Review: <button type="button" onclick="openPolicy('communityRules')">Community Rules</button> • <button type="button" onclick="openPolicy('termsPolicy')">Terms</button> • <button type="button" onclick="openPolicy('privacyPolicy')">Privacy</button></div><button class="btn" onclick="register()">Create EBL Account</button><div class="publicWelcome"><b>Make your player. Earn your spot. Build your legacy.</b><span>No pay-to-win boosts. Your career grows through games, development, contracts, awards, and the history you create.</span></div></div><div><h3>Login</h3><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><button class="btn" onclick="login()">Login</button></div></div><div class="card" style="margin-top:10px"><h3>Password Recovery</h3><div class="grid"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></div><div id="loginMsg" class="muted"></div></div>
+<div id="loginCard" class="card"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><h2>Welcome to the EBL <span class="betaSiteBadge">BETA</span></h2><p class="supportLead">Create your ballplayer and follow a full EBL career while we run accelerated 81-game test seasons every 1–2 weeks. This is a live stress test, and beta progress may be reset before official launch.</p><div class="grid"><div><h3>Create Player Account</h3><input id="ru" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" placeholder="username" aria-label="Create username"><input id="rp" name="new-password" type="password" autocomplete="new-password" minlength="8" placeholder="8+ character password" aria-label="Create password"><input id="re" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="verified email" aria-label="Verified email"><label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0 4px;font-size:13px"><input id="rterms" type="checkbox" style="width:auto;margin-top:3px"> <span>I agree to the EBL Community Rules, Beta Terms, and Privacy Summary.</span></label><label class="betaResetAck"><input id="rbeta" type="checkbox"> <span>I understand this is an accelerated beta/stress test and that player, season, and league progress may be reset before official launch.</span></label><div class="policyReview">Review: <button type="button" onclick="openPolicy('communityRules')">Community Rules</button> • <button type="button" onclick="openPolicy('termsPolicy')">Terms</button> • <button type="button" onclick="openPolicy('privacyPolicy')">Privacy</button></div><button class="btn" onclick="register()">Join the EBL Beta</button><div class="publicWelcome"><b>Make your player. Help us stress-test the league.</b><span>Human coaches are paused during this player-only beta. CPU clubs handle the league while we test careers, progression, fatigue, contracts, stats, playoffs, and season rollover.</span></div></div><div><h3>Login</h3><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn" onclick="login()">Login</button></div></div><div class="card" style="margin-top:10px"><h3>Password Recovery</h3><div class="grid"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></div><div id="loginMsg" class="muted"></div></div>
 <div id="dashboard" class="hidden">
 <div id="ticker" class="ticker"><div id="tickerTrack" class="tickerTrack"></div></div>
+<div id="betaStatusCard" class="card betaStatusCard"></div>
 <div id="onboardingCard" class="card onboardingCard hidden"></div>
 <div class="card" style="border-left:4px solid var(--red)"><div style="display:flex;justify-content:space-between;align-items:center"><h2>EBL Headlines</h2><button class="btn" onclick="goPage(\'news\')">Open Newsroom</button></div><div id="homeNews"></div></div><div class="two" style="margin-top:10px"><div id="homePlayer" class="card" style="border-top:3px solid var(--red)"></div><div id="homeTeam" class="card" style="border-top:3px solid var(--silver)"></div></div>
 <div class="two"><div id="nextGame" class="card"></div><div class="card"><h2>Recent Performance</h2><div id="recentPerf" class="muted">Genesis begins at zero. Your recent-game line will build here.</div></div></div>
@@ -1124,7 +1133,7 @@ dialog{
 
     <div class="offer" style="margin-bottom:14px">
       <h2 style="margin-top:0">Coach Applications</h2>
-      <p class="muted">Any signed-in EBL account can apply. Review applications here before assigning an approved coach to a franchise.</p>
+      <p class="muted"><b>Player-only beta:</b> new human coaching applications are paused. Existing approved coach accounts remain available for internal testing.</p>
       <button class="btn" onclick="loadCoachApplications()">Refresh Coach Applications</button>
       <div id="coachApplicationsOut" style="margin-top:10px"></div>
     </div>
@@ -1151,6 +1160,11 @@ dialog{
     <div id="resetTestOut" class="muted"></div>
 
 
+    <h2 style="margin-top:14px">Beta Feedback Queue</h2>
+    <p class="muted">Bug reports, ideas, and stress-test feedback submitted from inside EBL.</p>
+    <button class="btn" onclick="loadBetaFeedback()">Refresh Beta Feedback</button>
+    <div id="betaFeedbackQueue"></div>
+
     <h2 style="margin-top:14px">Moderation Queue</h2>
     <button class="btn" onclick="loadReports()">Refresh Reports</button>
     <div id="reportQueue"></div>
@@ -1160,7 +1174,7 @@ dialog{
 
 
 </main>
-<script>window.EBL_TEST_PLAYER_RESET_BUILD="RC93";</script>
+<script>window.EBL_TEST_PLAYER_RESET_BUILD="RC93";window.EBL_ACCELERATED_BETA_BUILD="V68";</script>
 
 
  <dialog id="gc">
@@ -1174,6 +1188,17 @@ dialog{
 </dialog>
 <dialog id="profileEditModal">
   <div id="profileEditContent"></div>
+</dialog>
+<button id="betaFeedbackFab" class="btn betaFeedbackFab authOnly hidden" onclick="openBetaFeedback()">🧪 Beta Feedback</button>
+<dialog id="betaFeedbackModal">
+  <h2>Send Beta Feedback</h2>
+  <p class="muted">Found something broken, confusing, or fun? Tell us what happened. Your current EBL page is included automatically.</p>
+  <div class="betaFeedbackGrid">
+    <label>TYPE<select id="betaFeedbackType"><option value="BUG">Bug / Something broke</option><option value="FEEDBACK">Feedback</option><option value="IDEA">Idea / Suggestion</option></select></label>
+    <label>DETAILS<textarea id="betaFeedbackDetail" maxlength="4000" placeholder="What happened? What did you expect? If it is a bug, tell us what you tapped right before it happened."></textarea></label>
+    <div id="betaFeedbackMsg" class="muted"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="submitBetaFeedback()">Send Feedback</button><button class="btn ghost" onclick="document.getElementById('betaFeedbackModal').close()">Cancel</button></div>
+  </div>
 </dialog>
 
   <style>
@@ -1583,7 +1608,8 @@ async function resendVerification(){return onceAction('resendVerification',async
 async function register(){return onceAction('register',async()=>{
  try{
   if(!document.getElementById('rterms')?.checked){loginMsg.textContent='Please accept the EBL Community Rules, Beta Terms, and Privacy Summary.';return;}
-  let j=await api('/api/register',{method:'POST',body:JSON.stringify({username:ru.value,password:rp.value,email:re.value,accepted_terms:true})});
+  if(!document.getElementById('rbeta')?.checked){loginMsg.textContent='Please acknowledge that accelerated beta progress may be reset before official launch.';return;}
+  let j=await api('/api/register',{method:'POST',body:JSON.stringify({username:ru.value,password:rp.value,email:re.value,accepted_terms:true,accepted_beta_reset:true})});
   ME=j.user;
   dashboard.classList.add('hidden');
   loginCard.classList.remove('hidden');
@@ -1595,7 +1621,7 @@ async function register(){return onceAction('register',async()=>{
 
 async function login(){return onceAction('login',async()=>{
  try{
-  let j=await api('/api/login',{method:'POST',body:JSON.stringify({username:lu.value,password:lp.value})});
+  let j=await api('/api/login',{method:'POST',body:JSON.stringify({username:lu.value,password:lp.value,remember_me:Boolean(document.getElementById('rememberMe')?.checked)})});
   ME=j.user;
   await refresh();
  }catch(e){loginMsg.textContent=e.error||'Login failed'}
@@ -1663,13 +1689,13 @@ async function refresh(){
    }
   }catch(e){}
  }
- accountTag.innerHTML=`<span class="notifWrap"><button class="btn notifBell" onclick="toggleNotifications()" aria-label="Notifications">🔔<span id="notifCount" class="notifCount hidden">0</span></button></span> <button id="pmShortcut" class="btn pmShortcut" onclick="openMessagesPage()" aria-label="Private messages">💬 Messages <span id="pmCount" class="pmCount hidden">0</span></button> ${ME.username} • ${ME.role} &nbsp; <button class="btn" onclick="logout()">Logout</button><div id="notifBackdrop" class="notifBackdrop hidden" onclick="closeNotifications()"></div><div id="notifPanel" class="notifPanel hidden"></div>`;
- loginCard.classList.add('hidden');dashboard.classList.remove('hidden');adminNav.classList.toggle('hidden',ME.role!=='COMMISSIONER');coachNav.classList.remove('hidden');
+ accountTag.innerHTML=`<span class="notifWrap"><button class="btn notifBell" onclick="toggleNotifications()" aria-label="Notifications">🔔<span id="notifCount" class="notifCount hidden">0</span></button></span> <button id="pmShortcut" class="btn pmShortcut" onclick="openMessagesPage()" aria-label="Private messages">💬 Messages <span id="pmCount" class="pmCount hidden">0</span></button> ${ME.username}${ME.beta_member?'<span class="betaTesterBadge">BETA TESTER</span>':''} • ${ME.role} &nbsp; <button class="btn" onclick="logout()">Logout</button><div id="notifBackdrop" class="notifBackdrop hidden" onclick="closeNotifications()"></div><div id="notifPanel" class="notifPanel hidden"></div>`;
+ loginCard.classList.add('hidden');dashboard.classList.remove('hidden');adminNav.classList.toggle('hidden',ME.role!=='COMMISSIONER');coachNav.classList.toggle('hidden',!['COACH','COMMISSIONER'].includes(ME.role));
  const initialLoads=await Promise.allSettled([loadLeague(),loadSchedule(),loadAnalytics(),loadAwards(),loadPlayer(),loadNews(),loadReadiness(),loadCommunity(),loadDMContacts(),loadDMUnread(),loadPlayoffs()]);
  initialLoads.forEach((r,i)=>{if(r.status==='rejected')console.warn('EBL dashboard loader failed',i,r.reason)});
  // Never let an unrelated page failure block Franchise Operations.
  await loadCoachPortal();
- if(ME.role==='COMMISSIONER')await Promise.allSettled([loadLeagueSizeAdmin(),loadCoachApplications(),loadCoachAssignments()]);
+ if(ME.role==='COMMISSIONER')await Promise.allSettled([loadLeagueSizeAdmin(),loadCoachApplications(),loadCoachAssignments(),loadBetaFeedback()]);
  await Promise.allSettled([loadChat('EBL'),loadChat('TEAM')]);
  renderHome();
  startDMPoll();
@@ -3666,6 +3692,7 @@ async function loadLeague(){
  let j=await api('/api/league');
  LEAGUE=j;window.LEAGUE=LEAGUE;
  renderStandings();
+ renderBetaStatus();
  // Schedule and GameCast load in parallel with League on first boot.
  // Repaint them once canonical franchise names/logos are available so raw EBL-Fxx
  // ids can never remain on screen after the source of truth arrives.
@@ -3677,6 +3704,14 @@ async function loadLeague(){
  }
  if(PLAYER)renderPlayer();
 }
+function renderBetaStatus(){
+ const box=document.getElementById('betaStatusCard');if(!box||!LEAGUE)return;
+ const season=Number(LEAGUE.season||1),day=Number(LEAGUE.day||0),phase=String(LEAGUE.phase||'REGULAR').toUpperCase();
+ const phaseLabel=phase==='REGULAR'?`Day ${day}/81`:phase.replaceAll('_',' ');
+ const half=day<=40?'FIRST HALF':day<=81?'SECOND HALF':'POSTSEASON';
+ box.innerHTML=`<div class="betaStatusHead"><div><span class="betaSiteBadge">ACCELERATED BETA</span><h2>Season ${season} Stress Test</h2><div class="muted">Full 81-game seasons are being accelerated to roughly 1–2 weeks so we can test the entire EBL career loop under real player traffic.</div></div><button class="btn ghost" onclick="openBetaFeedback()">Send Feedback</button></div><div class="betaStatusGrid"><div class="betaStatusStat"><b>${phaseLabel}</b><span>${half}</span></div><div class="betaStatusStat"><b>Player-only test</b><span>CPU clubs manage teams; human coaching opens later.</span></div><div class="betaStatusStat"><b>Pitcher recovery checkpoints</b><span>100% after Day 40 / All-Star break, before playoffs, and on Opening Day.</span></div></div><div class="muted" style="margin-top:10px"><b>Beta notice:</b> balance, careers, statistics, and league history may be reset before official launch. Found a problem? Please send it — that is exactly what this test is for.</div>`;
+}
+
 function playoffPicture(){
   const gamesPlayed=(LEAGUE?.teams||[]).reduce((n,t)=>n+Number(t.wins||0)+Number(t.losses||0),0);
   if((LEAGUE?.day||0)<1 || gamesPlayed===0)return {champs:new Set(),wc1:null,wc2:null,active:false};
@@ -3900,7 +3935,7 @@ function renderHome(){
  if(window.onboardingCard){
   if(ME?.role==='PLAYER' && !PLAYER && !onboardingDismissed()){
    onboardingCard.classList.remove('hidden');
-   onboardingCard.innerHTML=`<span class="newsMeta">WELCOME TO THE EBL</span><h2>Start Your Genesis Career</h2><p class="muted">Your EBL account is all you need to play. This quick guide points you toward the important parts of your first career.</p><div class="onboardingSteps"><div class="onboardingStep"><b><span class="onboardingNum">1</span>Create Your Player</b><span class="muted">Choose your identity, appearance, position, and build your player with the starting 50 XP.</span></div><div class="onboardingStep"><b><span class="onboardingNum">2</span>Learn Your EBL Home</b><span class="muted">Your Player page tracks development and career history. Schedule, team pages, standings, league chat, and Community are all built into EBL.</span></div><div class="onboardingStep"><b><span class="onboardingNum">3</span>Get Ready for Opening Day</b><span class="muted">Follow your team, upcoming games, stats, awards, and league news as your career begins.</span></div></div><button class="btn" onclick="goPage('player')">Create My EBL Player</button> <button class="btn ghost" onclick="dismissOnboarding()">Skip Guide</button><div class="muted" style="margin-top:12px"><b>Optional community:</b> Discord and Instagram are just extra ways to enjoy EBL. They are never required to play and provide no gameplay advantage. <a href="https://discord.gg/VnkpDxtYq" target="_blank" rel="noopener noreferrer">Discord</a> • <a href="https://www.instagram.com/elite_baseball_league/" target="_blank" rel="noopener noreferrer">Instagram</a></div>`;
+   onboardingCard.innerHTML=`<span class="betaSiteBadge">WELCOME, BETA TESTER</span><h2>Create Your First EBL Player</h2><p class="muted">This accelerated player-only beta is built to test the complete career loop quickly. Seasons may reset before official launch, so explore, experiment, and tell us what feels right or wrong.</p><div class="onboardingSteps"><div class="onboardingStep"><b><span class="onboardingNum">1</span>Create Your Player</b><span class="muted">Choose identity, appearance, position, and spend your starting 50 XP.</span></div><div class="onboardingStep"><b><span class="onboardingNum">2</span>Enter the League</b><span class="muted">CPU clubs handle team management during the stress test so human players can join and compete immediately.</span></div><div class="onboardingStep"><b><span class="onboardingNum">3</span>Follow Your Career</b><span class="muted">Watch games, stats, contracts, XP, awards, fatigue, playoffs, and season rollover as the league moves quickly.</span></div><div class="onboardingStep"><b><span class="onboardingNum">4</span>Tell Us What Breaks</b><span class="muted">Use the Beta Feedback button anywhere in EBL for bugs, confusing screens, balance notes, or ideas.</span></div></div><button class="btn" onclick="goPage('player')">Create My EBL Player</button> <button class="btn ghost" onclick="openBetaFeedback('FEEDBACK')">Send Beta Feedback</button> <button class="btn ghost" onclick="dismissOnboarding()">Skip Guide</button><div class="muted" style="margin-top:12px"><b>Optional community:</b> Discord and Instagram are extra ways to follow the beta. They are never required to play and provide no gameplay advantage. <a href="https://discord.gg/VnkpDxtYq" target="_blank" rel="noopener noreferrer">Discord</a> • <a href="https://www.instagram.com/elite_baseball_league/" target="_blank" rel="noopener noreferrer">Instagram</a></div>`;
   }else onboardingCard.classList.add('hidden');
  }
  if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
@@ -4389,6 +4424,7 @@ async function saveBranding(){
 }
 async function loadCoachPortal(){
   if(!ME)return;
+  if(ME.role==='PLAYER'){coachHub.innerHTML='<div class="card" style="border-left:4px solid var(--gold)"><span class="betaSiteBadge">PLAYER-ONLY BETA</span><h2>Human coaching opens later</h2><p class="muted">During the accelerated stress test, CPU clubs run the league so we can focus on player careers, progression, contracts, fatigue, statistics, playoffs, and season rollover.</p></div>';return;}
   if(ME.role==='COMMISSIONER')return loadCoachHub();
   coachHub.innerHTML='<p class="muted">Loading coaching status...</p>';
   try{
@@ -5342,9 +5378,27 @@ function openPolicy(id){
 
 async function loadPolicies(){
  communityRules.innerHTML=`<h2>Community Rules</h2><p>Keep EBL competitive, welcoming, and baseball-focused.</p><ol><li>No harassment, threats, hate speech, sexual content, or targeted abuse.</li><li>No spam, scams, impersonation, or attempts to manipulate other users.</li><li>No cheating, exploits, multi-account collusion, or intentionally corrupting league systems.</li><li>Respect team and league moderation decisions. Use reports instead of escalating conflicts.</li><li>Private messages are not a loophole around community rules.</li><li>Franchise names, logos, chat, and player names must be appropriate for a general audience.</li></ol><p class="muted">Violations may lead to warnings, mutes, suspensions, account removal, or competitive penalties.</p>`;
- termsPolicy.innerHTML=`<h2>Beta Terms</h2><p>EBL is currently a beta service. Features, balance, league formats, virtual progression, and Genesis records may change or reset before the hard launch.</p><p>Users must provide accurate account information, protect their credentials, avoid exploiting the service, and follow community rules. EBL may suspend accounts or pause league activity to protect competitive integrity and service safety.</p><p>Virtual XP, awards, franchise rights, and other in-game items have no cash value unless a future published policy explicitly says otherwise.</p><p class="muted">These beta terms are a product draft and should receive legal review before commercial/public launch.</p>`;
+ termsPolicy.innerHTML=`<h2>Beta Terms</h2><p>EBL is currently running an accelerated beta/stress test. Features, balance, league formats, virtual progression, player careers, statistics, and beta league history may change or reset before official launch.</p><p>Users must provide accurate account information, protect their credentials, avoid exploiting the service, and follow community rules. EBL may suspend accounts or pause league activity to protect competitive integrity and service safety.</p><p>Virtual XP, awards, franchise rights, and other in-game items have no cash value unless a future published policy explicitly says otherwise.</p><p class="muted">These beta terms are a product draft and should receive legal review before commercial/public launch.</p>`;
  privacyPolicy.innerHTML=`<h2>Privacy Summary</h2><p>EBL stores account credentials in hashed form, verified email addresses, login/session records, game activity, league statistics, chat/private messages, moderation reports, and technical security logs needed to operate the service.</p><p>Email addresses are used for account verification, password recovery, security notices, and service communications. EBL should not sell personal information.</p><p>Users can report abuse and block other users. Moderators may review reported community content and private messages when specifically reported or when required for safety/service integrity.</p><p class="muted">A jurisdiction-specific privacy policy and retention/deletion process should receive legal review before commercial/public launch.</p>`;
 }
+function openBetaFeedback(type='BUG'){
+ const modal=document.getElementById('betaFeedbackModal');if(!modal)return;
+ const sel=document.getElementById('betaFeedbackType');if(sel&&['BUG','FEEDBACK','IDEA'].includes(type))sel.value=type;
+ const msg=document.getElementById('betaFeedbackMsg');if(msg)msg.textContent='';
+ if(!modal.open)modal.showModal();
+}
+function currentBetaFeedbackPage(){const active=document.querySelector('.page.active');return `${location.pathname}${location.search||''}${active?.id?` • ${active.id}`:''}`.slice(0,240)}
+async function submitBetaFeedback(){
+ const detail=document.getElementById('betaFeedbackDetail')?.value.trim()||'';const msg=document.getElementById('betaFeedbackMsg');
+ if(detail.length<3){if(msg)msg.textContent='Tell us a little more about what happened.';return}
+ try{const j=await api('/api/beta/feedback',{method:'POST',body:JSON.stringify({category:document.getElementById('betaFeedbackType')?.value||'FEEDBACK',detail,page:currentBetaFeedbackPage()})});if(msg)msg.innerHTML='<div class="betaFeedbackThanks"><b>Thank you.</b> Your beta feedback was sent.</div>';document.getElementById('betaFeedbackDetail').value='';setTimeout(()=>document.getElementById('betaFeedbackModal')?.close(),900)}catch(e){if(msg)msg.textContent=e?.error||e?.message||'Feedback could not be sent.'}
+}
+async function loadBetaFeedback(){
+ const out=document.getElementById('betaFeedbackQueue');if(!out||ME?.role!=='COMMISSIONER')return;
+ try{const j=await api('/api/commish/beta-feedback');const rows=j.feedback||[];out.innerHTML=rows.length?rows.map(r=>`<div class="offer"><b>#${Number(r.id)} ${escapeHtml(r.category||'FEEDBACK')}</b> <span class="newsBadge">${escapeHtml(r.status||'OPEN')}</span><div class="muted">${escapeHtml(r.username||'Unknown user')} • ${escapeHtml(r.page||'Unknown page')} • ${escapeHtml(r.created_at||'')}</div><p>${escapeHtml(r.detail||'')}</p>${r.status==='OPEN'?`<button class="btn" onclick="reviewBetaFeedback(${Number(r.id)})">Mark Reviewed</button>`:''}</div>`).join(''):'<p class="muted">No beta feedback yet.</p>'}catch(e){out.innerHTML=`<p class="muted">Could not load beta feedback: ${escapeHtml(e?.error||e?.message||'Unknown error')}</p>`}
+}
+async function reviewBetaFeedback(id){try{await api('/api/commish/resolve-beta-feedback',{method:'POST',body:JSON.stringify({feedback_id:id})});await loadBetaFeedback()}catch(e){alert(e?.error||e?.message||'Could not update feedback')}}
+
 async function loadReports(){
  try{let j=await api('/api/commish/reports');reportQueue.innerHTML=j.reports.length?j.reports.map(r=>`<div class="offer"><b>#${r.id} ${r.reason}</b> • ${r.status}<br><span class="muted">${r.reporter} reported ${r.reported||'content'} • ${r.created_at}</span><br>${escapeHtml(r.detail||'')} ${r.status==='OPEN'?`<br><button class="btn" onclick="moderateUser(${r.reported_user_id},'MUTE')">Mute 24h</button> <button class="btn" onclick="moderateUser(${r.reported_user_id},'SUSPEND')">Suspend 24h</button> <button class="btn" onclick="resolveReport(${r.id})">Resolve</button>`:''}</div>`).join(''):'<p class="muted">No reports.</p>'}catch(e){alert(e.error)}
 }
@@ -8456,7 +8510,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
      const created=u.created_at?String(u.created_at).slice(0,10):'EBL Genesis';const display=u.display_name||u.username||username;
      const content=document.getElementById('profileContent');
      content.style.setProperty('--profile-accent',accent);
-     content.innerHTML=`<section class="memberProfileHeroV87 theme-${theme}">${portrait(u,j)}<div><div class="memberProfileHandleV87">@${esc(u.username||username)} • EBL MEMBER</div><h1 class="memberProfileNameV87">${esc(display)}</h1><div class="muted">${esc(u.role||'PLAYER')} • Member since ${esc(created)} • ${current.length} active player${current.length===1?'':'s'}</div>${u.profile_bio?`<div class="memberProfileBioV87">${esc(u.profile_bio)}</div>`:''}<div class="memberProfileMottoV87">“${esc(u.profile_motto||'Every season adds another line to the story.')}”</div></div><div class="memberProfileActionsV87">${actions(j)}</div></section>
+     content.innerHTML=`<section class="memberProfileHeroV87 theme-${theme}">${portrait(u,j)}<div><div class="memberProfileHandleV87">@${esc(u.username||username)} • EBL MEMBER ${Number(u.beta_member||0)?'<span class="betaTesterBadge">BETA TESTER</span>':''}</div><h1 class="memberProfileNameV87">${esc(display)}</h1><div class="muted">${esc(u.role||'PLAYER')} • Member since ${esc(created)} • ${current.length} active player${current.length===1?'':'s'}</div>${u.profile_bio?`<div class="memberProfileBioV87">${esc(u.profile_bio)}</div>`:''}<div class="memberProfileMottoV87">“${esc(u.profile_motto||'Every season adds another line to the story.')}”</div></div><div class="memberProfileActionsV87">${actions(j)}</div></section>
      <div style="padding:0 18px 18px"><div class="memberProfileStatsV87"><div class="statBox"><span class="label">CAREER PLAYERS</span><b>${legacy.players??players.length}</b></div><div class="statBox"><span class="label">COMPLETED SEASONS</span><b>${legacy.completed_seasons||0}</b></div><div class="statBox"><span class="label">AWARDS</span><b>${legacy.awards||0}</b></div><div class="statBox"><span class="label">CHAMPIONSHIPS</span><b>${legacy.championships??(j.championships||[]).length}</b></div></div>
      <div class="card"><h2>Accolades</h2>${accoladeHtml(j)}</div>
      <div class="card"><h2>Current Players</h2>${current.length?current.map(p=>decoratedPlayerCard(p,u)).join(''):'<p class="muted">No active players.</p>'}</div>
