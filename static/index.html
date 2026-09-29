@@ -3024,7 +3024,7 @@ function refreshChangePositions(){
 async function changePlayerPosition(){return onceAction('changePosition',async()=>{
  try{const group=changeGroup.value,position=changePos.value;await api('/api/player/change-position',{method:'POST',body:JSON.stringify({player_id:PLAYER?.id,position_group:group,position})});await loadPlayer(PLAYER?.id);renderHome();}catch(e){alert(e.error||'Could not change position')}})}
                 
-let CREATOR={name:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,skin_color_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,hair_color_id:3,nose_id:1,eye_shape_id:1,mouth_id:1,ear_size_id:2,eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1,pool:50,attributes:{}};
+let CREATOR={name:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,skin_color_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,hair_color_id:3,nose_id:1,eye_shape_id:1,mouth_id:1,ear_size_id:2,eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1,body_build_id:1,pool:50,attributes:{}};
 let POSITION_DEMAND=[];
 const SKIN_TONES=[{name:'Fair',color:'#f2c59d'},{name:'Light',color:'#e7b58d'},{name:'Warm',color:'#dca47b'},{name:'Tan',color:'#c98c68'},{name:'Medium',color:'#bd7c57'},{name:'Deep',color:'#8d573e'},{name:'Rich',color:'#754733'},{name:'Dark',color:'#633c2e'}];
 const FACE_PRESETS=[
@@ -3071,7 +3071,8 @@ const MOUTH_NAMES=['Neutral','Soft Smile','Wide Smile','Firm'];
 const EAR_SIZE_NAMES=['Small','Standard','Large'];
 const EYE_BLACK_NAMES=['None','Single Stripe','Double Stripe','Down Triangle','Cross'];
 const EYEWEAR_NAMES=['None','Sport Goggles','Thin Frames','Round Frames','Wraparound'];
-const CHAIN_NAMES=['None','Gold Chain','Silver Chain'];
+const CHAIN_NAMES=['None','Single Chain','Double Chains'];
+const BODY_BUILD_NAMES=['Normal','Heavy','Muscular'];
 const SLEEVE_NAMES=['None','Left Arm','Right Arm','Both Arms'];
 
 function eblHairColor(model){const id=Math.max(1,Math.min(HAIR_COLORS.length,Number(model?.hair_color_id)||3));return (HAIR_COLORS[id-1]||HAIR_COLORS[2]).color}
@@ -3538,7 +3539,7 @@ async function finishCreator(){return onceAction('finishCreator',async()=>{
  try{
    if(!String(CREATOR.name||'').trim())return alert('A player name is required. Go back to Basic Info and enter a name.');
    if(CREATOR.position!=='C' && CREATOR.attributes?.CALL){return alert('CALL is a catcher-only rating. Set CALL back to 0 or choose C as your preferred position.');}
-   let payload={name:CREATOR.name,hometown:CREATOR.hometown||'',position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,skin_color_id:CREATOR.skin_color_id||1,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,nose_id:CREATOR.nose_id||1,eye_shape_id:CREATOR.eye_shape_id||1,mouth_id:CREATOR.mouth_id||1,ear_size_id:CREATOR.ear_size_id||2,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
+   let payload={name:CREATOR.name,hometown:CREATOR.hometown||'',position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,skin_color_id:CREATOR.skin_color_id||1,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,nose_id:CREATOR.nose_id||1,eye_shape_id:CREATOR.eye_shape_id||1,mouth_id:CREATOR.mouth_id||1,ear_size_id:CREATOR.ear_size_id||2,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,body_build_id:CREATOR.body_build_id||1,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
    let created=await api('/api/player/create',{method:'POST',body:JSON.stringify(payload)});
    PLAYER_HQ_TAB='playerOverview';
    const newId=created?.player?.id||null;
@@ -6150,7 +6151,7 @@ function eblActionV20(player,action='batting',cls=''){
 /* Stable identity payload helper for creator -> saved player -> league surfaces. */
 function eblIdentityPayloadV21(player){
  const p=eblCanonicalPlayerV20(player||{});
- return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),skin_color_id:Number(p.skin_color_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),nose_id:Number(p.nose_id||1),eye_shape_id:Number(p.eye_shape_id||1),mouth_id:Number(p.mouth_id||1),ear_size_id:Number(p.ear_size_id||2),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),franchise_id:p.franchise_id??null};
+ return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),skin_color_id:Number(p.skin_color_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),nose_id:Number(p.nose_id||1),eye_shape_id:Number(p.eye_shape_id||1),mouth_id:Number(p.mouth_id||1),ear_size_id:Number(p.ear_size_id||2),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),body_build_id:Number(p.body_build_id||1),franchise_id:p.franchise_id??null};
 }
 </script>
 
@@ -6178,6 +6179,7 @@ function eblIdentityCompatV22(raw={}){
    eyewear_id:first(raw.eyewear_id,raw.goggles_id,a.eyewear_id,a.goggles_id,1),
    chain_id:first(raw.chain_id,a.chain_id,1),
    sleeve_id:first(raw.sleeve_id,a.sleeve_id,1),
+   body_build_id:first(raw.body_build_id,a.body_build_id,1),
    bats:first(raw.bats,a.bats,'R'),
    throws:first(raw.throws,a.throws,'R'),
    franchise_id:first(raw.franchise_id,raw.team_id,a.franchise_id,null)
@@ -6194,7 +6196,7 @@ function eblIdentityMiniV22(raw={},subtitle=''){
 /* V23 — non-destructive creator selection/accessibility synchronizer. */
 function eblSyncCreatorSelectionV23(){
   if(typeof CREATOR==='undefined') return;
-  const map={face_id:CREATOR.face_id,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,nose_id:CREATOR.nose_id||1,eye_shape_id:CREATOR.eye_shape_id||1,mouth_id:CREATOR.mouth_id||1,ear_size_id:CREATOR.ear_size_id||2,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id};
+  const map={face_id:CREATOR.face_id,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,nose_id:CREATOR.nose_id||1,eye_shape_id:CREATOR.eye_shape_id||1,mouth_id:CREATOR.mouth_id||1,ear_size_id:CREATOR.ear_size_id||2,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,body_build_id:CREATOR.body_build_id||1};
   document.querySelectorAll('[data-k][data-v]').forEach(el=>{
     const k=el.dataset.k,v=Number(el.dataset.v),on=Object.prototype.hasOwnProperty.call(map,k)&&Number(map[k])===v;
     el.classList.toggle('selected',on); el.setAttribute('aria-pressed',on?'true':'false');
@@ -6232,7 +6234,7 @@ function eblPlayerLineV24(raw={},opts={}){
 }
 function eblIdentityKeyV24(raw={}){
   const p=typeof eblIdentityCompatV22==='function'?eblIdentityCompatV22(raw):raw;
-  return [p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.jersey_number,p.franchise_id??'FA'].join(':');
+  return [p.face_id,p.skin_color_id,p.hair_id,p.hair_color_id,p.facial_hair_id,p.eye_color_id,p.eye_black_id,p.eyewear_id,p.chain_id,p.sleeve_id,p.body_build_id||1,p.jersey_number,p.franchise_id??'FA'].join(':');
 }
 </script>
 
@@ -6333,7 +6335,7 @@ function eblIdentityAuditV29(){
 /* V30 — canonical identity diagnostics without touching intentional legacy fallbacks. */
 function eblIdentityHealthV30(raw={}){
  const p=typeof eblGetIdentityV26==='function'?eblGetIdentityV26(raw):raw;
- const required=['face_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
+ const required=['face_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','body_build_id','jersey_number'];
  const missing=required.filter(k=>p?.[k]===undefined||p?.[k]===null||p?.[k]==='');
  return {ok:missing.length===0,missing,key:typeof eblIdentityKeyV24==='function'?eblIdentityKeyV24(p):'',player:p?.name||p?.player_name||'Player'};
 }
@@ -6423,7 +6425,8 @@ function eblSavedIdentityRC36(raw={}){
     eye_black_id:n(1,saved.eye_black_id,appearance.eye_black_id,avatar.eye_black_id,raw.eye_black_id),
     eyewear_id:n(1,saved.eyewear_id,saved.goggles_id,appearance.eyewear_id,appearance.goggles_id,avatar.eyewear_id,avatar.goggles_id,raw.eyewear_id,raw.goggles_id),
     chain_id:n(1,saved.chain_id,appearance.chain_id,avatar.chain_id,raw.chain_id),
-    sleeve_id:n(1,saved.sleeve_id,appearance.sleeve_id,avatar.sleeve_id,raw.sleeve_id)
+    sleeve_id:n(1,saved.sleeve_id,appearance.sleeve_id,avatar.sleeve_id,raw.sleeve_id),
+    body_build_id:n(1,saved.body_build_id,appearance.body_build_id,avatar.body_build_id,raw.body_build_id)
   };
 }
 
@@ -6475,7 +6478,8 @@ function eblAvatarHealthRC36(raw){
     facial_hair_id:p.facial_hair_id,
     eyewear_id:p.eyewear_id,
     chain_id:p.chain_id,
-    sleeve_id:p.sleeve_id
+    sleeve_id:p.sleeve_id,
+    body_build_id:p.body_build_id
   };
 }
 
@@ -6742,7 +6746,7 @@ window.EBL_AVATAR_EVERYWHERE_RC38={
   version:'RC38',
   gateway:'eblFullSavedPlayerRC38',
   surfaces:['creator','home','player-hq','public-profile','player-card','roster','awards','gamecast','legacy'],
-  appearance:['skin-tone','face','hair','hair-color','facial-hair','eyes','eye-black','eyewear','chain','sleeves','jersey-number'],
+  appearance:['skin-tone','face','hair','hair-color','facial-hair','eyes','eye-black','eyewear','chain','sleeves','body-build','jersey-number'],
   fixes:['hydrate-from-active-players','explicit-avatar-dimensions','same-saved-identity-everywhere','nonempty-svg-fallback']
 };
 </script>
@@ -7872,7 +7876,7 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
  const oldV11=window.eblAppearancePlayerV11;
  window.eblAppearancePlayerV11=function(p={}){const q=typeof oldV11==='function'?oldV11(p):{...p};const a=p.appearance||p.avatar||{};q.skin_color_id=Number(p.skin_color_id??a.skin_color_id??q.skin_color_id??1);return q};
  window.eblCanonicalPlayerV20=function(player){return window.eblAppearancePlayerV11(player||{})};
- window.eblIdentityPayloadV21=function(player){const p=window.eblCanonicalPlayerV20(player||{});return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),skin_color_id:Number(p.skin_color_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),nose_id:Number(p.nose_id||1),eye_shape_id:Number(p.eye_shape_id||1),mouth_id:Number(p.mouth_id||1),ear_size_id:Number(p.ear_size_id||2),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),franchise_id:p.franchise_id??null}};
+ window.eblIdentityPayloadV21=function(player){const p=window.eblCanonicalPlayerV20(player||{});return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),skin_color_id:Number(p.skin_color_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),nose_id:Number(p.nose_id||1),eye_shape_id:Number(p.eye_shape_id||1),mouth_id:Number(p.mouth_id||1),ear_size_id:Number(p.ear_size_id||2),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),body_build_id:Number(p.body_build_id||1),franchise_id:p.franchise_id??null}};
  window.pickSkinTone=function(id){CREATOR.skin_color_id=Math.max(1,Math.min(8,Number(id)||1));creatorAppearance()};
  window.pickHairColor=function(id){CREATOR.hair_color_id=Math.max(1,Math.min(9,Number(id)||3));creatorAppearance()};
  window.EBL_APPEARANCE_FUNCTIONAL_V18={skinPersist:true,hairPersist:true,facial:['None','Mustache','Goatee','Full Beard'],sideburns:false};
@@ -8493,7 +8497,8 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  let tab='face';
  const FACE=[{id:1,label:'Classic'},{id:2,label:'Wide'},{id:5,label:'Angular'},{id:3,label:'Oval'},{id:4,label:'Square'}];
  const HAIR=[{id:1,label:'Short'},{id:2,label:'Medium'},{id:3,label:'Long'},{id:4,label:'Long Flow'},{id:5,label:'Long Waves'},{id:6,label:'Shoulder Length'}];
- const FACIAL=[{id:1,label:'None'},{id:2,label:'Stubble'},{id:3,label:'Goatee'},{id:5,label:'Mustache'},{id:4,label:'Full Beard'},{id:6,label:'Heavy Stubble'},{id:7,label:'Chin Strap'},{id:8,label:'Short Boxed'},{id:11,label:'Soul Patch'},{id:12,label:'Circle Beard'},{id:13,label:'Handlebar'},{id:10,label:'Van Dyke'},{id:14,label:'Mutton Chops'}];
+ const FACIAL=[{id:1,label:'None'},{id:2,label:'Light Stubble'},{id:3,label:'Goatee'},{id:5,label:'Mustache'},{id:4,label:'Full Beard'},{id:6,label:'Heavy Stubble'},{id:7,label:'Chin Strap'},{id:8,label:'Short Boxed'},{id:11,label:'Soul Patch'},{id:12,label:'Circle Beard'},{id:13,label:'Handlebar'},{id:10,label:'Van Dyke'},{id:14,label:'Mutton Chops'}];
+ const BUILDS=[{id:1,label:'Normal'},{id:2,label:'Heavy'},{id:3,label:'Muscular'}];
  const NOSE=[{id:1,label:'Classic'},{id:2,label:'Button'},{id:3,label:'Straight'},{id:4,label:'Broad'}];
  const EYES=[{id:1,label:'Classic'},{id:2,label:'Narrow'},{id:3,label:'Round'},{id:4,label:'Relaxed'}];
  const MOUTHS=[{id:1,label:'Neutral'},{id:2,label:'Soft Smile'},{id:3,label:'Wide Smile'},{id:4,label:'Firm'}];
@@ -8505,11 +8510,13 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
  function detailGrid(title,arr,key,fn){return `<div class="creatorSubheadV20">${title}</div><div class="creatorStudioGridV20">${arr.map(x=>card(x,CREATOR[key],fn,detailThumb({[key]:x.id}))).join('')}</div>`}
  function colors(title,arr,key,fn){return `<div class="creatorSubheadV20">${title}</div><div class="colorChoices">${arr.map((x,i)=>`<button class="colorChoice ${Number(CREATOR[key]||1)===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" onclick="${fn}(${i+1})"></button>`).join('')}</div>`}
  function accessories(){const group=(title,names,key,fn)=>`<div class="creatorSubheadV20">${title}</div><div class="creatorAccessoryGridV20">${names.map((n,i)=>`<div class="creatorAccessoryV20 ${Number(CREATOR[key]||1)===i+1?'selected':''}" onclick="${fn}(${i+1})"><small>${title}</small><b>${n}</b></div>`).join('')}</div>`;return group('EYE BLACK',EYE_BLACK_NAMES,'eye_black_id','pickEyeBlack')+group('EYEWEAR',EYEWEAR_NAMES,'eyewear_id','pickEyewear')+group('CHAIN',CHAIN_NAMES,'chain_id','pickChain')+group('SLEEVES',SLEEVE_NAMES,'sleeve_id','pickSleeve')}
- function body(){if(tab==='face')return `<h3>FACE SHAPE</h3><div class="creatorStudioGridV20">${FACE.map(x=>card(x,CREATOR.face_id,'pickFace',thumb(x.id,CREATOR.hair_id,CREATOR.facial_hair_id))).join('')}</div>${detailGrid('NOSE',NOSE,'nose_id','pickNose')}${detailGrid('EYES',EYES,'eye_shape_id','pickEyeShape')}${detailGrid('MOUTH',MOUTHS,'mouth_id','pickMouth')}${detailGrid('EARS',EARS,'ear_size_id','pickEarSize')}${colors('SKIN TONE',SKIN_TONES,'skin_color_id','pickSkinTone')}${colors('EYE COLOR',EYE_COLORS,'eye_color_id','pickEyeColor')}`;if(tab==='hair')return `<h3>HAIR</h3><div class="creatorStudioGridV20">${HAIR.map(x=>card(x,CREATOR.hair_id,'pickHair',thumb(CREATOR.face_id,x.id,CREATOR.facial_hair_id))).join('')}</div>${colors('HAIR COLOR',HAIR_COLORS,'hair_color_id','pickHairColor')}`;if(tab==='facial')return `<h3>FACIAL HAIR</h3><div class="creatorStudioGridV20">${FACIAL.map(x=>card(x,CREATOR.facial_hair_id,'pickFacialHair',thumb(CREATOR.face_id,CREATOR.hair_id,x.id))).join('')}</div>`;return `<h3>ACCESSORIES</h3>${accessories()}`}
+ function buildGrid(){return `<h3>BODY BUILD</h3><div class="creatorStudioGridV20">${BUILDS.map(x=>card(x,CREATOR.body_build_id||1,'pickBodyBuild',detailThumb({body_build_id:x.id}))).join('')}</div><div class="card" style="margin-top:12px"><b>JERSEY STAYS CONSISTENT.</b><div class="muted">Build affects head/neck/arm presentation and accessories, while keeping the uniform silhouette clean.</div></div>`}
+ function body(){if(tab==='face')return `<h3>FACE SHAPE</h3><div class="creatorStudioGridV20">${FACE.map(x=>card(x,CREATOR.face_id,'pickFace',thumb(x.id,CREATOR.hair_id,CREATOR.facial_hair_id))).join('')}</div>${detailGrid('NOSE',NOSE,'nose_id','pickNose')}${detailGrid('EYES',EYES,'eye_shape_id','pickEyeShape')}${detailGrid('MOUTH',MOUTHS,'mouth_id','pickMouth')}${detailGrid('EARS',EARS,'ear_size_id','pickEarSize')}${colors('SKIN TONE',SKIN_TONES,'skin_color_id','pickSkinTone')}${colors('EYE COLOR',EYE_COLORS,'eye_color_id','pickEyeColor')}`;if(tab==='hair')return `<h3>HAIR</h3><div class="creatorStudioGridV20">${HAIR.map(x=>card(x,CREATOR.hair_id,'pickHair',thumb(CREATOR.face_id,x.id,CREATOR.facial_hair_id))).join('')}</div>${colors('HAIR COLOR',HAIR_COLORS,'hair_color_id','pickHairColor')}`;if(tab==='facial')return `<h3>FACIAL HAIR</h3><div class="creatorStudioGridV20">${FACIAL.map(x=>card(x,CREATOR.facial_hair_id,'pickFacialHair',thumb(CREATOR.face_id,CREATOR.hair_id,x.id))).join('')}</div>`;if(tab==='body')return buildGrid();return `<h3>ACCESSORIES</h3>${accessories()}`}
  window.setCreatorAppearanceTabV20=function(t){tab=t;creatorAppearance()};
  window.pickFacialHair=function(id){CREATOR.facial_hair_id=FACIAL.some(x=>x.id===Number(id))?Number(id):1;creatorAppearance()};
- window.creatorAppearance=function(){const stage=document.getElementById('creatorStage');if(!stage)return;stage.innerHTML=`<div class="creatorStudioV20"><section class="creatorStudioLeftV20"><div class="creatorStudioHeadV20"><div class="creatorStageEyebrow">PLAYER APPEARANCE</div><div class="creatorStageTitle">Build your look.</div><div class="creatorStageCopy" style="margin:0">This is the same avatar used across EBL.</div></div><div class="creatorStudioTabsV20">${[['face','Face'],['hair','Hair'],['facial','Facial Hair'],['headwear','Headwear'],['accessories','Accessories']].map(x=>`<button class="creatorStudioTabV20 ${tab===x[0]?'active':''}" onclick="setCreatorAppearanceTabV20('${x[0]}')">${x[1]}</button>`).join('')}</div><div class="creatorStudioBodyV20">${body()}</div></section><aside class="creatorStudioRightV20"><h3>LIVE PLAYER PREVIEW</h3><div class="muted">This is exactly how you will look across EBL.</div><div id="creator3dPreview" class="avatar3dPreview"></div><div class="creatorStudioMetaV20"><div><span>Name</span><b>${escapeHtml(CREATOR.name||'Your Player')}</b></div><div><span>Jersey #</span><b>${String(CREATOR.jersey_number||24).padStart(2,'0')}</b></div><div><span>Position</span><b>${escapeHtml(CREATOR.position||'EBL')}</b></div><div><span>Look</span><b>${label(HAIR,CREATOR.hair_id)} • ${label(FACIAL,CREATOR.facial_hair_id)}</b></div></div><button class="btn creatorStudioSaveV20" onclick="beginAttributes()">SAVE APPEARANCE</button><div class="card" style="margin-top:10px"><b>SAME LOOK. EVERYWHERE.</b><div class="muted">Your saved appearance carries across Player HQ, EBL Home, team rosters, public profiles, and GameCast.</div></div></aside></div><div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(1)">BACK</button></div>`;requestAnimationFrame(()=>renderCreator3D('creator3dPreview'))};
- window.EBL_CREATOR_STUDIO_V20={tabs:['Face','Hair','Facial Hair','Headwear','Accessories'],facial:FACIAL.map(x=>x.label),responsive:true};
+ window.pickBodyBuild=function(id){CREATOR.body_build_id=BUILDS.some(x=>x.id===Number(id))?Number(id):1;creatorAppearance()};
+ window.creatorAppearance=function(){const stage=document.getElementById('creatorStage');if(!stage)return;stage.innerHTML=`<div class="creatorStudioV20"><section class="creatorStudioLeftV20"><div class="creatorStudioHeadV20"><div class="creatorStageEyebrow">PLAYER APPEARANCE</div><div class="creatorStageTitle">Build your look.</div><div class="creatorStageCopy" style="margin:0">This is the same avatar used across EBL.</div></div><div class="creatorStudioTabsV20">${[['face','Face'],['hair','Hair'],['facial','Facial Hair'],['body','Body Build'],['accessories','Accessories']].map(x=>`<button class="creatorStudioTabV20 ${tab===x[0]?'active':''}" onclick="setCreatorAppearanceTabV20('${x[0]}')">${x[1]}</button>`).join('')}</div><div class="creatorStudioBodyV20">${body()}</div></section><aside class="creatorStudioRightV20"><h3>LIVE PLAYER PREVIEW</h3><div class="muted">This is exactly how you will look across EBL.</div><div id="creator3dPreview" class="avatar3dPreview"></div><div class="creatorStudioMetaV20"><div><span>Name</span><b>${escapeHtml(CREATOR.name||'Your Player')}</b></div><div><span>Jersey #</span><b>${String(CREATOR.jersey_number||24).padStart(2,'0')}</b></div><div><span>Position</span><b>${escapeHtml(CREATOR.position||'EBL')}</b></div><div><span>Look</span><b>${label(BUILDS,CREATOR.body_build_id||1)} • ${label(FACIAL,CREATOR.facial_hair_id)}</b></div></div><button class="btn creatorStudioSaveV20" onclick="beginAttributes()">SAVE APPEARANCE</button><div class="card" style="margin-top:10px"><b>SAME LOOK. EVERYWHERE.</b><div class="muted">Your saved appearance carries across Player HQ, EBL Home, team rosters, public profiles, and GameCast.</div></div></aside></div><div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(1)">BACK</button></div>`;requestAnimationFrame(()=>renderCreator3D('creator3dPreview'))};
+ window.EBL_CREATOR_STUDIO_V20={tabs:['Face','Hair','Facial Hair','Body Build','Accessories'],facial:FACIAL.map(x=>x.label),bodyBuilds:BUILDS.map(x=>x.label),responsive:true};
 })();
 </script>
 
@@ -8945,7 +8952,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
 <!-- EBL CANONICAL PLAYER IDENTITY LOCK V34 -->
 <script id="eblCanonicalPlayerIdentityLockV34">
 (function(){
- const APPEARANCE=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','nose_id','eye_shape_id','mouth_id','ear_size_id','eye_black_id','eyewear_id','chain_id','sleeve_id'];
+ const APPEARANCE=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','nose_id','eye_shape_id','mouth_id','ear_size_id','eye_black_id','eyewear_id','chain_id','sleeve_id','body_build_id'];
  const cache=new Map();
  const priorFull=window.eblFullSavedPlayerRC38;
  const finalArt=window.eblPlayerArtV24;
@@ -9206,7 +9213,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   const SKIN_COLORS_V61=['#f2c59d','#e7b58d','#dca47b','#c98c68','#bd7c57','#8d573e','#754733','#633c2e'];
   const EYE_COLORS_V61=['#4b2d1f','#765133','#3d7b5a','#2f6690','#77736b','#18232d'];
   const FACE_SIDES_V61={1:[111,189],2:[96,204],3:[113,187],4:[103,197],5:[110,190]};
-  const APPEARANCE_KEYS_V61=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','nose_id','eye_shape_id','mouth_id','ear_size_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
+  const APPEARANCE_KEYS_V61=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','nose_id','eye_shape_id','mouth_id','ear_size_id','eye_black_id','eyewear_id','chain_id','sleeve_id','body_build_id','jersey_number'];
 
   function creatorState(){try{return CREATOR}catch(_){return {}}}
   function creatorKey(p={}){
@@ -9305,25 +9312,43 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     const id=N(p.facial_hair_id,1);if(id===1)return '';
     const fid=Math.max(1,Math.min(5,N(p.face_id,1))),j=FACE_JAW_V61[fid]||FACE_JAW_V61[1];
     const c=HAIR_COLORS_V61[Math.max(0,Math.min(HAIR_COLORS_V61.length-1,N(p.hair_color_id,3)-1))];
-    const mouthY=174, chin=j.chin, patchTop=Math.max(186,chin-28);
+    const mouthY=174, chin=j.chin, patchTop=Math.max(188,chin-26), lowerTop=patchTop+4;
     const must=`<path d="M132 ${mouthY}Q140 ${mouthY-6} 149 ${mouthY-1}Q151 ${mouthY} 152 ${mouthY-1}Q160 ${mouthY-6} 168 ${mouthY}Q160 ${mouthY+7} 151 ${mouthY+5}Q150 ${mouthY+7} 149 ${mouthY+5}Q140 ${mouthY+7} 132 ${mouthY}Z" fill="${c}"/>`;
+    const mustCircle=`<path d="M132 ${mouthY+1}Q140 ${mouthY-7} 149 ${mouthY-2}Q151 ${mouthY-1} 152 ${mouthY-2}Q160 ${mouthY-7} 168 ${mouthY+1}Q160 ${mouthY+8} 151 ${mouthY+6}Q150 ${mouthY+8} 149 ${mouthY+6}Q140 ${mouthY+8} 132 ${mouthY+1}Z" fill="${c}"/>`;
     const handle=`<path d="M130 ${mouthY}Q139 ${mouthY-7} 147 ${mouthY-1}Q138 ${mouthY+9} 124 ${mouthY+7}Q118 ${mouthY+6} 114 ${mouthY+1}Q123 ${mouthY+5} 130 ${mouthY}ZM170 ${mouthY}Q161 ${mouthY-7} 153 ${mouthY-1}Q162 ${mouthY+9} 176 ${mouthY+7}Q182 ${mouthY+6} 186 ${mouthY+1}Q177 ${mouthY+5} 170 ${mouthY}Z" fill="${c}"/>`;
-    const soul=`<path d="M144 ${patchTop}Q150 ${patchTop+4} 156 ${patchTop}L154 ${patchTop+11}Q150 ${patchTop+15} 146 ${patchTop+11}Z" fill="${c}"/>`;
-    const goatee=`<path d="M141 ${patchTop-2}Q150 ${patchTop+4} 159 ${patchTop-2}L158 ${Math.min(chin,patchTop+22)}Q150 ${Math.min(chin+2,patchTop+29)} 142 ${Math.min(chin,patchTop+22)}Z" fill="${c}"/>`;
+    const soul=`<path d="M144 ${patchTop+3}Q150 ${patchTop+8} 156 ${patchTop+3}L154 ${patchTop+13}Q150 ${patchTop+17} 146 ${patchTop+13}Z" fill="${c}"/>`;
+    const goatee=`<g><path d="M140 ${lowerTop}Q150 ${lowerTop+5} 160 ${lowerTop}L158 ${Math.min(chin,lowerTop+24)}Q150 ${Math.min(chin+2,lowerTop+30)} 142 ${Math.min(chin,lowerTop+24)}Z" fill="${c}"/><path d="M142 ${lowerTop+1}Q150 ${lowerTop+7} 158 ${lowerTop+1}" fill="none" stroke="#000" stroke-opacity=".18" stroke-width="1"/></g>`;
     const jawPath=`M${j.l} ${j.top}Q${j.l+4} ${chin-24} ${j.ml} ${chin-10}Q140 ${chin-1} 150 ${chin+1}Q160 ${chin-1} ${j.mr} ${chin-10}Q${j.r-4} ${chin-24} ${j.r} ${j.top}`;
-    if(id===2)return `<path data-ebl-facial-hair="v61" d="${jawPath}" fill="none" stroke="${c}" stroke-width="5.2" stroke-linecap="round" stroke-dasharray="1.2 5.2" opacity=".42"/>`;
+    const stubbleDots=(count=18,spread=1,opacity=.46)=>{const pts=[];for(let i=0;i<count;i++){const t=i/(count-1);const x=(j.l+6)+(j.r-j.l-12)*t;const y=j.top+6+Math.sin(t*Math.PI)*(chin-j.top-18)+(i%2?0:3*spread);const r=(i%3===0?1.55:1.15)*spread;pts.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="${c}" opacity="${opacity}"/>`);}
+      const extras=[ [136,191],[143,197],[150,199],[157,197],[164,191] ].map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${(i===2?1.6:1.2)*spread}" fill="${c}" opacity="${opacity}"/>`).join('');
+      return `<g>${pts.join('')}${extras}</g>`;
+    };
+    if(id===2)return `<g data-ebl-facial-hair="v61">${stubbleDots(20,1,.42)}</g>`;
     if(id===3)return `<g data-ebl-facial-hair="v61">${must}${goatee}</g>`;
     if(id===5)return `<g data-ebl-facial-hair="v61">${must}</g>`;
     if(id===4)return `<g data-ebl-facial-hair="v61"><path d="${jawPath}" fill="none" stroke="${c}" stroke-width="11.5" stroke-linecap="round" stroke-linejoin="round"/>${must}</g>`;
-    if(id===6)return `<path data-ebl-facial-hair="v61" d="${jawPath}" fill="none" stroke="${c}" stroke-width="7.5" stroke-linecap="round" stroke-dasharray="2 3.5" opacity=".62"/>`;
+    if(id===6)return `<g data-ebl-facial-hair="v61">${stubbleDots(28,1.18,.62)}<path d="${jawPath}" fill="none" stroke="${c}" stroke-width="3.6" stroke-linecap="round" stroke-dasharray="1.1 7.2" opacity=".26"/></g>`;
     if(id===7)return `<path data-ebl-facial-hair="v61" d="${jawPath}" fill="none" stroke="${c}" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round"/>`;
     if(id===8)return `<g data-ebl-facial-hair="v61"><path d="${jawPath}" fill="none" stroke="${c}" stroke-width="8.2" stroke-linecap="round"/><path d="M136 ${mouthY+1}Q150 ${mouthY+7} 164 ${mouthY+1}" fill="none" stroke="${c}" stroke-width="4.2" stroke-linecap="round"/></g>`;
     if(id===11)return `<g data-ebl-facial-hair="v61">${soul}</g>`;
-    if(id===12)return `<g data-ebl-facial-hair="v61">${must}<path d="M139 ${patchTop-2}Q150 ${patchTop+5} 161 ${patchTop-2}L159 ${Math.min(chin,patchTop+19)}Q150 ${Math.min(chin+1,patchTop+25)} 141 ${Math.min(chin,patchTop+19)}Z" fill="${c}"/></g>`;
+    if(id===12)return `<g data-ebl-facial-hair="v61">${mustCircle}<path d="M137 ${mouthY+2}Q136 ${patchTop+5} 141 ${patchTop+11}" fill="none" stroke="${c}" stroke-width="4.1" stroke-linecap="round"/><path d="M163 ${mouthY+2}Q164 ${patchTop+5} 159 ${patchTop+11}" fill="none" stroke="${c}" stroke-width="4.1" stroke-linecap="round"/><path d="M141 ${patchTop+10}Q150 ${patchTop+16} 159 ${patchTop+10}L158 ${Math.min(chin,patchTop+24)}Q150 ${Math.min(chin+2,patchTop+30)} 142 ${Math.min(chin,patchTop+24)}Z" fill="${c}"/></g>`;
     if(id===13)return `<g data-ebl-facial-hair="v61">${handle}</g>`;
-    if(id===10)return `<g data-ebl-facial-hair="v61">${must}${goatee}${soul}</g>`;
+    if(id===10)return `<g data-ebl-facial-hair="v61"><path d="M132 ${mouthY}Q140 ${mouthY-7} 149 ${mouthY-2}Q151 ${mouthY-1} 152 ${mouthY-2}Q160 ${mouthY-7} 168 ${mouthY}Q160 ${mouthY+6} 151 ${mouthY+3}Q150 ${mouthY+6} 149 ${mouthY+3}Q140 ${mouthY+6} 132 ${mouthY}Z" fill="${c}"/><path d="M141 ${patchTop+6}Q150 ${patchTop+12} 159 ${patchTop+6}L157 ${Math.min(chin,patchTop+24)}Q150 ${Math.min(chin+3,patchTop+33)} 143 ${Math.min(chin,patchTop+24)}Z" fill="${c}"/></g>`;
     if(id===14)return `<g data-ebl-facial-hair="v61"><path d="M${j.l} ${j.top}Q${j.l+2} ${chin-22} ${j.ml-2} ${chin-12}" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"/><path d="M${j.r} ${j.top}Q${j.r-2} ${chin-22} ${j.mr+2} ${chin-12}" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"/></g>`;
     return '';
+  }
+  function chainMarkup(p={}){
+    const id=Math.max(1,Math.min(3,N(p.chain_id,1)));if(id===1)return '';
+    const base=`<g data-ebl-chain="v64" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M121 236Q150 262 179 236" stroke="#5e4814" stroke-opacity=".34" stroke-width="7.2"/><path d="M121 236Q150 262 179 236" stroke="#efc652" stroke-width="4.7"/><path d="M126 238Q150 257 174 238" stroke="#fff2b0" stroke-opacity=".72" stroke-width="1.3"/></g>`;
+    if(id===2)return base;
+    return `<g data-ebl-chain="v64">${base}<path d="M127 246Q150 268 173 246" fill="none" stroke="#6a5016" stroke-opacity=".28" stroke-width="6.2" stroke-linecap="round"/><path d="M127 246Q150 268 173 246" fill="none" stroke="#e9d9a8" stroke-width="3.4" stroke-linecap="round"/><path d="M131 248Q150 264 169 248" fill="none" stroke="#ffffff" stroke-opacity=".58" stroke-width="1" stroke-linecap="round"/></g>`;
+  }
+  function bodyBuildMarkup(p={}){
+    const build=Math.max(1,Math.min(3,N(p.body_build_id,1)));
+    const skin=SKIN_COLORS_V61[Math.max(0,Math.min(7,N(p.skin_color_id,1)-1))];
+    if(build===2)return `<g data-ebl-body-build="v64" pointer-events="none"><path d="M132 217Q150 212 168 217" fill="none" stroke="#000" stroke-opacity=".12" stroke-width="2.5"/><path d="M120 230Q150 222 180 230" fill="none" stroke="${skin}" stroke-opacity=".34" stroke-width="9" stroke-linecap="round"/><path d="M80 278Q72 301 72 329" fill="none" stroke="${skin}" stroke-opacity=".16" stroke-width="10" stroke-linecap="round"/><path d="M220 278Q228 301 228 329" fill="none" stroke="${skin}" stroke-opacity=".16" stroke-width="10" stroke-linecap="round"/></g>`;
+    if(build===3)return `<g data-ebl-body-build="v64" pointer-events="none"><path d="M126 220Q150 206 174 220" fill="none" stroke="#000" stroke-opacity=".15" stroke-width="2.8"/><path d="M128 225Q150 215 172 225" fill="none" stroke="${skin}" stroke-opacity=".22" stroke-width="8" stroke-linecap="round"/><path d="M86 276Q80 298 82 322" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="2.2" stroke-linecap="round"/><path d="M214 276Q220 298 218 322" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="2.2" stroke-linecap="round"/></g>`;
+    return `<g data-ebl-body-build="v64" pointer-events="none"><path d="M132 219Q150 213 168 219" fill="none" stroke="#000" stroke-opacity=".10" stroke-width="2.1"/></g>`;
   }
   function finalAppearancePass(html,p={},action='portrait'){
     let out=String(html||'');
@@ -9343,7 +9368,8 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
            .replace(/<path d="M116 145Q128 138 140 145Q128 152 116 145ZM160 145Q172 138 184 145Q172 152 160 145Z" fill="#fff" stroke="#2a1712" stroke-width="2"\/><ellipse cx="128" cy="145" rx="4" ry="4\.4" fill="[^"]+"\/><ellipse cx="172" cy="145" rx="4" ry="4\.4" fill="[^"]+"\/><circle cx="128" cy="145" r="1\.5"\/><circle cx="172" cy="145" r="1\.5"\/>/,eyeMarkup(p))
            .replace(/<path d="M150 147Q144 164 148 171Q153 175 158 171" fill="none" stroke="#875344" stroke-width="2\.5"\/>/,noseMarkup(p))
            .replace(/<path d="M134 184Q150 190 166 184" fill="none" stroke="#704038" stroke-width="3" stroke-linecap="round"\/>/,mouthMarkup(p));
-    const extras=hairUnderCap(p)+facePolish(p)+facialHair(p)+eyeBlack(p)+eyewear(p);
+    out=out.replace(/<g data-ebl-chain=\"v64\"[\s\S]*?<\/g>/g,'');
+    const extras=bodyBuildMarkup(p)+chainMarkup(p)+hairUnderCap(p)+facePolish(p)+facialHair(p)+eyeBlack(p)+eyewear(p);
     if(extras){
       if(/<path data-ebl-cap-crown=/.test(out))out=out.replace(/(<path data-ebl-cap-crown=)/,extras+'$1');
       else out=out.replace(/<\/svg>/,extras+'</svg>');
@@ -9405,7 +9431,8 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   window.pickEyewear=id=>{CREATOR.eyewear_id=Math.max(1,Math.min(5,N(id,1)));repaint()};
   window.pickChain=id=>{CREATOR.chain_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
   window.pickSleeve=id=>{CREATOR.sleeve_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
-  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'V63',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'six silhouette choices with three long variations',facialHair:'single final compositor with thirteen choices',faceDetails:['four noses','four eye shapes','four mouths','three ear sizes'],eyeBlack:'five choices including triangle and cross',faceTuning:{oval:'fuller while still long',angular:'angled jaw with clearly flattened chin'},accessories:['five eyewear styles','chain','sleeves'],teamBranding:'preserved through V52/V53'});
+  window.pickBodyBuild=id=>{CREATOR.body_build_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
+  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'V64',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'six silhouette choices with three long variations',facialHair:'single final compositor with thirteen choices + tuned stubble/goatee/circle beard/van dyke',faceDetails:['four noses','four eye shapes','four mouths','three ear sizes'],eyeBlack:'five choices including triangle and cross',bodyBuilds:['normal','heavy','muscular'],faceTuning:{oval:'fuller while still long',angular:'angled jaw with clearly flattened chin'},accessories:['five eyewear styles','single/double chain','sleeves'],teamBranding:'preserved through V52/V53'});
   try{if(document.getElementById('creatorStage')&&typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(_){ }
 })();
 </script>
@@ -9419,7 +9446,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 #creatorStage .creatorSubheadV20{margin-top:20px}
 @media(max-width:760px){#creatorStage .creatorStudioBodyV20{padding-inline:14px}}
 </style>
-<script id="eblAvatarDetailPolishV63Meta">window.EBL_AVATAR_DETAIL_POLISH_V63=Object.freeze({version:'V63',singleRenderer:true,sourceOfTruth:'saved player appearance',features:{nose:4,eyeShapes:4,mouths:4,earSizes:3,hair:6,facialHair:13,eyewear:5,eyeBlack:5},polish:'rounder curves, softer line weights, subtle face depth, eye highlights',legacySafeDefaults:true});</script>
+<script id="eblAvatarDetailPolishV63Meta">window.EBL_AVATAR_DETAIL_POLISH_V63=Object.freeze({version:'V64',singleRenderer:true,sourceOfTruth:'saved player appearance',features:{nose:4,eyeShapes:4,mouths:4,earSizes:3,hair:6,facialHair:13,eyewear:5,eyeBlack:5,bodyBuilds:3},polish:'rounder curves, softer line weights, subtle face depth, eye highlights, tuned facial hair, stronger chain rendering',legacySafeDefaults:true});</script>
 
 <!-- EBL RENDERER OWNERSHIP CONTRACT V62 — no visual layer, only prevents runtime renderer replacement -->
 <script id="eblRendererOwnershipV62">
