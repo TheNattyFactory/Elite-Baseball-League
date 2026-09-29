@@ -351,6 +351,7 @@ def init_db():
       eyewear_id INTEGER NOT NULL DEFAULT 1,
       chain_id INTEGER NOT NULL DEFAULT 1,
       sleeve_id INTEGER NOT NULL DEFAULT 1,
+      body_build_id INTEGER NOT NULL DEFAULT 1,
       jersey_number INTEGER NOT NULL DEFAULT 24,
       age INTEGER NOT NULL DEFAULT 18,
       hometown TEXT NOT NULL DEFAULT '',
@@ -815,6 +816,8 @@ def init_db():
         c.execute("ALTER TABLE players ADD COLUMN chain_id INTEGER NOT NULL DEFAULT 1")
     if "sleeve_id" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN sleeve_id INTEGER NOT NULL DEFAULT 1")
+    if "body_build_id" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN body_build_id INTEGER NOT NULL DEFAULT 1")
     if "jersey_number" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN jersey_number INTEGER NOT NULL DEFAULT 24")
         # Give every existing player a stable number immediately. Signed players
@@ -2283,7 +2286,7 @@ def player_identity_payload(row):
     }
     for key in ("face_id","skin_color_id","hair_id","hair_color_id","facial_hair_id",
                 "eye_color_id","nose_id","eye_shape_id","mouth_id","ear_size_id",
-                "eye_black_id","eyewear_id","chain_id","sleeve_id"):
+                "eye_black_id","eyewear_id","chain_id","sleeve_id","body_build_id"):
         if key in d:
             out[key]=d.get(key)
     if d.get("team_name") is not None:
@@ -6590,17 +6593,17 @@ class H(BaseHTTPRequestHandler):
                 nose_id=int(d.get("nose_id",1));eye_shape_id=int(d.get("eye_shape_id",1))
                 mouth_id=int(d.get("mouth_id",1));ear_size_id=int(d.get("ear_size_id",2))
                 hair_color_id=int(d.get("hair_color_id",3));eye_black_id=int(d.get("eye_black_id",1))
-                eyewear_id=int(d.get("eyewear_id",1));chain_id=int(d.get("chain_id",1));sleeve_id=int(d.get("sleeve_id",1))
+                eyewear_id=int(d.get("eyewear_id",1));chain_id=int(d.get("chain_id",1));sleeve_id=int(d.get("sleeve_id",1));body_build_id=int(d.get("body_build_id",1))
                 jersey_number=int(d.get("jersey_number",24))
                 if (face_id not in range(1,21) or skin_color_id not in range(1,9) or hair_id not in range(1,29) or facial_hair_id not in range(1,15)
                     or eye_color_id not in range(1,7) or nose_id not in range(1,5) or eye_shape_id not in range(1,5)
                     or mouth_id not in range(1,5) or ear_size_id not in range(1,4) or hair_color_id not in range(1,10)
                     or eye_black_id not in range(1,6) or eyewear_id not in range(1,6)
-                    or chain_id not in range(1,4) or sleeve_id not in range(1,5)
+                    or chain_id not in range(1,4) or sleeve_id not in range(1,5) or body_build_id not in range(1,4)
                     or jersey_number not in range(0,100)):
                     c.rollback();return self.out({"error":"INVALID_APPEARANCE"},400)
-                cur=c.execute("""INSERT INTO players(user_id,name,hometown,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number)
-                                 VALUES(?,?,?,?,?,?,?,?,0,?,?,'FREE_AGENT',1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(u["id"],name,hometown,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,jersey_number))
+                cur=c.execute("""INSERT INTO players(user_id,name,hometown,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number)
+                                 VALUES(?,?,?,?,?,?,?,?,0,?, ?,'FREE_AGENT',1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(u["id"],name,hometown,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number))
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid})))
                 c.commit()
                 return self.out({"player":player_obj(c,cur.lastrowid)})
@@ -8716,167 +8719,97 @@ class H(BaseHTTPRequestHandler):
             u=self.auth(["COMMISSIONER"])
             if not u:return
 
+
             d=self.body()
             target=str(d.get("target","")).strip().lower()
             if not target:
                 return self.out({"error":"TARGET_REQUIRED"},400)
 
+
             c=conn()
-            try:
-                row=c.execute(
-                    "SELECT u.id,u.username,u.role,s.email FROM users u LEFT JOIN user_security s ON s.user_id=u.id WHERE lower(u.username)=? OR lower(s.email)=?",
-                    (target,target)
-                ).fetchone()
-                if not row:
-                    return self.out({"error":"ACCOUNT_NOT_FOUND"},404)
 
-                uid=row["id"]
-                original_role=row["role"]
-                resulting_role="PLAYER" if original_role=="COACH" else original_role
 
-                # This is a test CAREER reset, not an account deletion. Keep the
-                # login identity, verified email, password/recovery state, profile,
-                # friendships/messages, and the current browser session intact.
-                c.execute("BEGIN IMMEDIATE")
-
-                players=c.execute(
-                    "SELECT id,franchise_id FROM players WHERE user_id=? ORDER BY id",
-                    (uid,)
-                ).fetchall()
-                player_ids=[int(x["id"]) for x in players]
-
-                removed_players=0
-                restored_slots=0
-                affected_franchises=set()
-
-                for p_row in players:
-                    pid=int(p_row["id"])
-                    if p_row["franchise_id"]:
-                        affected_franchises.add(str(p_row["franchise_id"]))
-
-                    slots=c.execute(
-                        "SELECT franchise_id,slot_no FROM roster_slots WHERE player_id=?",
-                        (pid,)
-                    ).fetchall()
-                    for slot in slots:
-                        c.execute(
-                            "UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE franchise_id=? AND slot_no=?",
-                            (slot["franchise_id"],slot["slot_no"])
-                        )
-                        affected_franchises.add(str(slot["franchise_id"]))
-                        restored_slots+=1
-
-                    # Purge only player/career-owned state. Historical game JSON is
-                    # intentionally left alone; it is an immutable game record.
-                    c.execute("DELETE FROM offers WHERE player_id=?",(pid,))
-                    c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
-                    c.execute("DELETE FROM contract_history WHERE player_id=?",(pid,))
-                    c.execute("DELETE FROM team_practice WHERE player_id=?",(pid,))
-                    c.execute("DELETE FROM xp_ledger WHERE player_id=?",(pid,))
-                    c.execute("DELETE FROM pitcher_workload WHERE pitcher_id=?",(pid,))
-                    c.execute("DELETE FROM season_history WHERE player_id=?",(pid,))
-                    c.execute("DELETE FROM player_championships WHERE player_id=?",(pid,))
-                    c.execute("DELETE FROM award_history WHERE player_id=?",(pid,))
-                    c.execute("DELETE FROM news WHERE player_id=?",(pid,))
-                    c.execute("DELETE FROM league_records WHERE holder_type='PLAYER' AND holder_id=?",(str(pid),))
-                    c.execute("UPDATE chat_messages SET player_id=NULL WHERE player_id=?",(pid,))
-                    c.execute("UPDATE users SET featured_player_id=NULL WHERE featured_player_id=?",(pid,))
-                    c.execute("DELETE FROM players WHERE id=?",(pid,))
-                    removed_players+=1
-
-                # Clear coach-only state so a former coach becomes a normal player
-                # account for creator testing. A COMMISSIONER keeps commissioner access.
-                coach_teams=[dict(x) for x in c.execute(
-                    "SELECT id,name FROM franchises WHERE owner_user_id=?",
-                    (uid,)
-                ).fetchall()]
-                for fr in coach_teams:
-                    affected_franchises.add(str(fr["id"]))
-                c.execute("UPDATE franchises SET owner_user_id=NULL WHERE owner_user_id=?",(uid,))
-                coach_assignments_cleared=len(coach_teams)
-
-                app_count=c.execute(
-                    "SELECT COUNT(*) n FROM coach_applications WHERE user_id=?",
-                    (uid,)
-                ).fetchone()["n"]
-                c.execute("DELETE FROM coach_applications WHERE user_id=?",(uid,))
-
-                role_reset=False
-                if original_role=="COACH":
-                    c.execute("UPDATE users SET role='PLAYER' WHERE id=?",(uid,))
-                    role_reset=True
-                # COMMISSIONER is deliberately preserved; PLAYER remains PLAYER.
-
-                c.execute("UPDATE users SET featured_player_id=NULL WHERE id=?",(uid,))
-
-                # Clear career/coach notifications only. Account-level social/security
-                # state remains untouched so this is repeatable without recreating login.
-                career_notification_types=(
-                    "AWARD","CAREER","COACH","COACH_CONTRACT",
-                    "CONTRACT","DEVELOPMENT","GAME"
-                )
-                marks=",".join("?" for _ in career_notification_types)
-                notif_cur=c.execute(
-                    f"DELETE FROM notifications WHERE user_id=? AND type IN ({marks})",
-                    (uid,*career_notification_types)
-                )
-                notifications_cleared=max(0,int(notif_cur.rowcount or 0))
-
-                # Rebuild roster/lineup-derived state after the human player is removed.
-                # This prevents a deleted player id from lingering in a batting order or
-                # rotation and leaves automatic simulation with a valid active roster.
-                if player_ids or affected_franchises:
-                    enforce_active_rosters(c,_season_number(c))
-
-                day=int(league_cfg(c,"league_day","0") or 0)
-                detail=(
-                    f"test player-state reset: {row['username']} (user {uid}); "
-                    f"players={removed_players}; slots={restored_slots}; "
-                    f"role={original_role}->{resulting_role}; "
-                    f"coach_assignments={coach_assignments_cleared}; coach_apps={int(app_count or 0)}"
-                )
-                c.execute(
-                    "INSERT INTO commissioner_audit(league_day,action,detail) VALUES(?,?,?)",
-                    (day,"TEST_PLAYER_STATE_RESET",detail)
-                )
-                c.execute(
-                    "INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                    ("TEST_PLAYER_STATE_RESET",u["id"],json.dumps({
-                        "target_user_id":uid,
-                        "target_username":row["username"],
-                        "removed_players":removed_players,
-                        "restored_slots":restored_slots,
-                        "original_role":original_role,
-                        "resulting_role":resulting_role,
-                        "coach_assignments_cleared":coach_assignments_cleared,
-                        "coach_applications_cleared":int(app_count or 0)
-                    }))
-                )
-
-                c.commit()
-                return self.out({
-                    "ok":True,
-                    "username":row["username"],
-                    "email":row["email"],
-                    "original_role":original_role,
-                    "resulting_role":resulting_role,
-                    "removed_players":removed_players,
-                    "restored_slots":restored_slots,
-                    "coach_state_cleared":{
-                        "assignments":coach_assignments_cleared,
-                        "applications":int(app_count or 0),
-                        "role_reset":role_reset
-                    },
-                    "notifications_cleared":notifications_cleared,
-                    "account_preserved":True,
-                    "creator_ready":True
-                })
-            except Exception:
-                try:c.rollback()
-                except Exception:pass
-                raise
-            finally:
+            row=c.execute(
+                "SELECT u.id,u.username,u.role,s.email FROM users u LEFT JOIN user_security s ON s.user_id=u.id WHERE lower(u.username)=? OR lower(s.email)=?",
+                (target,target)
+            ).fetchone()
+            if not row:
                 c.close()
+                return self.out({"error":"ACCOUNT_NOT_FOUND"},404)
+
+
+            if row["role"] in ("COMMISSIONER","COACH"):
+                c.close()
+                return self.out({"error":"PROTECTED_ACCOUNT"},403)
+
+
+            uid=row["id"]
+
+
+            players=c.execute(
+                "SELECT id,franchise_id FROM players WHERE user_id=?",
+                (uid,)
+            ).fetchall()
+
+
+            removed_players=0
+            restored_slots=0
+
+
+            for p_row in players:
+                pid=p_row["id"]
+
+                slots=c.execute(
+                    "SELECT franchise_id,slot_no FROM roster_slots WHERE player_id=?",
+                    (pid,)
+                ).fetchall()
+
+                for slot in slots:
+                    c.execute(
+                        "UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE franchise_id=? AND slot_no=?",
+                        (slot["franchise_id"],slot["slot_no"])
+                    )
+                    restored_slots+=1
+
+                c.execute("DELETE FROM offers WHERE player_id=?",(pid,))
+                c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
+                c.execute("DELETE FROM team_practice WHERE player_id=?",(pid,))
+                c.execute("DELETE FROM xp_ledger WHERE player_id=?",(pid,))
+                c.execute("DELETE FROM players WHERE id=?",(pid,))
+                removed_players+=1
+            c.execute("DELETE FROM persistent_sessions WHERE user_id=?",(uid,))
+            c.execute("DELETE FROM account_recovery WHERE user_id=?",(uid,))
+            c.execute("DELETE FROM user_security WHERE user_id=?",(uid,))
+            c.execute(
+                "DELETE FROM direct_messages WHERE sender_user_id=? OR recipient_user_id=?",
+                (uid,uid)
+            )
+            c.execute(
+                "DELETE FROM user_blocks WHERE blocker_user_id=? OR blocked_user_id=?",
+                (uid,uid)
+            )
+            c.execute(
+                "DELETE FROM user_reports WHERE reporter_user_id=? OR reported_user_id=?",
+                (uid,uid)
+            )
+            c.execute(
+                "DELETE FROM moderation_actions WHERE target_user_id=? OR moderator_user_id=?",
+                (uid,uid)
+            )
+            c.execute("DELETE FROM users WHERE id=?",(uid,))
+
+
+            c.commit()
+            c.close()
+
+
+            return self.out({
+                "ok":True,
+                "username":row["username"],
+                "email":row["email"],
+                "removed_players":removed_players,
+                "restored_slots":restored_slots
+            })
 
         # Every unknown mutation route must return a real HTTP response. Falling off
         # BaseHTTPRequestHandler makes reverse proxies report a misleading 502.
