@@ -45,6 +45,8 @@ RENEWAL_OPEN_DAY=60
 MAX_REQUEST_BYTES=20*1024*1024
 MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
 MAX_PROFILE_PHOTO_DATA_URL_CHARS=900_000
+BETA_MODE=str(os.environ.get("EBL_BETA_MODE","1")).strip().lower() not in ("0","false","off","no")
+COACH_APPLICATIONS_OPEN=str(os.environ.get("EBL_COACH_APPLICATIONS_OPEN","0")).strip().lower() in ("1","true","on","yes")
 
 # RC85: public support links are configured at deploy time so payment providers can
 # be changed without editing application code. These are public URLs, never secrets.
@@ -274,7 +276,8 @@ def init_db():
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'PLAYER' CHECK(role IN ('PLAYER','COACH','COMMISSIONER')),
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      beta_member INTEGER NOT NULL DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS coach_applications(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -663,6 +666,19 @@ def init_db():
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_reports_open ON user_reports(status,id);
+    CREATE TABLE IF NOT EXISTS beta_feedback(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      category TEXT NOT NULL DEFAULT 'FEEDBACK',
+      page TEXT NOT NULL DEFAULT '',
+      detail TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      user_agent TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at TEXT,
+      reviewed_by INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_beta_feedback_status ON beta_feedback(status,id);
     CREATE TABLE IF NOT EXISTS backup_audit(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       path TEXT NOT NULL,
@@ -781,6 +797,8 @@ def init_db():
         c.execute("ALTER TABLE users ADD COLUMN profile_theme TEXT NOT NULL DEFAULT 'CLASSIC'")
     if "featured_player_id" not in user_cols:
         c.execute("ALTER TABLE users ADD COLUMN featured_player_id INTEGER")
+    if "beta_member" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN beta_member INTEGER NOT NULL DEFAULT 0")
 
     player_cols={r["name"] for r in c.execute("PRAGMA table_info(players)")}
     if "age" not in player_cols:
@@ -2645,6 +2663,25 @@ def effective_stamina(sta):
     return 100.0*(1.0-math.exp(-raw/60.0))
 
 
+def reset_pitcher_fatigue(c,reason,season=None,league_day=None,announce=False):
+    """Clear carried pitcher workload at official EBL recovery checkpoints."""
+    row=c.execute("SELECT COUNT(*) n FROM pitcher_workload").fetchone()
+    cleared=int(row["n"] or 0) if row else 0
+    c.execute("DELETE FROM pitcher_workload")
+    if season is None:
+        season=_season_number(c)
+    if league_day is None:
+        r=c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()
+        league_day=int(r["v"] or 0) if r else 0
+    c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+              ("PITCHER_FATIGUE_RESET",None,json.dumps({"reason":str(reason),"season":int(season),"league_day":int(league_day),"pitchers_cleared":cleared})))
+    if announce:
+        post_news(c,"LEAGUE","⭐ All-Star Break: pitching staffs fully recovered",
+                  "The first half is complete. Every EBL pitching staff returns to 100% readiness for the second half of the season.",
+                  int(league_day),None,None,None,3,season=int(season))
+    return cleared
+
+
 def pitcher_recovery_state(c,pitcher_id,league_day):
     r=c.execute("SELECT fatigue,last_league_day,last_outs FROM pitcher_workload WHERE pitcher_id=?",(int(pitcher_id),)).fetchone()
     p=c.execute("SELECT attributes_json FROM players WHERE id=?",(int(pitcher_id),)).fetchone()
@@ -3000,6 +3037,295 @@ def post_news(c,category,headline,body,league_day=0,franchise_id=None,player_id=
     c.execute("""INSERT INTO news(season,league_day,category,headline,body,franchise_id,player_id,game_id,importance)
                  VALUES(?,?,?,?,?,?,?,?,?)""",
               (season,league_day,category,headline,body,franchise_id,player_id,game_id,importance))
+
+
+
+
+# RC97: Discord bridge ---------------------------------------------------------
+# Discord is an output surface, never a source of league truth. The database stays
+# authoritative and the bridge only publishes events after they have been committed.
+# Each channel is optional; leave an environment variable blank to disable that feed.
+DISCORD_WEBHOOK_ENV={
+    "NEWS":"EBL_DISCORD_NEWS_WEBHOOK",
+    "RESULTS":"EBL_DISCORD_RESULTS_WEBHOOK",
+    "TRANSACTIONS":"EBL_DISCORD_TRANSACTIONS_WEBHOOK",
+    "AWARDS":"EBL_DISCORD_AWARDS_WEBHOOK",
+}
+
+
+def _discord_url(feed):
+    return str(os.environ.get(DISCORD_WEBHOOK_ENV.get(str(feed).upper(),""),"") or "").strip()
+
+
+def _discord_trim(value,limit):
+    value=str(value or "").strip()
+    if len(value)<=limit:return value
+    return value[:max(0,limit-1)].rstrip()+"…"
+
+
+def discord_send(feed,title,description="",fields=None,color=0x173F35,footer="Elite Baseball League"):
+    """Send one Discord webhook embed. Fail closed without exposing the webhook URL."""
+    url=_discord_url(feed)
+    if not url:
+        return None  # disabled feed: caller may still advance its cursor
+    embed={
+        "title":_discord_trim(title,256),
+        "description":_discord_trim(description,4000),
+        "color":int(color),
+        "footer":{"text":_discord_trim(footer,2048)},
+        "timestamp":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+    clean_fields=[]
+    for f in (fields or []):
+        name=_discord_trim(f.get("name",""),256)
+        value=_discord_trim(f.get("value",""),1024)
+        if name and value:
+            clean_fields.append({"name":name,"value":value,"inline":bool(f.get("inline",False))})
+        if len(clean_fields)>=25:break
+    if clean_fields:
+        embed["fields"]=clean_fields
+    payload={
+        "username":"EBL Network",
+        "allowed_mentions":{"parse":[]},
+        "embeds":[embed],
+    }
+    try:
+        req=Request(
+            url,
+            data=json.dumps(payload,separators=(",",":")).encode("utf-8"),
+            headers={"Content-Type":"application/json","User-Agent":"EBL-Discord-Bridge/1.0"},
+            method="POST",
+        )
+        with urlopen(req,timeout=12) as response:
+            response.read()
+            return 200 <= int(getattr(response,"status",204) or 204) < 300
+    except HTTPError as e:
+        try:e.read()
+        except Exception:pass
+        print(f"DISCORD WEBHOOK ERROR feed={feed}: HTTP {e.code}")
+    except URLError as e:
+        print(f"DISCORD WEBHOOK NETWORK ERROR feed={feed}: {type(e.reason).__name__}")
+    except Exception as e:
+        print(f"DISCORD WEBHOOK ERROR feed={feed}: {type(e).__name__}: {str(e)[:160]}")
+    return False
+
+
+def _discord_state_get(c,key,default=None):
+    r=c.execute("SELECT v FROM league_state WHERE k=?",(str(key),)).fetchone()
+    return r["v"] if r else default
+
+
+def _discord_state_set(c,key,value):
+    c.execute("INSERT OR REPLACE INTO league_state(k,v) VALUES(?,?)",(str(key),str(value)))
+
+
+def _discord_player_name(c,pid,fallback="Player"):
+    try:
+        r=c.execute("SELECT name FROM players WHERE id=?",(int(pid),)).fetchone()
+        return r["name"] if r else fallback
+    except Exception:
+        return fallback
+
+
+def _discord_team_name(c,fid,fallback="Team"):
+    if not fid:return fallback
+    r=c.execute("""SELECT COALESCE(NULLIF(TRIM(fb.display_name),''),f.name) name
+                   FROM franchises f LEFT JOIN franchise_branding fb ON fb.franchise_id=f.id
+                   WHERE f.id=?""",(str(fid),)).fetchone()
+    return r["name"] if r else str(fid)
+
+
+def _discord_transaction_card(c,row):
+    try:payload=json.loads(row["payload_json"] or "{}")
+    except Exception:payload={}
+    event=str(row["event_type"] or "").upper()
+    pid=payload.get("player_id")
+    fid=payload.get("franchise_id")
+    player=payload.get("player_name") or (_discord_player_name(c,pid) if pid else "Player")
+    team=_discord_team_name(c,fid) if fid else ""
+
+    if event=="CONTRACT_SIGNED":
+        salary=float(payload.get("salary",0) or 0);bonus=float(payload.get("bonus",0) or 0);years=int(payload.get("years",1) or 1)
+        role=str(payload.get("assigned_role") or payload.get("preferred_position") or "").upper()
+        desc=f"**{player}** has signed with **{team}**."
+        fields=[
+            {"name":"Contract","value":f"{salary:.2f} XP/game • {years} season{'s' if years!=1 else ''}","inline":True},
+            {"name":"Signing Bonus","value":f"{bonus:g} XP","inline":True},
+        ]
+        if role:fields.append({"name":"Roster Role","value":role,"inline":True})
+        return ("📝 EBL Transaction",desc,fields,0xD4AF37)
+
+    if event=="RENEWAL_ACCEPTED":
+        salary=float(payload.get("salary",0) or 0);years=int(payload.get("years",1) or 1)
+        effective=int(payload.get("effective_season",0) or 0)
+        desc=f"**{player}** and **{team}** have agreed to a contract extension."
+        fields=[{"name":"Extension","value":f"{salary:.2f} XP/game • {years} season{'s' if years!=1 else ''}","inline":True}]
+        if effective:fields.append({"name":"Begins","value":f"Season {effective}","inline":True})
+        return ("📝 Contract Extension",desc,fields,0xD4AF37)
+
+    if event=="PLAYER_RETIRED":
+        reason=str(payload.get("reason") or "").replace("_"," ").title()
+        seasons=payload.get("seasons_played")
+        desc=f"**{player}** has retired from the Elite Baseball League."
+        fields=[]
+        if team:fields.append({"name":"Final Club","value":team,"inline":True})
+        if seasons is not None:fields.append({"name":"Career","value":f"{int(seasons)} season{'s' if int(seasons)!=1 else ''}","inline":True})
+        if reason:fields.append({"name":"Retirement","value":reason,"inline":True})
+        return ("🎓 EBL Retirement",desc,fields,0x6B7280)
+
+    return None
+
+
+def _discord_flush_transactions(c):
+    last=int(_discord_state_get(c,"discord_last_transaction_id","0") or 0)
+    rows=c.execute("SELECT * FROM transactions WHERE id>? ORDER BY id LIMIT 40",(last,)).fetchall()
+    for row in rows:
+        card=_discord_transaction_card(c,row)
+        url=_discord_url("TRANSACTIONS")
+        if card and url:
+            ok=discord_send("TRANSACTIONS",card[0],card[1],card[2],card[3],"Official EBL Transaction Wire")
+            if ok is not True:
+                return
+        # Disabled/non-public events are intentionally consumed so turning the feed
+        # on later does not dump old internal transactions into Discord.
+        _discord_state_set(c,"discord_last_transaction_id",row["id"])
+        c.commit()
+
+
+def _discord_flush_news(c):
+    last=int(_discord_state_get(c,"discord_last_news_id","0") or 0)
+    rows=c.execute("SELECT * FROM news WHERE id>? ORDER BY id LIMIT 40",(last,)).fetchall()
+    for row in rows:
+        should_post=int(row["importance"] or 1)>=2
+        url=_discord_url("NEWS")
+        if should_post and url:
+            footer=f"Season {row['season']} • League Day {row['league_day']} • EBL Network"
+            ok=discord_send("NEWS",row["headline"],row["body"],color=0x173F35,footer=footer)
+            if ok is not True:
+                return
+        _discord_state_set(c,"discord_last_news_id",row["id"])
+        c.commit()
+
+
+def _discord_flush_awards(c):
+    last=int(_discord_state_get(c,"discord_last_award_id","0") or 0)
+    rows=c.execute("""SELECT ah.*,p.name player_name
+                      FROM award_history ah JOIN players p ON p.id=ah.player_id
+                      WHERE ah.id>? ORDER BY ah.id LIMIT 40""",(last,)).fetchall()
+    if not rows:return
+    # Awards are normally written together on Day 81. Group them so Discord gets
+    # one awards-show post rather than a dozen nearly simultaneous messages.
+    groups=[];current=[];key=None
+    for row in rows:
+        rk=(int(row["season"]),str(row["period"]))
+        if key is not None and rk!=key:
+            groups.append(current);current=[]
+        current.append(row);key=rk
+    if current:groups.append(current)
+    for group in groups:
+        season=int(group[0]["season"]);period=str(group[0]["period"] or "").replace("_"," ").title()
+        lines=[]
+        for row in group:
+            team=_discord_team_name(c,row["franchise_id"]) if row["franchise_id"] else ""
+            suffix=f" — {team}" if team else ""
+            lines.append(f"🏆 **{row['award_name']}** — {row['player_name']}{suffix}")
+        url=_discord_url("AWARDS")
+        if url:
+            ok=discord_send("AWARDS",f"🏆 Season {season} EBL Awards","\n".join(lines),color=0xD4AF37,footer=f"{period} • Elite Baseball League")
+            if ok is not True:
+                return
+        _discord_state_set(c,"discord_last_award_id",max(int(x["id"]) for x in group))
+        c.commit()
+
+
+def _discord_next_result_day(c,last_season,last_day):
+    return c.execute("""SELECT season,league_day
+                        FROM games
+                        WHERE status='FINAL' AND (season>? OR (season=? AND league_day>?))
+                        GROUP BY season,league_day
+                        ORDER BY season,league_day LIMIT 1""",
+                     (last_season,last_season,last_day)).fetchone()
+
+
+def _discord_flush_results(c):
+    last_season=int(_discord_state_get(c,"discord_results_season",str(_season_number(c))) or _season_number(c))
+    last_day=int(_discord_state_get(c,"discord_results_day","0") or 0)
+    nxt=_discord_next_result_day(c,last_season,last_day)
+    if not nxt:return
+    season=int(nxt["season"]);day=int(nxt["league_day"])
+    rows=c.execute("""SELECT g.*,
+                             COALESCE(NULLIF(TRIM(afb.display_name),''),af.name) away_name,
+                             COALESCE(NULLIF(TRIM(hfb.display_name),''),hf.name) home_name
+                      FROM games g
+                      JOIN franchises af ON af.id=g.away_id
+                      JOIN franchises hf ON hf.id=g.home_id
+                      LEFT JOIN franchise_branding afb ON afb.franchise_id=af.id
+                      LEFT JOIN franchise_branding hfb ON hfb.franchise_id=hf.id
+                      WHERE g.season=? AND g.league_day=? AND g.status='FINAL'
+                      ORDER BY g.id""",(season,day)).fetchall()
+    lines=[]
+    for g in rows:
+        ar=int(g["away_runs"] or 0);hr=int(g["home_runs"] or 0)
+        away=f"**{g['away_name']}**" if ar>hr else str(g["away_name"])
+        home=f"**{g['home_name']}**" if hr>ar else str(g["home_name"])
+        lines.append(f"{away} **{ar}** — {home} **{hr}**")
+    url=_discord_url("RESULTS")
+    if url and lines:
+        # Split huge future slates safely while keeping a single day's games together
+        # whenever possible.
+        chunks=[];buf=[];size=0
+        for line in lines:
+            if buf and size+len(line)+1>3800:
+                chunks.append(buf);buf=[];size=0
+            buf.append(line);size+=len(line)+1
+        if buf:chunks.append(buf)
+        for i,chunk in enumerate(chunks,1):
+            suffix=f" ({i}/{len(chunks)})" if len(chunks)>1 else ""
+            ok=discord_send("RESULTS",f"⚾ EBL Scoreboard — Season {season}, Day {day}{suffix}","\n".join(chunk),color=0x1D4ED8,footer="Final Scores • Elite Baseball League")
+            if ok is not True:
+                return
+    _discord_state_set(c,"discord_results_season",season)
+    _discord_state_set(c,"discord_results_day",day)
+    c.commit()
+
+
+def discord_bridge_bootstrap():
+    """Initialize persistent cursors at the current database edge; never flood history."""
+    c=conn()
+    try:
+        if _discord_state_get(c,"discord_bridge_initialized")!="1":
+            tx=c.execute("SELECT COALESCE(MAX(id),0) n FROM transactions").fetchone()["n"]
+            news=c.execute("SELECT COALESCE(MAX(id),0) n FROM news").fetchone()["n"]
+            awards=c.execute("SELECT COALESCE(MAX(id),0) n FROM award_history").fetchone()["n"]
+            season=_season_number(c)
+            dayrow=c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()
+            day=int(dayrow["v"] or 0) if dayrow else 0
+            _discord_state_set(c,"discord_last_transaction_id",tx)
+            _discord_state_set(c,"discord_last_news_id",news)
+            _discord_state_set(c,"discord_last_award_id",awards)
+            _discord_state_set(c,"discord_results_season",season)
+            _discord_state_set(c,"discord_results_day",day)
+            _discord_state_set(c,"discord_bridge_initialized","1")
+            c.commit()
+    finally:
+        c.close()
+
+
+def discord_bridge_worker():
+    """Publish committed EBL events to Discord without ever blocking gameplay."""
+    while True:
+        try:
+            c=conn()
+            try:
+                _discord_flush_transactions(c)
+                _discord_flush_news(c)
+                _discord_flush_awards(c)
+                _discord_flush_results(c)
+            finally:
+                c.close()
+        except Exception as e:
+            print(f"DISCORD BRIDGE ERROR: {type(e).__name__}: {str(e)[:200]}")
+        time.sleep(10)
 
 
 def generate_game_news(c,g,score,winner,loser,box):
@@ -4563,9 +4889,9 @@ def parse_iso(v):
     except:return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
 
-def new_session(c,user_id,handler=None):
+def new_session(c,user_id,handler=None,remember=False):
     raw=secrets.token_urlsafe(32)
-    expires=(utcnow()+datetime.timedelta(days=30)).isoformat()
+    expires=(utcnow()+(datetime.timedelta(days=30) if remember else datetime.timedelta(hours=12))).isoformat()
     ua=handler.headers.get("User-Agent","")[:500] if handler else ""
     ip=get_client_ip(handler) if handler else ""
     c.execute("DELETE FROM persistent_sessions WHERE user_id=? AND expires_at<?",(user_id,utcnow().isoformat()))
@@ -4596,7 +4922,7 @@ def session_user(*args):
         return None
     try:
         if not raw:return None
-        r=c.execute("""SELECT u.id,u.username,u.role
+        r=c.execute("""SELECT u.id,u.username,u.role,u.beta_member
                        FROM persistent_sessions s JOIN users u ON u.id=s.user_id
                        WHERE s.token_hash=? AND s.expires_at>?""",
                     (token_hash(raw),utcnow().isoformat())).fetchone()
@@ -4644,7 +4970,10 @@ def secure_cookie_suffix():
 
 
 def session_cookie(raw,max_age=2592000):
-    return f"sid={raw}; HttpOnly; SameSite=Lax; Path=/; Max-Age={int(max_age)}"+secure_cookie_suffix()
+    parts=[f"sid={raw}","HttpOnly","SameSite=Lax","Path=/"]
+    if max_age is not None:
+        parts.append(f"Max-Age={int(max_age)}")
+    return "; ".join(parts)+secure_cookie_suffix()
 
 
 def email_enabled():
@@ -4988,7 +5317,7 @@ class H(BaseHTTPRequestHandler):
         if p=="/sitemap.xml":
             return self._raw_response(self._sitemap_body(),"application/xml; charset=utf-8",head_only=True)
         if p in ("/health","/api/health"):
-            body=json.dumps({"ok":True,"service":"EBL","version":"1.2.0"}).encode("utf-8")
+            body=json.dumps({"ok":True,"service":"EBL","version":"1.3.0-beta"}).encode("utf-8")
             return self._raw_response(body,"application/json",head_only=True)
         if p=="/api/support":
             body=json.dumps(support_public_config()).encode("utf-8")
@@ -5028,7 +5357,7 @@ class H(BaseHTTPRequestHandler):
     def api_get(self,p):
         u=session_user(self.headers)
         if p in ("/health","/api/health"):
-            return self.out({"ok":True,"service":"EBL","version":"1.2.0"})
+            return self.out({"ok":True,"service":"EBL","version":"1.3.0-beta"})
         if p=="/api/me":return self.out({"user":u})
         if p=="/api/support":return self.out(support_public_config())
         if p=="/api/league":
@@ -5177,7 +5506,7 @@ class H(BaseHTTPRequestHandler):
             c=conn()
             profile=c.execute(
                 """SELECT id,username,role,created_at,display_name,profile_bio,profile_motto,profile_photo,
-                          profile_accent,profile_theme,featured_player_id
+                          profile_accent,profile_theme,featured_player_id,beta_member
                    FROM users WHERE lower(username)=lower(?)""",
                 (username,)
             ).fetchone()
@@ -5459,7 +5788,19 @@ class H(BaseHTTPRequestHandler):
                 team=c.execute("SELECT id,name FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
                 approved=(u["role"] in ("COACH","COMMISSIONER")) or bool(app and app["status"]=="APPROVED")
                 available=[dict(x) for x in c.execute("SELECT id,name FROM franchises WHERE owner_user_id IS NULL ORDER BY name")] if approved and not team else []
-                return self.out({"application":dict(app) if app else None,"approved":approved,"assigned_team":dict(team) if team else None,"available_teams":available})
+                return self.out({"application":dict(app) if app else None,"approved":approved,"assigned_team":dict(team) if team else None,"available_teams":available,"applications_open":COACH_APPLICATIONS_OPEN})
+            finally:
+                c.close()
+
+        if p=="/api/commish/beta-feedback":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+            c=conn()
+            try:
+                rows=[dict(x) for x in c.execute("""SELECT bf.*,u.username
+                    FROM beta_feedback bf LEFT JOIN users u ON u.id=bf.user_id
+                    ORDER BY CASE bf.status WHEN 'OPEN' THEN 0 ELSE 1 END,bf.id DESC LIMIT 250""").fetchall()]
+                return self.out({"feedback":rows})
             finally:
                 c.close()
 
@@ -6384,6 +6725,7 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/register":
             d=self.body();username=str(d.get("username","")).strip();password=str(d.get("password",""));email=str(d.get("email","")).strip().lower()
             if d.get("accepted_terms") is not True:return self.out({"error":"TERMS_NOT_ACCEPTED"},400)
+            if BETA_MODE and d.get("accepted_beta_reset") is not True:return self.out({"error":"BETA_RESET_NOT_ACCEPTED"},400)
             if len(username)<3 or len(username)>24 or not all(ch.isalnum() or ch in "_-" for ch in username):return self.out({"error":"INVALID_USERNAME"},400)
             if len(password)<8 or len(password)>128:return self.out({"error":"INVALID_PASSWORD"},400)
             if "@" not in email or "." not in email.split("@")[-1]:return self.out({"error":"INVALID_EMAIL"},400)
@@ -6391,12 +6733,12 @@ class H(BaseHTTPRequestHandler):
             if not rate_limit(c,f"register:{ip}",5,3600):c.commit();c.close();return self.out({"error":"RATE_LIMITED"},429)
             if c.execute("SELECT 1 FROM users WHERE username=? COLLATE NOCASE",(username,)).fetchone():c.close();return self.out({"error":"USERNAME_TAKEN"},409)
             if c.execute("SELECT 1 FROM user_security WHERE email=?",(email,)).fetchone():c.close();return self.out({"error":"EMAIL_IN_USE"},409)
-            c.execute("INSERT INTO users(username,password_hash,role) VALUES(?,?,'PLAYER')",(username,pwhash(password)))
+            c.execute("INSERT INTO users(username,password_hash,role,beta_member) VALUES(?,?,'PLAYER',?)",(username,pwhash(password),1 if BETA_MODE else 0))
             uid=c.execute("SELECT id FROM users WHERE username=?",(username,)).fetchone()["id"]
             raw_verify=secrets.token_urlsafe(24)
             c.execute("""INSERT INTO user_security(user_id,email,email_verified,email_token_hash,email_token_expires)
                          VALUES(?,?,0,?,?)""",(uid,email,token_hash(raw_verify),iso_after(60)))
-            sid,_=new_session(c,uid,self)
+            sid,_=new_session(c,uid,self,remember=False)
             c.commit();c.close()
             verify_url=os.environ.get("PUBLIC_BASE_URL","http://127.0.0.1:8000").rstrip("/")+"/verify-email?token="+raw_verify+"&user="+str(uid)
             sent=send_mail(
@@ -6411,18 +6753,20 @@ class H(BaseHTTPRequestHandler):
                     "If you did not create an EBL account, no action is required."
                 )
             )
-            return self.out({"user":{"id":uid,"username":username,"role":"PLAYER"},"verification_email_sent":sent},200,{"Set-Cookie":session_cookie(sid)})
+            return self.out({"user":{"id":uid,"username":username,"role":"PLAYER","beta_member":1 if BETA_MODE else 0},"verification_email_sent":sent},200,{"Set-Cookie":session_cookie(sid,None)})
         if p=="/api/login":
-            d=self.body();username=str(d.get("username","")).strip();password=str(d.get("password",""))
+            d=self.body();username=str(d.get("username","")).strip();password=str(d.get("password",""));remember=bool(d.get("remember_me",False))
             c=conn();ip=get_client_ip(self)
             if not rate_limit(c,f"login:{ip}",20,900):c.commit();c.close();return self.out({"error":"RATE_LIMITED"},429)
             r=c.execute("SELECT id,username,role,password_hash FROM users WHERE username=? COLLATE NOCASE",(username,)).fetchone()
             if not r or not pwcheck(password,r["password_hash"]):c.commit();c.close();return self.out({"error":"INVALID_LOGIN"},401)
             sec=user_restricted(c,r["id"])
             if sec["suspended"]:c.close();return self.out({"error":"ACCOUNT_SUSPENDED"},403)
-            sid,_=new_session(c,r["id"],self)
+            sid,_=new_session(c,r["id"],self,remember=remember)
             c.commit();c.close()
-            return self.out({"user":{"id":r["id"],"username":r["username"],"role":r["role"]}},200,{"Set-Cookie":session_cookie(sid)})
+            beta_row=c.execute("SELECT beta_member FROM users WHERE id=?",(r["id"],)).fetchone()
+            beta_member=int(beta_row["beta_member"] or 0) if beta_row else 0
+            return self.out({"user":{"id":r["id"],"username":r["username"],"role":r["role"],"beta_member":beta_member},"remember_me":remember},200,{"Set-Cookie":session_cookie(sid,2592000 if remember else None)})
         if p=="/api/logout":
             raw=None
             for part in self.headers.get("Cookie","").split(";"):
@@ -6821,6 +7165,8 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/coach/apply":
             u=self.auth()
             if not u:return
+            if not COACH_APPLICATIONS_OPEN and u["role"]!="COMMISSIONER":
+                return self.out({"error":"COACH_APPLICATIONS_CLOSED_BETA","detail":"Human coaching is paused during the player-only accelerated beta."},403)
             d=self.body();preferred=str(d.get("preferred_franchise_id") or "").strip() or None
             experience=str(d.get("experience") or "").strip()[:2000]
             reason=str(d.get("reason") or "").strip()[:3000]
@@ -7734,6 +8080,38 @@ class H(BaseHTTPRequestHandler):
             except:return self.out({"error":"INVALID_USER"},400)
             if other<=0 or other==u["id"]:return self.out({"error":"INVALID_USER"},400)
             c=conn();c.execute("INSERT OR IGNORE INTO user_blocks(blocker_user_id,blocked_user_id) VALUES(?,?)",(u["id"],other));c.commit();c.close();return self.out({"ok":True})
+        if p=="/api/beta/feedback":
+            u=self.auth()
+            if not u:return
+            d=self.body();category=str(d.get("category","FEEDBACK") or "FEEDBACK").upper().strip()
+            if category not in ("BUG","FEEDBACK","IDEA"):category="FEEDBACK"
+            detail=str(d.get("detail","") or "").strip();page=str(d.get("page","") or "").strip()[:240]
+            if len(detail)<3:return self.out({"error":"FEEDBACK_TOO_SHORT"},400)
+            if len(detail)>4000:return self.out({"error":"FEEDBACK_TOO_LONG"},400)
+            c=conn()
+            try:
+                if not rate_limit(c,f"beta_feedback:{u['id']}",20,3600):
+                    return self.out({"error":"RATE_LIMITED"},429)
+                ua=str(self.headers.get("User-Agent","") or "")[:500]
+                cur=c.execute("INSERT INTO beta_feedback(user_id,category,page,detail,user_agent) VALUES(?,?,?,?,?)",
+                              (u["id"],category,page,detail,ua))
+                c.commit();return self.out({"ok":True,"feedback_id":cur.lastrowid})
+            finally:
+                c.close()
+
+        if p=="/api/commish/resolve-beta-feedback":
+            u=self.auth(["COMMISSIONER"])
+            if not u:return
+            d=self.body()
+            try:fid=int(d.get("feedback_id",0) or 0)
+            except Exception:return self.out({"error":"INVALID_FEEDBACK"},400)
+            c=conn()
+            try:
+                c.execute("UPDATE beta_feedback SET status='REVIEWED',reviewed_at=CURRENT_TIMESTAMP,reviewed_by=? WHERE id=?",(u["id"],fid))
+                c.commit();return self.out({"ok":True})
+            finally:
+                c.close()
+
         if p=="/api/safety/report":
             u=self.auth()
             if not u:return
@@ -7938,7 +8316,7 @@ class H(BaseHTTPRequestHandler):
 
                     # Postseason starts fresh: regular-season pitching workload does not
                     # carry into the playoff bracket.
-                    c.execute("DELETE FROM pitcher_workload")
+                    reset_pitcher_fatigue(c,"PLAYOFFS",season=season,league_day=81,announce=False)
 
                     c.execute(
                         "UPDATE league_state SET v='PLAYOFFS' WHERE k='phase'"
@@ -8255,6 +8633,8 @@ class H(BaseHTTPRequestHandler):
                 weekly_recap(c,day,season)
                 process_quarter_awards(c,season,day)
                 apply_team_development_coach_milestones(c,season,day)
+                if day==40:
+                    reset_pitcher_fatigue(c,"ALL_STAR_BREAK",season=season,league_day=day,announce=True)
                 if day==RENEWAL_OPEN_DAY:
                     for fr in c.execute("SELECT id,name,owner_user_id FROM franchises WHERE owner_user_id IS NOT NULL").fetchall():
                         count=c.execute(
@@ -8591,7 +8971,7 @@ class H(BaseHTTPRequestHandler):
                 summary["rosters_rebuilt"]=True
 
                 # Opening Day starts with every pitcher fully recovered.
-                c.execute("DELETE FROM pitcher_workload")
+                reset_pitcher_fatigue(c,"NEW_SEASON",season=next_season,league_day=0,announce=False)
 
                 active_players=c.execute("SELECT id,type FROM players WHERE active=1").fetchall()
                 for pl in active_players:
@@ -8720,97 +9100,77 @@ class H(BaseHTTPRequestHandler):
             u=self.auth(["COMMISSIONER"])
             if not u:return
 
-
             d=self.body()
             target=str(d.get("target","")).strip().lower()
             if not target:
                 return self.out({"error":"TARGET_REQUIRED"},400)
 
-
             c=conn()
+            try:
+                row=c.execute(
+                    "SELECT u.id,u.username,u.role,s.email FROM users u LEFT JOIN user_security s ON s.user_id=u.id WHERE lower(u.username)=? OR lower(s.email)=?",
+                    (target,target)
+                ).fetchone()
+                if not row:
+                    return self.out({"error":"ACCOUNT_NOT_FOUND"},404)
 
+                uid=int(row["id"]);original_role=str(row["role"] or "PLAYER").upper()
+                players=c.execute("SELECT id,franchise_id FROM players WHERE user_id=?",(uid,)).fetchall()
+                player_ids=[int(x["id"]) for x in players]
+                removed_players=0;restored_slots=0
 
-            row=c.execute(
-                "SELECT u.id,u.username,u.role,s.email FROM users u LEFT JOIN user_security s ON s.user_id=u.id WHERE lower(u.username)=? OR lower(s.email)=?",
-                (target,target)
-            ).fetchone()
-            if not row:
+                # Clear coach-only test state, but never remove COMMISSIONER authority.
+                assigned=c.execute("SELECT COUNT(*) n FROM franchises WHERE owner_user_id=?",(uid,)).fetchone()
+                coach_assignments=int(assigned["n"] or 0) if assigned else 0
+                apps=c.execute("SELECT COUNT(*) n FROM coach_applications WHERE user_id=?",(uid,)).fetchone()
+                coach_applications=int(apps["n"] or 0) if apps else 0
+                c.execute("UPDATE franchises SET owner_user_id=NULL WHERE owner_user_id=?",(uid,))
+                c.execute("DELETE FROM coach_applications WHERE user_id=?",(uid,))
+                role_reset=False
+                if original_role=="COACH":
+                    c.execute("UPDATE users SET role='PLAYER' WHERE id=?",(uid,));role_reset=True
+
+                for p_row in players:
+                    pid=int(p_row["id"])
+                    slots=c.execute("SELECT franchise_id,slot_no FROM roster_slots WHERE player_id=?",(pid,)).fetchall()
+                    for slot in slots:
+                        c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE franchise_id=? AND slot_no=?",
+                                  (slot["franchise_id"],slot["slot_no"]))
+                        restored_slots+=1
+                    c.execute("DELETE FROM offers WHERE player_id=?",(pid,))
+                    c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
+                    c.execute("DELETE FROM team_practice WHERE player_id=?",(pid,))
+                    c.execute("DELETE FROM xp_ledger WHERE player_id=?",(pid,))
+                    c.execute("DELETE FROM season_history WHERE player_id=?",(pid,))
+                    c.execute("DELETE FROM player_championships WHERE player_id=?",(pid,))
+                    c.execute("DELETE FROM award_history WHERE player_id=?",(pid,))
+                    c.execute("DELETE FROM league_records WHERE holder_type='PLAYER' AND holder_id=?",(str(pid),))
+                    c.execute("UPDATE news SET player_id=NULL WHERE player_id=?",(pid,))
+                    c.execute("UPDATE chat_messages SET player_id=NULL WHERE player_id=?",(pid,))
+                    c.execute("DELETE FROM players WHERE id=?",(pid,))
+                    removed_players+=1
+
+                # Account identity/security/profile/friends/messages remain intact. Career-specific
+                # notifications are cleared so the same login feels like a fresh player account.
+                c.execute("DELETE FROM notifications WHERE user_id=?",(uid,))
+                if player_ids:
+                    c.execute("UPDATE users SET featured_player_id=NULL WHERE id=?",(uid,))
+
+                enforce_active_rosters(c)
+                resulting=c.execute("SELECT role FROM users WHERE id=?",(uid,)).fetchone()
+                resulting_role=str(resulting["role"] if resulting else original_role)
+                c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                          ("TEST_PLAYER_STATE_RESET",u["id"],json.dumps({"target_user_id":uid,"username":row["username"],"removed_players":removed_players,"restored_slots":restored_slots,"original_role":original_role,"resulting_role":resulting_role})))
+                c.commit()
+                return self.out({
+                    "ok":True,"username":row["username"],"email":row["email"],
+                    "original_role":original_role,"resulting_role":resulting_role,
+                    "removed_players":removed_players,"restored_slots":restored_slots,
+                    "coach_state_cleared":{"assignments":coach_assignments,"applications":coach_applications,"role_reset":role_reset},
+                    "login_preserved":True,"player_creator_ready":True
+                })
+            finally:
                 c.close()
-                return self.out({"error":"ACCOUNT_NOT_FOUND"},404)
-
-
-            if row["role"] in ("COMMISSIONER","COACH"):
-                c.close()
-                return self.out({"error":"PROTECTED_ACCOUNT"},403)
-
-
-            uid=row["id"]
-
-
-            players=c.execute(
-                "SELECT id,franchise_id FROM players WHERE user_id=?",
-                (uid,)
-            ).fetchall()
-
-
-            removed_players=0
-            restored_slots=0
-
-
-            for p_row in players:
-                pid=p_row["id"]
-
-                slots=c.execute(
-                    "SELECT franchise_id,slot_no FROM roster_slots WHERE player_id=?",
-                    (pid,)
-                ).fetchall()
-
-                for slot in slots:
-                    c.execute(
-                        "UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE franchise_id=? AND slot_no=?",
-                        (slot["franchise_id"],slot["slot_no"])
-                    )
-                    restored_slots+=1
-
-                c.execute("DELETE FROM offers WHERE player_id=?",(pid,))
-                c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
-                c.execute("DELETE FROM team_practice WHERE player_id=?",(pid,))
-                c.execute("DELETE FROM xp_ledger WHERE player_id=?",(pid,))
-                c.execute("DELETE FROM players WHERE id=?",(pid,))
-                removed_players+=1
-            c.execute("DELETE FROM persistent_sessions WHERE user_id=?",(uid,))
-            c.execute("DELETE FROM account_recovery WHERE user_id=?",(uid,))
-            c.execute("DELETE FROM user_security WHERE user_id=?",(uid,))
-            c.execute(
-                "DELETE FROM direct_messages WHERE sender_user_id=? OR recipient_user_id=?",
-                (uid,uid)
-            )
-            c.execute(
-                "DELETE FROM user_blocks WHERE blocker_user_id=? OR blocked_user_id=?",
-                (uid,uid)
-            )
-            c.execute(
-                "DELETE FROM user_reports WHERE reporter_user_id=? OR reported_user_id=?",
-                (uid,uid)
-            )
-            c.execute(
-                "DELETE FROM moderation_actions WHERE target_user_id=? OR moderator_user_id=?",
-                (uid,uid)
-            )
-            c.execute("DELETE FROM users WHERE id=?",(uid,))
-
-
-            c.commit()
-            c.close()
-
-
-            return self.out({
-                "ok":True,
-                "username":row["username"],
-                "email":row["email"],
-                "removed_players":removed_players,
-                "restored_slots":restored_slots
-            })
 
         # Every unknown mutation route must return a real HTTP response. Falling off
         # BaseHTTPRequestHandler makes reverse proxies report a misleading 502.
@@ -8820,10 +9180,15 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.5 Unified Closed Alpha: http://127.0.0.1:{port}")
+    print(f"EBL v7.6 Accelerated Beta RC97: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
+    try:
+        discord_bridge_bootstrap()
+    except Exception as e:
+        print(f"DISCORD BRIDGE BOOTSTRAP ERROR: {type(e).__name__}: {str(e)[:200]}")
+    threading.Thread(target=discord_bridge_worker,daemon=True,name="EBL-DiscordBridge").start()
     threading.Thread(target=auto_advance_worker,args=(port,),daemon=True,name="EBL-AutoAdvance").start()
     httpd.serve_forever()
 
