@@ -96,6 +96,7 @@ dialog{background:var(--panel);color:white;border:1px solid var(--line);border-r
 
 .supportHero{border-top:3px solid var(--gold);overflow:hidden}.supportLead{max-width:760px;color:#c5d0dc;font-size:1.02rem;line-height:1.55}.supportActions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.supportBtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:170px;text-decoration:none}.supportBtn.primary{border-color:var(--gold);box-shadow:inset 0 -2px 0 var(--gold)}.supportPromise{display:flex;flex-direction:column;gap:4px;padding:12px 14px;margin:14px 0;border-left:4px solid var(--green);border-radius:10px;background:#071d24;border-top:1px solid var(--line-soft);border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}.supportPromise b{color:#8ce6ad}.supportPromise span{color:var(--mut)}.supportGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0}.supportUse{padding:14px;border:1px solid var(--line-soft);border-radius:13px;background:linear-gradient(155deg,rgba(15,43,68,.8),rgba(6,20,34,.9))}.supportUse b,.supportUse small{display:block}.supportUse small{color:var(--mut);margin-top:5px;line-height:1.4}.supportIcon{font-size:24px;display:block;margin-bottom:7px}.supportFine{font-size:12px;color:#8999a8;line-height:1.45;margin-top:14px}@media(max-width:700px){.supportGrid{grid-template-columns:1fr}.supportActions .btn{width:100%}}
 
+/* RC92 escalating revenue investment curve */
 /* RC91 veteran free-agent service-time fix */
 /* RC90 contract/mobile polish */
 .contractGridRC90{display:grid;gap:9px;margin-top:8px}.contractCardRC90{border:1px solid var(--line);border-radius:12px;background:#081827;padding:10px 12px}.contractIdentityRC90{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}.contractFactsRC90{display:grid;grid-template-columns:repeat(4,minmax(80px,1fr));gap:8px;margin-top:9px}.contractFactsRC90 span{display:flex;flex-direction:column;gap:2px;padding:7px 8px;border-radius:8px;background:#0b2037;min-width:0}.contractFactsRC90 small{font-size:10px;color:var(--mut);font-weight:850;letter-spacing:.06em}.contractFactsRC90 b{font-size:13px;white-space:nowrap}@media(max-width:620px){.contractFactsRC90{grid-template-columns:repeat(2,minmax(0,1fr))}.contractCardRC90{padding:10px}.contractIdentityRC90{align-items:flex-start}.contractFactsRC90 span{padding:7px}}
@@ -3021,7 +3022,7 @@ function refreshChangePositions(){
 async function changePlayerPosition(){return onceAction('changePosition',async()=>{
  try{const group=changeGroup.value,position=changePos.value;await api('/api/player/change-position',{method:'POST',body:JSON.stringify({player_id:PLAYER?.id,position_group:group,position})});await loadPlayer(PLAYER?.id);renderHome();}catch(e){alert(e.error||'Could not change position')}})}
                 
-let CREATOR={name:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,skin_color_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,hair_color_id:3,eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1,pool:50,attributes:{}};
+let CREATOR={name:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,skin_color_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,hair_color_id:3,nose_id:1,eye_shape_id:1,mouth_id:1,ear_size_id:2,eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1,pool:50,attributes:{}};
 let POSITION_DEMAND=[];
 const SKIN_TONES=[{name:'Fair',color:'#f2c59d'},{name:'Light',color:'#e7b58d'},{name:'Warm',color:'#dca47b'},{name:'Tan',color:'#c98c68'},{name:'Medium',color:'#bd7c57'},{name:'Deep',color:'#8d573e'},{name:'Rich',color:'#754733'},{name:'Dark',color:'#633c2e'}];
 const FACE_PRESETS=[
@@ -3062,8 +3063,12 @@ const HAIR_COLORS=[
  {name:'Light Brown',color:'#75503a'}, {name:'Auburn',color:'#71351f'}, {name:'Blonde',color:'#c9a66b'},
  {name:'Light Blonde',color:'#e1c98b'}, {name:'Gray',color:'#777b80'}, {name:'White',color:'#d8d8d2'}
 ];
-const EYE_BLACK_NAMES=['None','Single Stripe','Double Stripe'];
-const EYEWEAR_NAMES=['None','Sport Goggles'];
+const NOSE_NAMES=['Classic','Button','Straight','Broad'];
+const EYE_SHAPE_NAMES=['Classic','Narrow','Round','Relaxed'];
+const MOUTH_NAMES=['Neutral','Soft Smile','Wide Smile','Firm'];
+const EAR_SIZE_NAMES=['Small','Standard','Large'];
+const EYE_BLACK_NAMES=['None','Single Stripe','Double Stripe','Down Triangle','Cross'];
+const EYEWEAR_NAMES=['None','Sport Goggles','Thin Frames','Round Frames','Wraparound'];
 const CHAIN_NAMES=['None','Gold Chain','Silver Chain'];
 const SLEEVE_NAMES=['None','Left Arm','Right Arm','Both Arms'];
 
@@ -3531,7 +3536,7 @@ async function finishCreator(){return onceAction('finishCreator',async()=>{
  try{
    if(!String(CREATOR.name||'').trim())return alert('A player name is required. Go back to Basic Info and enter a name.');
    if(CREATOR.position!=='C' && CREATOR.attributes?.CALL){return alert('CALL is a catcher-only rating. Set CALL back to 0 or choose C as your preferred position.');}
-   let payload={name:CREATOR.name,hometown:CREATOR.hometown||'',position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,skin_color_id:CREATOR.skin_color_id||1,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
+   let payload={name:CREATOR.name,hometown:CREATOR.hometown||'',position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,skin_color_id:CREATOR.skin_color_id||1,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,nose_id:CREATOR.nose_id||1,eye_shape_id:CREATOR.eye_shape_id||1,mouth_id:CREATOR.mouth_id||1,ear_size_id:CREATOR.ear_size_id||2,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
    let created=await api('/api/player/create',{method:'POST',body:JSON.stringify(payload)});
    PLAYER_HQ_TAB='playerOverview';
    const newId=created?.player?.id||null;
@@ -4081,6 +4086,10 @@ function eblAppearancePlayer(p={}){
   hair_color_id:p.hair_color_id??a.hair_color_id??3,
   facial_hair_id:p.facial_hair_id??a.facial_hair_id??1,
   eye_color_id:p.eye_color_id??a.eye_color_id??6,
+  nose_id:p.nose_id??a.nose_id??1,
+  eye_shape_id:p.eye_shape_id??a.eye_shape_id??1,
+  mouth_id:p.mouth_id??a.mouth_id??1,
+  ear_size_id:p.ear_size_id??a.ear_size_id??2,
   eye_black_id:p.eye_black_id??a.eye_black_id??1,
   eyewear_id:p.eyewear_id??a.eyewear_id??a.goggles_id??1,
   chain_id:p.chain_id??a.chain_id??1,
@@ -4554,16 +4563,16 @@ async function loadCoachHub(){
    <div id="cUpgrades" class="subpane">
     <h2>Franchise Treasury & Revenue</h2>
     <p class="muted">Every club begins from the 480 XP league base. Each completed season permanently grows annual funding by <b>+5 XP for the top third, +4 for the middle third, or +3 for the bottom third</b>. Final placement also pays <b>1–30 spendable XP</b>, while rebuilding clubs earn up to a <b>+5% game-XP development boost</b>. Unused treasury rolls over without a cap.</p>
-    <div class="grid"><div class="statBox"><span class="label">CURRENT TREASURY</span><b>${Number(j.team.xp_budget||0).toFixed(1)}</b></div><div class="statBox"><span class="label">RECURRING FUNDING</span><b>${Number(j.team.next_season_base_budget||480).toFixed(1)}</b></div><div class="statBox"><span class="label">PERMANENT STANDINGS GROWTH</span><b>+${Number(j.team.permanent_pool_growth||0).toFixed(1)}</b></div><div class="statBox"><span class="label">REVENUE UPGRADES</span><b>${Number(j.team.revenue_upgrades_total||0)}/${Number(j.team.revenue_upgrades_cap||10)}</b></div><div class="statBox"><span class="label">LAST FINISH REWARD</span><b>+${Number(j.team.finish_reward||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LAST POOL GROWTH</span><b>+${Number(j.team.last_pool_growth||0).toFixed(1)}</b></div><div class="statBox"><span class="label">PLAYER DEVELOPMENT</span><b>${rebuildBonusText}</b></div></div>
-    <div class="card" style="margin-top:12px"><b>Optional Revenue Investments</b><p class="muted" style="margin:6px 0 0">A franchise can buy up to <b>10 total revenue upgrades</b> across the categories below. Every upgrade costs <b>50 XP</b> and permanently adds <b>+5 XP/year</b>. These are wealth-building choices, not requirements for keeping a roster.</p></div>
-    ${(()=>{const total=Number(j.team.revenue_upgrades_total||0),cap=Number(j.team.revenue_upgrades_cap||10),branches=[
+    <div class="grid"><div class="statBox"><span class="label">CURRENT TREASURY</span><b>${Number(j.team.xp_budget||0).toFixed(1)}</b></div><div class="statBox"><span class="label">RECURRING FUNDING</span><b>${Number(j.team.next_season_base_budget||480).toFixed(1)}</b></div><div class="statBox"><span class="label">PERMANENT STANDINGS GROWTH</span><b>+${Number(j.team.permanent_pool_growth||0).toFixed(1)}</b></div><div class="statBox"><span class="label">REVENUE GROWTH</span><b>+${Number(j.team.revenue_upgrade_bonus||0).toFixed(1)}/YR</b></div><div class="statBox"><span class="label">LAST FINISH REWARD</span><b>+${Number(j.team.finish_reward||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LAST POOL GROWTH</span><b>+${Number(j.team.last_pool_growth||0).toFixed(1)}</b></div><div class="statBox"><span class="label">PLAYER DEVELOPMENT</span><b>${rebuildBonusText}</b></div></div>
+    <div class="card" style="margin-top:12px"><b>Optional Revenue Investments</b><p class="muted" style="margin:6px 0 0">Each revenue category has <b>5 permanent levels</b>. Upgrade costs rise <b>50 → 65 → 80 → 100 → 125 XP</b>, while that category's annual funding grows to <b>+5 → +10 → +20 → +40 → +80 XP/year</b>. Build them when your treasury can support it; they are long-term wealth investments, not roster requirements.</p></div>
+    ${(()=>{const costs=(j.team.revenue_upgrade_costs||[50,65,80,100,125]).map(Number),bonuses=[0,...(j.team.revenue_upgrade_bonuses||[5,10,20,40,80]).map(Number)],max=Number(j.team.revenue_branch_max||5),branches=[
       ['seating','Stadium Seating','Expand capacity, premium seating and game-day attendance.'],
       ['concessions','Concessions','Improve food, beverage and ballpark sales operations.'],
       ['marketing','Marketing','Grow the club brand, promotions and local fan reach.'],
       ['sponsorships','Corporate Partnerships','Build recurring commercial and partner revenue.'],
       ['merchandising','Merchandising','Expand team merchandise and retail operations.'],
       ['media','Media Operations','Grow broadcasts, digital coverage and club media revenue.']
-    ];return `<div class="upgradeGrid" style="margin-top:12px">${branches.map(([key,name,desc])=>{let lvl=Number(j.team[key+'_level']||0),locked=total>=cap||lvl>=5;return `<div class="upgradeCard"><h3>${name}</h3><div><b>Level ${lvl}/5</b> • +${lvl*5} XP/year</div><div class="muted">${desc}</div><div class="muted">50 XP now • +5 XP/year permanently • ${total}/${cap} total investments used</div><button class="btn" ${locked?'disabled':''} onclick="buyFranchiseUpgrade('${key}')">${lvl>=5?'BRANCH MAX':total>=cap?'10/10 COMPLETE':'Upgrade • 50 XP'}</button></div>`}).join('')}</div>`})()}
+    ];return `<div class="upgradeGrid" style="margin-top:12px">${branches.map(([key,name,desc])=>{let lvl=Math.max(0,Math.min(max,Number(j.team[key+'_level']||0))),locked=lvl>=max,next=lvl+1,cost=locked?0:Number(costs[lvl]??0),current=Number(bonuses[lvl]??0),nextBonus=locked?current:Number(bonuses[next]??current),gain=Math.max(0,nextBonus-current);return `<div class="upgradeCard"><h3>${name}</h3><div><b>Level ${lvl}/${max}</b> • +${current} XP/year</div><div class="muted">${desc}</div>${locked?`<div class="muted">Maximum revenue development reached • +${current} XP/year permanently</div>`:`<div class="muted">Next: ${cost} XP • Level ${next} becomes +${nextBonus} XP/year <b>(+${gain}/year)</b></div>`}<button class="btn" ${locked?'disabled':''} onclick="buyFranchiseUpgrade('${key}')">${locked?'BRANCH MAX':`Upgrade • ${cost} XP`}</button></div>`}).join('')}</div>`})()}
 
     <h2 class="coachSection">Baseball Operations</h2>
     <p class="muted">Permanent facilities improve how your organization develops and recovers without directly buying player ratings.</p>
@@ -4607,7 +4616,7 @@ async function loadCoachHub(){
  }catch(e){coachHub.innerHTML=`<p class="red">${e.error||'Could not load coach interface'}</p>`}
 }
 async function reloadCoachPaneKeepPositionRC90(id){const y=window.scrollY;await loadCoachHub();coachPane(id,null);requestAnimationFrame(()=>window.scrollTo({top:y,behavior:'auto'}))}
-async function buyFranchiseUpgrade(kind){try{const j=await api('/api/coach/franchise-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} upgraded to Level ${j.level}. +5 XP/year permanently. Revenue investments: ${j.revenue_upgrades_total}/${j.revenue_upgrades_cap}.`);await reloadCoachPaneKeepPositionRC90('cUpgrades')}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:e.error==='REVENUE_UPGRADE_CAP'?`This franchise has reached the ${e.maximum||10}-upgrade revenue cap.`:(e.error||'Upgrade failed'))}}
+async function buyFranchiseUpgrade(kind){try{const j=await api('/api/coach/franchise-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} upgraded to Level ${j.level}. This branch now adds +${Number(j.branch_annual_bonus||0).toFixed(0)} XP/year (${Number(j.annual_gain||0).toFixed(0)} more than before).`);await reloadCoachPaneKeepPositionRC90('cUpgrades')}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:e.error==='MAX_LEVEL'?'That revenue branch is already Level 5.':(e.error||'Upgrade failed'))}}
 async function buyFacilityUpgrade(kind){try{const j=await api('/api/coach/facility-upgrade',{method:'POST',body:JSON.stringify({kind})});alert(`${kind} facility upgraded to Level ${j.level}.`);await reloadCoachPaneKeepPositionRC90('cUpgrades')}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Facility upgrade failed'))}}
 async function buyTeamSponsor(attribute){try{const j=await api('/api/coach/sponsor',{method:'POST',body:JSON.stringify({attribute})});alert(`Sponsor signed: +1 ${attribute} for Seasons ${j.start_season}–${j.end_season}.`);await reloadCoachPaneKeepPositionRC90('cUpgrades')}catch(e){alert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Sponsorship failed'))}}
 async function hireDevelopmentCoach(coach_type='SPEED',intensity=1){try{const j=await api('/api/coach/development-coach',{method:'POST',body:JSON.stringify({coach_type,intensity:Number(intensity||1)})});const schedule=(j.checkpoints||[]).map(d=>Number(d)===0?'Opening':'Day '+Number(d)).join(', ');alert(`${j.name||'Development coach'} added • ${j.free?'FREE':Number(j.cost||0).toFixed(0)+' XP'} • ${j.intensity_name||'Standard'} intensity. +1 ${j.attribute||j.coach?.attribute||''} applied now; schedule: ${schedule}.`);await reloadCoachPaneKeepPositionRC90('cUpgrades')}catch(e){if(e.error==='INSUFFICIENT_RESERVE')alert(`Need ${e.cost} treasury XP.`);else if(e.error==='DEVELOPMENT_COACH_LIMIT')alert(`Development staff is capped at ${e.maximum||3} coaches per season.`);else if(e.error==='DEVELOPMENT_COACH_DUPLICATE_SPECIALTY')alert('That specialist is already on your staff this season. Choose a different development focus.');else alert(e.detail||e.error||'Could not hire development coach.')}}
@@ -5446,7 +5455,7 @@ async function hydrateGamecastAppearance(game){
         const results=await Promise.all(ids.map(fid=>api('/api/team/'+encodeURIComponent(fid)).catch(()=>null)));
         const byId=new Map();
         results.forEach(j=>(j?.roster||[]).forEach(p=>byId.set(Number(p.id),p)));
-        const appearanceKeys=['name','primary_pos','jersey_number','face_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','bats','throws','franchise_id','type','username'];
+        const appearanceKeys=['name','primary_pos','jersey_number','face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','nose_id','eye_shape_id','mouth_id','ear_size_id','eye_black_id','eyewear_id','chain_id','sleeve_id','bats','throws','franchise_id','type','username'];
         const mergeRow=row=>{
             const live=byId.get(Number(row?.player_id));
             if(!live)return row;
@@ -6085,6 +6094,10 @@ function eblAppearancePlayerV11(p={}){
     hair_color_id:Number(pick(p.hair_color_id,a.hair_color_id,3)),
     facial_hair_id:Number(pick(p.facial_hair_id,a.facial_hair_id,1)),
     eye_color_id:Number(pick(p.eye_color_id,a.eye_color_id,6)),
+    nose_id:Number(pick(p.nose_id,a.nose_id,1)),
+    eye_shape_id:Number(pick(p.eye_shape_id,a.eye_shape_id,1)),
+    mouth_id:Number(pick(p.mouth_id,a.mouth_id,1)),
+    ear_size_id:Number(pick(p.ear_size_id,a.ear_size_id,2)),
     eye_black_id:Number(pick(p.eye_black_id,a.eye_black_id,1)),
     eyewear_id:Number(pick(p.eyewear_id,a.eyewear_id,a.goggles_id,1)),
     chain_id:Number(pick(p.chain_id,a.chain_id,1)),
@@ -6136,7 +6149,7 @@ function eblActionV20(player,action='batting',cls=''){
 /* Stable identity payload helper for creator -> saved player -> league surfaces. */
 function eblIdentityPayloadV21(player){
  const p=eblCanonicalPlayerV20(player||{});
- return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),skin_color_id:Number(p.skin_color_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),franchise_id:p.franchise_id??null};
+ return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),skin_color_id:Number(p.skin_color_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),nose_id:Number(p.nose_id||1),eye_shape_id:Number(p.eye_shape_id||1),mouth_id:Number(p.mouth_id||1),ear_size_id:Number(p.ear_size_id||2),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),franchise_id:p.franchise_id??null};
 }
 </script>
 
@@ -6156,6 +6169,10 @@ function eblIdentityCompatV22(raw={}){
    hair_color_id:first(raw.hair_color_id,a.hair_color_id,3),
    facial_hair_id:first(raw.facial_hair_id,a.facial_hair_id,1),
    eye_color_id:first(raw.eye_color_id,a.eye_color_id,6),
+   nose_id:first(raw.nose_id,a.nose_id,1),
+   eye_shape_id:first(raw.eye_shape_id,a.eye_shape_id,1),
+   mouth_id:first(raw.mouth_id,a.mouth_id,1),
+   ear_size_id:first(raw.ear_size_id,a.ear_size_id,2),
    eye_black_id:first(raw.eye_black_id,a.eye_black_id,1),
    eyewear_id:first(raw.eyewear_id,raw.goggles_id,a.eyewear_id,a.goggles_id,1),
    chain_id:first(raw.chain_id,a.chain_id,1),
@@ -6176,7 +6193,7 @@ function eblIdentityMiniV22(raw={},subtitle=''){
 /* V23 — non-destructive creator selection/accessibility synchronizer. */
 function eblSyncCreatorSelectionV23(){
   if(typeof CREATOR==='undefined') return;
-  const map={face_id:CREATOR.face_id,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id};
+  const map={face_id:CREATOR.face_id,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,nose_id:CREATOR.nose_id||1,eye_shape_id:CREATOR.eye_shape_id||1,mouth_id:CREATOR.mouth_id||1,ear_size_id:CREATOR.ear_size_id||2,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id};
   document.querySelectorAll('[data-k][data-v]').forEach(el=>{
     const k=el.dataset.k,v=Number(el.dataset.v),on=Object.prototype.hasOwnProperty.call(map,k)&&Number(map[k])===v;
     el.classList.toggle('selected',on); el.setAttribute('aria-pressed',on?'true':'false');
@@ -6398,6 +6415,10 @@ function eblSavedIdentityRC36(raw={}){
     hair_color_id:n(3,saved.hair_color_id,appearance.hair_color_id,avatar.hair_color_id,raw.hair_color_id),
     facial_hair_id:n(1,saved.facial_hair_id,appearance.facial_hair_id,avatar.facial_hair_id,raw.facial_hair_id),
     eye_color_id:n(6,saved.eye_color_id,appearance.eye_color_id,avatar.eye_color_id,raw.eye_color_id),
+    nose_id:n(1,saved.nose_id,appearance.nose_id,avatar.nose_id,raw.nose_id),
+    eye_shape_id:n(1,saved.eye_shape_id,appearance.eye_shape_id,avatar.eye_shape_id,raw.eye_shape_id),
+    mouth_id:n(1,saved.mouth_id,appearance.mouth_id,avatar.mouth_id,raw.mouth_id),
+    ear_size_id:n(2,saved.ear_size_id,appearance.ear_size_id,avatar.ear_size_id,raw.ear_size_id),
     eye_black_id:n(1,saved.eye_black_id,appearance.eye_black_id,avatar.eye_black_id,raw.eye_black_id),
     eyewear_id:n(1,saved.eyewear_id,saved.goggles_id,appearance.eyewear_id,appearance.goggles_id,avatar.eyewear_id,avatar.goggles_id,raw.eyewear_id,raw.goggles_id),
     chain_id:n(1,saved.chain_id,appearance.chain_id,avatar.chain_id,raw.chain_id),
@@ -6608,7 +6629,7 @@ function eblRC38AppearanceObject(raw={}){
 }
 function eblRC38Richness(raw={}){
   const a=eblRC38AppearanceObject(raw);
-  const keys=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id'];
+  const keys=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','nose_id','eye_shape_id','mouth_id','ear_size_id','eye_black_id','eyewear_id','chain_id','sleeve_id'];
   return keys.reduce((s,k)=>s+((raw[k]!==undefined&&raw[k]!==null)||(a[k]!==undefined&&a[k]!==null)?1:0),0);
 }
 function eblRC38Pools(){
@@ -7776,9 +7797,9 @@ const F={
 function n(v,d=1){v=+v;return Number.isFinite(v)?v:d} function c(v,a,b){return Math.max(a,Math.min(b,v))}
 function model(r){let p=r||{};try{if(typeof eblFullSavedPlayerRC38==='function')p=eblFullSavedPlayerRC38(p)}catch(e){}return p}
 function pal(p){try{if(typeof window.eblUniformSpecV53==='function'){const u=window.eblUniformSpecV53(p||{});return [u.primary,u.secondary,u.accent]}let q=teamPalette(p.franchise_id);return [q.primary||q[0],q.secondary||q[1],q.accent||q[2]]}catch(e){return ['#071a31','#d7262e','#f4f7fb']}}
-function hair(id,col){id=c(n(id),1,3);if(id===1)return '';if(id===2)return `<path d="M110 111Q112 82 132 74Q150 65 170 75Q188 84 190 113L184 139Q178 115 168 106Q150 99 132 106Q120 116 116 139Z" fill="${col}"/>`;return `<path d="M104 112Q105 77 128 66Q149 53 173 67Q197 80 196 117L190 171Q181 161 179 126Q168 103 150 102Q128 102 119 128L113 174Q103 160 104 112Z" fill="${col}"/><path d="M110 151Q103 169 111 186Q117 173 120 151M190 151Q197 169 189 186Q183 173 180 151" fill="${col}"/>`}
+function hair(id,col){id=c(n(id),1,6);if(id===1)return '';if(id===2)return `<path d="M110 111Q112 82 132 74Q150 65 170 75Q188 84 190 113L184 139Q178 115 168 106Q150 99 132 106Q120 116 116 139Z" fill="${col}"/>`;if(id===3)return `<path d="M104 112Q105 77 128 66Q149 53 173 67Q197 80 196 117L190 171Q181 161 179 126Q168 103 150 102Q128 102 119 128L113 174Q103 160 104 112Z" fill="${col}"/><path d="M110 151Q103 169 111 186Q117 173 120 151M190 151Q197 169 189 186Q183 173 180 151" fill="${col}"/>`;if(id===4)return `<path d="M101 113Q103 74 127 63Q149 50 174 64Q198 79 199 118L194 185Q184 174 179 138Q168 102 150 101Q129 101 119 136Q114 170 106 187Q99 164 101 113Z" fill="${col}"/>`;if(id===5)return `<path d="M101 113Q104 75 128 63Q150 51 174 66Q197 81 198 119L194 181Q185 173 182 151Q190 165 184 188Q176 177 176 141Q165 102 150 102Q133 102 122 142Q123 176 115 189Q109 170 106 151Q105 176 100 183Z" fill="${col}"/>`;return `<path d="M99 113Q102 72 127 60Q150 48 176 63Q201 79 201 121L197 198Q188 190 181 170Q178 199 166 214Q164 177 174 139Q165 102 150 101Q132 102 123 140Q133 179 132 214Q119 199 117 170Q110 192 101 199Z" fill="${col}"/>`}
 function facial(id,col){id=n(id);if(id===5)return `<path d="M132 174Q141 168 150 173Q159 168 168 174Q159 180 150 178Q141 180 132 174Z" fill="${col}"/>`;if(id===3)return `<path d="M140 181Q150 187 160 181L158 202Q150 209 142 202Z" fill="${col}"/><path d="M136 174Q150 168 164 174" fill="none" stroke="${col}" stroke-width="4"/>`;if(id===4)return `<path d="M115 158Q117 190 130 205Q139 216 150 220Q161 216 170 205Q183 190 185 158L178 170Q174 194 162 205Q150 214 138 205Q126 194 122 170Z" fill="${col}"/><path d="M128 172Q139 165 150 171Q161 165 172 172Q163 181 150 179Q137 181 128 172Z" fill="${col}"/>`;return ''}
-function svg(raw){const p=model(raw),[pri,sec,acc]=pal(p),skin=SK[c(n(p.skin_color_id),1,8)-1],hc=HC[c(n(p.hair_color_id,3),1,9)-1],ec=EC[c(n(p.eye_color_id,6),1,6)-1],fid=c(n(p.face_id),1,5),hid=c(n(p.hair_id),1,3),fac=n(p.facial_hair_id),num=String(n(p.jersey_number,24)).padStart(2,'0').slice(-2);return `<svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg" role="img"><circle cx="150" cy="177" r="134" fill="${pri}" opacity=".13"/><text x="150" y="210" text-anchor="middle" font-size="112" font-weight="900" fill="${acc}" opacity=".03">EBL</text>
+function svg(raw){const p=model(raw),[pri,sec,acc]=pal(p),skin=SK[c(n(p.skin_color_id),1,8)-1],hc=HC[c(n(p.hair_color_id,3),1,9)-1],ec=EC[c(n(p.eye_color_id,6),1,6)-1],fid=c(n(p.face_id),1,5),hid=c(n(p.hair_id),1,6),fac=n(p.facial_hair_id),num=String(n(p.jersey_number,24)).padStart(2,'0').slice(-2);return `<svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg" role="img"><circle cx="150" cy="177" r="134" fill="${pri}" opacity=".13"/><text x="150" y="210" text-anchor="middle" font-size="112" font-weight="900" fill="${acc}" opacity=".03">EBL</text>
 <!-- V45 anatomical jersey: arms tuck naturally below the fitted sleeve hems. -->
 <path data-ebl-arm="left" d="M50 309Q58 314 76 318L72 360H43L45 342Q47 324 50 309Z" fill="${skin}" stroke="#2a1712" stroke-width="3.5"/>
 <path data-ebl-arm="right" d="M250 309Q242 314 224 318L228 360H257L255 342Q253 324 250 309Z" fill="${skin}" stroke="#2a1712" stroke-width="3.5"/>
@@ -7850,7 +7871,7 @@ window.EBL_APPEARANCE_CANONICAL_V16={faces:5,hair:3,facial:['None','Mustache','G
  const oldV11=window.eblAppearancePlayerV11;
  window.eblAppearancePlayerV11=function(p={}){const q=typeof oldV11==='function'?oldV11(p):{...p};const a=p.appearance||p.avatar||{};q.skin_color_id=Number(p.skin_color_id??a.skin_color_id??q.skin_color_id??1);return q};
  window.eblCanonicalPlayerV20=function(player){return window.eblAppearancePlayerV11(player||{})};
- window.eblIdentityPayloadV21=function(player){const p=window.eblCanonicalPlayerV20(player||{});return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),skin_color_id:Number(p.skin_color_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),franchise_id:p.franchise_id??null}};
+ window.eblIdentityPayloadV21=function(player){const p=window.eblCanonicalPlayerV20(player||{});return {name:p.name||'',primary_pos:p.primary_pos||'UTIL',bats:p.bats||'R',throws:p.throws||'R',jersey_number:Number(p.jersey_number||24),face_id:Number(p.face_id||1),skin_color_id:Number(p.skin_color_id||1),hair_id:Number(p.hair_id||1),hair_color_id:Number(p.hair_color_id||3),facial_hair_id:Number(p.facial_hair_id||1),eye_color_id:Number(p.eye_color_id||6),nose_id:Number(p.nose_id||1),eye_shape_id:Number(p.eye_shape_id||1),mouth_id:Number(p.mouth_id||1),ear_size_id:Number(p.ear_size_id||2),eye_black_id:Number(p.eye_black_id||1),eyewear_id:Number(p.eyewear_id||1),chain_id:Number(p.chain_id||1),sleeve_id:Number(p.sleeve_id||1),franchise_id:p.franchise_id??null}};
  window.pickSkinTone=function(id){CREATOR.skin_color_id=Math.max(1,Math.min(8,Number(id)||1));creatorAppearance()};
  window.pickHairColor=function(id){CREATOR.hair_color_id=Math.max(1,Math.min(9,Number(id)||3));creatorAppearance()};
  window.EBL_APPEARANCE_FUNCTIONAL_V18={skinPersist:true,hairPersist:true,facial:['None','Mustache','Goatee','Full Beard'],sideburns:false};
@@ -8470,14 +8491,20 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
 (function(){
  let tab='face';
  const FACE=[{id:1,label:'Classic'},{id:2,label:'Wide'},{id:5,label:'Angular'},{id:3,label:'Oval'},{id:4,label:'Square'}];
- const HAIR=[{id:1,label:'Short'},{id:2,label:'Medium'},{id:3,label:'Long'}];
- const FACIAL=[{id:1,label:'None'},{id:2,label:'Stubble'},{id:3,label:'Goatee'},{id:5,label:'Mustache'},{id:4,label:'Full Beard'},{id:7,label:'Chin Strap'},{id:11,label:'Soul Patch'},{id:13,label:'Handlebar'},{id:10,label:'Van Dyke'}];
+ const HAIR=[{id:1,label:'Short'},{id:2,label:'Medium'},{id:3,label:'Long'},{id:4,label:'Long Flow'},{id:5,label:'Long Waves'},{id:6,label:'Shoulder Length'}];
+ const FACIAL=[{id:1,label:'None'},{id:2,label:'Stubble'},{id:3,label:'Goatee'},{id:5,label:'Mustache'},{id:4,label:'Full Beard'},{id:6,label:'Heavy Stubble'},{id:7,label:'Chin Strap'},{id:8,label:'Short Boxed'},{id:11,label:'Soul Patch'},{id:12,label:'Circle Beard'},{id:13,label:'Handlebar'},{id:10,label:'Van Dyke'},{id:14,label:'Mutton Chops'}];
+ const NOSE=[{id:1,label:'Classic'},{id:2,label:'Button'},{id:3,label:'Straight'},{id:4,label:'Broad'}];
+ const EYES=[{id:1,label:'Classic'},{id:2,label:'Narrow'},{id:3,label:'Round'},{id:4,label:'Relaxed'}];
+ const MOUTHS=[{id:1,label:'Neutral'},{id:2,label:'Soft Smile'},{id:3,label:'Wide Smile'},{id:4,label:'Firm'}];
+ const EARS=[{id:1,label:'Small'},{id:2,label:'Standard'},{id:3,label:'Large'}];
  const label=(arr,id)=>(arr.find(x=>x.id===Number(id))||arr[0]).label;
  function thumb(face,hair,facial){const f=(window.FACE_PRESETS||[])[Math.max(0,Number(face)-1)]||(window.FACE_PRESETS||[])[0];return window.faceThumbMarkup?window.faceThumbMarkup(f,hair,facial):''}
  function card(x,sel,onclick,html){return `<div class="creatorStudioCardV20 ${Number(sel)===x.id?'selected':''}" onclick="${onclick}(${x.id})">${html}<div class="eblChoiceTitle">${x.label}</div></div>`}
+ function detailThumb(extra={}){return typeof window.eblCreatorFeatureThumbV63==='function'?window.eblCreatorFeatureThumbV63(extra):thumb(CREATOR.face_id,CREATOR.hair_id,CREATOR.facial_hair_id)}
+ function detailGrid(title,arr,key,fn){return `<div class="creatorSubheadV20">${title}</div><div class="creatorStudioGridV20">${arr.map(x=>card(x,CREATOR[key],fn,detailThumb({[key]:x.id}))).join('')}</div>`}
  function colors(title,arr,key,fn){return `<div class="creatorSubheadV20">${title}</div><div class="colorChoices">${arr.map((x,i)=>`<button class="colorChoice ${Number(CREATOR[key]||1)===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" onclick="${fn}(${i+1})"></button>`).join('')}</div>`}
  function accessories(){const group=(title,names,key,fn)=>`<div class="creatorSubheadV20">${title}</div><div class="creatorAccessoryGridV20">${names.map((n,i)=>`<div class="creatorAccessoryV20 ${Number(CREATOR[key]||1)===i+1?'selected':''}" onclick="${fn}(${i+1})"><small>${title}</small><b>${n}</b></div>`).join('')}</div>`;return group('EYE BLACK',EYE_BLACK_NAMES,'eye_black_id','pickEyeBlack')+group('EYEWEAR',EYEWEAR_NAMES,'eyewear_id','pickEyewear')+group('CHAIN',CHAIN_NAMES,'chain_id','pickChain')+group('SLEEVES',SLEEVE_NAMES,'sleeve_id','pickSleeve')}
- function body(){if(tab==='face')return `<h3>FACE</h3><div class="creatorStudioGridV20">${FACE.map(x=>card(x,CREATOR.face_id,'pickFace',thumb(x.id,CREATOR.hair_id,CREATOR.facial_hair_id))).join('')}</div>${colors('SKIN TONE',SKIN_TONES,'skin_color_id','pickSkinTone')}${colors('EYE COLOR',EYE_COLORS,'eye_color_id','pickEyeColor')}`;if(tab==='hair')return `<h3>HAIR</h3><div class="creatorStudioGridV20">${HAIR.map(x=>card(x,CREATOR.hair_id,'pickHair',thumb(CREATOR.face_id,x.id,CREATOR.facial_hair_id))).join('')}</div>${colors('HAIR COLOR',HAIR_COLORS,'hair_color_id','pickHairColor')}`;if(tab==='facial')return `<h3>FACIAL HAIR</h3><div class="creatorStudioGridV20">${FACIAL.map(x=>card(x,CREATOR.facial_hair_id,'pickFacialHair',thumb(CREATOR.face_id,CREATOR.hair_id,x.id))).join('')}</div>`;if(tab==='headwear')return `<h3>HEADWEAR</h3><p class="muted">EBL game cap is currently the official player headwear. More cap and helmet choices can plug into this tab later without changing the avatar system.</p><div class="creatorAccessoryGridV20"><div class="creatorAccessoryV20 selected"><small>HEADWEAR</small><b>EBL Game Cap</b></div></div>`;return `<h3>ACCESSORIES</h3>${accessories()}`}
+ function body(){if(tab==='face')return `<h3>FACE SHAPE</h3><div class="creatorStudioGridV20">${FACE.map(x=>card(x,CREATOR.face_id,'pickFace',thumb(x.id,CREATOR.hair_id,CREATOR.facial_hair_id))).join('')}</div>${detailGrid('NOSE',NOSE,'nose_id','pickNose')}${detailGrid('EYES',EYES,'eye_shape_id','pickEyeShape')}${detailGrid('MOUTH',MOUTHS,'mouth_id','pickMouth')}${detailGrid('EARS',EARS,'ear_size_id','pickEarSize')}${colors('SKIN TONE',SKIN_TONES,'skin_color_id','pickSkinTone')}${colors('EYE COLOR',EYE_COLORS,'eye_color_id','pickEyeColor')}`;if(tab==='hair')return `<h3>HAIR</h3><div class="creatorStudioGridV20">${HAIR.map(x=>card(x,CREATOR.hair_id,'pickHair',thumb(CREATOR.face_id,x.id,CREATOR.facial_hair_id))).join('')}</div>${colors('HAIR COLOR',HAIR_COLORS,'hair_color_id','pickHairColor')}`;if(tab==='facial')return `<h3>FACIAL HAIR</h3><div class="creatorStudioGridV20">${FACIAL.map(x=>card(x,CREATOR.facial_hair_id,'pickFacialHair',thumb(CREATOR.face_id,CREATOR.hair_id,x.id))).join('')}</div>`;return `<h3>ACCESSORIES</h3>${accessories()}`}
  window.setCreatorAppearanceTabV20=function(t){tab=t;creatorAppearance()};
  window.pickFacialHair=function(id){CREATOR.facial_hair_id=FACIAL.some(x=>x.id===Number(id))?Number(id):1;creatorAppearance()};
  window.creatorAppearance=function(){const stage=document.getElementById('creatorStage');if(!stage)return;stage.innerHTML=`<div class="creatorStudioV20"><section class="creatorStudioLeftV20"><div class="creatorStudioHeadV20"><div class="creatorStageEyebrow">PLAYER APPEARANCE</div><div class="creatorStageTitle">Build your look.</div><div class="creatorStageCopy" style="margin:0">This is the same avatar used across EBL.</div></div><div class="creatorStudioTabsV20">${[['face','Face'],['hair','Hair'],['facial','Facial Hair'],['headwear','Headwear'],['accessories','Accessories']].map(x=>`<button class="creatorStudioTabV20 ${tab===x[0]?'active':''}" onclick="setCreatorAppearanceTabV20('${x[0]}')">${x[1]}</button>`).join('')}</div><div class="creatorStudioBodyV20">${body()}</div></section><aside class="creatorStudioRightV20"><h3>LIVE PLAYER PREVIEW</h3><div class="muted">This is exactly how you will look across EBL.</div><div id="creator3dPreview" class="avatar3dPreview"></div><div class="creatorStudioMetaV20"><div><span>Name</span><b>${escapeHtml(CREATOR.name||'Your Player')}</b></div><div><span>Jersey #</span><b>${String(CREATOR.jersey_number||24).padStart(2,'0')}</b></div><div><span>Position</span><b>${escapeHtml(CREATOR.position||'EBL')}</b></div><div><span>Look</span><b>${label(HAIR,CREATOR.hair_id)} • ${label(FACIAL,CREATOR.facial_hair_id)}</b></div></div><button class="btn creatorStudioSaveV20" onclick="beginAttributes()">SAVE APPEARANCE</button><div class="card" style="margin-top:10px"><b>SAME LOOK. EVERYWHERE.</b><div class="muted">Your saved appearance carries across Player HQ, EBL Home, team rosters, public profiles, and GameCast.</div></div></aside></div><div style="margin-top:14px"><button class="btn" onclick="setCreatorStep(1)">BACK</button></div>`;requestAnimationFrame(()=>renderCreator3D('creator3dPreview'))};
@@ -8917,7 +8944,7 @@ window.EBL_COACH_HUD_BUILD='RC48_STARTING_NINE';
 <!-- EBL CANONICAL PLAYER IDENTITY LOCK V34 -->
 <script id="eblCanonicalPlayerIdentityLockV34">
 (function(){
- const APPEARANCE=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id'];
+ const APPEARANCE=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','nose_id','eye_shape_id','mouth_id','ear_size_id','eye_black_id','eyewear_id','chain_id','sleeve_id'];
  const cache=new Map();
  const priorFull=window.eblFullSavedPlayerRC38;
  const finalArt=window.eblPlayerArtV24;
@@ -9175,12 +9202,15 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   const esc=typeof window.escapeHtml==='function'?window.escapeHtml:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
   const N=(v,d=1)=>{const q=Number(v);return Number.isFinite(q)?q:d};
   const HAIR_COLORS_V61=['#171411','#2b1b15','#4a2c1d','#6b4128','#8a5b34','#b07842','#d3a060','#9b9b9b','#e5e3dc'];
+  const SKIN_COLORS_V61=['#f2c59d','#e7b58d','#dca47b','#c98c68','#bd7c57','#8d573e','#754733','#633c2e'];
+  const EYE_COLORS_V61=['#4b2d1f','#765133','#3d7b5a','#2f6690','#77736b','#18232d'];
   const FACE_SIDES_V61={1:[111,189],2:[96,204],3:[113,187],4:[103,197],5:[110,190]};
-  const APPEARANCE_KEYS_V61=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
+  const APPEARANCE_KEYS_V61=['face_id','skin_color_id','hair_id','hair_color_id','facial_hair_id','eye_color_id','nose_id','eye_shape_id','mouth_id','ear_size_id','eye_black_id','eyewear_id','chain_id','sleeve_id','jersey_number'];
 
   function creatorState(){try{return CREATOR}catch(_){return {}}}
   function creatorKey(p={}){
-    const sig=APPEARANCE_KEYS_V61.map(k=>String(N(p[k],k==='hair_color_id'?3:(k==='eye_color_id'?6:(k==='jersey_number'?24:1))))).join('|');
+    const defaults={hair_color_id:3,eye_color_id:6,ear_size_id:2,jersey_number:24};
+    const sig=APPEARANCE_KEYS_V61.map(k=>String(N(p[k],defaults[k]??1))).join('|');
     let h=2166136261;for(let i=0;i<sig.length;i++){h^=sig.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)||1;
   }
   function creatorModel(extra={}){
@@ -9192,18 +9222,62 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     try{return typeof window.eblFullSavedPlayerRC38==='function'?window.eblFullSavedPlayerRC38(raw||{}):(raw||{})}catch(_){return raw||{}}
   }
   function hairUnderCap(p={}){
-    const id=Math.max(1,Math.min(3,N(p.hair_id,1)));if(id===1)return '';
+    const id=Math.max(1,Math.min(6,N(p.hair_id,1)));if(id===1)return '';
     const fid=Math.max(1,Math.min(5,N(p.face_id,1))),lr=FACE_SIDES_V61[fid]||FACE_SIDES_V61[1],l=lr[0],r=lr[1];
     const c=HAIR_COLORS_V61[Math.max(0,Math.min(HAIR_COLORS_V61.length-1,N(p.hair_color_id,3)-1))];
-    if(id===2){
-      return `<g data-ebl-hair-under-cap="v61" fill="${c}"><path d="M${l-1} 116Q${l-5} 127 ${l} 143Q${l+4} 135 ${l+8} 124L${l+8} 116Z"/><path d="M${r+1} 116Q${r+5} 127 ${r} 143Q${r-4} 135 ${r-8} 124L${r-8} 116Z"/></g>`;
-    }
-    return `<g data-ebl-hair-under-cap="v61" fill="${c}"><path d="M${l-3} 113Q${l-10} 136 ${l-7} 166Q${l-6} 184 ${l+1} 195Q${l+2} 171 ${l+11} 145L${l+10} 116Z"/><path d="M${r+3} 113Q${r+10} 136 ${r+7} 166Q${r+6} 184 ${r-1} 195Q${r-2} 171 ${r-11} 145L${r-10} 116Z"/></g>`;
+    if(id===2)return `<g data-ebl-hair-under-cap="v63" fill="${c}"><path d="M${l-1} 116Q${l-5} 127 ${l} 143Q${l+4} 135 ${l+8} 124L${l+8} 116Z"/><path d="M${r+1} 116Q${r+5} 127 ${r} 143Q${r-4} 135 ${r-8} 124L${r-8} 116Z"/></g>`;
+    if(id===3)return `<g data-ebl-hair-under-cap="v63" fill="${c}"><path d="M${l-3} 113Q${l-10} 136 ${l-7} 166Q${l-6} 184 ${l+1} 195Q${l+2} 171 ${l+11} 145L${l+10} 116Z"/><path d="M${r+3} 113Q${r+10} 136 ${r+7} 166Q${r+6} 184 ${r-1} 195Q${r-2} 171 ${r-11} 145L${r-10} 116Z"/></g>`;
+    if(id===4)return `<g data-ebl-hair-under-cap="v63" fill="${c}"><path d="M${l-4} 112Q${l-13} 139 ${l-8} 176Q${l-4} 197 ${l+5} 207Q${l+3} 173 ${l+13} 143L${l+10} 115Z"/><path d="M${r+4} 112Q${r+13} 139 ${r+8} 176Q${r+4} 197 ${r-5} 207Q${r-3} 173 ${r-13} 143L${r-10} 115Z"/></g>`;
+    if(id===5)return `<g data-ebl-hair-under-cap="v63" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"><path d="M${l+4} 117Q${l-9} 143 ${l-2} 169Q${l+5} 189 ${l-2} 208"/><path d="M${r-4} 117Q${r+9} 143 ${r+2} 169Q${r-5} 189 ${r+2} 208"/></g>`;
+    return `<g data-ebl-hair-under-cap="v63" fill="${c}"><path d="M${l-5} 111Q${l-15} 143 ${l-10} 184Q${l-8} 209 ${l+7} 226Q${l+7} 183 ${l+14} 145L${l+10} 114Z"/><path d="M${r+5} 111Q${r+15} 143 ${r+10} 184Q${r+8} 209 ${r-7} 226Q${r-7} 183 ${r-14} 145L${r-10} 114Z"/></g>`;
   }
   function eyeBlack(p={}){
-    const id=Math.max(1,Math.min(3,N(p.eye_black_id,1)));if(id===1)return '';
-    if(id===2)return `<g data-ebl-eye-black="v61" fill="none" stroke="#111317" stroke-width="5.4" stroke-linecap="round" opacity=".96"><path d="M113 157Q124 160 136 159"/><path d="M164 159Q176 160 187 157"/></g>`;
-    return `<g data-ebl-eye-black="v61" fill="none" stroke="#111317" stroke-width="3.7" stroke-linecap="round" opacity=".96"><path d="M113 154Q124 157 136 156"/><path d="M113 162Q124 165 135 164"/><path d="M164 156Q176 157 187 154"/><path d="M165 164Q176 165 187 162"/></g>`;
+    const id=Math.max(1,Math.min(5,N(p.eye_black_id,1)));if(id===1)return '';
+    if(id===2)return `<g data-ebl-eye-black="v63" fill="none" stroke="#111317" stroke-width="5.4" stroke-linecap="round" opacity=".96"><path d="M113 157Q124 160 136 159"/><path d="M164 159Q176 160 187 157"/></g>`;
+    if(id===3)return `<g data-ebl-eye-black="v63" fill="none" stroke="#111317" stroke-width="3.7" stroke-linecap="round" opacity=".96"><path d="M113 154Q124 157 136 156"/><path d="M113 162Q124 165 135 164"/><path d="M164 156Q176 157 187 154"/><path d="M165 164Q176 165 187 162"/></g>`;
+    if(id===4)return `<g data-ebl-eye-black="v63" fill="#111317" opacity=".96"><path d="M118 155L134 158L126 169Z"/><path d="M166 158L182 155L174 169Z"/></g>`;
+    return `<g data-ebl-eye-black="v63" fill="none" stroke="#111317" stroke-width="3.8" stroke-linecap="round" opacity=".96"><path d="M121 155V169M116 162H126M179 155V169M174 162H184"/></g>`;
+  }
+  function earMarkup(p={},side='left'){
+    const id=Math.max(1,Math.min(3,N(p.ear_size_id,2))),skin=SKIN_COLORS_V61[Math.max(0,Math.min(7,N(p.skin_color_id,1)-1))];
+    const spec=id===1?{rx:7,ry:12,cxL:107,cxR:193}:id===3?{rx:11,ry:18,cxL:103,cxR:197}:{rx:9,ry:15,cxL:105,cxR:195};
+    const cx=side==='left'?spec.cxL:spec.cxR,inner=side==='left'?cx+1:cx-1,arc=side==='left'?`M${inner+1} 139Q${inner-4} 145 ${inner+1} 151`:`M${inner-1} 139Q${inner+4} 145 ${inner-1} 151`;
+    return `<g data-ebl-ear="v63"><ellipse cx="${cx}" cy="145" rx="${spec.rx}" ry="${spec.ry}" fill="${skin}" stroke="#2a1712" stroke-width="2.7"/><path d="${arc}" fill="none" stroke="#9a5c4d" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></g>`;
+  }
+  function eyeMarkup(p={}){
+    const id=Math.max(1,Math.min(4,N(p.eye_shape_id,1))),ec=EYE_COLORS_V61[Math.max(0,Math.min(5,N(p.eye_color_id,6)-1))];
+    const shapes={
+      1:['M116 145Q128 138 140 145Q128 152 116 145Z','M160 145Q172 138 184 145Q172 152 160 145Z',4,4.4],
+      2:['M116 145Q128 141 140 145Q128 149 116 145Z','M160 145Q172 141 184 145Q172 149 160 145Z',4.2,3.2],
+      3:['M117 145Q128 136 139 145Q128 154 117 145Z','M161 145Q172 136 183 145Q172 154 161 145Z',4.4,4.9],
+      4:['M116 146Q128 139 140 145Q128 151 116 146Z','M160 145Q172 139 184 146Q172 151 160 145Z',4,4]
+    }[id];
+    return `<g data-ebl-eyes="v63"><path d="${shapes[0]}" fill="#fff" stroke="#2a1712" stroke-width="1.8"/><path d="${shapes[1]}" fill="#fff" stroke="#2a1712" stroke-width="1.8"/><ellipse cx="128" cy="145" rx="${shapes[2]}" ry="${shapes[3]}" fill="${ec}"/><ellipse cx="172" cy="145" rx="${shapes[2]}" ry="${shapes[3]}" fill="${ec}"/><circle cx="128" cy="145" r="1.45" fill="#111317"/><circle cx="172" cy="145" r="1.45" fill="#111317"/><circle cx="126.8" cy="143.7" r=".75" fill="#fff" opacity=".75"/><circle cx="170.8" cy="143.7" r=".75" fill="#fff" opacity=".75"/></g>`;
+  }
+  function noseMarkup(p={}){
+    const id=Math.max(1,Math.min(4,N(p.nose_id,1)));
+    if(id===2)return `<path data-ebl-nose="v63" d="M150 151Q146 162 147 168Q150 172 154 169Q156 167 158 168" fill="none" stroke="#875344" stroke-width="2.35" stroke-linecap="round"/>`;
+    if(id===3)return `<path data-ebl-nose="v63" d="M150 147L147 166Q147 172 153 173Q157 173 159 170" fill="none" stroke="#875344" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    if(id===4)return `<path data-ebl-nose="v63" d="M150 148Q146 161 146 169Q150 174 155 171M143 171Q147 174 151 173M157 171Q160 173 163 170" fill="none" stroke="#875344" stroke-width="2.2" stroke-linecap="round"/>`;
+    return `<path data-ebl-nose="v63" d="M150 147Q144 164 148 171Q153 175 158 171" fill="none" stroke="#875344" stroke-width="2.35" stroke-linecap="round"/>`;
+  }
+  function mouthMarkup(p={}){
+    const id=Math.max(1,Math.min(4,N(p.mouth_id,1)));
+    if(id===2)return `<path data-ebl-mouth="v63" d="M135 184Q150 193 165 184" fill="none" stroke="#704038" stroke-width="2.9" stroke-linecap="round"/>`;
+    if(id===3)return `<path data-ebl-mouth="v63" d="M131 183Q150 195 169 183Q163 191 150 192Q137 191 131 183Z" fill="#8a4a45" opacity=".92"/>`;
+    if(id===4)return `<path data-ebl-mouth="v63" d="M136 186Q150 184 164 186" fill="none" stroke="#704038" stroke-width="3" stroke-linecap="round"/>`;
+    return `<path data-ebl-mouth="v63" d="M134 184Q150 190 166 184" fill="none" stroke="#704038" stroke-width="2.8" stroke-linecap="round"/>`;
+  }
+  function facePolish(p={}){
+    const skin=SKIN_COLORS_V61[Math.max(0,Math.min(7,N(p.skin_color_id,1)-1))];
+    return `<g data-ebl-face-polish="v63" pointer-events="none"><ellipse cx="126" cy="168" rx="15" ry="8" fill="#7c4638" opacity=".035"/><ellipse cx="174" cy="168" rx="15" ry="8" fill="#7c4638" opacity=".035"/><path d="M122 121Q150 108 178 121" fill="none" stroke="#fff" stroke-width="2" opacity=".035"/><path d="M126 205Q150 216 174 205" fill="none" stroke="${skin}" stroke-width="5" opacity=".18"/></g>`;
+  }
+  function eyewear(p={}){
+    const id=Math.max(1,Math.min(5,N(p.eyewear_id,1)));if(id===1)return '';
+    if(id===2)return `<g data-ebl-eyewear="v63" fill="none" stroke="#16212b" stroke-width="3.6"><path d="M112 137Q127 130 143 137L141 151Q128 156 115 147Z"/><path d="M157 137Q173 130 188 137L185 147Q172 156 159 151Z"/><path d="M141 139Q150 135 159 139"/></g>`;
+    if(id===3)return `<g data-ebl-eyewear="v63" fill="none" stroke="#26323c" stroke-width="2.3"><rect x="113" y="137" width="29" height="17" rx="4"/><rect x="158" y="137" width="29" height="17" rx="4"/><path d="M142 143Q150 139 158 143M113 141L105 138M187 141L195 138"/></g>`;
+    if(id===4)return `<g data-ebl-eyewear="v63" fill="#dceaf3" fill-opacity=".08" stroke="#26323c" stroke-width="2.4"><circle cx="128" cy="145" r="13"/><circle cx="172" cy="145" r="13"/><path d="M141 143Q150 138 159 143" fill="none"/><path d="M115 141L105 138M185 141L195 138" fill="none"/></g>`;
+    return `<g data-ebl-eyewear="v63" fill="#172531" fill-opacity=".18" stroke="#16212b" stroke-width="2.6"><path d="M110 138Q127 132 145 138L141 152Q127 158 114 149Z"/><path d="M155 138Q173 132 190 138L186 149Q173 158 159 152Z"/><path d="M143 140Q150 137 157 140" fill="none"/></g>`;
   }
   const FACE_PATHS_V61={
     3:{
@@ -9212,7 +9286,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     },
     5:{
       from:'M108 108Q113 74 150 71Q187 74 192 108L188 155L176 188L150 220L124 188L112 155Z',
-      to:'M109 108Q114 74 150 71Q186 74 191 108L188 156Q184 177 174 192L162 205Q157 211 150 213Q143 211 138 205L126 192Q116 177 112 156Z'
+      to:'M109 108Q114 74 150 71Q186 74 191 108L188 156Q184 177 174 192L162 205L157 211L143 211L138 205L126 192Q116 177 112 156Z'
     }
   };
   const FACE_JAW_V61={
@@ -9240,10 +9314,14 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     if(id===3)return `<g data-ebl-facial-hair="v61">${must}${goatee}</g>`;
     if(id===5)return `<g data-ebl-facial-hair="v61">${must}</g>`;
     if(id===4)return `<g data-ebl-facial-hair="v61"><path d="${jawPath}" fill="none" stroke="${c}" stroke-width="11.5" stroke-linecap="round" stroke-linejoin="round"/>${must}</g>`;
+    if(id===6)return `<path data-ebl-facial-hair="v61" d="${jawPath}" fill="none" stroke="${c}" stroke-width="7.5" stroke-linecap="round" stroke-dasharray="2 3.5" opacity=".62"/>`;
     if(id===7)return `<path data-ebl-facial-hair="v61" d="${jawPath}" fill="none" stroke="${c}" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+    if(id===8)return `<g data-ebl-facial-hair="v61"><path d="${jawPath}" fill="none" stroke="${c}" stroke-width="8.2" stroke-linecap="round"/><path d="M136 ${mouthY+1}Q150 ${mouthY+7} 164 ${mouthY+1}" fill="none" stroke="${c}" stroke-width="4.2" stroke-linecap="round"/></g>`;
     if(id===11)return `<g data-ebl-facial-hair="v61">${soul}</g>`;
+    if(id===12)return `<g data-ebl-facial-hair="v61">${must}<path d="M139 ${patchTop-2}Q150 ${patchTop+5} 161 ${patchTop-2}L159 ${Math.min(chin,patchTop+19)}Q150 ${Math.min(chin+1,patchTop+25)} 141 ${Math.min(chin,patchTop+19)}Z" fill="${c}"/></g>`;
     if(id===13)return `<g data-ebl-facial-hair="v61">${handle}</g>`;
     if(id===10)return `<g data-ebl-facial-hair="v61">${must}${goatee}${soul}</g>`;
+    if(id===14)return `<g data-ebl-facial-hair="v61"><path d="M${j.l} ${j.top}Q${j.l+2} ${chin-22} ${j.ml-2} ${chin-12}" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"/><path d="M${j.r} ${j.top}Q${j.r-2} ${chin-22} ${j.mr+2} ${chin-12}" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"/></g>`;
     return '';
   }
   function finalAppearancePass(html,p={},action='portrait'){
@@ -9252,12 +9330,19 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     // V61 owns final face geometry, facial hair, under-cap hair, and eye black.
     out=out.replace(/<path d="M112 154L136 158M164 158L188 154" stroke="#111" stroke-width="6" stroke-linecap="round" opacity="\.92"\/>/g,'')
            .replace(/<path d="M112 151L136 155M112 160L135 163M164 155L188 151M165 163L188 160" stroke="#111" stroke-width="4" stroke-linecap="round" opacity="\.92"\/>/g,'')
-           .replace(/<g data-ebl-hair-under-cap="v61"[\s\S]*?<\/g>/g,'')
-           .replace(/<g data-ebl-eye-black="v61"[\s\S]*?<\/g>/g,'')
+           .replace(/<g fill="none" stroke="#16212b" stroke-width="4"><path d="M112 137Q127 130 143 137L141 151Q128 156 115 147Z"\/><path d="M157 137Q173 130 188 137L185 147Q172 156 159 151Z"\/><path d="M141 139Q150 135 159 139"\/><\/g>/g,'')
+           .replace(/<g data-ebl-hair-under-cap="v6[13]"[\s\S]*?<\/g>/g,'')
+           .replace(/<g data-ebl-eye-black="v6[13]"[\s\S]*?<\/g>/g,'')
+           .replace(/<g data-ebl-eyewear="v63"[\s\S]*?<\/g>/g,'')
            .replace(/<g data-ebl-facial-hair="v61"[\s\S]*?<\/g>/g,'')
            .replace(/<path data-ebl-facial-hair="v61"[^>]*\/>/g,'');
     out=tuneFaceGeometry(out,p);
-    const extras=hairUnderCap(p)+facialHair(p)+eyeBlack(p);
+    out=out.replace(/<ellipse cx="105" cy="145" rx="9" ry="15" fill="[^"]+" stroke="#2a1712" stroke-width="3"\/>/,earMarkup(p,'left'))
+           .replace(/<ellipse cx="195" cy="145" rx="9" ry="15" fill="[^"]+" stroke="#2a1712" stroke-width="3"\/>/,earMarkup(p,'right'))
+           .replace(/<path d="M116 145Q128 138 140 145Q128 152 116 145ZM160 145Q172 138 184 145Q172 152 160 145Z" fill="#fff" stroke="#2a1712" stroke-width="2"\/><ellipse cx="128" cy="145" rx="4" ry="4\.4" fill="[^"]+"\/><ellipse cx="172" cy="145" rx="4" ry="4\.4" fill="[^"]+"\/><circle cx="128" cy="145" r="1\.5"\/><circle cx="172" cy="145" r="1\.5"\/>/,eyeMarkup(p))
+           .replace(/<path d="M150 147Q144 164 148 171Q153 175 158 171" fill="none" stroke="#875344" stroke-width="2\.5"\/>/,noseMarkup(p))
+           .replace(/<path d="M134 184Q150 190 166 184" fill="none" stroke="#704038" stroke-width="3" stroke-linecap="round"\/>/,mouthMarkup(p));
+    const extras=hairUnderCap(p)+facePolish(p)+facialHair(p)+eyeBlack(p)+eyewear(p);
     if(extras){
       if(/<path data-ebl-cap-crown=/.test(out))out=out.replace(/(<path data-ebl-cap-crown=)/,extras+'$1');
       else out=out.replace(/<\/svg>/,extras+'</svg>');
@@ -9291,6 +9376,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     return `<span class="eblPlayerBylineV25">${unified(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${esc(p.name||p.player_name||'Player')}</strong>${sub?`<span>${esc(sub)}</span>`:''}</span></span>`;
   };
 
+  window.eblCreatorFeatureThumbV63=function(extra={}){return `<div class="faceThumb faceThumbV61">${unified(creatorModel(extra),'sm','portrait')}</div>`};
   window.faceThumbMarkup=function(f,hairId=1,facialId=N(creatorState().facial_hair_id,1),eyeColor){
     const faces=typeof FACE_PRESETS!=='undefined'?FACE_PRESETS:[];let faceId=faces.indexOf(f)+1;if(faceId<1)faceId=N(f?.id,1);
     const extra={face_id:faceId,hair_id:N(hairId,1),facial_hair_id:N(facialId,1)};
@@ -9306,19 +9392,33 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   function repaint(){try{if(typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(e){console.warn('V61 creator repaint',e)}}
   window.pickFace=id=>{CREATOR.face_id=Math.max(1,Math.min(5,N(id,1)));repaint()};
   window.pickSkinTone=id=>{CREATOR.skin_color_id=Math.max(1,Math.min(8,N(id,1)));repaint()};
-  window.pickHair=id=>{CREATOR.hair_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
+  window.pickHair=id=>{CREATOR.hair_id=Math.max(1,Math.min(6,N(id,1)));repaint()};
   window.pickHairColor=id=>{CREATOR.hair_color_id=Math.max(1,Math.min(9,N(id,3)));repaint()};
-  window.pickFacialHair=id=>{const allowed=[1,2,3,5,4,7,11,13,10],q=N(id,1);CREATOR.facial_hair_id=allowed.includes(q)?q:1;repaint()};
+  window.pickFacialHair=id=>{const allowed=[1,2,3,5,4,6,7,8,11,12,13,10,14],q=N(id,1);CREATOR.facial_hair_id=allowed.includes(q)?q:1;repaint()};
   window.pickEyeColor=id=>{CREATOR.eye_color_id=Math.max(1,Math.min(6,N(id,6)));repaint()};
-  window.pickEyeBlack=id=>{CREATOR.eye_black_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
-  window.pickEyewear=id=>{CREATOR.eyewear_id=Math.max(1,Math.min(2,N(id,1)));repaint()};
+  window.pickNose=id=>{CREATOR.nose_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
+  window.pickEyeShape=id=>{CREATOR.eye_shape_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
+  window.pickMouth=id=>{CREATOR.mouth_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
+  window.pickEarSize=id=>{CREATOR.ear_size_id=Math.max(1,Math.min(3,N(id,2)));repaint()};
+  window.pickEyeBlack=id=>{CREATOR.eye_black_id=Math.max(1,Math.min(5,N(id,1)));repaint()};
+  window.pickEyewear=id=>{CREATOR.eyewear_id=Math.max(1,Math.min(5,N(id,1)));repaint()};
   window.pickChain=id=>{CREATOR.chain_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
   window.pickSleeve=id=>{CREATOR.sleeve_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
-  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'V61.1',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'visible under cap and at sides',facialHair:'single final compositor affixed to selected jaw',eyeBlack:'final compositor',faceTuning:{oval:'fuller while still long',angular:'angled jaw with flattened chin'},accessories:['eyewear','chain','sleeves'],teamBranding:'preserved through V52/V53'});
+  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'V63',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'six silhouette choices with three long variations',facialHair:'single final compositor with thirteen choices',faceDetails:['four noses','four eye shapes','four mouths','three ear sizes'],eyeBlack:'five choices including triangle and cross',faceTuning:{oval:'fuller while still long',angular:'angled jaw with clearly flattened chin'},accessories:['five eyewear styles','chain','sleeves'],teamBranding:'preserved through V52/V53'});
   try{if(document.getElementById('creatorStage')&&typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(_){ }
 })();
 </script>
 
+
+<!-- EBL AVATAR DETAIL + SMOOTHING PASS V63 -->
+<style id="eblAvatarDetailPolishV63Style">
+.eblPlayerArtV24>svg{shape-rendering:geometricPrecision;text-rendering:geometricPrecision}
+#creatorStage .creatorStudioCardV20{transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease}
+#creatorStage .creatorStudioCardV20:active{transform:scale(.985)}
+#creatorStage .creatorSubheadV20{margin-top:20px}
+@media(max-width:760px){#creatorStage .creatorStudioBodyV20{padding-inline:14px}}
+</style>
+<script id="eblAvatarDetailPolishV63Meta">window.EBL_AVATAR_DETAIL_POLISH_V63=Object.freeze({version:'V63',singleRenderer:true,sourceOfTruth:'saved player appearance',features:{nose:4,eyeShapes:4,mouths:4,earSizes:3,hair:6,facialHair:13,eyewear:5,eyeBlack:5},polish:'rounder curves, softer line weights, subtle face depth, eye highlights',legacySafeDefaults:true});</script>
 
 <!-- EBL RENDERER OWNERSHIP CONTRACT V62 — no visual layer, only prevents runtime renderer replacement -->
 <script id="eblRendererOwnershipV62">
