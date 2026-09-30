@@ -23,6 +23,19 @@ PITCHER_ATTRS=["STA","PCLT","CTRL","CMD","VEL","BRK","MOV","DEC","SEQ","FLD","AR
 SALARY_MIN=0.30
 BONUS_CAP=25.0
 REGULAR_SEASON_GAMES=81
+REGULAR_SEASON_SERIES=27
+REGULAR_SEASON_OFF_DAYS=14
+REGULAR_SEASON_CALENDAR_DAYS=REGULAR_SEASON_GAMES+REGULAR_SEASON_OFF_DAYS  # 95 simulated calendar days
+# Series 2,4,...,26 plus the final series use a staggered fourth day. Each club
+# still plays exactly three games in the series and receives one team-specific off day.
+REGULAR_SEASON_REST_SERIES=set(range(2,27,2))|{27}
+REGULAR_SEASON_CHECKPOINT_DAYS=(24,49,70,95)  # 21, 42, 60 and 81 games completed per club
+ALL_STAR_BREAK_DAY=49
+DIVISIONS=["Heritage","Liberty","Union","Frontier","Continental","Pioneer"]
+DIVISION_RENAMES={
+    "Atlantic":"Heritage","North":"Liberty","Central":"Union",
+    "South":"Frontier","West":"Continental","Pacific":"Pioneer"
+}
 ACTIVE_ROSTER_SIZE=16
 TEAM_BUDGET=480.0
 CONTRACT_ESCALATION=0.01
@@ -41,7 +54,7 @@ SP_XP_MULTIPLIER=4.0
 RP_XP_MULTIPLIER=1.75
 CHAT_RETENTION_HOURS=12
 ALPHA_PLAYER_LIMIT=3
-RENEWAL_OPEN_DAY=60
+RENEWAL_OPEN_DAY=70
 MAX_REQUEST_BYTES=20*1024*1024
 MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
 MAX_PROFILE_PHOTO_DATA_URL_CHARS=900_000
@@ -421,7 +434,7 @@ def init_db():
       cost REAL NOT NULL DEFAULT 0,
       is_free INTEGER NOT NULL DEFAULT 0,
       intensity INTEGER NOT NULL DEFAULT 1,
-      checkpoint_days_json TEXT NOT NULL DEFAULT '[0,40,81]',
+      checkpoint_days_json TEXT NOT NULL DEFAULT '[0,49,95]',
       applied_days_json TEXT NOT NULL DEFAULT '[]',
       hired_day INTEGER NOT NULL DEFAULT 0,
       start_applied INTEGER NOT NULL DEFAULT 0,
@@ -978,7 +991,7 @@ def init_db():
           cost REAL NOT NULL DEFAULT 0,
           is_free INTEGER NOT NULL DEFAULT 0,
           intensity INTEGER NOT NULL DEFAULT 1,
-          checkpoint_days_json TEXT NOT NULL DEFAULT '[0,40,81]',
+          checkpoint_days_json TEXT NOT NULL DEFAULT '[0,49,95]',
           applied_days_json TEXT NOT NULL DEFAULT '[]',
           hired_day INTEGER NOT NULL DEFAULT 0,
           start_applied INTEGER NOT NULL DEFAULT 0,
@@ -995,14 +1008,14 @@ def init_db():
             applied=[]
             if int(row.get("start_applied") or 0): applied.append(0)
             if int(row.get("midseason_applied") or 0): applied.append(40)
-            if int(row.get("endseason_applied") or 0): applied.append(81)
+            if int(row.get("endseason_applied") or 0): applied.append(REGULAR_SEASON_CALENDAR_DAYS)
             c.execute("""INSERT INTO team_development_coaches_rc82(
                          id,franchise_id,season,coach_slot,coach_type,attribute,cost,is_free,intensity,
                          checkpoint_days_json,applied_days_json,hired_day,start_applied,midseason_applied,endseason_applied,hired_at)
                          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(
                          row.get("id"),row.get("franchise_id"),int(row.get("season") or 1),slot,
                          row.get("coach_type") or "SPEED",row.get("attribute") or "SPD",float(row.get("cost") or 0),
-                         0,1,json.dumps([0,40,81]),json.dumps(applied),0,
+                         0,1,json.dumps([0,ALL_STAR_BREAK_DAY,REGULAR_SEASON_CALENDAR_DAYS]),json.dumps(applied),0,
                          int(row.get("start_applied") or 0),int(row.get("midseason_applied") or 0),int(row.get("endseason_applied") or 0),
                          row.get("hired_at") or datetime.datetime.utcnow().isoformat()))
         c.execute("DROP TABLE team_development_coaches")
@@ -1184,6 +1197,11 @@ def init_db():
             c.execute("UPDATE franchises SET name=? WHERE id=?",(display,fid))
         c.execute("INSERT OR REPLACE INTO league_config(k,v) VALUES(?,?)",(OFFICIAL_BRAND_SEED_KEY,"1"))
 
+    # RC98: division names are identities, not geography. Preserve team membership
+    # while migrating old Atlantic/North/Central/South/West/Pacific labels in place.
+    for old_div,new_div in DIVISION_RENAMES.items():
+        c.execute("UPDATE franchise_seasons SET division=? WHERE division=?",(new_div,old_div))
+
     current_season_row=c.execute("SELECT v FROM league_state WHERE k='season'").fetchone()
     current_season=int(current_season_row["v"]) if current_season_row else 1
     ensure_season_membership(c,current_season)
@@ -1220,22 +1238,15 @@ def init_db():
             c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(auto_batting_order(c,hids[:9])),json.dumps(pids[:4]),fid))
 
 
-        # Genesis schedule. Later seasons use generate_season_schedule().
-        fids=[f"EBL-F{i:02d}" for i in range(1,31)]
-        arr=list(range(30))
-        rounds=[]
-        for _ in range(29):
-            rounds.append([(arr[i],arr[-1-i]) for i in range(15)])
-            arr=[arr[0]]+[arr[-1]]+arr[1:-1]
-        gid=1
-        for day in range(1,82):
-            pairs=list(rounds[(day-1)%29])
-            if ((day-1)//29)%2:
-                pairs=[(b,a) for a,b in pairs]
-            for ai,bi in pairs:
-                c.execute("INSERT OR IGNORE INTO games(id,season,league_day,away_id,home_id,status) VALUES(?,?,?,?,?,'SCHEDULED')",
-                          (f"S01-G{gid:04d}",1,day,fids[ai],fids[bi]))
-                gid+=1
+        # RC98 Genesis schedule: the full 30-club EBL opens with 27 three-game
+        # series across a 95-day calendar. Rebuild membership here because the
+        # earlier defensive membership seed may have created an Original-Eight
+        # placeholder before the fresh database had any schedule to inspect.
+        genesis_ids=[f"EBL-F{i:02d}" for i in range(1,31)]
+        c.execute("DELETE FROM franchise_seasons WHERE season=1")
+        set_season_membership(c,1,genesis_ids)
+        c.execute("INSERT INTO league_config(k,v) VALUES('active_team_count','30') ON CONFLICT(k) DO UPDATE SET v='30'")
+        generate_season_schedule(c,1)
 
 
         c.execute("INSERT OR IGNORE INTO league_config(k,v) VALUES('phase','RECRUITING')")
@@ -1499,15 +1510,19 @@ def award_player(c,season,period,code,name,pid,xp,detail=None):
     if detail and isinstance(detail.get("days"),list) and detail.get("days"):
         news_day=int(detail["days"][-1])
     else:
-        news_day=81 if period=="REGULAR_SEASON" else int((c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone() or {'v':0})["v"] or 0)
+        news_day=REGULAR_SEASON_CALENDAR_DAYS if period=="REGULAR_SEASON" else int((c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone() or {'v':0})["v"] or 0)
     post_news(c,"AWARD",f"🏆 {pl['name']} wins {name}",
               f"{pl['name']} of the {team_name} has been named {name} for Season {season}" + (f" and earns +{awarded_xp:g} XP." if awarded_xp else "."),
               news_day,pl["franchise_id"],pid,None,4,season=season)
     return True
 
 def process_quarter_awards(c,season,end_day):
-    if end_day not in (20,40,60,81):return []
-    start_day={20:1,40:21,60:41,81:61}[end_day]
+    # RC98 calendar checkpoints land only after every club has completed a full
+    # series block: 21, 42, 60 and 81 games respectively. Off days therefore
+    # never give one club an extra award-window game.
+    windows={24:1,49:25,70:50,95:71}
+    if end_day not in windows:return []
+    start_day=windows[end_day]
     period=f"DAYS_{start_day}_{end_day}"
     if c.execute("SELECT 1 FROM award_history WHERE season=? AND period=? LIMIT 1",(season,period)).fetchone():
         return []
@@ -1639,11 +1654,11 @@ def _season_number(c):
 
 def _division_labels(team_count):
     if team_count<=10:
-        return ["Atlantic","Pacific"]
+        return ["Heritage","Pioneer"]
     if team_count<=16:
-        return ["Atlantic","North","South","Pacific"]
+        return ["Heritage","Liberty","Frontier","Pioneer"]
     if team_count<=24:
-        return ["Atlantic","North","Central","South"]
+        return ["Heritage","Liberty","Union","Frontier"]
     return list(DIVISIONS)
 
 def ensure_season_membership(c,season):
@@ -1977,47 +1992,242 @@ def enforce_active_rosters(c,season=None):
     return True
 
 def gps_xp(g): return round(max(.25,min(.75,.25+.5*g/100)),3)
-def generate_season_schedule(c,season):
-    fids=active_franchise_ids(c,season)
-    n=len(fids)
-    if n<MIN_ACTIVE_TEAMS:
-        raise ValueError("MINIMUM_8_TEAMS")
-    if n%2:
-        raise ValueError("EVEN_TEAM_COUNT_REQUIRED")
 
-    # Circle-method round robin. Every active club plays once per league day.
-    # Repeating the round sequence through Day 81 preserves the 81-game
-    # per-team season at every supported even league size.
-    arr=list(range(n))
-    rounds=[]
-    for _ in range(n-1):
-        rounds.append([(arr[i],arr[-1-i]) for i in range(n//2)])
+def _circle_series_rounds(team_count,series_count=REGULAR_SEASON_SERIES):
+    """Return perfect-match series rounds for any supported even league size."""
+    arr=list(range(team_count));base=[]
+    for _ in range(team_count-1):
+        base.append([(arr[i],arr[-1-i]) for i in range(team_count//2)])
         arr=[arr[0]]+[arr[-1]]+arr[1:-1]
-
-    gid=1
-    for day in range(1,82):
-        round_index=(day-1)%(n-1)
-        pairs=list(rounds[round_index])
-
-        # Flip home/away on alternate full round-robin cycles.
-        if ((day-1)//(n-1))%2:
+    out=[]
+    for idx in range(series_count):
+        pairs=list(base[idx%len(base)])
+        if (idx//len(base))%2:
             pairs=[(b,a) for a,b in pairs]
+        out.append(pairs)
+    return out
 
-        for ai,bi in pairs:
-            game_id=f"S{season:02d}-G{gid:04d}"
-            c.execute(
-                """INSERT INTO games(
-                       id,season,league_day,away_id,home_id,status
-                   ) VALUES(?,?,?,?,?,'SCHEDULED')""",
-                (game_id,season,day,fids[ai],fids[bi])
-            )
-            gid+=1
 
-DIVISIONS=["Atlantic","North","Central","South","West","Pacific"]
+def _perfect_matching_from_multiset(edge_counts,team_count,rng,node_limit=120000):
+    """Small deterministic backtracker used to decompose the 30-team series map."""
+    unmatched=set(range(team_count));nodes=[0]
+    def rec():
+        nodes[0]+=1
+        if nodes[0]>node_limit:return None
+        if not unmatched:return []
+        best_v=None;best_candidates=None
+        for v in tuple(unmatched):
+            cand=[u for u in unmatched if u!=v and edge_counts.get(tuple(sorted((u,v))),0)>0]
+            if not cand:return None
+            if best_candidates is None or len(cand)<len(best_candidates):
+                best_v=v;best_candidates=cand
+                if len(cand)==1:break
+        v=best_v;options=[]
+        for u in best_candidates:
+            edge=tuple(sorted((u,v)))
+            neighbor_count=sum(1 for w in unmatched if w not in (u,v) and edge_counts.get(tuple(sorted((u,w))),0)>0)
+            options.append((edge_counts[edge],-neighbor_count,rng.random(),u))
+        options.sort(reverse=True)
+        unmatched.remove(v)
+        for _copies,_constraint,_jitter,u in options:
+            unmatched.remove(u)
+            rest=rec()
+            if rest is not None:
+                unmatched.add(u);unmatched.add(v)
+                return [(v,u)]+rest
+            unmatched.add(u)
+        unmatched.add(v)
+        return None
+    return rec()
+
+
+def _division_heavy_series_rounds_30(season):
+    """27 series/team: 16 division series + 11 non-division series.
+
+    Every division rival is faced four times (48 division games). Each club then
+    gets eleven cross-division series (33 games), for exactly 81 games total.
+    """
+    from collections import Counter
+    import itertools
+    target=Counter()
+    # Six five-team divisions. Every intra-division pairing occurs four times.
+    for div in range(6):
+        teams=list(range(div*5,div*5+5))
+        for a,b in itertools.combinations(teams,2):
+            target[(a,b)]+=4
+    # Two cross-division series against every other division (10 series/team).
+    for da,db in itertools.combinations(range(6),2):
+        for shift in (0,1):
+            for i in range(5):
+                a=da*5+i;b=db*5+((i+shift)%5)
+                target[tuple(sorted((a,b)))]+=1
+    # One extra cross-division series/team completes the 11-series non-division slate.
+    for da,db in ((0,1),(2,3),(4,5)):
+        for i in range(5):
+            a=da*5+i;b=db*5+((i+2)%5)
+            target[tuple(sorted((a,b)))]+=1
+
+    for attempt in range(40):
+        rng=random.Random(7500831+int(season)*997+attempt*104729)
+        remaining=target.copy();rounds=[];failed=False
+        for _ in range(REGULAR_SEASON_SERIES):
+            match=_perfect_matching_from_multiset(remaining,30,rng)
+            if not match:
+                failed=True;break
+            match=[tuple(sorted(x)) for x in match]
+            rounds.append(match)
+            for edge in match:remaining[edge]-=1
+        if not failed and not any(remaining.values()):
+            return rounds
+    raise RuntimeError("SERIES_SCHEDULE_DECOMPOSITION_FAILED")
+
+
+def _order_series_rounds_no_repeat(rounds,team_count):
+    """Reorder series blocks so no club faces the same opponent in back-to-back series."""
+    if len(rounds)<2:return rounds
+    maps=[]
+    for pairs in rounds:
+        opp={}
+        for a,b in pairs:opp[int(a)]=int(b);opp[int(b)]=int(a)
+        maps.append(opp)
+    n=len(rounds)
+    compatible=[[False]*n for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if i==j:continue
+            compatible[i][j]=all(maps[i].get(t)!=maps[j].get(t) for t in range(team_count))
+    degree=[sum(1 for x in compatible[i] if x) for i in range(n)]
+    for start in sorted(range(n),key=lambda i:degree[i]):
+        path=[start];used={start}
+        def rec(v):
+            if len(path)==n:return True
+            candidates=[u for u in range(n) if u not in used and compatible[v][u]]
+            candidates.sort(key=lambda u:sum(1 for w in range(n) if w not in used and w!=u and compatible[u][w]))
+            for u in candidates:
+                used.add(u);path.append(u)
+                if rec(u):return True
+                path.pop();used.remove(u)
+            return False
+        if rec(start):return [rounds[i] for i in path]
+    raise RuntimeError("SERIES_ROUND_ORDER_FAILED")
+
+
+def _balanced_home_series(rounds,team_count):
+    """Orient series for both pair-level and season-level home/away balance.
+
+    Repeated opponents split their series evenly between parks whenever possible.
+    The one leftover occurrence from every odd-multiplicity pairing forms an odd-degree
+    residual graph; a dummy Euler edge per club then guarantees 13/14 total home series.
+    """
+    edges=[];round_edge_ids=[];groups={}
+    for round_pairs in rounds:
+        ids=[]
+        for a,b in round_pairs:
+            a=int(a);b=int(b);eid=len(edges);ids.append(eid);edges.append((a,b))
+            groups.setdefault(tuple(sorted((a,b))),[]).append(eid)
+        round_edge_ids.append(ids)
+
+    orientation={};residual=[]
+    for pair,ids in groups.items():
+        a,b=pair
+        ordered=list(ids)
+        while len(ordered)>=2:
+            e1=ordered.pop(0);e2=ordered.pop(0)
+            orientation[e1]=(a,b)   # b hosts one
+            orientation[e2]=(b,a)   # a hosts one
+        if ordered:residual.append(ordered[0])
+
+    # Every club has odd residual degree because its full slate is 27 series and
+    # all already-balanced pair groups removed an even number of edges.
+    dummy=team_count
+    temp_edges=[(edges[eid][0],edges[eid][1],eid) for eid in residual]
+    temp_edges.extend((dummy,team,None) for team in range(team_count))
+    adjacency=[[] for _ in range(team_count+1)]
+    for tid,(a,b,orig) in enumerate(temp_edges):
+        adjacency[a].append((tid,b));adjacency[b].append((tid,a))
+    used=[False]*len(temp_edges);stack=[dummy]
+    while stack:
+        v=stack[-1]
+        while adjacency[v] and used[adjacency[v][-1][0]]:adjacency[v].pop()
+        if not adjacency[v]:stack.pop();continue
+        tid,u=adjacency[v].pop()
+        if used[tid]:continue
+        used[tid]=True
+        orig=temp_edges[tid][2]
+        if orig is not None:orientation[orig]=(v,u)
+        stack.append(u)
+    if not all(used) or len(orientation)!=len(edges):
+        raise RuntimeError("SERIES_HOME_ORIENTATION_FAILED")
+
+    oriented=[]
+    for ids in round_edge_ids:
+        oriented.append([orientation[eid] for eid in ids])
+    return oriented
+
+
+def _team_regular_games_before(c,season,fid,league_day):
+    return int(c.execute(
+        """SELECT COUNT(*) n FROM games
+           WHERE season=? AND status='FINAL' AND league_day<? AND league_day<=?
+             AND (away_id=? OR home_id=?)""",
+        (int(season),int(league_day),REGULAR_SEASON_CALENDAR_DAYS,str(fid),str(fid))
+    ).fetchone()["n"] or 0)
+
+
+def _team_postseason_games_before(c,season,fid,league_day):
+    return int(c.execute(
+        """SELECT COUNT(*) n FROM games
+           WHERE season=? AND status='FINAL' AND league_day>? AND league_day<?
+             AND (away_id=? OR home_id=?)""",
+        (int(season),REGULAR_SEASON_CALENDAR_DAYS,int(league_day),str(fid),str(fid))
+    ).fetchone()["n"] or 0)
+
+
+def generate_season_schedule(c,season):
+    fids=active_franchise_ids(c,season);n=len(fids)
+    if n<MIN_ACTIVE_TEAMS:raise ValueError("MINIMUM_8_TEAMS")
+    if n%2:raise ValueError("EVEN_TEAM_COUNT_REQUIRED")
+
+    # Full EBL uses a division-heavy 48/33 split. Smaller test leagues retain a
+    # balanced circle-method opponent rotation but use the exact same 27-series,
+    # 95-calendar-day rhythm.
+    rounds=_division_heavy_series_rounds_30(season) if n==30 else _circle_series_rounds(n)
+    rounds=_order_series_rounds_no_repeat(rounds,n)
+    rounds=_balanced_home_series(rounds,n)
+
+    gid=1;calendar_day=1
+    team_games={fid:0 for fid in fids}
+    for series_no,round_pairs in enumerate(rounds,1):
+        rest_round=series_no in REGULAR_SEASON_REST_SERIES
+        duration=4 if rest_round else 3
+        for pair_index,(away_i,home_i) in enumerate(round_pairs):
+            away=fids[away_i];home=fids[home_i]
+            # On a rest round half the series rest first and half rest last. The
+            # middle two dates still carry a full league slate, while the outside
+            # dates create real team-specific recovery days instead of league-wide pauses.
+            if rest_round and (pair_index+series_no+int(season))%2:
+                game_days=(calendar_day+1,calendar_day+2,calendar_day+3)
+            else:
+                game_days=(calendar_day,calendar_day+1,calendar_day+2)
+            for game_day in game_days:
+                game_id=f"S{season:02d}-G{gid:04d}"
+                c.execute(
+                    """INSERT INTO games(id,season,league_day,away_id,home_id,status)
+                       VALUES(?,?,?,?,?,'SCHEDULED')""",
+                    (game_id,int(season),int(game_day),away,home)
+                )
+                gid+=1;team_games[away]+=1;team_games[home]+=1
+        calendar_day+=duration
+
+    if calendar_day-1!=REGULAR_SEASON_CALENDAR_DAYS:
+        raise RuntimeError(f"REGULAR_CALENDAR_LENGTH_MISMATCH:{calendar_day-1}")
+    bad={fid:g for fid,g in team_games.items() if g!=REGULAR_SEASON_GAMES}
+    if bad:raise RuntimeError(f"REGULAR_TEAM_GAME_COUNT_MISMATCH:{bad}")
+
 def division_for(fid):
     try:
         n=int(fid.split("F")[-1])
-    except: return "Unknown"
+    except:return "Unknown"
     return DIVISIONS[min(5,(n-1)//5)]
 
 
@@ -2509,11 +2719,11 @@ SPONSORSHIP_COST=25.0
 SPONSORSHIP_ATTRS={"ARM","ACC","FLD","REAC","SPD"}
 DEVELOPMENT_COACH_BASE_COST=30.0
 DEVELOPMENT_COACH_MAX=3
-DEVELOPMENT_COACH_HIRING_CLOSE_DAY=40
+DEVELOPMENT_COACH_HIRING_CLOSE_DAY=49
 DEVELOPMENT_COACH_INTENSITY={
-    1:{"name":"Standard","extra_cost":0.0,"days":[0,40,81]},
-    2:{"name":"Focused","extra_cost":5.0,"days":[0,20,40,81]},
-    3:{"name":"Elite","extra_cost":10.0,"days":[0,20,40,60,81]},
+    1:{"name":"Standard","extra_cost":0.0,"days":[0,49,95]},
+    2:{"name":"Focused","extra_cost":5.0,"days":[0,24,49,95]},
+    3:{"name":"Elite","extra_cost":10.0,"days":[0,24,49,70,95]},
 }
 DEVELOPMENT_COACH_TYPES={
     # Hitting specialists
@@ -2627,8 +2837,8 @@ def _sync_development_legacy_flags(c,row_id,applied):
                  SET applied_days_json=?,start_applied=?,midseason_applied=?,endseason_applied=?
                  WHERE id=?""",(
                  json.dumps(sorted(applied)),1 if 0 in applied else 0,
-                 1 if any(x in applied for x in (27,40,54,60)) else 0,
-                 1 if 81 in applied else 0,row_id))
+                 1 if any(x in applied for x in (24,49,70)) else 0,
+                 1 if REGULAR_SEASON_CALENDAR_DAYS in applied else 0,row_id))
 
 def apply_team_development_coach_milestones(c,season,league_day):
     """Apply each development coach's scheduled permanent +1 checkpoints once."""
@@ -3213,7 +3423,7 @@ def _discord_flush_awards(c):
                       FROM award_history ah JOIN players p ON p.id=ah.player_id
                       WHERE ah.id>? ORDER BY ah.id LIMIT 40""",(last,)).fetchall()
     if not rows:return
-    # Awards are normally written together on Day 81. Group them so Discord gets
+    # Awards are normally written together on the final regular-season calendar day. Group them so Discord gets
     # one awards-show post rather than a dozen nearly simultaneous messages.
     groups=[];current=[];key=None
     for row in rows:
@@ -3683,7 +3893,12 @@ def simulate_game(c,g):
 
     def scheduled_starter_id(fid):
         rot=rotations[fid]
-        return int(rot[(int(g["league_day"])-1)%len(rot)])
+        game_day=int(g["league_day"]);season_no=int(g["season"])
+        if game_day>REGULAR_SEASON_CALENDAR_DAYS:
+            games_before=_team_postseason_games_before(c,season_no,fid,game_day)
+        else:
+            games_before=_team_regular_games_before(c,season_no,fid,game_day)
+        return int(rot[games_before%len(rot)])
 
     starter_ids={fid:scheduled_starter_id(fid) for fid in [away,home]}
     pregame_fatigue={fid:{} for fid in [away,home]}
@@ -4396,7 +4611,7 @@ def simulate_game(c,g):
         # team's 81 regular-season games, whether or not they appeared.
         # Performance XP remains appearance-based below.
         # ---------------------------------------------
-        if int(g["league_day"]) <= 81:
+        if int(g["league_day"]) <= REGULAR_SEASON_CALENDAR_DAYS:
             roster_players=c.execute(
                 """
                 SELECT DISTINCT p.id
@@ -4608,7 +4823,7 @@ def simulate_game(c,g):
     # -------------------------------------------------
 
 
-    postseason=int(g["league_day"])>81
+    postseason=int(g["league_day"])>REGULAR_SEASON_CALENDAR_DAYS
 
 
     # Only regular-season games change standings.
@@ -5489,7 +5704,7 @@ class H(BaseHTTPRequestHandler):
             result={
                 "team":dict(team),
                 "branding":dict(brand) if brand else None,"identity_history":identity_history,
-                "division":division_for(fid),
+                "division":season_division(c,current_season,fid),
                 "roster":roster,
                 "history":history,
                 "championships":champs,
@@ -5672,10 +5887,10 @@ class H(BaseHTTPRequestHandler):
             player_count=c.execute("SELECT COUNT(*) n FROM players WHERE active=1").fetchone()["n"]
             slot_count=c.execute("SELECT COUNT(*) n FROM roster_slots").fetchone()["n"]
             season_games=c.execute("SELECT COUNT(*) n FROM games WHERE season=?",(season,)).fetchone()["n"]
-            regular_games=c.execute("SELECT COUNT(*) n FROM games WHERE season=? AND league_day BETWEEN 1 AND 81",(season,)).fetchone()["n"]
+            regular_games=c.execute("SELECT COUNT(*) n FROM games WHERE season=? AND league_day BETWEEN 1 AND ?",(season,REGULAR_SEASON_CALENDAR_DAYS)).fetchone()["n"]
             final_games=c.execute("SELECT COUNT(*) n FROM games WHERE season=? AND status='FINAL'",(season,)).fetchone()["n"]
             scheduled_games=c.execute("SELECT COUNT(*) n FROM games WHERE season=? AND status='SCHEDULED'",(season,)).fetchone()["n"]
-            next_day_games=c.execute("SELECT COUNT(*) n FROM games WHERE season=? AND league_day=? AND status='SCHEDULED'",(season,day+1)).fetchone()["n"] if day<81 else 0
+            next_day_games=c.execute("SELECT COUNT(*) n FROM games WHERE season=? AND league_day=? AND status='SCHEDULED'",(season,day+1)).fetchone()["n"] if day<REGULAR_SEASON_CALENDAR_DAYS else 0
 
 
             missing_slots=[]
@@ -5706,7 +5921,7 @@ class H(BaseHTTPRequestHandler):
 
             issues=[]
             expected_slots=team_count*18
-            expected_games=team_count*81//2
+            expected_games=team_count*REGULAR_SEASON_GAMES//2
             expected_daily=team_count//2
             if team_count<MIN_ACTIVE_TEAMS:issues.append(f"League requires at least {MIN_ACTIVE_TEAMS} active franchises, found {team_count}")
             if team_count%2:issues.append(f"Active franchise count must be even, found {team_count}")
@@ -5722,8 +5937,8 @@ class H(BaseHTTPRequestHandler):
             if missing_slots:issues.append(f"{len(missing_slots)} franchises do not have exactly 18 roster slots")
             if duplicate_slots:issues.append(f"{len(duplicate_slots)} players occupy more than one roster slot")
             if lineup_issues:issues.append(f"{len(lineup_issues)} teams have an incomplete batting order or rotation (3-5 starters required)")
-            if phase=="REGULAR" and day<81 and next_day_games!=expected_daily:
-                issues.append(f"Expected {expected_daily} scheduled games on Day {day+1}, found {next_day_games}")
+            if phase=="REGULAR" and day<REGULAR_SEASON_CALENDAR_DAYS and next_day_games>expected_daily:
+                issues.append(f"Too many scheduled games on Day {day+1}: expected at most {expected_daily}, found {next_day_games}")
 
 
             out={
@@ -6299,7 +6514,7 @@ class H(BaseHTTPRequestHandler):
                     (pl["franchise_id"],)
                 ).fetchone()
                 if f:
-                    pl["team"]=dict(f);pl["team"]["division"]=division_for(pl["franchise_id"])
+                    pl["team"]=dict(f);pl["team"]["division"]=season_division(c,_season_number(c),pl["franchise_id"])
                 pl["recent_game"]=recent_game_for_player(c,pl)
             former=[]
             for row in c.execute(
@@ -6370,7 +6585,7 @@ class H(BaseHTTPRequestHandler):
                 """SELECT id,league_day,away_id,home_id,away_runs AS away_score,home_runs AS home_score,status FROM games
                    WHERE season=? AND status='FINAL' AND (away_id=? OR home_id=?)
                    ORDER BY league_day DESC,id DESC LIMIT 5""",(season,fid,fid))]
-            out={"team":dict(team),"branding":dict(brand) if brand else None,"division":division_for(fid),
+            out={"team":dict(team),"branding":dict(brand) if brand else None,"division":season_division(c,season,fid),
                  "player_id":pl["id"],"roster":roster,"lineup":lineup,"field_positions":field_positions,
                  "rotation":rotation,"bullpen":bullpen,"practice":{"date":today,"reward":practice_reward_for(c,fid),
                  "completed":practiced,"attendance":attendance,"human_total":human_total},
@@ -6424,7 +6639,7 @@ class H(BaseHTTPRequestHandler):
                    ORDER BY p.type,p.primary_pos,p.name""",(f["id"],))]
             state={x["k"]:x["v"] for x in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
             season=int(state.get("season",1));day=int(state.get("league_day",0));phase=str(state.get("phase","REGULAR")).upper()
-            renewal_window_open=bool(phase=="REGULAR" and day>=RENEWAL_OPEN_DAY and day<=REGULAR_SEASON_GAMES)
+            renewal_window_open=bool(phase=="REGULAR" and day>=RENEWAL_OPEN_DAY and day<=REGULAR_SEASON_CALENDAR_DAYS)
             for con in contracts:
                 con["renewal_eligible"]=bool(renewal_window_open and con.get("user_id") is not None and int(con.get("years_remaining") or 0)==1)
                 con["renewal_same_rate"]=round(float(con.get("salary") or SALARY_MIN),2)
@@ -7265,7 +7480,7 @@ class H(BaseHTTPRequestHandler):
                 if not f:return self.out({"error":"NO_FRANCHISE"},404)
                 state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
                 season=int(state.get("season",1));day=int(state.get("league_day",0));phase=str(state.get("phase","REGULAR")).upper()
-                if phase!="REGULAR" or day<RENEWAL_OPEN_DAY or day>REGULAR_SEASON_GAMES:
+                if phase!="REGULAR" or day<RENEWAL_OPEN_DAY or day>REGULAR_SEASON_CALENDAR_DAYS:
                     return self.out({"error":"RENEWAL_WINDOW_CLOSED","opens_day":RENEWAL_OPEN_DAY,"league_day":day,"phase":phase},400)
                 pl=c.execute("SELECT id,user_id,name,franchise_id,active FROM players WHERE id=?",(pid,)).fetchone()
                 con=c.execute("SELECT * FROM contracts WHERE player_id=?",(pid,)).fetchone()
@@ -7388,7 +7603,7 @@ class H(BaseHTTPRequestHandler):
                     if action=="REJECT":
                         c.execute("UPDATE offers SET status='REJECTED' WHERE id=?",(oid,))
                         if owner and owner["owner_user_id"]:
-                            notify_user(c,owner["owner_user_id"],"COACH_CONTRACT","Renewal declined",f"{pl['name']} declined the renewal offer. You can revise the plan while the Day {RENEWAL_OPEN_DAY}–81 window remains open.",str(pl["id"]))
+                            notify_user(c,owner["owner_user_id"],"COACH_CONTRACT","Renewal declined",f"{pl['name']} declined the renewal offer. You can revise the plan while the Day {RENEWAL_OPEN_DAY}–{REGULAR_SEASON_CALENDAR_DAYS} window remains open.",str(pl["id"]))
                         c.commit();return self.out({"ok":True,"status":"REJECTED","player_id":pl["id"],"renewal":True})
                     projected=next_season_payroll_projection(c,off["franchise_id"],replace_player_id=pl["id"],proposed_salary=float(off["salary"] or SALARY_MIN))
                     fr=c.execute("SELECT * FROM franchises WHERE id=?",(off["franchise_id"],)).fetchone()
@@ -8226,10 +8441,10 @@ class H(BaseHTTPRequestHandler):
                        away_runs,home_runs,status
                 FROM games
                 WHERE season=?
-                  AND league_day>81
+                  AND league_day>?
                 ORDER BY league_day,id
                 """,
-                (season,)
+                (season,REGULAR_SEASON_CALENDAR_DAYS)
             )]
 
 
@@ -8271,7 +8486,7 @@ class H(BaseHTTPRequestHandler):
                 u=self.auth(["COMMISSIONER"])
                 if not u:return
             c=conn();day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])+1
-            if day>81:
+            if day>REGULAR_SEASON_CALENDAR_DAYS:
                 season=int(c.execute(
                     "SELECT v FROM league_state WHERE k='season'"
                 ).fetchone()["v"])
@@ -8309,14 +8524,14 @@ class H(BaseHTTPRequestHandler):
 
                     for code,high,low in matchups:
                         schedule_series_game(
-                            c,season,code,1,82,
+                            c,season,code,1,REGULAR_SEASON_CALENDAR_DAYS+1,
                             high["id"],low["id"]
                         )
 
 
                     # Postseason starts fresh: regular-season pitching workload does not
                     # carry into the playoff bracket.
-                    reset_pitcher_fatigue(c,"PLAYOFFS",season=season,league_day=81,announce=False)
+                    reset_pitcher_fatigue(c,"PLAYOFFS",season=season,league_day=REGULAR_SEASON_CALENDAR_DAYS,announce=False)
 
                     c.execute(
                         "UPDATE league_state SET v='PLAYOFFS' WHERE k='phase'"
@@ -8334,7 +8549,7 @@ class H(BaseHTTPRequestHandler):
 
                     return self.out({
                         "ok":True,
-                        "day":81,
+                        "day":REGULAR_SEASON_CALENDAR_DAYS,
                         "results":[],
                         "phase":"PLAYOFFS",
                         "round":"QUARTERFINALS",
@@ -8353,10 +8568,10 @@ class H(BaseHTTPRequestHandler):
                         SELECT MIN(league_day) AS next_day
                         FROM games
                         WHERE season=?
-                         AND league_day>81
+                         AND league_day>?
                           AND status='SCHEDULED'
                         """,
-                        (season,)
+                        (season,REGULAR_SEASON_CALENDAR_DAYS)
                     ).fetchone()
 
 
@@ -8633,7 +8848,7 @@ class H(BaseHTTPRequestHandler):
                 weekly_recap(c,day,season)
                 process_quarter_awards(c,season,day)
                 apply_team_development_coach_milestones(c,season,day)
-                if day==40:
+                if day==ALL_STAR_BREAK_DAY:
                     reset_pitcher_fatigue(c,"ALL_STAR_BREAK",season=season,league_day=day,announce=True)
                 if day==RENEWAL_OPEN_DAY:
                     for fr in c.execute("SELECT id,name,owner_user_id FROM franchises WHERE owner_user_id IS NOT NULL").fetchall():
@@ -8646,7 +8861,7 @@ class H(BaseHTTPRequestHandler):
                             ref=f"renewal-window:{season}:{fr['id']}"
                             if not c.execute("SELECT 1 FROM notifications WHERE user_id=? AND type='COACH_CONTRACT' AND ref_id=? LIMIT 1",(fr["owner_user_id"],ref)).fetchone():
                                 notify_user(c,fr["owner_user_id"],"COACH_CONTRACT","Renewal window is open",f"{count} expiring human contract{'s' if count!=1 else ''} need a decision before the postseason. Open Franchise Operations to review them.",ref)
-                if day==81:
+                if day==REGULAR_SEASON_CALENDAR_DAYS:
                     process_season_awards(c,season)
                 c.execute("UPDATE league_state SET v=? WHERE k='league_day'",(str(day),))
                 c.commit()
@@ -8739,7 +8954,7 @@ class H(BaseHTTPRequestHandler):
                     c.execute("UPDATE players SET season_json=? WHERE id=?",(json.dumps(stats),pl["id"]))
 
                 # Rebuild Season 1 membership from the Commissioner-selected league size,
-                # then generate the 81-game schedule for exactly those active clubs.
+                # then generate the 81-game / 95-calendar-day schedule for exactly those active clubs.
                 c.execute("DELETE FROM franchise_seasons WHERE season=1")
                 selected_ids=[r["id"] for r in c.execute(
                     "SELECT id FROM franchises ORDER BY id LIMIT ?",
@@ -9180,7 +9395,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.6 Accelerated Beta RC97: http://127.0.0.1:{port}")
+    print(f"EBL v7.6 Accelerated Beta RC98: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
