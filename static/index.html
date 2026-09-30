@@ -3707,9 +3707,9 @@ async function loadLeague(){
 function renderBetaStatus(){
  const box=document.getElementById('betaStatusCard');if(!box||!LEAGUE)return;
  const season=Number(LEAGUE.season||1),day=Number(LEAGUE.day||0),phase=String(LEAGUE.phase||'REGULAR').toUpperCase();
- const phaseLabel=phase==='REGULAR'?`Day ${day}/81`:phase.replaceAll('_',' ');
- const half=day<=40?'FIRST HALF':day<=81?'SECOND HALF':'POSTSEASON';
- box.innerHTML=`<div class="betaStatusHead"><div><span class="betaSiteBadge">ACCELERATED BETA</span><h2>Season ${season} Stress Test</h2><div class="muted">Full 81-game seasons are being accelerated to roughly 1–2 weeks so we can test the entire EBL career loop under real player traffic.</div></div><button class="btn ghost" onclick="openBetaFeedback()">Send Feedback</button></div><div class="betaStatusGrid"><div class="betaStatusStat"><b>${phaseLabel}</b><span>${half}</span></div><div class="betaStatusStat"><b>Player-only test</b><span>CPU clubs manage teams; human coaching opens later.</span></div><div class="betaStatusStat"><b>Pitcher recovery checkpoints</b><span>100% after Day 40 / All-Star break, before playoffs, and on Opening Day.</span></div></div><div class="muted" style="margin-top:10px"><b>Beta notice:</b> balance, careers, statistics, and league history may be reset before official launch. Found a problem? Please send it — that is exactly what this test is for.</div>`;
+ const phaseLabel=phase==='REGULAR'?`Calendar Day ${day}/95`:phase.replaceAll('_',' ');
+ const half=day<=49?'FIRST HALF':day<=95?'SECOND HALF':'POSTSEASON';
+ box.innerHTML=`<div class="betaStatusHead"><div><span class="betaSiteBadge">ACCELERATED BETA</span><h2>Season ${season} Stress Test</h2><div class="muted">Full 81-game seasons are being accelerated to roughly 1–2 weeks so we can test the entire EBL career loop under real player traffic.</div></div><button class="btn ghost" onclick="openBetaFeedback()">Send Feedback</button></div><div class="betaStatusGrid"><div class="betaStatusStat"><b>${phaseLabel}</b><span>${half}</span></div><div class="betaStatusStat"><b>Player-only test</b><span>CPU clubs manage teams; human coaching opens later.</span></div><div class="betaStatusStat"><b>Pitcher recovery checkpoints</b><span>100% after Day 49 / All-Star break, before playoffs, and on Opening Day.</span></div></div><div class="muted" style="margin-top:10px"><b>Beta notice:</b> balance, careers, statistics, and league history may be reset before official launch. Found a problem? Please send it — that is exactly what this test is for.</div>`;
 }
 
 function playoffPicture(){
@@ -3795,7 +3795,7 @@ async function loadPlayoffs(){
     pane.innerHTML=`<div class="playoffStatus"><b>Playoff bracket unavailable</b><div class="muted">${escapeHtml(String(e?.error||e?.message||'Unable to load bracket'))}</div></div>`;
   }
 }
-function renderSchedule(){let day=LEAGUE?.day||0,filterTeam=PLAYER?.franchise_id;let upcoming=SCHEDULE.filter(g=>g.league_day>=Math.max(1,day) && g.league_day<=day+7);schedulePane.innerHTML=`<div class="subtabs"><button class="subtab active" onclick="scheduleFilter('ALL',this)">ALL EBL</button><button class="subtab" onclick="scheduleFilter('MINE',this)">MY TEAM</button></div><div id="scheduleRows">${scheduleRows(upcoming,'ALL')}</div>`}
+function renderSchedule(){let day=LEAGUE?.day||0,filterTeam=PLAYER?.franchise_id;let upcoming=SCHEDULE.filter(g=>g.league_day>=Math.max(1,day) && g.league_day<=day+7);schedulePane.innerHTML=`<div class="muted" style="margin:0 0 10px">81 games • 27 three-game series • 95-day calendar • team off days built between selected series</div><div class="subtabs"><button class="subtab active" onclick="scheduleFilter('ALL',this)">ALL EBL</button><button class="subtab" onclick="scheduleFilter('MINE',this)">MY TEAM</button></div><div id="scheduleRows">${scheduleRows(upcoming,'ALL')}</div>`}
 function scheduleFilter(mode,b){
  const pane=document.getElementById('schedulePane');
  if(!pane)return;
@@ -3848,8 +3848,19 @@ function renderGamecastList(){
  root.innerHTML=html;
 }
 function scheduleRows(games,mode){
- let arr=mode==='MINE'&&PLAYER?.franchise_id?games.filter(g=>g.away_id===PLAYER.franchise_id||g.home_id===PLAYER.franchise_id):games;
- return arr.map(g=>`<div class="game brandedGame" ${g.status==='FINAL'?`onclick="watch('${g.id}')"`:''}><div class="gameLine"><span><b>Day ${g.league_day}</b> • <span class="gameTeam">${teamMark(g.away_id,true)} ${teamName(g.away_id)}</span> <b>@</b> <span class="gameTeam">${teamMark(g.home_id,true)} ${teamName(g.home_id)}</span></span><span class="${g.status==='FINAL'?'green':'muted'}">${g.status==='FINAL'?`${g.away_runs}-${g.home_runs} • WATCH`:'UPCOMING'}</span></div></div>`).join('')||'<p class="muted">No games in this window.</p>';
+ const list=Array.isArray(games)?games:[];
+ if(mode==='MINE'&&PLAYER?.franchise_id){
+   const fid=PLAYER.franchise_id,start=Math.max(1,Number(LEAGUE?.day||0)),end=Math.min(95,start+7),byDay=new Map();
+   list.filter(g=>g.away_id===fid||g.home_id===fid).forEach(g=>byDay.set(Number(g.league_day),g));
+   const rows=[];
+   for(let d=start;d<=end;d++){
+     const g=byDay.get(d);
+     if(!g){rows.push(`<div class="game brandedGame offDay"><div class="gameLine"><span><b>Day ${d}</b> • OFF DAY</span><span class="muted">RECOVERY / TRAVEL</span></div></div>`);continue}
+     rows.push(`<div class="game brandedGame" ${g.status==='FINAL'?`onclick="watch('${g.id}')"`:''}><div class="gameLine"><span><b>Day ${g.league_day}</b> • <span class="gameTeam">${teamMark(g.away_id,true)} ${teamName(g.away_id)}</span> <b>@</b> <span class="gameTeam">${teamMark(g.home_id,true)} ${teamName(g.home_id)}</span></span><span class="${g.status==='FINAL'?'green':'muted'}">${g.status==='FINAL'?`${g.away_runs}-${g.home_runs} • WATCH`:'UPCOMING'}</span></div></div>`);
+   }
+   return rows.join('');
+ }
+ return list.map(g=>`<div class="game brandedGame" ${g.status==='FINAL'?`onclick="watch('${g.id}')"`:''}><div class="gameLine"><span><b>Day ${g.league_day}</b> • <span class="gameTeam">${teamMark(g.away_id,true)} ${teamName(g.away_id)}</span> <b>@</b> <span class="gameTeam">${teamMark(g.home_id,true)} ${teamName(g.home_id)}</span></span><span class="${g.status==='FINAL'?'green':'muted'}">${g.status==='FINAL'?`${g.away_runs}-${g.home_runs} • WATCH`:'UPCOMING'}</span></div></div>`).join('')||'<p class="muted">No games in this window.</p>';
 }
 function eblAvatarHtml(player,size='card'){
  const safe=['mini','card','hero'].includes(size)?size:'card';
@@ -4478,8 +4489,8 @@ async function loadCoachHub(){
   const renewalUnsent=expiring.filter(c=>j.renewal_window_open&&!c.renewal);
   const renewalPending=expiring.filter(c=>['OPEN','HELD'].includes(String(c.renewal?.status||'')));
   const renewalAccepted=expiring.filter(c=>String(c.renewal?.status||'')==='ACCEPTED');
-  const devCoaches=j.development_coaches||[],devRules=j.development_coach_rules||{first_free:true,maximum:3,hiring_close_day:40};
-  const devHiringOpen=String(j.phase||'REGULAR').toUpperCase()==='REGULAR'&&Number(j.league_day||0)<Number(devRules.hiring_close_day||40);
+  const devCoaches=j.development_coaches||[],devRules=j.development_coach_rules||{first_free:true,maximum:3,hiring_close_day:49};
+  const devHiringOpen=String(j.phase||'REGULAR').toUpperCase()==='REGULAR'&&Number(j.league_day||0)<Number(devRules.hiring_close_day||49);
   const coachActions=[];
   if(devHiringOpen&&devCoaches.length===0)coachActions.push(`<div class="taskCard" onclick="openCoachUpgrades()" style="cursor:pointer"><b>🎯 Choose your free development coach</b><div class="red">Every club gets one specialist free each season. Pick the direction you want this roster to grow.</div></div>`);
   if(!lineupReady)coachActions.push(`<div class="taskCard" onclick="openCoachRoster()" style="cursor:pointer"><b>📋 Set your lineup</b><div class="red">9 starters required before game day.</div></div>`);
@@ -4623,7 +4634,7 @@ async function loadCoachHub(){
     <h2 class="coachSection">Seasonal Development Staff</h2>
     <p class="muted">Every franchise gets its first development specialist <b>free each season</b>. Add up to two more specialists with team XP, then choose how intense each paid program should be. Permanent coach points stay with players even if they later change teams.</p>
     ${(()=>{
-      const coaches=j.development_coaches||[],rules=j.development_coach_rules||{first_free:true,maximum:3,base_cost:30,hiring_close_day:40,intensity:[{level:1,name:'Standard',cost:30,days:[0,40,81]},{level:2,name:'Focused',cost:35,days:[0,20,40,81]},{level:3,name:'Elite',cost:40,days:[0,20,40,60,81]}]},day=Number(j.league_day||0),phase=String(j.phase||'REGULAR').toUpperCase(),open=phase==='REGULAR'&&day<Number(rules.hiring_close_day||40);
+      const coaches=j.development_coaches||[],rules=j.development_coach_rules||{first_free:true,maximum:3,base_cost:30,hiring_close_day:49,intensity:[{level:1,name:'Standard',cost:30,days:[0,49,95]},{level:2,name:'Focused',cost:35,days:[0,24,49,95]},{level:3,name:'Elite',cost:40,days:[0,24,49,70,95]}]},day=Number(j.league_day||0),phase=String(j.phase||'REGULAR').toUpperCase(),open=phase==='REGULAR'&&day<Number(rules.hiring_close_day||49);
       const options=(j.development_coach_options&&j.development_coach_options.length)?j.development_coach_options:[{coach_type:'SPEED',name:'Speed Coach',attribute:'SPD',category:'BASERUNNING',applies_to:'HITTERS'}];
       const used=new Set(coaches.map(x=>String(x.coach_type||'').toUpperCase()));
       const available=options.filter(o=>!used.has(String(o.coach_type||'').toUpperCase()));
@@ -4639,11 +4650,11 @@ async function loadCoachHub(){
         return `<div class="upgradeCard"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><h3>${escapeHtml(spec.name)}</h3><div><b>+${escapeHtml(spec.attribute)}</b> • ${escapeHtml(spec.applies_to||'ELIGIBLE PLAYERS')}</div></div><span class="pill ${Number(x.is_free||0)?'green':''}">${Number(x.is_free||0)?'FREE':Number(x.cost||0).toFixed(0)+' XP'}</span></div><div class="muted" style="margin-top:6px">${escapeHtml(x.intensity_name||({1:'Standard',2:'Focused',3:'Elite'}[Number(x.intensity||1)]||'Standard'))} intensity • Slot ${Number(x.coach_slot||1)}/${Number(rules.maximum||3)}</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">${schedule}</div></div>`;
       }).join('');
       const firstFree=coaches.length===0;
-      const intensityRows=(rules.intensity||[]).length?rules.intensity:[{level:1,name:'Standard',cost:30,days:[0,40,81]},{level:2,name:'Focused',cost:35,days:[0,20,40,81]},{level:3,name:'Elite',cost:40,days:[0,20,40,60,81]}];
+      const intensityRows=(rules.intensity||[]).length?rules.intensity:[{level:1,name:'Standard',cost:30,days:[0,49,95]},{level:2,name:'Focused',cost:35,days:[0,24,49,95]},{level:3,name:'Elite',cost:40,days:[0,24,49,70,95]}];
       const intensitySelect=intensityRows.map(t=>`<option value="${Number(t.level)}">${escapeHtml(t.name)} • ${Number(t.cost||30).toFixed(0)} XP • ${((t.days||[]).map(d=>Number(d)===0?'Opening':'Day '+Number(d))).join(', ')}</option>`).join('');
       const canAdd=open&&coaches.length<Number(rules.maximum||3)&&available.length>0;
-      const addCard=canAdd?`<div class="upgradeCard"><h3>${firstFree?'Your Free Seasonal Coach':'Add Development Coach'}</h3><div><b>${firstFree?'FREE':'30–40 XP'}</b> • choose one roster direction</div><label class="label" style="display:block;margin-top:10px">SPECIALIST</label><select id="seasonDevCoachSelect" style="width:100%;margin-top:6px">${chooser}</select>${firstFree?`<div class="muted" style="margin-top:8px"><b>Standard intensity:</b> +1 when selected, +1 at Day 40, +1 at Day 81. Your first coach is free every season.</div>`:`<label class="label" style="display:block;margin-top:10px">INTENSITY</label><select id="seasonDevCoachIntensity" style="width:100%;margin-top:6px">${intensitySelect}</select><div class="muted" style="margin-top:8px">Standard: 30 XP / 3 boosts • Focused: 35 XP / 4 boosts • Elite: 40 XP / 5 boosts. Hiring after an early checkpoint does not back-pay the missed boost.</div>`}<button class="btn" style="margin-top:10px" onclick="hireDevelopmentCoach(document.getElementById('seasonDevCoachSelect')?.value||'SPEED',${firstFree?'1':'Number(document.getElementById(\'seasonDevCoachIntensity\')?.value||1)'})">${firstFree?'Choose Free Coach':'Add Paid Coach'}</button></div>`:'';
-      const closed=!open?`<div class="upgradeCard"><h3>Hiring Window Closed</h3><div class="muted">Development staff must be chosen before League Day ${Number(rules.hiring_close_day||40)}. Current staff continue through all remaining scheduled checkpoints.</div></div>`:'';
+      const addCard=canAdd?`<div class="upgradeCard"><h3>${firstFree?'Your Free Seasonal Coach':'Add Development Coach'}</h3><div><b>${firstFree?'FREE':'30–40 XP'}</b> • choose one roster direction</div><label class="label" style="display:block;margin-top:10px">SPECIALIST</label><select id="seasonDevCoachSelect" style="width:100%;margin-top:6px">${chooser}</select>${firstFree?`<div class="muted" style="margin-top:8px"><b>Standard intensity:</b> +1 when selected, +1 at Day 49, +1 at Day 95. Your first coach is free every season.</div>`:`<label class="label" style="display:block;margin-top:10px">INTENSITY</label><select id="seasonDevCoachIntensity" style="width:100%;margin-top:6px">${intensitySelect}</select><div class="muted" style="margin-top:8px">Standard: 30 XP / 3 boosts • Focused: 35 XP / 4 boosts • Elite: 40 XP / 5 boosts. Hiring after an early checkpoint does not back-pay the missed boost.</div>`}<button class="btn" style="margin-top:10px" onclick="hireDevelopmentCoach(document.getElementById('seasonDevCoachSelect')?.value||'SPEED',${firstFree?'1':'Number(document.getElementById(\'seasonDevCoachIntensity\')?.value||1)'})">${firstFree?'Choose Free Coach':'Add Paid Coach'}</button></div>`:'';
+      const closed=!open?`<div class="upgradeCard"><h3>Hiring Window Closed</h3><div class="muted">Development staff must be chosen before League Day ${Number(rules.hiring_close_day||49)}. Current staff continue through all remaining scheduled checkpoints.</div></div>`:'';
       return `<div class="grid"><div class="statBox"><span class="label">COACHES</span><b>${coaches.length}/${Number(rules.maximum||3)}</b></div><div class="statBox"><span class="label">FREE COACH</span><b>${coaches.length?'USED':'AVAILABLE'}</b></div><div class="statBox"><span class="label">HIRING WINDOW</span><b>${open?'OPEN':'CLOSED'}</b></div></div><div class="upgradeGrid" style="margin-top:10px">${existing}${addCard}${closed}</div>`
     })()}
     <h2 class="coachSection">Team Sponsorships</h2>
