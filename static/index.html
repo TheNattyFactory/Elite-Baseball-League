@@ -9429,41 +9429,53 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     const goatee=`<g><path d="M140 ${lowerTop}Q150 ${lowerTop+5} 160 ${lowerTop}L158 ${Math.min(chin,lowerTop+24)}Q150 ${Math.min(chin+2,lowerTop+30)} 142 ${Math.min(chin,lowerTop+24)}Z" fill="${c}"/><path d="M142 ${lowerTop+1}Q150 ${lowerTop+7} 158 ${lowerTop+1}" fill="none" stroke="#000" stroke-opacity=".14" stroke-width="1"/></g>`;
     const jawPath=`M${j.l} ${j.top}Q${j.l+4} ${chin-24} ${j.ml} ${chin-10}Q140 ${chin-1} 150 ${chin+1}Q160 ${chin-1} ${j.mr} ${chin-10}Q${j.r-4} ${chin-24} ${j.r} ${j.top}`;
 
-    /* RC102: stubble is made from tiny hair strokes concentrated in the actual beard zone,
-       rather than face-wide dots that read like freckles. */
+    /* RC103: hand-placed, asymmetric stubble. Stroke length, angle and opacity vary so
+       it reads like beard growth instead of a repeated dash pattern. */
     const scruff=(density='light')=>{
-      const heavy=density==='heavy', op=heavy?.68:.48, sw=heavy?1.9:1.45;
+      const heavy=density==='heavy', sw=heavy?1.75:1.32;
       const base=[
-        [120,174,3,1],[126,178,3,1],[132,182,3,1],[138,185,2,1],[162,185,2,-1],[168,182,3,-1],[174,178,3,-1],[180,174,3,-1],
-        [123,184,3,1],[129,188,3,1],[136,191,2,1],[143,193,2,1],[150,195,1,2],[157,193,2,-1],[164,191,2,-1],[171,188,3,-1],[177,184,3,-1],
-        [128,196,3,1],[135,199,2,1],[142,202,2,1],[149,204,1,2],[156,202,2,-1],[163,199,2,-1],[170,196,3,-1],
-        [137,174,2,1],[143,176,2,1],[149,177,1,1],[155,176,2,-1],[161,174,2,-1]
+        [118,174,2.6,.8,.42],[124,178,3.5,1.4,.52],[131,181,2.2,.9,.46],[137,185,3.1,1.5,.58],[143,188,1.8,1.2,.44],
+        [160,186,-2.7,1.1,.51],[166,183,-3.4,1.5,.57],[173,179,-2.1,.8,.43],[179,175,-3.0,1.0,.49],
+        [121,185,2.3,1.6,.47],[128,190,3.2,1.0,.55],[134,194,2.0,1.7,.43],[141,197,2.6,1.3,.54],[147,199,1.3,2.2,.48],
+        [153,198,-1.8,1.9,.52],[159,196,-2.4,1.1,.46],[165,192,-3.0,1.6,.56],[172,188,-2.2,1.0,.45],[177,184,-3.2,1.3,.50],
+        [128,199,2.7,1.4,.44],[135,203,1.8,1.9,.49],[142,205,2.4,1.1,.55],[149,207,.8,2.1,.46],[156,205,-2.0,1.5,.52],[163,202,-2.8,1.0,.47],[170,198,-2.2,1.6,.54],
+        [135,174,1.7,.7,.30],[140,175,2.5,.9,.38],[146,176,1.4,.6,.33],[151,175,1.0,.8,.28],[156,176,-1.8,.7,.36],[162,174,-2.3,.9,.31]
       ];
-      if(heavy)base.push([116,170,3,1],[184,170,3,-1],[119,180,3,1],[181,180,3,-1],[125,192,3,1],[175,192,3,-1],[132,203,2,1],[168,203,2,-1],[145,207,2,1],[155,207,2,-1],[134,177,2,1],[166,177,2,-1]);
-      const hairs=base.map(([x,y,dx,dy])=>`<path d="M${x} ${y}l${dx} ${dy}"/>`).join('');
-      return `<g fill="none" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" opacity="${op}">${hairs}</g>`;
+      if(heavy)base.push(
+        [115,169,3.0,1.1,.48],[121,172,2.2,1.6,.52],[183,170,-2.6,1.4,.50],[178,173,-3.2,.9,.45],
+        [118,181,3.3,1.5,.56],[124,193,2.7,1.7,.54],[132,198,2.0,1.0,.48],[168,197,-2.5,1.6,.57],[176,191,-3.1,1.0,.52],[182,180,-2.4,1.8,.49],
+        [137,208,2.1,1.2,.46],[145,210,1.4,1.9,.55],[153,209,-1.7,1.2,.50],[161,207,-2.2,1.7,.47],
+        [132,176,2.4,.8,.38],[144,178,1.7,.9,.44],[158,177,-2.0,.8,.41],[168,175,-2.5,1.0,.36]
+      );
+      const hairs=base.map(([x,y,dx,dy,a])=>`<path d="M${x} ${y}l${dx} ${dy}" stroke-opacity="${heavy?Math.min(.78,a+.12):a}"/>`).join('');
+      const lip=heavy
+        ? `<path d="M135 173Q143 169 149 172M151 172Q158 169 165 173" stroke-opacity=".34" stroke-width="1.55"/>`
+        : `<path d="M138 173Q144 170 149 172M152 172Q157 170 162 173" stroke-opacity=".22" stroke-width="1.2"/>`;
+      return `<g fill="none" stroke="${c}" stroke-width="${sw}" stroke-linecap="round">${hairs}${lip}</g>`;
     };
 
     if(id===2)return `<g data-ebl-facial-hair="v61">${scruff('light')}</g>`;
     if(id===3)return `<g data-ebl-facial-hair="v61">${must}${goatee}</g>`;
     if(id===5)return `<g data-ebl-facial-hair="v61">${must}</g>`;
     if(id===4)return `<g data-ebl-facial-hair="v61">
-      <path d="M${j.l-3} ${j.top-4}Q${j.l-1} ${j.top+18} ${j.ml-5} ${chin-15}L140 ${chin-5}Q137 ${patchTop+5} 131 ${mouthY+5}Q124 ${mouthY+1} ${j.l+2} ${j.top+7}Z" fill="${c}"/>
-      <path d="M${j.r+3} ${j.top-4}Q${j.r+1} ${j.top+18} ${j.mr+5} ${chin-15}L160 ${chin-5}Q163 ${patchTop+5} 169 ${mouthY+5}Q176 ${mouthY+1} ${j.r-2} ${j.top+7}Z" fill="${c}"/>
-      <path d="M134 ${patchTop-1}Q150 ${patchTop+8} 166 ${patchTop-1}L164 ${chin-3}Q150 ${chin+7} 136 ${chin-3}Z" fill="${c}"/>
+      <path d="M${j.l-4} ${j.top-5}Q${j.l-2} ${j.top+15} ${j.ml-6} ${chin-16}L139 ${chin-5}Q137 ${patchTop+6} 130 ${mouthY+5}Q123 ${mouthY+1} ${j.l+1} ${j.top+8}Z" fill="${c}"/>
+      <path d="M${j.r+3} ${j.top-3}Q${j.r+2} ${j.top+20} ${j.mr+6} ${chin-14}L161 ${chin-4}Q164 ${patchTop+4} 170 ${mouthY+6}Q177 ${mouthY+2} ${j.r-1} ${j.top+6}Z" fill="${c}"/>
+      <path d="M133 ${patchTop-1}Q149 ${patchTop+9} 167 ${patchTop}L164 ${chin-2}Q151 ${chin+7} 136 ${chin-3}Z" fill="${c}"/>
       <path d="${jawPath}" fill="none" stroke="${c}" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
       ${must}
       <path d="M129 ${mouthY+3}Q130 ${patchTop+2} 139 ${patchTop+9}" fill="none" stroke="${c}" stroke-width="9" stroke-linecap="round"/>
       <path d="M171 ${mouthY+3}Q170 ${patchTop+2} 161 ${patchTop+9}" fill="none" stroke="${c}" stroke-width="9" stroke-linecap="round"/>
+      <g fill="none" stroke="${c}" stroke-width="1.45" stroke-linecap="round" opacity=".72"><path d="M${j.l-5} ${j.top+5}l-2 4M${j.l-3} ${j.top+15}l-3 3M${j.ml-7} ${chin-17}l-3 3M${j.r+4} ${j.top+8}l3 3M${j.r+2} ${j.top+18}l3 4M${j.mr+7} ${chin-15}l3 3"/></g>
     </g>`;
     if(id===6)return `<g data-ebl-facial-hair="v61">${scruff('heavy')}</g>`;
     if(id===7)return `<path data-ebl-facial-hair="v61" d="${jawPath}" fill="none" stroke="${c}" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round"/>`;
     if(id===8)return `<g data-ebl-facial-hair="v61">
-      <path d="${jawPath}" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M136 ${patchTop+5}Q150 ${patchTop+12} 164 ${patchTop+5}L162 ${chin-4}Q150 ${chin+3} 138 ${chin-4}Z" fill="${c}"/>
+      <path d="${jawPath}" fill="none" stroke="${c}" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M135 ${patchTop+4}Q149 ${patchTop+12} 165 ${patchTop+6}L162 ${chin-4}Q149 ${chin+4} 137 ${chin-3}Z" fill="${c}"/>
       <path d="M124 ${mouthY+1}Q136 ${mouthY-8} 147 ${mouthY-3}Q150 ${mouthY-1} 153 ${mouthY-3}Q164 ${mouthY-8} 176 ${mouthY+1}Q166 ${mouthY+10} 153 ${mouthY+7}Q150 ${mouthY+10} 147 ${mouthY+7}Q134 ${mouthY+10} 124 ${mouthY+1}Z" fill="${c}"/>
-      <path d="M129 ${mouthY+3}Q131 ${patchTop+2} 139 ${patchTop+8}" fill="none" stroke="${c}" stroke-width="7.2" stroke-linecap="round"/>
-      <path d="M171 ${mouthY+3}Q169 ${patchTop+2} 161 ${patchTop+8}" fill="none" stroke="${c}" stroke-width="7.2" stroke-linecap="round"/>
+      <path d="M129 ${mouthY+3}Q131 ${patchTop+2} 139 ${patchTop+8}" fill="none" stroke="${c}" stroke-width="7.4" stroke-linecap="round"/>
+      <path d="M171 ${mouthY+3}Q169 ${patchTop+2} 161 ${patchTop+8}" fill="none" stroke="${c}" stroke-width="7.4" stroke-linecap="round"/>
+      <g fill="none" stroke="${c}" stroke-width="1.25" stroke-linecap="round" opacity=".68"><path d="M${j.l+1} ${j.top+8}l-2 3M${j.l+3} ${j.top+18}l-2 3M${j.r-1} ${j.top+10}l2 3M${j.r-3} ${j.top+20}l2 3"/></g>
     </g>`;
     if(id===11)return `<g data-ebl-facial-hair="v61">${soul}</g>`;
     if(id===12)return `<g data-ebl-facial-hair="v61">${mustCircle}<path d="M136 ${mouthY+2}Q135 ${patchTop+6} 142 ${patchTop+13}" fill="none" stroke="${c}" stroke-width="5.6" stroke-linecap="round"/><path d="M164 ${mouthY+2}Q165 ${patchTop+6} 158 ${patchTop+13}" fill="none" stroke="${c}" stroke-width="5.6" stroke-linecap="round"/><path d="M140 ${patchTop+10}Q150 ${patchTop+17} 160 ${patchTop+10}L158 ${Math.min(chin,patchTop+24)}Q150 ${Math.min(chin+2,patchTop+30)} 142 ${Math.min(chin,patchTop+24)}Z" fill="${c}"/></g>`;
@@ -9627,7 +9639,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   window.pickChain=id=>{CREATOR.chain_id=Math.max(1,Math.min(7,N(id,1)));repaint()};
   window.pickSleeve=id=>{CREATOR.sleeve_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
   window.pickBodyBuild=id=>{CREATOR.body_build_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
-  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'RC102',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'six silhouette choices with three long variations',facialHair:'single final compositor with thirteen choices + stroke-based stubble + connected/full beard geometry',faceDetails:['four noses','four eye shapes','four mouths','three ear sizes'],eyeBlack:'five choices including triangle and cross',bodyBuilds:['normal','heavy','muscular'],faceTuning:{oval:'fuller while still long',angular:'angled jaw with clearly flattened chin'},accessories:['five eyewear styles','gold/silver single-double-large chains','sleeves'],teamBranding:'preserved through V52/V53'});
+  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'RC103',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'six silhouette choices with three long variations',facialHair:'single final compositor with thirteen choices + natural asymmetric stroke-based stubble + connected/full beard geometry',faceDetails:['four noses','four eye shapes','four mouths','three ear sizes'],eyeBlack:'five choices including triangle and cross',bodyBuilds:['normal','heavy','muscular'],faceTuning:{oval:'fuller while still long',angular:'angled jaw with clearly flattened chin'},accessories:['five eyewear styles','gold/silver single-double-large chains','sleeves'],teamBranding:'preserved through V52/V53'});
   try{if(document.getElementById('creatorStage')&&typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(_){ }
 })();
 </script>
@@ -9641,10 +9653,10 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 #creatorStage .creatorSubheadV20{margin-top:20px}
 @media(max-width:760px){#creatorStage .creatorStudioBodyV20{padding-inline:14px}}
 </style>
-<script id="eblAvatarDetailPolishV63Meta">window.EBL_AVATAR_DETAIL_POLISH_V63=Object.freeze({version:'RC102',singleRenderer:true,sourceOfTruth:'saved player appearance',features:{nose:4,eyeShapes:4,mouths:4,earSizes:3,hair:6,facialHair:13,eyewear:5,eyeBlack:5,bodyBuilds:3},polish:'rounder curves, softer line weights, subtle face depth, eye highlights, tuned facial hair, full-silhouette body builds, realistic gold/silver chain options',legacySafeDefaults:true});</script>
+<script id="eblAvatarDetailPolishV63Meta">window.EBL_AVATAR_DETAIL_POLISH_V63=Object.freeze({version:'RC103',singleRenderer:true,sourceOfTruth:'saved player appearance',features:{nose:4,eyeShapes:4,mouths:4,earSizes:3,hair:6,facialHair:13,eyewear:5,eyeBlack:5,bodyBuilds:3},polish:'rounder curves, softer line weights, subtle face depth, eye highlights, tuned facial hair, full-silhouette body builds, realistic gold/silver chain options',legacySafeDefaults:true});</script>
 
 
-<script id="eblAvatarPolishRC102Meta">window.EBL_AVATAR_POLISH_RC102=Object.freeze({version:'RC102',changes:['feature-focused thumbnails','hair-stroke stubble','connected short-boxed beard','filled full beard','no translucent chin line','full silhouette body builds'],renderer:'eblUnifiedAppearanceRendererV61',singleSourceOfTruth:true});</script>
+<script id="eblAvatarPolishRC103Meta">window.EBL_AVATAR_POLISH_RC103=Object.freeze({version:'RC103',changes:['feature-focused thumbnails','natural asymmetric stubble','subtle upper-lip stubble','organic full-beard edges','organic short-boxed edges','connected short-boxed beard','filled full beard','no translucent chin line','full silhouette body builds'],renderer:'eblUnifiedAppearanceRendererV61',singleSourceOfTruth:true});</script>
 
 <!-- EBL RENDERER OWNERSHIP CONTRACT V62 — no visual layer, only prevents runtime renderer replacement -->
 <script id="eblRendererOwnershipV62">
