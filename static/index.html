@@ -1034,6 +1034,15 @@ dialog{
 <style id="eblSupporterRC100Style">
 .supporterBadgeRC100,.freeBadgeRC100{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;margin-left:6px;font-size:10px;font-weight:900;letter-spacing:.08em;vertical-align:middle}.supporterBadgeRC100{color:#f8e8a7;border:1px solid #b9912f;background:linear-gradient(180deg,#493915,#231b08)}.freeBadgeRC100{color:#afbdc9;border:1px solid #3b5367;background:#0a1c2b}.supporterGateRC100{border-color:#b9912f!important}.supportTierGridRC100{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}.supportTierCardRC100{padding:16px;border:1px solid var(--line-soft);border-radius:14px;background:#081c2d}.supportTierCardRC100.featured{border-color:#b9912f;box-shadow:inset 0 0 0 1px #b9912f33}.supportTierCardRC100 h2{margin:5px 0 8px}.supportCurrentRC100{grid-column:1/-1;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:11px 13px;border-left:4px solid var(--gold);background:#071d24;border-radius:10px}.supportCurrentRC100 span{color:var(--mut)}@media(max-width:700px){.supportTierGridRC100{grid-template-columns:1fr}}
 </style>
+
+<style id="eblLegalLaunchRC104Style">
+.legalGateRC104{margin:10px 0;padding:11px 12px;border:1px solid var(--line-soft);border-radius:12px;background:rgba(8,28,45,.72)}
+.legalGateRC104 label{display:block;font-size:12px;font-weight:850;letter-spacing:.04em;color:var(--gold2,var(--gold));margin-bottom:6px}
+.legalGateRC104 input[type="date"]{width:100%;max-width:260px}
+.legalGateRC104 small{display:block;color:var(--mut);margin-top:6px;line-height:1.4}
+.policySectionRC104{margin:18px 0;padding-top:4px}.policySectionRC104 h3{margin-bottom:6px}.policySectionRC104 p,.policySectionRC104 li{line-height:1.58}.policySectionRC104 ul,.policySectionRC104 ol{padding-left:22px}.policyDateRC104{font-size:12px;color:var(--mut);margin:-2px 0 14px}.policyCalloutRC104{padding:11px 12px;border-left:4px solid var(--gold);border-radius:9px;background:#081827;margin:12px 0}.legalFooterRC104{max-width:1240px;margin:0 auto 26px;padding:0 16px;color:var(--mut);font-size:12px;text-align:center;line-height:1.55}.legalFooterRC104 button{border:0;background:none;color:var(--gold2,var(--gold));text-decoration:underline;cursor:pointer;font:inherit;padding:0 4px}.brandRightsRC104{display:flex;gap:8px;align-items:flex-start;margin:12px 0;padding:10px 11px;border:1px solid var(--line-soft);border-radius:10px;background:#071827;font-size:12px;line-height:1.4}.brandRightsRC104 input{width:auto;margin-top:3px;flex:0 0 auto}.legalRequestGridRC104{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.legalRequestGridRC104 .wide{grid-column:1/-1}.legalRequestGridRC104 textarea{min-height:150px;resize:vertical}.legalRequestNoteRC104{font-size:12px;color:var(--mut);line-height:1.45}@media(max-width:700px){.legalRequestGridRC104{grid-template-columns:1fr}.legalRequestGridRC104 .wide{grid-column:auto}}
+</style>
+<script id="eblLegalLaunchRC104Meta">window.EBL_LEGAL_LAUNCH_RC104=Object.freeze({version:'RC104',ageGate:'13+',birthDateStored:false,policies:['community','terms','privacy'],publicLegalRequests:true,franchiseRightsAttestation:true,noGambling:true,virtualValueNoCash:true});</script>
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -1043,7 +1052,7 @@ dialog{
 </nav>
 <main>
 <section id="home" class="page active">
-<div id="loginCard" class="card"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><h2>Welcome to the EBL <span class="betaSiteBadge">BETA</span></h2><p class="supportLead">Create your ballplayer and follow a full EBL career while we run accelerated 81-game test seasons every 1–2 weeks. This is a live stress test, and beta progress may be reset before official launch.</p><div class="grid"><div><h3>Create Player Account</h3><input id="ru" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" placeholder="username" aria-label="Create username"><input id="rp" name="new-password" type="password" autocomplete="new-password" minlength="8" placeholder="8+ character password" aria-label="Create password"><input id="re" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="verified email" aria-label="Verified email"><label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0 4px;font-size:13px"><input id="rterms" type="checkbox" style="width:auto;margin-top:3px"> <span>I agree to the EBL Community Rules, Beta Terms, and Privacy Summary.</span></label><label class="betaResetAck"><input id="rbeta" type="checkbox"> <span>I understand this is an accelerated beta/stress test and that player, season, and league progress may be reset before official launch.</span></label><div class="policyReview">Review: <button type="button" onclick="openPolicy('communityRules')">Community Rules</button> • <button type="button" onclick="openPolicy('termsPolicy')">Terms</button> • <button type="button" onclick="openPolicy('privacyPolicy')">Privacy</button></div><button class="btn" onclick="register()">Join the EBL Beta</button><div class="publicWelcome"><b>Make your player. Help us stress-test the league.</b><span>Human coaches are paused during this player-only beta. CPU clubs handle the league while we test careers, progression, fatigue, contracts, stats, playoffs, and season rollover.</span></div></div><div><h3>Login</h3><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn" onclick="login()">Login</button></div></div><div class="card" style="margin-top:10px"><h3>Password Recovery</h3><div class="grid"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></div><div id="loginMsg" class="muted"></div></div>
+<div id="loginCard" class="card"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><h2>Welcome to the EBL <span class="betaSiteBadge">BETA</span></h2><p class="supportLead">Create your ballplayer and follow a full EBL career while we run accelerated 81-game test seasons every 1–2 weeks. This is a live stress test, and beta progress may be reset before official launch.</p><div class="grid"><div><h3>Create Player Account</h3><input id="ru" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="text" placeholder="username" aria-label="Create username"><input id="rp" name="new-password" type="password" autocomplete="new-password" minlength="8" placeholder="8+ character password" aria-label="Create password"><input id="re" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="verified email" aria-label="Verified email"><div class="legalGateRC104"><label for="rdob">DATE OF BIRTH</label><input id="rdob" name="birth-date" type="date" autocomplete="bday" aria-label="Date of birth"><small>EBL is for users age 13 and older. Your birth date is checked only to confirm eligibility and is not stored in your EBL account.</small></div><label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0 4px;font-size:13px"><input id="rterms" type="checkbox" style="width:auto;margin-top:3px"> <span>I agree to the EBL Community Rules, Terms of Service, and Privacy Policy.</span></label><label class="betaResetAck"><input id="rbeta" type="checkbox"> <span>I understand this is an accelerated beta/stress test and that player, season, and league progress may be reset before official launch.</span></label><div class="policyReview">Review: <button type="button" onclick="openPolicy('communityRules')">Community Rules</button> • <button type="button" onclick="openPolicy('termsPolicy')">Terms</button> • <button type="button" onclick="openPolicy('privacyPolicy')">Privacy</button></div><button class="btn" onclick="register()">Join the EBL Beta</button><div class="publicWelcome"><b>Make your player. Help us stress-test the league.</b><span>Human coaches are paused during this player-only beta. CPU clubs handle the league while we test careers, progression, fatigue, contracts, stats, playoffs, and season rollover.</span></div></div><div><h3>Login</h3><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn" onclick="login()">Login</button></div></div><div class="card" style="margin-top:10px"><h3>Password Recovery</h3><div class="grid"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></div><div id="loginMsg" class="muted"></div></div>
 <div id="dashboard" class="hidden">
 <div id="ticker" class="ticker"><div id="tickerTrack" class="tickerTrack"></div></div>
 <div id="betaStatusCard" class="card betaStatusCard"></div>
@@ -1086,12 +1095,14 @@ dialog{
       <button class="subtab active" onclick="policyPane('communityRules',this)">COMMUNITY RULES</button>
       <button class="subtab" onclick="policyPane('termsPolicy',this)">TERMS</button>
       <button class="subtab" onclick="policyPane('privacyPolicy',this)">PRIVACY</button>
+      <button class="subtab" onclick="policyPane('legalRequestsPolicy',this)">LEGAL / PRIVACY REQUESTS</button>
     </div>
 
 
     <div id="communityRules" class="subpane active"></div>
     <div id="termsPolicy" class="subpane"></div>
     <div id="privacyPolicy" class="subpane"></div>
+    <div id="legalRequestsPolicy" class="subpane"></div>
   </div>
 </section>
 
@@ -1183,6 +1194,11 @@ dialog{
     <h2 style="margin-top:14px">Moderation Queue</h2>
     <button class="btn" onclick="loadReports()">Refresh Reports</button>
     <div id="reportQueue"></div>
+
+    <h2 style="margin-top:14px">Legal & Privacy Request Queue</h2>
+    <p class="muted">Public privacy, account, copyright, trademark, and other legal requests submitted through the Rules & Policies page.</p>
+    <button class="btn" onclick="loadLegalRequests()">Refresh Legal Requests</button>
+    <div id="legalRequestQueue"></div>
     <div id="labBody"></div>
   </div>
 </section>
@@ -1622,16 +1638,18 @@ async function resendVerification(){return onceAction('resendVerification',async
 
 async function register(){return onceAction('register',async()=>{
  try{
-  if(!document.getElementById('rterms')?.checked){loginMsg.textContent='Please accept the EBL Community Rules, Beta Terms, and Privacy Summary.';return;}
+  const birthDate=String(document.getElementById('rdob')?.value||'').trim();
+  if(!birthDate){loginMsg.textContent='Enter your date of birth to confirm that you are at least 13 years old.';return;}
+  if(!document.getElementById('rterms')?.checked){loginMsg.textContent='Please accept the EBL Community Rules, Terms of Service, and Privacy Policy.';return;}
   if(!document.getElementById('rbeta')?.checked){loginMsg.textContent='Please acknowledge that accelerated beta progress may be reset before official launch.';return;}
-  let j=await api('/api/register',{method:'POST',body:JSON.stringify({username:ru.value,password:rp.value,email:re.value,accepted_terms:true,accepted_beta_reset:true})});
+  let j=await api('/api/register',{method:'POST',body:JSON.stringify({username:ru.value,password:rp.value,email:re.value,birth_date:birthDate,accepted_terms:true,accepted_beta_reset:true})});
   ME=j.user;
   dashboard.classList.add('hidden');
   loginCard.classList.remove('hidden');
   loginMsg.innerHTML=j.verification_email_sent===false
    ? 'Your account was created, but the confirmation email could not be sent. <button class="btn" onclick="resendVerification()">Try Again</button>'
    : 'Account created! Check your email for the EBL confirmation link. <button class="btn" onclick="resendVerification()">Resend Email</button>';
- }catch(e){loginMsg.textContent=e.error||'Registration failed'}
+ }catch(e){loginMsg.textContent=e.detail||e.error||'Registration failed'}
 })}
 
 async function login(){return onceAction('login',async()=>{
@@ -1714,6 +1732,11 @@ async function refresh(){
  await Promise.allSettled([loadChat('EBL'),loadChat('TEAM')]);
  renderHome();
  startDMPoll();
+ const supportReturn=new URLSearchParams(location.search).get('support');
+ if(supportReturn==='success'){
+  history.replaceState({},'',location.pathname||'/');
+  setTimeout(async()=>{goPage('support');await loadSupport();await pollSupporterReturn();await loadSupport();},100);
+ }
 }
 function teamName(fid){let t=LEAGUE?.teams?.find(x=>x.id===fid);return t?(t.display_name||t.name||fid):fid}
 async function openTeamLegacy(fid){
@@ -4092,15 +4115,61 @@ function renderHomeNews(){
  homeNews.innerHTML=rows.length?rows.map(n=>{const fid=n.franchise_id||n.team_id||n.team||'';return `<div class="headlineCompact brandedHeadline">${fid?teamMark(fid,true):''}<div><span class="newsMeta">${n.category.replaceAll('_',' ')} • SEASON ${n.season||LEAGUE?.season||1} • DAY ${n.league_day}</span><br><b>${n.headline}</b></div></div>`}).join(''):'<p class="muted">No headlines yet. The first pitch of Genesis will start the story.</p>';
 }
 let SUPPORT_CONFIG=null;
+async function startSupporterCheckout(){
+ if(!ME){loginCard.classList.remove('hidden');dashboard.classList.add('hidden');loginMsg.textContent='Sign in to attach a Supporter purchase to your EBL account.';return}
+ const root=document.getElementById('supportActions');
+ try{
+  if(root)root.innerHTML='<span class="muted">Opening secure Stripe test checkout…</span>';
+  const j=await api('/api/support/checkout',{method:'POST',body:'{}'});
+  if(j?.already_supporter){await loadSupport();return}
+  if(!j?.url)throw {error:'CHECKOUT_URL_MISSING'};
+  location.href=j.url;
+ }catch(e){
+  if(root)root.innerHTML=`<div class="offer"><b>Checkout could not start.</b><div class="muted">${escapeHtml(e?.error||'Please try again.')}</div></div>`;
+ }
+}
+async function pollSupporterReturn(){
+ if(!ME)return false;
+ const root=document.getElementById('supportActions');
+ for(let i=0;i<10;i++){
+  try{
+   const e=await api('/api/account/entitlements');
+   ENTITLEMENTS=e.entitlements||ENTITLEMENTS;
+   if(ENTITLEMENTS?.supporter){
+    ME.supporter=true;
+    if(root)root.insertAdjacentHTML('afterbegin','<div class="supportCurrentRC100"><b>✓ VERIFIED PAYMENT — SUPPORTER ACTIVE</b><span>Stripe confirmed the test payment and EBL upgraded this account automatically.</span></div>');
+    return true;
+   }
+  }catch(_){}
+  await new Promise(r=>setTimeout(r,750));
+ }
+ if(root)root.insertAdjacentHTML('afterbegin','<div class="offer"><b>Payment returned — verification is still processing.</b><div class="muted">Refresh this page in a moment. EBL does not grant Supporter until the signed Stripe webhook confirms payment.</div></div>');
+ return false;
+}
 async function loadSupport(){
  const root=document.getElementById('supportActions');if(!root)return;
  try{
   const j=await api('/api/support');SUPPORT_CONFIG=j||{};
   const buttons=[];
-  if(j?.one_time_url)buttons.push(`<a class="btn supportBtn primary" href="${escapeHtml(j.one_time_url)}" target="_blank" rel="noopener noreferrer">❤ Support EBL</a>`);
+  if(j?.checkout_path){
+   if(ME?.supporter)buttons.push('<button class="btn supportBtn primary" disabled>✓ EBL Supporter Active</button>');
+   else buttons.push(`<button class="btn supportBtn primary" onclick="startSupporterCheckout()">❤ ${j.mode==='test'?'Test Supporter Upgrade — $10':'Become an EBL Supporter — $10'}</button>`);
+  }else if(j?.one_time_url){
+   buttons.push(`<a class="btn supportBtn primary" href="${escapeHtml(j.one_time_url)}" target="_blank" rel="noopener noreferrer">❤ Support EBL</a>`);
+  }
   if(j?.monthly_url)buttons.push(`<a class="btn supportBtn" href="${escapeHtml(j.monthly_url)}" target="_blank" rel="noopener noreferrer">↻ Monthly Support</a>`);
-  root.innerHTML=buttons.length?`${buttons.join('')}<span class="muted" style="align-self:center">Secure checkout hosted by ${escapeHtml(j.provider||'our payment provider')}.</span>`:'<div class="offer"><b>Supporter checkout is being set up.</b><div class="muted" style="margin-top:4px">The Free and Supporter account rules are already built; payment activation will come before public recruiting.</div></div>';
-  if(ME){try{const e=await api('/api/account/entitlements');ENTITLEMENTS=e.entitlements||ENTITLEMENTS;const box=document.getElementById('supportEntitlementCard');if(box&&ENTITLEMENTS){box.insertAdjacentHTML('afterbegin',`<div class="supportCurrentRC100"><b>${ENTITLEMENTS.supporter?'YOU ARE AN EBL SUPPORTER':'YOUR ACCOUNT: FREE'}</b><span>${Number(ENTITLEMENTS.active_players||0)}/${Number(ENTITLEMENTS.entitled_player_limit||1)} entitled active player slots used${ENTITLEMENTS.policy_enforced?'':' • Genesis slot enforcement paused'}</span></div>`)}}catch(_){}}
+  const modeNote=j?.mode==='test'
+   ? '<span class="muted" style="align-self:center"><b>TEST MODE:</b> Stripe test cards only — no real charge.</span>'
+   : `<span class="muted" style="align-self:center">Secure checkout hosted by ${escapeHtml(j.provider||'our payment provider')}.</span>`;
+  root.innerHTML=buttons.length?`${buttons.join('')}${modeNote}`:'<div class="offer"><b>Supporter checkout is being set up.</b><div class="muted" style="margin-top:4px">The Free and Supporter account rules are already built; payment activation will come before public recruiting.</div></div>';
+  if(ME){
+   try{
+    const e=await api('/api/account/entitlements');ENTITLEMENTS=e.entitlements||ENTITLEMENTS;
+    const box=document.getElementById('supportEntitlementCard');
+    box?.querySelector('.supportCurrentRC100')?.remove();
+    if(box&&ENTITLEMENTS)box.insertAdjacentHTML('afterbegin',`<div class="supportCurrentRC100"><b>${ENTITLEMENTS.supporter?'YOU ARE AN EBL SUPPORTER':'YOUR ACCOUNT: FREE'}</b><span>${Number(ENTITLEMENTS.active_players||0)}/${Number(ENTITLEMENTS.entitled_player_limit||1)} entitled active player slots used${ENTITLEMENTS.policy_enforced?'':' • Genesis slot enforcement paused'}</span></div>`);
+   }catch(_){}
+  }
  }catch(e){root.innerHTML='<span class="muted">Support options are temporarily unavailable.</span>'}
 }
 function goPage(id){let b=document.querySelector(`.navbtn[data-page="${id}"]`);if(b)b.click()}
@@ -5429,10 +5498,41 @@ function openPolicy(id){
 }
 
 async function loadPolicies(){
- communityRules.innerHTML=`<h2>Community Rules</h2><p>Keep EBL competitive, welcoming, and baseball-focused.</p><ol><li>No harassment, threats, hate speech, sexual content, or targeted abuse.</li><li>No spam, scams, impersonation, or attempts to manipulate other users.</li><li>No cheating, exploits, multi-account collusion, or intentionally corrupting league systems.</li><li>Respect team and league moderation decisions. Use reports instead of escalating conflicts.</li><li>Private messages are not a loophole around community rules.</li><li>Franchise names, logos, chat, and player names must be appropriate for a general audience.</li></ol><p class="muted">Violations may lead to warnings, mutes, suspensions, account removal, or competitive penalties.</p>`;
- termsPolicy.innerHTML=`<h2>Beta Terms</h2><p>EBL is currently running an accelerated beta/stress test. Features, balance, league formats, virtual progression, player careers, statistics, and beta league history may change or reset before official launch.</p><p>Users must provide accurate account information, protect their credentials, avoid exploiting the service, and follow community rules. EBL may suspend accounts or pause league activity to protect competitive integrity and service safety.</p><p>Virtual XP, awards, franchise rights, and other in-game items have no cash value unless a future published policy explicitly says otherwise.</p><p class="muted">These beta terms are a product draft and should receive legal review before commercial/public launch.</p>`;
- privacyPolicy.innerHTML=`<h2>Privacy Summary</h2><p>EBL stores account credentials in hashed form, verified email addresses, login/session records, game activity, league statistics, chat/private messages, moderation reports, and technical security logs needed to operate the service.</p><p>Email addresses are used for account verification, password recovery, security notices, and service communications. EBL should not sell personal information.</p><p>Users can report abuse and block other users. Moderators may review reported community content and private messages when specifically reported or when required for safety/service integrity.</p><p class="muted">A jurisdiction-specific privacy policy and retention/deletion process should receive legal review before commercial/public launch.</p>`;
+ communityRules.innerHTML=`<h2>Community Rules</h2><div class="policyDateRC104">Effective October 1, 2026</div><p>EBL is built around competitive baseball, long-term careers, and a community that can enjoy the league without harassment, cheating, scams, or impersonation.</p><div class="policySectionRC104"><h3>1. Treat people like teammates and opponents</h3><ul><li>No harassment, threats, hate speech, sexual harassment, stalking, doxxing, targeted abuse, or encouragement of violence.</li><li>No spam, scams, deceptive impersonation, phishing, or attempts to obtain another member's account credentials.</li><li>Private messages, team chat, profiles, player names, and uploaded images are subject to the same rules as public chat.</li></ul></div><div class="policySectionRC104"><h3>2. Protect competitive integrity</h3><ul><li>No exploits, automation intended to gain an unfair advantage, account sharing to bypass limits, multi-account collusion, match manipulation, or intentionally corrupting league systems.</li><li>Report bugs instead of using them for competitive benefit. EBL may reverse clearly erroneous or exploited game results, XP, contracts, transactions, or awards.</li></ul></div><div class="policySectionRC104"><h3>3. Names, images, logos, and team branding</h3><ul><li>Only upload content you created, own, are licensed to use, or otherwise have permission to use.</li><li>Personal profile images are user-provided content and do not imply EBL endorsement. EBL does not promise to pre-screen every personal upload, but may remove content after a valid complaint or moderation review.</li><li>Official EBL franchise names, logos, uniforms, and wordmarks receive higher scrutiny because they become part of the league itself. Coaches must attest that submitted franchise branding is authorized and is not intended to impersonate an existing professional, collegiate, amateur, or other third-party club.</li><li>EBL may reject or remove team identities that are confusingly similar to third-party brands, inappropriate for a general audience, misleading, or otherwise create legal or community risk.</li></ul></div><div class="policySectionRC104"><h3>4. Reports and enforcement</h3><p>Use in-service reports instead of escalating conflicts. Depending on severity and history, EBL may warn, mute, suspend, remove content, revoke coaching privileges, reverse exploit-driven benefits, or terminate an account. Serious misconduct may be acted on immediately.</p></div><div class="policyCalloutRC104"><b>Age requirement:</b> EBL is intended for users age 13 and older. Users who identify themselves as under 13 are not permitted to create an account.</div>`;
+ termsPolicy.innerHTML=`<h2>Terms of Service</h2><div class="policyDateRC104">Effective October 1, 2026</div><p>These Terms govern access to Elite Baseball League ("EBL"), including the website, game simulation, player careers, community features, coaching tools, and optional supporter or cosmetic features.</p><div class="policySectionRC104"><h3>1. Eligibility and agreement</h3><p>You must be at least 13 years old to create or use an EBL account. If you are under the age of majority where you live, use EBL and make purchases only with permission from a parent or legal guardian. By creating an account, you agree to these Terms, the Privacy Policy, and the Community Rules.</p></div><div class="policySectionRC104"><h3>2. Beta and evolving service</h3><p>During beta or stress-test periods, EBL may change rules, balance, schedules, league formats, player careers, statistics, awards, virtual progression, or other features. Beta player, season, and league progress may be reset when reasonably necessary for testing or launch preparation. EBL will try to communicate material resets in advance when practical.</p></div><div class="policySectionRC104"><h3>3. Accounts</h3><p>Provide accurate registration information, keep your password secure, and do not sell, transfer, or share access in a way that defeats account or competitive limits. You are responsible for activity performed through your account until you notify EBL of unauthorized access.</p></div><div class="policySectionRC104"><h3>4. Virtual XP, salaries, contracts, awards, and supporter features</h3><p>All XP, player salaries, signing bonuses, contracts, awards, roster rights, careers, cosmetics, supporter badges, and other in-game values are fictional game mechanics. They are not money, stored value, securities, property accounts, or promises of payment and have no cash-out value. EBL does not permit wagering on game results or conversion of game value into real-world money.</p><p>Optional supporter features and cosmetics are intended to add more EBL experiences or customization, not competitive power. Unless a future published rule expressly states otherwise, purchases do not increase attributes, XP earnings, salary advantages, roster priority, award eligibility, or simulation performance.</p></div><div class="policySectionRC104"><h3>5. Purchases</h3><p>If paid features are enabled, price and material purchase terms will be shown before checkout. Payment may be handled by a third-party hosted checkout provider. Users under the age of majority may make purchases only with parent or guardian permission. Refunds, chargebacks, and cancellations are handled according to the checkout terms, applicable law, and any product-specific policy presented at purchase.</p></div><div class="policySectionRC104"><h3>6. User content</h3><p>You keep the rights you hold in content you upload. You give EBL a non-exclusive, worldwide, royalty-free license to host, store, reproduce, resize, display, and transmit that content as reasonably necessary to operate, moderate, back up, and present EBL. You represent that you have the rights needed to submit the content. This license does not give EBL ownership of your original content.</p></div><div class="policySectionRC104"><h3>7. Third-party intellectual property</h3><p>Do not upload or adopt branding that infringes copyright, trademark, publicity, privacy, or other rights. EBL may remove or restrict reported content while a complaint is reviewed. Official franchise branding is subject to commissioner approval and rights attestation. Rights holders may submit copyright or trademark concerns through the Legal / Privacy Requests tab on this page.</p></div><div class="policySectionRC104"><h3>8. Moderation and service integrity</h3><p>EBL may moderate content, suspend features, freeze transactions, or restrict accounts when reasonably necessary to enforce these Terms, protect users, investigate abuse, preserve league integrity, comply with law, or protect the service. EBL may preserve relevant records for security, fraud prevention, dispute resolution, or legal obligations.</p></div><div class="policySectionRC104"><h3>9. Availability and changes</h3><p>EBL is provided on an evolving basis. No specific feature, league format, roster, statistic, award, player career, or uninterrupted availability is guaranteed. Scheduled or emergency maintenance may temporarily limit access.</p></div><div class="policySectionRC104"><h3>10. Disclaimers and limitation</h3><p>To the maximum extent permitted by applicable law, EBL is provided "as is" and "as available" without warranties that the service will be uninterrupted or error-free. To the maximum extent permitted by law, EBL and its operators are not liable for indirect, incidental, special, consequential, or punitive damages arising from use of the service. Nothing in these Terms limits rights or liability that cannot legally be limited.</p></div><div class="policySectionRC104"><h3>11. Governing law</h3><p>These Terms are governed by the laws of the State of Georgia, without regard to conflict-of-law principles, except where applicable law requires otherwise.</p></div><div class="policySectionRC104"><h3>12. Changes to these Terms</h3><p>EBL may update these Terms as the service changes. Material changes will be posted through the service, and continued use after an update takes effect constitutes acceptance where permitted by law.</p></div><div class="policyCalloutRC104"><b>Independent game:</b> Elite Baseball League is a fictional baseball simulation and is not affiliated with or endorsed by Major League Baseball or any professional or collegiate sports organization.</div>`;
+ privacyPolicy.innerHTML=`<h2>Privacy Policy</h2><div class="policyDateRC104">Effective October 1, 2026</div><p>This Policy describes information EBL collects and uses to operate accounts, the baseball simulation, community features, moderation, and optional supporter features.</p><div class="policySectionRC104"><h3>1. Age screening</h3><p>EBL is for users age 13 and older. Registration asks for a date of birth only to determine whether the age requirement is met. EBL's registration system does not store the submitted birth date in the account database after the eligibility check.</p></div><div class="policySectionRC104"><h3>2. Information collected</h3><ul><li><b>Account:</b> username, verified email address, hashed password, account role, verification and recovery status.</li><li><b>Security and technical:</b> session identifiers, login timestamps, IP address, user agent/device information, rate-limit and security records.</li><li><b>Game and profile:</b> player identities, appearance choices, attributes, statistics, contracts, team affiliation, awards, public profile fields, optional profile images, coaching activity, and league history.</li><li><b>Community:</b> public/team chat, private messages, friend activity, blocks, moderation reports, and beta feedback.</li><li><b>Legal/privacy requests:</b> the contact information and details you choose to submit through the Legal / Privacy Requests form.</li><li><b>Supporter/payment status:</b> if paid features are enabled, EBL may receive transaction or entitlement status from a hosted payment provider. Full payment-card details are intended to remain with the payment provider rather than EBL.</li></ul></div><div class="policySectionRC104"><h3>3. How information is used</h3><p>EBL uses information to authenticate accounts, verify email, recover passwords, run games and seasons, save player and team history, deliver community features, prevent abuse, enforce rules, respond to reports and requests, maintain security, diagnose errors, back up the service, and administer optional supporter features.</p></div><div class="policySectionRC104"><h3>4. Sharing and service providers</h3><p>Information may be processed by service providers needed to host EBL, send account email, store backups, provide payment checkout, or operate other infrastructure. EBL may also disclose information when reasonably necessary to comply with law, protect rights or safety, investigate fraud or abuse, or respond to valid legal process. EBL does not sell personal information for money or use personal information for cross-context behavioral advertising.</p></div><div class="policySectionRC104"><h3>5. Public information</h3><p>Player names, statistics, team affiliation, league history, awards, profile fields you make public, and some uploaded profile/team imagery may be visible to other users or the public. Do not place private information in player names, bios, chat, team branding, or other public fields.</p></div><div class="policySectionRC104"><h3>6. Retention</h3><p>Different records are kept for different periods. Some live chat is automatically pruned on a short rolling basis, while league history, statistics, security records, reports, account records, direct messages, backups, and transaction/audit records may be retained longer when needed to operate EBL, preserve league history, prevent abuse, resolve disputes, or meet legal obligations. When information is no longer reasonably needed, EBL may delete or de-identify it.</p></div><div class="policySectionRC104"><h3>7. Security</h3><p>EBL uses measures such as password hashing, email verification, session controls, rate limiting, backups, and moderation/security logs. No online system can guarantee absolute security, so users should use a unique password and promptly report suspected account compromise.</p></div><div class="policySectionRC104"><h3>8. Your requests</h3><p>You may request help with account information, correction, deletion, privacy questions, or intellectual-property complaints through the Legal / Privacy Requests tab. Some records may need to be retained where permitted or required for fraud prevention, league integrity, transaction records, backups, dispute resolution, or law.</p></div><div class="policySectionRC104"><h3>9. Third-party services</h3><p>Optional links such as Discord, Instagram, payment providers, or other external services are governed by those services' own terms and privacy practices. EBL is not responsible for their independent data practices.</p></div><div class="policySectionRC104"><h3>10. Changes</h3><p>EBL may update this Privacy Policy when the service or its data practices change. Material updates will be posted through the service.</p></div>`;
+ legalRequestsPolicy.innerHTML=`<h2>Legal & Privacy Requests</h2><div class="policyDateRC104">Public request channel</div><p>Use this form for account/privacy requests or to report copyright, trademark, impersonation, or other rights concerns. You do not need to be signed in.</p><div class="policyCalloutRC104"><b>Copyright reports:</b> identify the copyrighted work, identify where the challenged material appears in EBL, provide your contact information, explain your good-faith belief that the use is unauthorized, confirm that the information is accurate and that you are the owner or authorized to act for the owner, and type your name as an electronic signature.</div><div class="legalRequestGridRC104"><label>Request Type<select id="legalRequestKind"><option value="PRIVACY">Privacy / Account Data</option><option value="COPYRIGHT">Copyright</option><option value="TRADEMARK">Trademark / Brand</option><option value="ACCOUNT">Account Access / Deletion</option><option value="OTHER">Other Legal Request</option></select></label><label>Your Name<input id="legalRequestName" maxlength="100" autocomplete="name" placeholder="name"></label><label>Email<input id="legalRequestEmail" maxlength="254" type="email" autocomplete="email" placeholder="contact email"></label><label>Content URL or Location<input id="legalRequestUrl" maxlength="500" placeholder="optional link, profile, team, or page"></label><label class="wide">Subject<input id="legalRequestSubject" maxlength="160" placeholder="brief subject"></label><label class="wide">Details<textarea id="legalRequestDetail" maxlength="4000" placeholder="Describe the request and include enough information for EBL to locate and review the issue."></textarea></label></div><button class="btn" onclick="submitLegalRequest()">Submit Request</button><div id="legalRequestMsg" class="muted" style="margin-top:8px"></div><p class="legalRequestNoteRC104">Submitting this form does not guarantee a particular outcome. EBL may ask for additional information needed to verify identity, authority, ownership, or the location of reported material.</p>`;
 }
+
+async function submitLegalRequest(){
+ const msg=document.getElementById('legalRequestMsg');
+ const body={
+  kind:String(document.getElementById('legalRequestKind')?.value||'OTHER'),
+  name:String(document.getElementById('legalRequestName')?.value||'').trim(),
+  email:String(document.getElementById('legalRequestEmail')?.value||'').trim(),
+  content_url:String(document.getElementById('legalRequestUrl')?.value||'').trim(),
+  subject:String(document.getElementById('legalRequestSubject')?.value||'').trim(),
+  detail:String(document.getElementById('legalRequestDetail')?.value||'').trim()
+ };
+ if(!body.name||!body.email||body.detail.length<20){if(msg)msg.textContent='Enter your name, a valid contact email, and at least 20 characters of detail.';return}
+ try{
+  const j=await api('/api/legal/request',{method:'POST',body:JSON.stringify(body)});
+  if(msg)msg.innerHTML=`<b>Request received.</b> Reference #${Number(j.request_id||0)}. Keep this number for your records.`;
+  ['legalRequestName','legalRequestEmail','legalRequestUrl','legalRequestSubject','legalRequestDetail'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+ }catch(e){if(msg)msg.textContent=e?.detail||e?.error||e?.message||'Request could not be submitted.'}
+}
+async function loadLegalRequests(){
+ const out=document.getElementById('legalRequestQueue');if(!out||ME?.role!=='COMMISSIONER')return;
+ try{
+  const j=await api('/api/commish/legal-requests');const rows=j.requests||[];
+  out.innerHTML=rows.length?rows.map(r=>`<div class="offer"><b>#${Number(r.id)} ${escapeHtml(r.kind||'OTHER')} • ${escapeHtml(r.subject||'No subject')}</b> <span class="newsBadge">${escapeHtml(r.status||'OPEN')}</span><div class="muted">${escapeHtml(r.name||'')} • ${escapeHtml(r.email||'')} • ${escapeHtml(r.created_at||'')}</div>${r.content_url?`<div class="muted">Location: ${escapeHtml(r.content_url)}</div>`:''}<p>${escapeHtml(r.detail||'')}</p>${r.status==='OPEN'?`<button class="btn" onclick="resolveLegalRequest(${Number(r.id)})">Mark Resolved</button>`:''}</div>`).join(''):'<p class="muted">No legal/privacy requests yet.</p>';
+ }catch(e){out.innerHTML=`<p class="muted">Could not load requests: ${escapeHtml(e?.error||e?.message||'Unknown error')}</p>`}
+}
+async function resolveLegalRequest(id){
+ const resolution=prompt('Resolution / internal note:','Reviewed and resolved');if(resolution===null)return;
+ try{await api('/api/commish/resolve-legal-request',{method:'POST',body:JSON.stringify({request_id:id,resolution})});await loadLegalRequests()}catch(e){alert(e?.error||e?.message||'Could not resolve request')}
+}
+
 function openBetaFeedback(type='BUG'){
  const modal=document.getElementById('betaFeedbackModal');if(!modal)return;
  const sel=document.getElementById('betaFeedbackType');if(sel&&['BUG','FEEDBACK','IDEA'].includes(type))sel.value=type;
@@ -8122,12 +8222,14 @@ function eblFranchiseIdentityStudioRC45(j){
    <label class="eblLogoDropRC45 eblWordmarkDropRC45">Jersey Wordmark<input type="file" accept="image/*" hidden ${locked?'disabled':''} onchange="eblLogoFileRC45(this.files&&this.files[0],'wordmark')"><span id="brandWordmarkStatusRC45">${b.jersey_wordmark?'Jersey wordmark loaded — tap to replace':'Tap to upload transparent chest wordmark'}<br><small>Wide transparent PNG/WebP recommended • up to 5 MB • used across the jersey chest</small></span></label>
   </div>
   <div class="grid"><label>Home Uniform<select id="brandHomeRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_home||'WHITE')}</select></label><label>Away Uniform<select id="brandAwayRC45" ${locked?'disabled':''}>${uniformOptions(b.uniform_away||'NAVY')}</select></label></div>
+  <label class="brandRightsRC104"><input id="brandRightsRC104" type="checkbox" ${locked?'disabled':''}> <span>I confirm that I created this franchise identity or have permission to use it, and that it is not intended to impersonate an existing professional, collegiate, amateur, or other third-party club or brand.</span></label>
   <button class="btn" ${locked?'disabled':''} onclick="eblSaveFranchiseIdentityRC45()">${locked?'Season Branding Edit Used':inSeason?'Save Identity • Use Season Edit':'Save Franchise Identity'}</button>
  </div><div><div id="brandPreviewRC45" class="eblBrandPreviewRC45"></div></div></div>`;
 }
 async function eblSaveFranchiseIdentityRC45(){
- const body={city:brandCityRC45.value.trim(),team_name:brandTeamRC45.value.trim(),primary_color:brandPrimaryRC45.value,secondary_color:brandSecondaryRC45.value,accent_color:brandAccentRC45.value,primary_logo:EBL_BRAND_LOGOS_RC45.primary,secondary_logo:EBL_BRAND_LOGOS_RC45.secondary,jersey_wordmark:EBL_BRAND_LOGOS_RC45.wordmark,uniform_home:brandHomeRC45.value,uniform_away:brandAwayRC45.value,logo_style:1};
+ const body={city:brandCityRC45.value.trim(),team_name:brandTeamRC45.value.trim(),primary_color:brandPrimaryRC45.value,secondary_color:brandSecondaryRC45.value,accent_color:brandAccentRC45.value,primary_logo:EBL_BRAND_LOGOS_RC45.primary,secondary_logo:EBL_BRAND_LOGOS_RC45.secondary,jersey_wordmark:EBL_BRAND_LOGOS_RC45.wordmark,uniform_home:brandHomeRC45.value,uniform_away:brandAwayRC45.value,logo_style:1,rights_attested:Boolean(document.getElementById('brandRightsRC104')?.checked)};
  if(!body.city||!body.team_name){alert('Enter both a city/home market and a team name.');return}
+ if(!body.rights_attested){alert('Confirm that you have the right to use this franchise name and artwork before saving.');return}
  try{await api('/api/coach/branding',{method:'POST',body:JSON.stringify(body)});alert('Franchise identity saved.');await loadLeague();await loadCoachHub()}catch(e){alert(e.detail||e.error||'Could not save franchise identity.')}
 }
 const eblLoadCoachHubRC45=window.loadCoachHub;
@@ -9894,3 +9996,5 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   window.EBL_AWARDS_SPACING_V78=Object.freeze({version:'V78',layout:'rank + portrait + player header + separate club/stat lines',fielding:'position cards',mobile:true});
 })();
 </script>
+
+<!-- EBL_STRIPE_VERIFIED_SUPPORTER_TEST_RC105 -->
