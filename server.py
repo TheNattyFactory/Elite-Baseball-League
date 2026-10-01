@@ -65,37 +65,95 @@ ABSOLUTE_PLAYER_LIMIT=3
 # Turn EBL_SUPPORTER_SLOTS_ENFORCED=1 on before public recruiting to make
 # Free=1 / Supporter=3 the live creation rule without another code deploy.
 SUPPORTER_SLOTS_ENFORCED=str(os.environ.get("EBL_SUPPORTER_SLOTS_ENFORCED","0")).strip().lower() in ("1","true","on","yes")
+EBL_SUPPORTER_PROFILE_CUSTOMIZATION_RC106=True
 RENEWAL_OPEN_DAY=70
 MAX_REQUEST_BYTES=20*1024*1024
 MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
 MAX_PROFILE_PHOTO_DATA_URL_CHARS=900_000
 BETA_MODE=str(os.environ.get("EBL_BETA_MODE","1")).strip().lower() not in ("0","false","off","no")
 COACH_APPLICATIONS_OPEN=str(os.environ.get("EBL_COACH_APPLICATIONS_OPEN","0")).strip().lower() in ("1","true","on","yes")
+EBL_SUPPORTER_LEGACY_RC107="RC107"
+EBL_SUPPORTER_PRICE_RC108="RC108"
+EBL_ONBOARDING_RC110="RC110"
+AGE_REQUIREMENT=13
 
-# RC85: public support links are configured at deploy time so payment providers can
-# be changed without editing application code. These are public URLs, never secrets.
+# RC109: recurring Supporter subscriptions are configured at deploy time.
+# Checkout stays on Stripe-hosted pages; EBL attaches a one-time account reference
+# and grants access only after signed Stripe webhooks confirm the subscription.
+def _safe_support_url(value):
+    value=str(value or "").strip()
+    return value if value.startswith(("https://","http://")) else ""
+
+def stripe_support_plans():
+    currency=str(os.environ.get("EBL_STRIPE_EXPECTED_CURRENCY","usd") or "usd").strip().lower()
+    mode=str(os.environ.get("EBL_STRIPE_MODE","test") or "test").strip().lower()
+    monthly={
+        "key":"monthly",
+        "label":"Monthly",
+        "url":_safe_support_url(os.environ.get("EBL_SUPPORT_MONTHLY_URL","")),
+        "payment_link_id":str(os.environ.get("EBL_STRIPE_MONTHLY_PAYMENT_LINK_ID","") or "").strip(),
+        "price_id":str(os.environ.get("EBL_STRIPE_MONTHLY_PRICE_ID","") or "").strip(),
+        "amount":int(os.environ.get("EBL_STRIPE_MONTHLY_AMOUNT","500") or 500),
+        "currency":currency,
+        "interval":"month"
+    }
+    yearly={
+        "key":"yearly",
+        "label":"Yearly",
+        "url":_safe_support_url(os.environ.get("EBL_SUPPORT_YEARLY_URL","")),
+        "payment_link_id":str(os.environ.get("EBL_STRIPE_YEARLY_PAYMENT_LINK_ID","") or "").strip(),
+        "price_id":str(os.environ.get("EBL_STRIPE_YEARLY_PRICE_ID","") or "").strip(),
+        "amount":int(os.environ.get("EBL_STRIPE_YEARLY_AMOUNT","5400") or 5400),
+        "currency":currency,
+        "interval":"year"
+    }
+    return {"monthly":monthly,"yearly":yearly,"mode":mode}
+
 def support_public_config():
-    def safe_url(value):
-        value=str(value or "").strip()
-        return value if value.startswith(("https://","http://")) else ""
-    one_time=safe_url(os.environ.get("EBL_SUPPORT_URL",""))
-    monthly=safe_url(os.environ.get("EBL_SUPPORT_MONTHLY_URL",""))
-    provider=str(os.environ.get("EBL_SUPPORT_PROVIDER","Support").strip() or "Support")[:40]
-    stripe_link_id=str(os.environ.get("EBL_STRIPE_PAYMENT_LINK_ID","") or "").strip()
-    stripe_mode=str(os.environ.get("EBL_STRIPE_MODE","") or "").strip().lower()
-    verified_checkout=bool(one_time and stripe_link_id)
+    plans=stripe_support_plans()
+    provider=str(os.environ.get("EBL_SUPPORT_PROVIDER","Stripe").strip() or "Stripe")[:40]
+    portal_url=_safe_support_url(os.environ.get("EBL_SUPPORT_PORTAL_URL",""))
+    available={}
+    for key in ("monthly","yearly"):
+        p=plans[key]
+        if p["url"] and p["payment_link_id"]:
+            available[key]={
+                "label":p["label"],
+                "price_usd":round(max(0,p["amount"])/100,2),
+                "interval":p["interval"]
+            }
+    monthly_amt=int(plans["monthly"]["amount"])
+    yearly_amt=int(plans["yearly"]["amount"])
+    full_year=monthly_amt*12
+    savings=max(0,full_year-yearly_amt)
+    savings_pct=round((savings/full_year)*100) if full_year else 0
     return {
-        "enabled":bool(one_time or monthly),
+        "enabled":bool(available),
         "provider":provider,
-        # RC105: verified checkout is generated per authenticated account.
-        "one_time_url":"" if verified_checkout else one_time,
-        "monthly_url":"" if verified_checkout else monthly,
-        "checkout_path":"/api/support/checkout" if verified_checkout else "",
-        "verified_checkout":verified_checkout,
-        "mode":"test" if stripe_mode=="test" else ("live" if stripe_mode=="live" else ""),
-        "price_usd":10 if verified_checkout else None,
+        "checkout_path":"/api/support/checkout" if available else "",
+        "verified_checkout":bool(available),
+        "mode":"test" if plans["mode"]=="test" else ("live" if plans["mode"]=="live" else ""),
+        "plans":available,
+        "yearly_savings_usd":round(savings/100,2),
+        "yearly_savings_pct":savings_pct,
+        "portal_url":portal_url,
         "currency":"USD"
     }
+
+def registration_age_eligible(value, minimum_age=AGE_REQUIREMENT):
+    """Validate 13+ eligibility without persisting the submitted birth date."""
+    try:
+        dob=datetime.date.fromisoformat(str(value or "").strip())
+    except Exception:
+        return False
+    today=datetime.datetime.now(datetime.timezone.utc).date()
+    if dob>today:
+        return False
+    try:
+        cutoff=today.replace(year=today.year-int(minimum_age))
+    except ValueError:
+        cutoff=today.replace(year=today.year-int(minimum_age),day=28)
+    return dob<=cutoff
 
 # RC84: official EBL baseline branding. These are lightweight league defaults
 # for CPU/unclaimed franchises. Existing uploaded/custom artwork is never overwritten.
@@ -363,6 +421,10 @@ def init_db():
       user_id INTEGER,
       franchise_id TEXT,
       name TEXT NOT NULL,
+      first_name TEXT NOT NULL DEFAULT '',
+      last_name TEXT NOT NULL DEFAULT '',
+      hometown_city TEXT NOT NULL DEFAULT '',
+      hometown_region TEXT NOT NULL DEFAULT '',
       type TEXT NOT NULL CHECK(type IN ('H','P')),
       primary_pos TEXT NOT NULL,
       position_group TEXT NOT NULL DEFAULT 'INF',
@@ -852,8 +914,12 @@ def init_db():
       token TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'PENDING',
+      plan TEXT NOT NULL DEFAULT '',
       stripe_session_id TEXT UNIQUE,
       stripe_payment_intent TEXT,
+      stripe_subscription_id TEXT,
+      stripe_customer_id TEXT,
+      stripe_price_id TEXT,
       payment_status TEXT NOT NULL DEFAULT '',
       amount_total INTEGER,
       currency TEXT,
@@ -863,6 +929,21 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_support_checkout_user ON support_checkout_refs(user_id,created_at);
     CREATE INDEX IF NOT EXISTS idx_support_checkout_pi ON support_checkout_refs(stripe_payment_intent);
+    CREATE INDEX IF NOT EXISTS idx_support_checkout_sub ON support_checkout_refs(stripe_subscription_id);
+
+    CREATE TABLE IF NOT EXISTS support_subscriptions(
+      stripe_subscription_id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      stripe_customer_id TEXT NOT NULL DEFAULT '',
+      plan TEXT NOT NULL DEFAULT '',
+      stripe_price_id TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT '',
+      current_period_end TEXT,
+      cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_support_subscriptions_user ON support_subscriptions(user_id,status);
 
     CREATE TABLE IF NOT EXISTS stripe_webhook_events(
       event_id TEXT PRIMARY KEY,
@@ -887,6 +968,12 @@ def init_db():
         c.execute("ALTER TABLE users ADD COLUMN profile_accent TEXT NOT NULL DEFAULT '#d4af37'")
     if "profile_theme" not in user_cols:
         c.execute("ALTER TABLE users ADD COLUMN profile_theme TEXT NOT NULL DEFAULT 'CLASSIC'")
+    if "profile_banner" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN profile_banner TEXT NOT NULL DEFAULT 'CLASSIC'")
+    if "profile_card_frame" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN profile_card_frame TEXT NOT NULL DEFAULT 'CLASSIC'")
+    if "profile_featured_accolade" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN profile_featured_accolade TEXT NOT NULL DEFAULT ''")
     if "featured_player_id" not in user_cols:
         c.execute("ALTER TABLE users ADD COLUMN featured_player_id INTEGER")
     if "beta_member" not in user_cols:
@@ -899,12 +986,68 @@ def init_db():
         c.execute("ALTER TABLE users ADD COLUMN supporter_expires_at TEXT")
     if "supporter_source" not in user_cols:
         c.execute("ALTER TABLE users ADD COLUMN supporter_source TEXT NOT NULL DEFAULT ''")
+    if "founding_supporter" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN founding_supporter INTEGER NOT NULL DEFAULT 0")
+    if "founding_supporter_since" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN founding_supporter_since TEXT")
+    if "founding_supporter_ref" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN founding_supporter_ref TEXT NOT NULL DEFAULT ''")
+
+    # RC109 recurring-support migrations.
+    checkout_cols={r["name"] for r in c.execute("PRAGMA table_info(support_checkout_refs)").fetchall()}
+    for col,ddl in {
+        "plan":"TEXT NOT NULL DEFAULT ''",
+        "stripe_subscription_id":"TEXT",
+        "stripe_customer_id":"TEXT",
+        "stripe_price_id":"TEXT"
+    }.items():
+        if col not in checkout_cols:
+            c.execute(f"ALTER TABLE support_checkout_refs ADD COLUMN {col} {ddl}")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_support_checkout_sub ON support_checkout_refs(stripe_subscription_id)")
+    c.execute("""CREATE TABLE IF NOT EXISTS support_subscriptions(
+        stripe_subscription_id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        stripe_customer_id TEXT NOT NULL DEFAULT '',
+        plan TEXT NOT NULL DEFAULT '',
+        stripe_price_id TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT '',
+        current_period_end TEXT,
+        cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_support_subscriptions_user ON support_subscriptions(user_id,status)")
 
     player_cols={r["name"] for r in c.execute("PRAGMA table_info(players)")}
     if "age" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN age INTEGER NOT NULL DEFAULT 18")
     if "hometown" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN hometown TEXT NOT NULL DEFAULT ''")
+    if "first_name" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN first_name TEXT NOT NULL DEFAULT ''")
+    if "last_name" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN last_name TEXT NOT NULL DEFAULT ''")
+    if "hometown_city" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN hometown_city TEXT NOT NULL DEFAULT ''")
+    if "hometown_region" not in player_cols:
+        c.execute("ALTER TABLE players ADD COLUMN hometown_region TEXT NOT NULL DEFAULT ''")
+    # Backfill simple legacy identity fields without changing canonical name/hometown.
+    c.execute("""UPDATE players SET
+                   first_name=CASE WHEN first_name='' THEN
+                     CASE WHEN instr(trim(name),' ')>0 THEN substr(trim(name),1,instr(trim(name),' ')-1) ELSE trim(name) END
+                     ELSE first_name END,
+                   last_name=CASE WHEN last_name='' THEN
+                     CASE WHEN instr(trim(name),' ')>0 THEN substr(trim(name),instr(trim(name),' ')+1) ELSE '' END
+                     ELSE last_name END
+                 WHERE first_name='' OR last_name=''""")
+    c.execute("""UPDATE players SET
+                   hometown_city=CASE WHEN hometown_city='' THEN
+                     CASE WHEN instr(hometown,',')>0 THEN trim(substr(hometown,1,instr(hometown,',')-1)) ELSE trim(hometown) END
+                     ELSE hometown_city END,
+                   hometown_region=CASE WHEN hometown_region='' THEN
+                     CASE WHEN instr(hometown,',')>0 THEN trim(substr(hometown,instr(hometown,',')+1)) ELSE '' END
+                     ELSE hometown_region END
+                 WHERE hometown_city='' OR hometown_region=''""")
     if "skin_color_id" not in player_cols:
         c.execute("ALTER TABLE players ADD COLUMN skin_color_id INTEGER NOT NULL DEFAULT 1")
     if "position_group" not in player_cols:
@@ -5369,9 +5512,11 @@ def parse_iso(v):
 
 
 def supporter_entitlement(c,user_id):
-    """Canonical account entitlement. Payment providers will only mutate this state; gameplay reads it here."""
+    """Canonical account entitlement. Stripe subscription state mutates this account tier; gameplay reads it here."""
     row=c.execute(
-        "SELECT support_tier,supporter_since,supporter_expires_at FROM users WHERE id=?",
+        """SELECT support_tier,supporter_since,supporter_expires_at,
+                  founding_supporter,founding_supporter_since,founding_supporter_ref
+           FROM users WHERE id=?""",
         (user_id,)
     ).fetchone()
     tier=str((row["support_tier"] if row else "FREE") or "FREE").upper()
@@ -5379,9 +5524,16 @@ def supporter_entitlement(c,user_id):
     active=tier=="SUPPORTER"
     if active and expires:
         active=parse_iso(expires)>utcnow()
+
+    sub=c.execute(
+        """SELECT stripe_subscription_id,plan,status,current_period_end,cancel_at_period_end
+           FROM support_subscriptions
+           WHERE user_id=?
+           ORDER BY CASE WHEN status IN ('active','trialing') THEN 0 ELSE 1 END,updated_at DESC
+           LIMIT 1""",(user_id,)
+    ).fetchone()
+    sub=dict(sub) if sub else {}
     entitled_limit=SUPPORTER_PLAYER_LIMIT if active else FREE_PLAYER_LIMIT
-    # During Genesis we expose the finished entitlement model without forcing existing
-    # test accounts down to one career. Public launch is a one-variable switch.
     creation_limit=entitled_limit if SUPPORTER_SLOTS_ENFORCED else ABSOLUTE_PLAYER_LIMIT
     used=int(c.execute("SELECT COUNT(*) n FROM players WHERE user_id=? AND active=1",(user_id,)).fetchone()["n"] or 0)
     return {
@@ -5390,6 +5542,13 @@ def supporter_entitlement(c,user_id):
         "badge":"EBL SUPPORTER" if active else "",
         "supporter_since":row["supporter_since"] if row and active else None,
         "supporter_expires_at":expires if active else None,
+        "subscription_id":sub.get("stripe_subscription_id") if active else None,
+        "subscription_plan":sub.get("plan") if active else None,
+        "subscription_status":sub.get("status") if active else None,
+        "subscription_period_end":sub.get("current_period_end") if active else None,
+        "cancel_at_period_end":bool(int(sub.get("cancel_at_period_end") or 0)) if active else False,
+        "founding_supporter":bool(row and int(row["founding_supporter"] or 0)),
+        "founding_supporter_since":row["founding_supporter_since"] if row else None,
         "entitled_player_limit":entitled_limit,
         "creation_player_limit":creation_limit,
         "active_players":used,
@@ -5413,12 +5572,33 @@ def set_supporter_entitlement(c,user_id,supporter,source="COMMISSIONER",expires_
            VALUES(?,?,?,?,?,?,?)""",
         (user_id,"GRANT" if supporter else "REVOKE",current.get("tier","FREE"),new_tier,str(source or "")[:40],str(external_ref or "")[:160],str(note or "")[:500])
     )
+    source_key=str(source or "").upper()
+    # RC107: only a real Stripe purchase during Genesis/Beta can create the permanent
+    # Founding Supporter marker. Stripe TEST purchases never grant it.
+    if supporter and BETA_MODE and source_key=="STRIPE":
+        c.execute(
+            """UPDATE users
+               SET founding_supporter=1,
+                   founding_supporter_since=COALESCE(founding_supporter_since,?),
+                   founding_supporter_ref=CASE WHEN COALESCE(founding_supporter_ref,'')='' THEN ? ELSE founding_supporter_ref END
+               WHERE id=?""",
+            (utcnow().isoformat(),str(external_ref or "")[:160],user_id)
+        )
+    elif (not supporter) and source_key=="STRIPE_REFUND":
+        founding=c.execute("SELECT founding_supporter_ref FROM users WHERE id=?",(user_id,)).fetchone()
+        if founding and str(founding["founding_supporter_ref"] or "")==str(external_ref or ""):
+            c.execute(
+                "UPDATE users SET founding_supporter=0,founding_supporter_since=NULL,founding_supporter_ref='' WHERE id=?",
+                (user_id,)
+            )
     return supporter_entitlement(c,user_id)
 
 
 def stripe_webhook_signature_valid(payload,sig_header):
     """Verify Stripe's v1 webhook HMAC against the unmodified request body."""
-    secret=str(os.environ.get("EBL_STRIPE_WEBHOOK_SECRET","") or "").strip()
+    mode=str(os.environ.get("EBL_STRIPE_MODE","test") or "test").strip().lower()
+    secret_key="EBL_STRIPE_LIVE_WEBHOOK_SECRET" if mode=="live" else "EBL_STRIPE_WEBHOOK_SECRET"
+    secret=str(os.environ.get(secret_key,"") or "").strip()
     if not secret or not sig_header:
         return False
     timestamp=None
@@ -5441,13 +5621,108 @@ def stripe_webhook_signature_valid(payload,sig_header):
     return any(hmac.compare_digest(expected,sig) for sig in signatures)
 
 
-def stripe_expected_checkout():
-    return {
-        "payment_link_id":str(os.environ.get("EBL_STRIPE_PAYMENT_LINK_ID","") or "").strip(),
-        "amount":int(os.environ.get("EBL_STRIPE_EXPECTED_AMOUNT","1000") or 1000),
-        "currency":str(os.environ.get("EBL_STRIPE_EXPECTED_CURRENCY","usd") or "usd").strip().lower(),
-        "mode":str(os.environ.get("EBL_STRIPE_MODE","test") or "test").strip().lower()
-    }
+def stripe_expected_checkout(plan=None):
+    plans=stripe_support_plans()
+    if plan:
+        key=str(plan or "").strip().lower()
+        return plans.get(key)
+    return plans
+
+def _stripe_unix_iso(value):
+    try:
+        ts=int(value or 0)
+        return datetime.datetime.fromtimestamp(ts,datetime.timezone.utc).isoformat() if ts>0 else None
+    except Exception:
+        return None
+
+def _subscription_period_end(obj):
+    direct=_stripe_unix_iso(obj.get("current_period_end"))
+    if direct:return direct
+    items=((obj.get("items") or {}).get("data") or [])
+    if items and isinstance(items[0],dict):
+        v=_stripe_unix_iso(items[0].get("current_period_end"))
+        if v:return v
+    return _stripe_unix_iso(obj.get("cancel_at"))
+
+def _invoice_subscription_id(obj):
+    direct=str(obj.get("subscription") or "")
+    if direct:return direct
+    parent=obj.get("parent") or {}
+    details=(parent.get("subscription_details") or {}) if isinstance(parent,dict) else {}
+    return str(details.get("subscription") or "")
+
+def _invoice_period_end(obj):
+    lines=((obj.get("lines") or {}).get("data") or [])
+    ends=[]
+    for line in lines:
+        if isinstance(line,dict):
+            period=line.get("period") or {}
+            try:
+                if int(period.get("end") or 0)>0:
+                    ends.append(int(period["end"]))
+            except Exception:
+                pass
+    return _stripe_unix_iso(max(ends)) if ends else None
+
+def _stripe_subscription_plan_from_object(obj):
+    meta=obj.get("metadata") or {}
+    key=str(meta.get("plan") or "").strip().lower()
+    plans=stripe_support_plans()
+    items=((obj.get("items") or {}).get("data") or [])
+    price_id=""
+    if items and isinstance(items[0],dict):
+        price=items[0].get("price") or {}
+        price_id=str(price.get("id") or "") if isinstance(price,dict) else str(price or "")
+    if key in ("monthly","yearly"):
+        expected=plans.get(key) or {}
+        if expected.get("price_id") and price_id and not hmac.compare_digest(str(expected["price_id"]),price_id):
+            return None,price_id
+        return key,price_id
+    for candidate in ("monthly","yearly"):
+        expected=str((plans.get(candidate) or {}).get("price_id") or "")
+        if expected and price_id and hmac.compare_digest(expected,price_id):
+            return candidate,price_id
+    return None,price_id
+
+def _upsert_support_subscription(c,subscription_id,user_id,plan,status,customer_id="",price_id="",period_end=None,cancel_at_period_end=False):
+    c.execute(
+        """INSERT INTO support_subscriptions(
+             stripe_subscription_id,user_id,stripe_customer_id,plan,stripe_price_id,status,
+             current_period_end,cancel_at_period_end,updated_at)
+           VALUES(?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+           ON CONFLICT(stripe_subscription_id) DO UPDATE SET
+             user_id=excluded.user_id,
+             stripe_customer_id=CASE WHEN excluded.stripe_customer_id<>'' THEN excluded.stripe_customer_id ELSE support_subscriptions.stripe_customer_id END,
+             plan=CASE WHEN excluded.plan<>'' THEN excluded.plan ELSE support_subscriptions.plan END,
+             stripe_price_id=CASE WHEN excluded.stripe_price_id<>'' THEN excluded.stripe_price_id ELSE support_subscriptions.stripe_price_id END,
+             status=excluded.status,
+             current_period_end=COALESCE(excluded.current_period_end,support_subscriptions.current_period_end),
+             cancel_at_period_end=excluded.cancel_at_period_end,
+             updated_at=CURRENT_TIMESTAMP""",
+        (subscription_id,int(user_id),str(customer_id or ""),str(plan or ""),str(price_id or ""),str(status or ""),
+         period_end,1 if cancel_at_period_end else 0)
+    )
+
+def _sync_supporter_from_subscriptions(c,user_id,source,external_ref="",note=""):
+    active_rows=c.execute(
+        """SELECT stripe_subscription_id,plan,status,current_period_end,cancel_at_period_end
+           FROM support_subscriptions
+           WHERE user_id=? AND status IN ('active','trialing')
+           ORDER BY updated_at DESC""",(user_id,)
+    ).fetchall()
+    if active_rows:
+        row=active_rows[0]
+        return set_supporter_entitlement(
+            c,user_id,True,source=source,
+            expires_at=row["current_period_end"] or None,
+            note=note or "Active Stripe Supporter subscription",
+            external_ref=external_ref or row["stripe_subscription_id"]
+        )
+    return set_supporter_entitlement(
+        c,user_id,False,source=source,
+        note=note or "No active Stripe Supporter subscription",
+        external_ref=external_ref
+    )
 
 
 def new_session(c,user_id,handler=None,remember=False):
@@ -5829,7 +6104,7 @@ class H(BaseHTTPRequestHandler):
 
     def _public_static_target(self, path):
         p=path
-        if p in ("/", "/verify-email", "/reset-password"):
+        if p in ("/", "/create-account", "/verify-email", "/reset-password"):
             p="/index.html"
         elif p.startswith("/profile/"):
             username=p[len("/profile/"):].strip("/")
@@ -5956,47 +6231,144 @@ class H(BaseHTTPRequestHandler):
                 amount_total=int(obj.get("amount_total") or 0)
                 currency=str(obj.get("currency") or "").lower()
                 session_id=str(obj.get("id") or "")
-                payment_intent=str(obj.get("payment_intent") or "")
-                link_ok=bool(expected["payment_link_id"]) and hmac.compare_digest(payment_link,expected["payment_link_id"])
-                money_ok=amount_total==int(expected["amount"]) and currency==expected["currency"]
+                subscription_id=str(obj.get("subscription") or "")
+                customer_id=str(obj.get("customer") or "")
+                checkout_mode=str(obj.get("mode") or "").lower()
+                plans=stripe_support_plans()
+                plan_key=None
+                plan_cfg=None
+                for candidate in ("monthly","yearly"):
+                    cfg=plans[candidate]
+                    if cfg.get("payment_link_id") and payment_link and hmac.compare_digest(str(cfg["payment_link_id"]),payment_link):
+                        plan_key=candidate
+                        plan_cfg=cfg
+                        break
+                money_ok=bool(plan_cfg) and amount_total==int(plan_cfg["amount"]) and currency==plan_cfg["currency"]
+                mode_ok=checkout_mode in ("","subscription")
 
-                if link_ok and money_ok and payment_status=="paid" and ref:
+                if plan_cfg and money_ok and mode_ok and payment_status=="paid" and ref and subscription_id:
                     row=c.execute(
-                        "SELECT token,user_id,status FROM support_checkout_refs WHERE token=?",
+                        "SELECT token,user_id,status,plan FROM support_checkout_refs WHERE token=?",
                         (ref,)
                     ).fetchone()
                     if row:
                         uid=int(row["user_id"])
-                        prior=supporter_entitlement(c,uid)
-                        set_supporter_entitlement(
-                            c,uid,True,
-                            source="STRIPE_TEST" if expected["mode"]=="test" else "STRIPE",
-                            expires_at=None,
-                            note="Verified Stripe Supporter payment",
-                            external_ref=session_id
-                        )
-                        c.execute(
-                            """UPDATE support_checkout_refs
-                               SET status='COMPLETED',stripe_session_id=?,stripe_payment_intent=?,
-                                   payment_status=?,amount_total=?,currency=?,completed_at=CURRENT_TIMESTAMP
-                               WHERE token=?""",
-                            (session_id,payment_intent,payment_status,amount_total,currency,ref)
-                        )
-                        notify_user(
-                            c,uid,"SUPPORTER",
-                            "EBL Supporter activated",
-                            "Your verified payment was received. Your EBL Supporter account is now active.",
-                            session_id
-                        )
-                        result="SUPPORTER_GRANTED" if not prior.get("supporter") else "SUPPORTER_CONFIRMED"
+                        if str(row["plan"] or "") and str(row["plan"]).lower()!=plan_key:
+                            result="PLAN_REFERENCE_MISMATCH"
+                        else:
+                            approx_days=32 if plan_key=="monthly" else 370
+                            approx_end=(utcnow()+datetime.timedelta(days=approx_days)).isoformat()
+                            _upsert_support_subscription(
+                                c,subscription_id,uid,plan_key,"active",
+                                customer_id=customer_id,price_id=str(plan_cfg.get("price_id") or ""),
+                                period_end=approx_end,cancel_at_period_end=False
+                            )
+                            prior=supporter_entitlement(c,uid)
+                            _sync_supporter_from_subscriptions(
+                                c,uid,
+                                source="STRIPE_TEST" if plans["mode"]=="test" else "STRIPE",
+                                external_ref=subscription_id,
+                                note=f"Verified Stripe {plan_key} Supporter subscription"
+                            )
+                            c.execute(
+                                """UPDATE support_checkout_refs
+                                   SET status='COMPLETED',plan=?,stripe_session_id=?,stripe_subscription_id=?,
+                                       stripe_customer_id=?,stripe_price_id=?,payment_status=?,amount_total=?,
+                                       currency=?,completed_at=CURRENT_TIMESTAMP
+                                   WHERE token=?""",
+                                (plan_key,session_id,subscription_id,customer_id,str(plan_cfg.get("price_id") or ""),
+                                 payment_status,amount_total,currency,ref)
+                            )
+                            notify_user(
+                                c,uid,"SUPPORTER",
+                                "EBL Supporter activated",
+                                f"Your verified {plan_key} subscription is active. Supporter features are now unlocked.",
+                                subscription_id
+                            )
+                            result="SUPPORTER_GRANTED" if not prior.get("supporter") else "SUPPORTER_CONFIRMED"
                     else:
                         result="UNMATCHED_REFERENCE"
-                elif link_ok and payment_status!="paid":
+                elif plan_cfg and payment_status!="paid":
                     result="PAYMENT_NOT_YET_PAID"
-                elif not link_ok:
+                elif not plan_cfg:
                     result="WRONG_PAYMENT_LINK"
+                elif not subscription_id:
+                    result="MISSING_SUBSCRIPTION"
                 else:
                     result="PAYMENT_MISMATCH"
+
+            elif event_type in ("customer.subscription.created","customer.subscription.updated","customer.subscription.deleted"):
+                subscription_id=str(obj.get("id") or "")
+                status=str(obj.get("status") or "").lower()
+                if event_type=="customer.subscription.deleted":
+                    status="canceled"
+                plan_key,price_id=_stripe_subscription_plan_from_object(obj)
+                row=c.execute(
+                    "SELECT user_id,plan FROM support_subscriptions WHERE stripe_subscription_id=?",
+                    (subscription_id,)
+                ).fetchone()
+                if row and plan_key:
+                    uid=int(row["user_id"])
+                    period_end=_subscription_period_end(obj)
+                    cancel_at_period_end=bool(obj.get("cancel_at_period_end") or obj.get("cancel_at"))
+                    _upsert_support_subscription(
+                        c,subscription_id,uid,plan_key,status,
+                        customer_id=str(obj.get("customer") or ""),
+                        price_id=price_id,
+                        period_end=period_end,
+                        cancel_at_period_end=cancel_at_period_end
+                    )
+                    _sync_supporter_from_subscriptions(
+                        c,uid,
+                        source="STRIPE_TEST" if stripe_support_plans()["mode"]=="test" else "STRIPE_SUBSCRIPTION",
+                        external_ref=subscription_id,
+                        note=f"Stripe subscription status: {status}"
+                    )
+                    if status not in ("active","trialing"):
+                        notify_user(
+                            c,uid,"SUPPORTER",
+                            "EBL Supporter subscription inactive",
+                            "Your Stripe subscription is no longer active. Supporter-only features are paused; your saved profile customization remains stored.",
+                            subscription_id
+                        )
+                    result=f"SUBSCRIPTION_{status.upper() or 'UPDATED'}"
+                elif row and not plan_key:
+                    result="UNRECOGNIZED_SUPPORTER_PRICE"
+                else:
+                    result="UNMATCHED_SUBSCRIPTION"
+
+            elif event_type in ("invoice.paid","invoice.payment_failed"):
+                subscription_id=_invoice_subscription_id(obj)
+                row=c.execute(
+                    "SELECT user_id,plan,status,stripe_customer_id,stripe_price_id,cancel_at_period_end FROM support_subscriptions WHERE stripe_subscription_id=?",
+                    (subscription_id,)
+                ).fetchone() if subscription_id else None
+                if row:
+                    uid=int(row["user_id"])
+                    paid=event_type=="invoice.paid"
+                    period_end=_invoice_period_end(obj)
+                    new_status="active" if paid else "past_due"
+                    _upsert_support_subscription(
+                        c,subscription_id,uid,row["plan"],new_status,
+                        customer_id=row["stripe_customer_id"],price_id=row["stripe_price_id"],
+                        period_end=period_end,cancel_at_period_end=bool(row["cancel_at_period_end"])
+                    )
+                    _sync_supporter_from_subscriptions(
+                        c,uid,
+                        source="STRIPE_TEST" if stripe_support_plans()["mode"]=="test" else "STRIPE_SUBSCRIPTION",
+                        external_ref=subscription_id,
+                        note="Stripe subscription invoice paid" if paid else "Stripe subscription payment failed"
+                    )
+                    if not paid:
+                        notify_user(
+                            c,uid,"SUPPORTER",
+                            "Supporter payment needs attention",
+                            "Stripe could not collect the latest Supporter renewal. Supporter-only features are paused until the subscription returns to active status.",
+                            subscription_id
+                        )
+                    result="SUBSCRIPTION_RENEWED" if paid else "SUBSCRIPTION_PAYMENT_FAILED"
+                else:
+                    result="UNMATCHED_INVOICE"
 
             elif event_type=="charge.refunded":
                 payment_intent=str(obj.get("payment_intent") or "")
@@ -6004,18 +6376,18 @@ class H(BaseHTTPRequestHandler):
                 amount_refunded=int(obj.get("amount_refunded") or 0)
                 if payment_intent and amount>0 and amount_refunded>=amount:
                     row=c.execute(
-                        """SELECT token,user_id,status,stripe_session_id
+                        """SELECT token,user_id,status,stripe_session_id,stripe_subscription_id
                            FROM support_checkout_refs
                            WHERE stripe_payment_intent=? AND status='COMPLETED'
                            ORDER BY completed_at DESC LIMIT 1""",
                         (payment_intent,)
                     ).fetchone()
-                    if row:
+                    if row and not str(row["stripe_subscription_id"] or ""):
                         uid=int(row["user_id"])
                         set_supporter_entitlement(
                             c,uid,False,
-                            source="STRIPE_TEST_REFUND" if expected["mode"]=="test" else "STRIPE_REFUND",
-                            note="Supporter payment fully refunded",
+                            source="STRIPE_TEST_REFUND" if stripe_support_plans()["mode"]=="test" else "STRIPE_REFUND",
+                            note="Legacy one-time Supporter payment fully refunded",
                             external_ref=str(row["stripe_session_id"] or payment_intent)
                         )
                         c.execute(
@@ -6023,13 +6395,13 @@ class H(BaseHTTPRequestHandler):
                                SET status='REFUNDED',payment_status='refunded',refunded_at=CURRENT_TIMESTAMP
                                WHERE token=?""",(row["token"],)
                         )
-                        notify_user(
-                            c,uid,"SUPPORTER",
-                            "EBL Supporter payment refunded",
-                            "The refunded purchase no longer carries the Supporter entitlement.",
-                            str(row["stripe_session_id"] or payment_intent)
-                        )
-                        result="SUPPORTER_REVOKED_REFUND"
+                        result="LEGACY_SUPPORTER_REVOKED_REFUND"
+                    elif row:
+                        result="SUBSCRIPTION_CHARGE_REFUNDED"
+                    else:
+                        result="UNMATCHED_REFUND"
+                else:
+                    result="PARTIAL_REFUND_OR_UNMATCHED"
 
             c.execute(
                 "INSERT INTO stripe_webhook_events(event_id,event_type,object_id,result) VALUES(?,?,?,?)",
@@ -6051,6 +6423,8 @@ class H(BaseHTTPRequestHandler):
             if not u:return self.out({"user":None})
             c=conn();ent=supporter_entitlement(c,u["id"]);c.close()
             user=dict(u);user["supporter"]=ent["supporter"];user["support_tier"]=ent["tier"]
+            user["founding_supporter"]=ent.get("founding_supporter",False)
+            user["founding_supporter_since"]=ent.get("founding_supporter_since")
             return self.out({"user":user,"entitlements":ent})
         if p=="/api/account/entitlements":
             au=self.auth()
@@ -6204,8 +6578,9 @@ class H(BaseHTTPRequestHandler):
             c=conn()
             profile=c.execute(
                 """SELECT id,username,role,created_at,display_name,profile_bio,profile_motto,profile_photo,
-                          profile_accent,profile_theme,featured_player_id,beta_member,
-                          support_tier,supporter_since,supporter_expires_at
+                          profile_accent,profile_theme,profile_banner,profile_card_frame,profile_featured_accolade,
+                          featured_player_id,beta_member,support_tier,supporter_since,supporter_expires_at,
+                          founding_supporter,founding_supporter_since
                    FROM users WHERE lower(username)=lower(?)""",
                 (username,)
             ).fetchone()
@@ -6218,6 +6593,22 @@ class H(BaseHTTPRequestHandler):
             profile["support_tier"]=public_entitlement["tier"]
             profile["supporter"]=public_entitlement["supporter"]
             profile["player_slots"]=public_entitlement["entitled_player_limit"]
+            profile["customization_active"]=bool(public_entitlement["supporter"])
+            profile["founding_supporter"]=bool(public_entitlement.get("founding_supporter",profile.get("founding_supporter",0)))
+            profile["founding_supporter_since"]=public_entitlement.get("founding_supporter_since") or profile.get("founding_supporter_since")
+            # RC106/RC107: Supporter customization stays stored if support lapses, but a
+            # Free account presents the standard EBL identity. Founding status is historical.
+            if not public_entitlement["supporter"]:
+                profile["display_name"]=""
+                profile["profile_bio"]=""
+                profile["profile_motto"]=""
+                profile["profile_photo"]=""
+                profile["profile_accent"]="#d4af37"
+                profile["profile_theme"]="CLASSIC"
+                profile["profile_banner"]="CLASSIC"
+                profile["profile_card_frame"]="CLASSIC"
+                profile["profile_featured_accolade"]=""
+                profile["featured_player_id"]=None
             players=[]
             for row in c.execute(
                 """SELECT p.*,f.name team_name
@@ -7443,10 +7834,15 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/support/checkout":
             u=self.auth()
             if not u:return
-            base=str(os.environ.get("EBL_SUPPORT_URL","") or "").strip()
-            expected=stripe_expected_checkout()
-            if not base.startswith(("https://","http://")) or not expected["payment_link_id"]:
-                return self.out({"error":"SUPPORT_CHECKOUT_NOT_CONFIGURED"},503)
+            d=self.body()
+            plan=str(d.get("plan","monthly") or "monthly").strip().lower()
+            if plan not in ("monthly","yearly"):
+                return self.out({"error":"INVALID_SUPPORTER_PLAN"},400)
+            plans=stripe_support_plans()
+            cfg=plans.get(plan) or {}
+            base=str(cfg.get("url") or "")
+            if not base.startswith(("https://","http://")) or not cfg.get("payment_link_id"):
+                return self.out({"error":"SUPPORT_CHECKOUT_NOT_CONFIGURED","plan":plan},503)
             c=conn()
             try:
                 c.execute("BEGIN IMMEDIATE")
@@ -7459,8 +7855,8 @@ class H(BaseHTTPRequestHandler):
                     return self.out({"already_supporter":True,"entitlements":ent})
                 token=secrets.token_urlsafe(24)
                 c.execute(
-                    "INSERT INTO support_checkout_refs(token,user_id,status) VALUES(?,?,'PENDING')",
-                    (token,u["id"])
+                    "INSERT INTO support_checkout_refs(token,user_id,status,plan) VALUES(?,?,'PENDING',?)",
+                    (token,u["id"],plan)
                 )
                 c.commit();c.close()
                 sep="&" if "?" in base else "?"
@@ -7468,9 +7864,10 @@ class H(BaseHTTPRequestHandler):
                 return self.out({
                     "url":url,
                     "provider":"Stripe",
-                    "mode":expected["mode"],
-                    "amount":expected["amount"],
-                    "currency":expected["currency"].upper()
+                    "mode":plans["mode"],
+                    "plan":plan,
+                    "amount":cfg["amount"],
+                    "currency":cfg["currency"].upper()
                 })
             except Exception:
                 try:c.rollback();c.close()
@@ -7479,6 +7876,7 @@ class H(BaseHTTPRequestHandler):
 
         if p=="/api/register":
             d=self.body();username=str(d.get("username","")).strip();password=str(d.get("password",""));email=str(d.get("email","")).strip().lower()
+            if not registration_age_eligible(d.get("birth_date")):return self.out({"error":"AGE_REQUIREMENT_NOT_MET","minimum_age":AGE_REQUIREMENT},400)
             if d.get("accepted_terms") is not True:return self.out({"error":"TERMS_NOT_ACCEPTED"},400)
             if BETA_MODE and d.get("accepted_beta_reset") is not True:return self.out({"error":"BETA_RESET_NOT_ACCEPTED"},400)
             if len(username)<3 or len(username)>24 or not all(ch.isalnum() or ch in "_-" for ch in username):return self.out({"error":"INVALID_USERNAME"},400)
@@ -7548,11 +7946,19 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/profile/update":
             u=self.auth()
             if not u:return
+            c=conn()
+            ent=supporter_entitlement(c,u["id"])
+            if not ent["supporter"]:
+                c.close();return self.out({"error":"SUPPORTER_REQUIRED","feature":"PROFILE_CUSTOMIZATION"},403)
+            c.close()
             d=self.body()
             display_name=" ".join(str(d.get("display_name","") or "").split()).strip()
             profile_bio=str(d.get("profile_bio","") or "").strip()
             profile_motto=str(d.get("profile_motto","") or "").strip()
             profile_theme=str(d.get("profile_theme","CLASSIC") or "CLASSIC").strip().upper()
+            profile_banner=str(d.get("profile_banner","CLASSIC") or "CLASSIC").strip().upper()
+            profile_card_frame=str(d.get("profile_card_frame","CLASSIC") or "CLASSIC").strip().upper()
+            profile_featured_accolade=" ".join(str(d.get("profile_featured_accolade","") or "").split()).strip()
             profile_accent=str(d.get("profile_accent","#d4af37") or "#d4af37").strip()
             if len(display_name)>48:
                 return self.out({"error":"DISPLAY_NAME_TOO_LONG"},400)
@@ -7562,6 +7968,12 @@ class H(BaseHTTPRequestHandler):
                 return self.out({"error":"PROFILE_MOTTO_TOO_LONG"},400)
             if profile_theme not in {"CLASSIC","DUGOUT","NIGHT","GOLD"}:
                 return self.out({"error":"INVALID_PROFILE_THEME"},400)
+            if profile_banner not in {"CLASSIC","STADIUM","DUGOUT","SCOREBOARD","VINTAGE"}:
+                return self.out({"error":"INVALID_PROFILE_BANNER"},400)
+            if profile_card_frame not in {"CLASSIC","GOLD","NIGHT","RETRO","CHAMPIONSHIP"}:
+                return self.out({"error":"INVALID_PROFILE_CARD_FRAME"},400)
+            if len(profile_featured_accolade)>120:
+                return self.out({"error":"INVALID_FEATURED_ACCOLADE"},400)
             if not valid_hex_color(profile_accent):
                 return self.out({"error":"INVALID_PROFILE_ACCENT"},400)
             c=conn()
@@ -7581,11 +7993,14 @@ class H(BaseHTTPRequestHandler):
                 if not c.execute("SELECT 1 FROM players WHERE id=? AND user_id=?",(featured,u["id"])).fetchone():
                     c.close();return self.out({"error":"INVALID_FEATURED_PLAYER"},400)
             c.execute("""UPDATE users SET display_name=?,profile_bio=?,profile_motto=?,profile_photo=?,
-                         profile_accent=?,profile_theme=?,featured_player_id=? WHERE id=?""",
-                      (display_name,profile_bio,profile_motto,photo,profile_accent,profile_theme,featured,u["id"]))
+                         profile_accent=?,profile_theme=?,profile_banner=?,profile_card_frame=?,
+                         profile_featured_accolade=?,featured_player_id=? WHERE id=?""",
+                      (display_name,profile_bio,profile_motto,photo,profile_accent,profile_theme,
+                       profile_banner,profile_card_frame,profile_featured_accolade,featured,u["id"]))
             c.commit()
             updated=c.execute("""SELECT id,username,role,created_at,display_name,profile_bio,profile_motto,profile_photo,
-                                        profile_accent,profile_theme,featured_player_id FROM users WHERE id=?""",(u["id"],)).fetchone()
+                                        profile_accent,profile_theme,profile_banner,profile_card_frame,
+                                        profile_featured_accolade,featured_player_id FROM users WHERE id=?""",(u["id"],)).fetchone()
             c.close();return self.out({"ok":True,"profile":dict(updated)})
 
         if p=="/api/account/rotate-recovery":
@@ -7603,7 +8018,9 @@ class H(BaseHTTPRequestHandler):
             if not r or not r["email_token_hash"] or parse_iso(r["email_token_expires"])<utcnow() or not hmac.compare_digest(r["email_token_hash"],token_hash(token)):
                 c.close();return self.out({"error":"INVALID_OR_EXPIRED_TOKEN"},400)
             c.execute("UPDATE user_security SET email_verified=1,email_token_hash=NULL,email_token_expires=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?",(uid,))
-            c.commit();c.close();return self.out({"ok":True})
+            sid,_=new_session(c,uid,self,remember=False)
+            c.commit();c.close()
+            return self.out({"ok":True,"next":"/#player"},200,{"Set-Cookie":session_cookie(sid,None)})
         if p=="/api/account/request-password-reset":
             d=self.body();email=str(d.get("email","")).strip().lower();c=conn();ip=get_client_ip(self)
             if not rate_limit(c,f"pwreset:{ip}",8,3600):c.commit();c.close();return self.out({"ok":True})
@@ -7668,7 +8085,26 @@ class H(BaseHTTPRequestHandler):
         if p=="/api/player/create":
             u=self.auth(["PLAYER","COMMISSIONER"])
             if not u:return
-            d=self.body();name=str(d.get("name","")).strip();hometown=str(d.get("hometown","")).strip();pos=str(d.get("position","")).upper();group=str(d.get("position_group") or position_group_for_pos(pos)).upper();bats=d.get("bats");throws=d.get("throws");attrs=d.get("attributes",{})
+            d=self.body()
+            first_name=" ".join(str(d.get("first_name","") or "").split()).strip()
+            last_name=" ".join(str(d.get("last_name","") or "").split()).strip()
+            hometown_city=" ".join(str(d.get("hometown_city","") or "").split()).strip()
+            hometown_region=" ".join(str(d.get("hometown_region","") or "").split()).strip()
+            # Compatibility fallback for an older client during rolling deploys.
+            legacy_name=" ".join(str(d.get("name","") or "").split()).strip()
+            if (not first_name or not last_name) and legacy_name:
+                parts=legacy_name.split()
+                if len(parts)>=2:
+                    first_name=first_name or parts[0]
+                    last_name=last_name or " ".join(parts[1:])
+            legacy_hometown=" ".join(str(d.get("hometown","") or "").split()).strip()
+            if (not hometown_city or not hometown_region) and "," in legacy_hometown:
+                a,b=legacy_hometown.split(",",1)
+                hometown_city=hometown_city or a.strip()
+                hometown_region=hometown_region or b.strip()
+            name=(first_name+" "+last_name).strip()
+            hometown=(hometown_city+", "+hometown_region).strip(", ")
+            pos=str(d.get("position","")).upper();group=str(d.get("position_group") or position_group_for_pos(pos)).upper();bats=d.get("bats");throws=d.get("throws");attrs=d.get("attributes",{})
             c=conn()
             try:
                 c.execute("BEGIN IMMEDIATE")
@@ -7688,10 +8124,14 @@ class H(BaseHTTPRequestHandler):
                                                   "upgrade_available":not ent["supporter"]},400)
                 ptype="P" if group=="PITCHER" else "H";valid=PITCHER_ATTRS if ptype=="P" else HITTER_ATTRS
                 valid_pos={"INF":{"C","1B","2B","3B","SS"},"OF":{"LF","CF","RF"},"PITCHER":{"SP","RP"}}
-                name_parts=[part for part in name.split() if part]
-                if len(name_parts)<2 or len(name)>40:
+                def _valid_identity_name(part):
+                    return bool(part) and all(ch.isalpha() or ch in "'’.- " for ch in part)
+                if (not first_name or not last_name or len(first_name)>24 or len(last_name)>24 or len(name)>49
+                    or not _valid_identity_name(first_name) or not _valid_identity_name(last_name)):
                     c.rollback();return self.out({"error":"FIRST_AND_LAST_NAME_REQUIRED"},400)
-                if len(hometown)>80 or group not in POSITION_GROUPS or pos not in valid_pos.get(group,set()) or bats not in ["R","L","S"] or throws not in ["R","L"] or set(attrs)!=set(valid) or sum(attrs.values())!=50 or any(type(v) is not int or v<0 or v>50 for v in attrs.values()) or (pos!="C" and float(attrs.get("CALL",0) or 0)!=0):
+                if not hometown_city or not hometown_region or len(hometown_city)>50 or len(hometown_region)>60 or len(hometown)>80:
+                    c.rollback();return self.out({"error":"CITY_AND_STATE_COUNTRY_REQUIRED"},400)
+                if group not in POSITION_GROUPS or pos not in valid_pos.get(group,set()) or bats not in ["R","L","S"] or throws not in ["R","L"] or set(attrs)!=set(valid) or sum(attrs.values())!=50 or any(type(v) is not int or v<0 or v>50 for v in attrs.values()) or (pos!="C" and float(attrs.get("CALL",0) or 0)!=0):
                     c.rollback();return self.out({"error":"INVALID_50_XP_BUILD"},400)
                 season={k:0 for k in (["G","GS","OUTS","H","ER","BB","SO","W","L","SV"] if ptype=="P" else ["G","PA","AB","H","1B","2B","3B","HR","BB","SO","R","RBI","SB","CS"])}
                 face_id=int(d.get("face_id",1));skin_color_id=int(d.get("skin_color_id",1));hair_id=int(d.get("hair_id",1))
@@ -7708,8 +8148,8 @@ class H(BaseHTTPRequestHandler):
                     or chain_id not in range(1,8) or sleeve_id not in range(1,5) or body_build_id not in range(1,4)
                     or jersey_number not in range(0,100)):
                     c.rollback();return self.out({"error":"INVALID_APPEARANCE"},400)
-                cur=c.execute("""INSERT INTO players(user_id,name,hometown,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number)
-                                 VALUES(?,?,?,?,?,?,?,?,0,?, ?,'FREE_AGENT',1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(u["id"],name,hometown,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number))
+                cur=c.execute("""INSERT INTO players(user_id,name,first_name,last_name,hometown,hometown_city,hometown_region,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number)
+                                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0,?, ?,'FREE_AGENT',1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(u["id"],name,first_name,last_name,hometown,hometown_city,hometown_region,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number))
                 c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid})))
                 c.commit()
                 return self.out({"player":player_obj(c,cur.lastrowid)})
@@ -9992,3 +10432,5 @@ if __name__=="__main__":
 # RC89: sustainable franchise economy + veteran career extension
 
 # EBL_STRIPE_VERIFIED_SUPPORTER_TEST_RC105
+
+# EBL_RECURRING_SUPPORTER_RC109
