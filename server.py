@@ -75,6 +75,7 @@ COACH_APPLICATIONS_OPEN=str(os.environ.get("EBL_COACH_APPLICATIONS_OPEN","0")).s
 EBL_SUPPORTER_LEGACY_RC107="RC107"
 EBL_SUPPORTER_PRICE_RC108="RC108"
 EBL_ONBOARDING_RC110="RC110"
+EBL_DB_MIGRATION_RC111="RC111"
 AGE_REQUIREMENT=13
 
 # RC109: recurring Supporter subscriptions are configured at deploy time.
@@ -929,7 +930,8 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_support_checkout_user ON support_checkout_refs(user_id,created_at);
     CREATE INDEX IF NOT EXISTS idx_support_checkout_pi ON support_checkout_refs(stripe_payment_intent);
-    CREATE INDEX IF NOT EXISTS idx_support_checkout_sub ON support_checkout_refs(stripe_subscription_id);
+    -- RC111: idx_support_checkout_sub is intentionally created AFTER the in-place
+    -- RC109 column migration below so older databases can upgrade safely.
 
     CREATE TABLE IF NOT EXISTS support_subscriptions(
       stripe_subscription_id TEXT PRIMARY KEY,
