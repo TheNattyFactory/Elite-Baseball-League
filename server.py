@@ -81,11 +81,19 @@ def support_public_config():
     one_time=safe_url(os.environ.get("EBL_SUPPORT_URL",""))
     monthly=safe_url(os.environ.get("EBL_SUPPORT_MONTHLY_URL",""))
     provider=str(os.environ.get("EBL_SUPPORT_PROVIDER","Support").strip() or "Support")[:40]
+    stripe_link_id=str(os.environ.get("EBL_STRIPE_PAYMENT_LINK_ID","") or "").strip()
+    stripe_mode=str(os.environ.get("EBL_STRIPE_MODE","") or "").strip().lower()
+    verified_checkout=bool(one_time and stripe_link_id)
     return {
         "enabled":bool(one_time or monthly),
         "provider":provider,
-        "one_time_url":one_time,
-        "monthly_url":monthly,
+        # RC105: verified checkout is generated per authenticated account.
+        "one_time_url":"" if verified_checkout else one_time,
+        "monthly_url":"" if verified_checkout else monthly,
+        "checkout_path":"/api/support/checkout" if verified_checkout else "",
+        "verified_checkout":verified_checkout,
+        "mode":"test" if stripe_mode=="test" else ("live" if stripe_mode=="live" else ""),
+        "price_usd":10 if verified_checkout else None,
         "currency":"USD"
     }
 
@@ -839,6 +847,30 @@ def init_db():
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_supporter_history_user ON supporter_entitlement_history(user_id,id);
+
+    CREATE TABLE IF NOT EXISTS support_checkout_refs(
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      stripe_session_id TEXT UNIQUE,
+      stripe_payment_intent TEXT,
+      payment_status TEXT NOT NULL DEFAULT '',
+      amount_total INTEGER,
+      currency TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      completed_at TEXT,
+      refunded_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_support_checkout_user ON support_checkout_refs(user_id,created_at);
+    CREATE INDEX IF NOT EXISTS idx_support_checkout_pi ON support_checkout_refs(stripe_payment_intent);
+
+    CREATE TABLE IF NOT EXISTS stripe_webhook_events(
+      event_id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      object_id TEXT NOT NULL DEFAULT '',
+      result TEXT NOT NULL DEFAULT '',
+      processed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
 """)
 
     # Safe in-place schema migrations for existing Railway databases.
@@ -5384,6 +5416,40 @@ def set_supporter_entitlement(c,user_id,supporter,source="COMMISSIONER",expires_
     return supporter_entitlement(c,user_id)
 
 
+def stripe_webhook_signature_valid(payload,sig_header):
+    """Verify Stripe's v1 webhook HMAC against the unmodified request body."""
+    secret=str(os.environ.get("EBL_STRIPE_WEBHOOK_SECRET","") or "").strip()
+    if not secret or not sig_header:
+        return False
+    timestamp=None
+    signatures=[]
+    for item in str(sig_header).split(","):
+        key,sep,value=item.strip().partition("=")
+        if not sep:continue
+        if key=="t":
+            try:timestamp=int(value)
+            except Exception:return False
+        elif key=="v1" and value:
+            signatures.append(value)
+    if timestamp is None or not signatures:
+        return False
+    tolerance=max(30,int(os.environ.get("EBL_STRIPE_WEBHOOK_TOLERANCE","300") or 300))
+    if abs(int(time.time())-timestamp)>tolerance:
+        return False
+    signed=str(timestamp).encode("utf-8")+b"."+payload
+    expected=hmac.new(secret.encode("utf-8"),signed,hashlib.sha256).hexdigest()
+    return any(hmac.compare_digest(expected,sig) for sig in signatures)
+
+
+def stripe_expected_checkout():
+    return {
+        "payment_link_id":str(os.environ.get("EBL_STRIPE_PAYMENT_LINK_ID","") or "").strip(),
+        "amount":int(os.environ.get("EBL_STRIPE_EXPECTED_AMOUNT","1000") or 1000),
+        "currency":str(os.environ.get("EBL_STRIPE_EXPECTED_CURRENCY","usd") or "usd").strip().lower(),
+        "mode":str(os.environ.get("EBL_STRIPE_MODE","test") or "test").strip().lower()
+    }
+
+
 def new_session(c,user_id,handler=None,remember=False):
     raw=secrets.token_urlsafe(32)
     expires=(utcnow()+(datetime.timedelta(days=30) if remember else datetime.timedelta(hours=12))).isoformat()
@@ -5835,10 +5901,13 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
+        p=urlparse(self.path).path
+        if p=="/api/stripe/webhook":
+            return self.stripe_webhook()
         if not valid_same_origin(self):
             return self.out({"error":"INVALID_ORIGIN"},403)
         try:
-            result=self.api_post(urlparse(self.path).path)
+            result=self.api_post(p)
             if result is None:
                 return self.out({"error":"NOT_FOUND"},404)
             return result
@@ -5848,6 +5917,131 @@ class H(BaseHTTPRequestHandler):
         except Exception as e:
             print("POST ERROR:",type(e).__name__,str(e))
             return self.out({"error":"SERVER_ERROR"},500)
+
+    def stripe_webhook(self):
+        try:
+            n=int(self.headers.get("Content-Length",0) or 0)
+        except Exception:
+            n=0
+        if n<=0 or n>MAX_REQUEST_BYTES:
+            return self.out({"error":"INVALID_WEBHOOK_BODY"},400)
+        payload=self.rfile.read(n)
+        if not stripe_webhook_signature_valid(payload,self.headers.get("Stripe-Signature","")):
+            return self.out({"error":"INVALID_STRIPE_SIGNATURE"},400)
+        try:
+            event=json.loads(payload.decode("utf-8"))
+        except Exception:
+            return self.out({"error":"INVALID_WEBHOOK_JSON"},400)
+        if not isinstance(event,dict) or not event.get("id") or not event.get("type"):
+            return self.out({"error":"INVALID_WEBHOOK_EVENT"},400)
+
+        event_id=str(event.get("id"))
+        event_type=str(event.get("type"))
+        obj=((event.get("data") or {}).get("object") or {})
+        if not isinstance(obj,dict):obj={}
+        object_id=str(obj.get("id") or "")
+        expected=stripe_expected_checkout()
+        c=conn()
+        try:
+            c.execute("BEGIN IMMEDIATE")
+            if c.execute("SELECT 1 FROM stripe_webhook_events WHERE event_id=?",(event_id,)).fetchone():
+                c.commit();c.close()
+                return self.out({"received":True,"duplicate":True})
+
+            result="IGNORED"
+            if event_type in ("checkout.session.completed","checkout.session.async_payment_succeeded"):
+                payment_link=str(obj.get("payment_link") or "")
+                ref=str(obj.get("client_reference_id") or "")
+                payment_status=str(obj.get("payment_status") or "").lower()
+                amount_total=int(obj.get("amount_total") or 0)
+                currency=str(obj.get("currency") or "").lower()
+                session_id=str(obj.get("id") or "")
+                payment_intent=str(obj.get("payment_intent") or "")
+                link_ok=bool(expected["payment_link_id"]) and hmac.compare_digest(payment_link,expected["payment_link_id"])
+                money_ok=amount_total==int(expected["amount"]) and currency==expected["currency"]
+
+                if link_ok and money_ok and payment_status=="paid" and ref:
+                    row=c.execute(
+                        "SELECT token,user_id,status FROM support_checkout_refs WHERE token=?",
+                        (ref,)
+                    ).fetchone()
+                    if row:
+                        uid=int(row["user_id"])
+                        prior=supporter_entitlement(c,uid)
+                        set_supporter_entitlement(
+                            c,uid,True,
+                            source="STRIPE_TEST" if expected["mode"]=="test" else "STRIPE",
+                            expires_at=None,
+                            note="Verified Stripe Supporter payment",
+                            external_ref=session_id
+                        )
+                        c.execute(
+                            """UPDATE support_checkout_refs
+                               SET status='COMPLETED',stripe_session_id=?,stripe_payment_intent=?,
+                                   payment_status=?,amount_total=?,currency=?,completed_at=CURRENT_TIMESTAMP
+                               WHERE token=?""",
+                            (session_id,payment_intent,payment_status,amount_total,currency,ref)
+                        )
+                        notify_user(
+                            c,uid,"SUPPORTER",
+                            "EBL Supporter activated",
+                            "Your verified payment was received. Your EBL Supporter account is now active.",
+                            session_id
+                        )
+                        result="SUPPORTER_GRANTED" if not prior.get("supporter") else "SUPPORTER_CONFIRMED"
+                    else:
+                        result="UNMATCHED_REFERENCE"
+                elif link_ok and payment_status!="paid":
+                    result="PAYMENT_NOT_YET_PAID"
+                elif not link_ok:
+                    result="WRONG_PAYMENT_LINK"
+                else:
+                    result="PAYMENT_MISMATCH"
+
+            elif event_type=="charge.refunded":
+                payment_intent=str(obj.get("payment_intent") or "")
+                amount=int(obj.get("amount") or 0)
+                amount_refunded=int(obj.get("amount_refunded") or 0)
+                if payment_intent and amount>0 and amount_refunded>=amount:
+                    row=c.execute(
+                        """SELECT token,user_id,status,stripe_session_id
+                           FROM support_checkout_refs
+                           WHERE stripe_payment_intent=? AND status='COMPLETED'
+                           ORDER BY completed_at DESC LIMIT 1""",
+                        (payment_intent,)
+                    ).fetchone()
+                    if row:
+                        uid=int(row["user_id"])
+                        set_supporter_entitlement(
+                            c,uid,False,
+                            source="STRIPE_TEST_REFUND" if expected["mode"]=="test" else "STRIPE_REFUND",
+                            note="Supporter payment fully refunded",
+                            external_ref=str(row["stripe_session_id"] or payment_intent)
+                        )
+                        c.execute(
+                            """UPDATE support_checkout_refs
+                               SET status='REFUNDED',payment_status='refunded',refunded_at=CURRENT_TIMESTAMP
+                               WHERE token=?""",(row["token"],)
+                        )
+                        notify_user(
+                            c,uid,"SUPPORTER",
+                            "EBL Supporter payment refunded",
+                            "The refunded purchase no longer carries the Supporter entitlement.",
+                            str(row["stripe_session_id"] or payment_intent)
+                        )
+                        result="SUPPORTER_REVOKED_REFUND"
+
+            c.execute(
+                "INSERT INTO stripe_webhook_events(event_id,event_type,object_id,result) VALUES(?,?,?,?)",
+                (event_id,event_type,object_id,result)
+            )
+            c.commit();c.close()
+            return self.out({"received":True})
+        except Exception as e:
+            try:c.rollback();c.close()
+            except Exception:pass
+            print("STRIPE WEBHOOK ERROR:",type(e).__name__,str(e))
+            return self.out({"error":"WEBHOOK_PROCESSING_FAILED"},500)
 
     def api_get(self,p):
         u=session_user(self.headers)
@@ -7246,6 +7440,43 @@ class H(BaseHTTPRequestHandler):
 
 
     def api_post(self,p):
+        if p=="/api/support/checkout":
+            u=self.auth()
+            if not u:return
+            base=str(os.environ.get("EBL_SUPPORT_URL","") or "").strip()
+            expected=stripe_expected_checkout()
+            if not base.startswith(("https://","http://")) or not expected["payment_link_id"]:
+                return self.out({"error":"SUPPORT_CHECKOUT_NOT_CONFIGURED"},503)
+            c=conn()
+            try:
+                c.execute("BEGIN IMMEDIATE")
+                if not rate_limit(c,f"support-checkout:{u['id']}",10,3600):
+                    c.rollback();c.close()
+                    return self.out({"error":"RATE_LIMITED"},429)
+                ent=supporter_entitlement(c,u["id"])
+                if ent.get("supporter"):
+                    c.commit();c.close()
+                    return self.out({"already_supporter":True,"entitlements":ent})
+                token=secrets.token_urlsafe(24)
+                c.execute(
+                    "INSERT INTO support_checkout_refs(token,user_id,status) VALUES(?,?,'PENDING')",
+                    (token,u["id"])
+                )
+                c.commit();c.close()
+                sep="&" if "?" in base else "?"
+                url=base+sep+"client_reference_id="+token
+                return self.out({
+                    "url":url,
+                    "provider":"Stripe",
+                    "mode":expected["mode"],
+                    "amount":expected["amount"],
+                    "currency":expected["currency"].upper()
+                })
+            except Exception:
+                try:c.rollback();c.close()
+                except Exception:pass
+                raise
+
         if p=="/api/register":
             d=self.body();username=str(d.get("username","")).strip();password=str(d.get("password",""));email=str(d.get("email","")).strip().lower()
             if d.get("accepted_terms") is not True:return self.out({"error":"TERMS_NOT_ACCEPTED"},400)
@@ -9759,3 +9990,5 @@ if __name__=="__main__":
 # EBL member profile identity layer: RC87
 
 # RC89: sustainable franchise economy + veteran career extension
+
+# EBL_STRIPE_VERIFIED_SUPPORTER_TEST_RC105
