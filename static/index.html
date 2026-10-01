@@ -9773,6 +9773,33 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     if(build===3)return `<g data-ebl-body-build="v102" pointer-events="none"><path d="M72 278Q96 250 124 242M228 278Q204 250 176 242" fill="none" stroke="#fff" stroke-opacity=".15" stroke-width="2.5" stroke-linecap="round"/><path d="M114 258Q150 274 186 258" fill="none" stroke="#000" stroke-opacity=".10" stroke-width="2.2" stroke-linecap="round"/><path d="M93 340Q150 327 207 340" fill="none" stroke="#07101c" stroke-opacity=".10" stroke-width="2.1" stroke-linecap="round"/></g>`;
     return '';
   }
+  function compressionSleeveMarkup(p={}){
+    const sleeve=Math.max(1,Math.min(4,N(p.sleeve_id,1)));
+    if(sleeve<=1)return '';
+    const build=Math.max(1,Math.min(3,N(p.body_build_id,1)));
+    const arms={
+      1:{
+        left:'M53 309Q61 314 75 318L72 360H46L47 342Q49 324 53 309Z',
+        right:'M247 309Q239 314 225 318L228 360H254L253 342Q251 324 247 309Z',
+        hiL:'M54 315Q62 319 73 321',hiR:'M246 315Q238 319 227 321'
+      },
+      2:{
+        left:'M38 307Q52 313 77 319L73 360H29L31 339Q33 319 38 307Z',
+        right:'M262 307Q248 313 223 319L227 360H271L269 339Q267 319 262 307Z',
+        hiL:'M40 314Q54 319 75 322',hiR:'M260 314Q246 319 225 322'
+      },
+      3:{
+        left:'M42 306Q55 309 69 314Q79 318 84 324L78 360H35L37 341Q37 323 42 306Z',
+        right:'M258 306Q245 309 231 314Q221 318 216 324L222 360H265L263 341Q263 323 258 306Z',
+        hiL:'M44 313Q58 315 71 320Q77 322 81 326',hiR:'M256 313Q242 315 229 320Q223 322 219 326'
+      }
+    }[build];
+    const left=sleeve===2||sleeve===4,right=sleeve===3||sleeve===4;
+    let out='';
+    if(left)out+=`<g data-ebl-accessory="left-compression-sleeve-v112"><path d="${arms.left}" fill="#111827" stroke="#07101c" stroke-width="1.8" opacity=".98"/><path d="${arms.hiL}" fill="none" stroke="#ffffff" stroke-opacity=".11" stroke-width="1.5" stroke-linecap="round"/></g>`;
+    if(right)out+=`<g data-ebl-accessory="right-compression-sleeve-v112"><path d="${arms.right}" fill="#111827" stroke="#07101c" stroke-width="1.8" opacity=".98"/><path d="${arms.hiR}" fill="none" stroke="#ffffff" stroke-opacity=".11" stroke-width="1.5" stroke-linecap="round"/></g>`;
+    return out;
+  }
   function finalAppearancePass(html,p={},action='portrait'){
     let out=String(html||'');
     if(!out||!(/^(portrait|auto)?$/i.test(String(action||'portrait'))))return out;
@@ -9783,6 +9810,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
            .replace(/<g data-ebl-hair-under-cap="v6[13]"[\s\S]*?<\/g>/g,'')
            .replace(/<g data-ebl-eye-black="v6[13]"[\s\S]*?<\/g>/g,'')
            .replace(/<g data-ebl-eyewear="v63"[\s\S]*?<\/g>/g,'')
+           .replace(/<g data-ebl-accessory="(?:left|right)-compression-sleeve-v(?:54|112)"[\s\S]*?<\/g>/g,'')
            .replace(/<g data-ebl-facial-hair="v61"[\s\S]*?<\/g>/g,'')
            .replace(/<path data-ebl-facial-hair="v61"[^>]*\/>/g,'');
     out=applyBodyBuildGeometry(out,p);
@@ -9793,7 +9821,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
            .replace(/<path d="M150 147Q144 164 148 171Q153 175 158 171" fill="none" stroke="#875344" stroke-width="2\.5"\/>/,noseMarkup(p))
            .replace(/<path d="M134 184Q150 190 166 184" fill="none" stroke="#704038" stroke-width="3" stroke-linecap="round"\/>/,mouthMarkup(p));
     out=out.replace(/<g data-ebl-chain=\"v(?:64|67)\"[\s\S]*?<\/g>/g,'');
-    const extras=bodyBuildMarkup(p)+chainMarkup(p)+hairUnderCap(p)+facePolish(p)+facialHair(p)+eyeBlack(p)+eyewear(p);
+    const extras=compressionSleeveMarkup(p)+bodyBuildMarkup(p)+chainMarkup(p)+hairUnderCap(p)+facePolish(p)+facialHair(p)+eyeBlack(p)+eyewear(p);
     if(extras){
       if(/<path data-ebl-cap-crown=/.test(out))out=out.replace(/(<path data-ebl-cap-crown=)/,extras+'$1');
       else out=out.replace(/<\/svg>/,extras+'</svg>');
