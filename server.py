@@ -7287,9 +7287,9 @@ class H(BaseHTTPRequestHandler):
             sec=user_restricted(c,r["id"])
             if sec["suspended"]:c.close();return self.out({"error":"ACCOUNT_SUSPENDED"},403)
             sid,_=new_session(c,r["id"],self,remember=remember)
-            c.commit();c.close()
             beta_row=c.execute("SELECT beta_member FROM users WHERE id=?",(r["id"],)).fetchone()
             beta_member=int(beta_row["beta_member"] or 0) if beta_row else 0
+            c.commit();c.close()
             return self.out({"user":{"id":r["id"],"username":r["username"],"role":r["role"],"beta_member":beta_member},"remember_me":remember},200,{"Set-Cookie":session_cookie(sid,2592000 if remember else None)})
         if p=="/api/logout":
             raw=None
@@ -9744,7 +9744,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.8 Supporter Entitlements Beta RC100: http://127.0.0.1:{port}")
+    print(f"EBL v7.8.1 Supporter Login Hotfix RC101: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
