@@ -43,6 +43,16 @@ DIVISION_RENAMES={
 }
 ACTIVE_ROSTER_SIZE=16
 TEAM_BUDGET=480.0
+# RC113: CPU-generated rookie offers use one league-standard entry contract.
+# The baseline club budget protects all 16 roster jobs at rookie minimum first;
+# the remaining baseline pool is divided evenly so every rookie can receive the
+# same signing bonus regardless of whether they sign first or last.
+CPU_ROOKIE_CONTRACT_YEARS=3
+CPU_ROOKIE_SIGNING_BONUS=round(
+    max(0.0, TEAM_BUDGET-(ACTIVE_ROSTER_SIZE*SALARY_MIN*REGULAR_SEASON_GAMES))
+    / ACTIVE_ROSTER_SIZE,
+    1
+)
 CONTRACT_ESCALATION=0.01
 # RC90: contract renewal human identity is carried through the coach contract payload.
 REVENUE_UPGRADE_COSTS=[50.0,65.0,80.0,100.0,125.0]
@@ -8344,19 +8354,33 @@ class H(BaseHTTPRequestHandler):
             for rank,candidate in enumerate(candidates):
                 if len(made)>=slots:break
                 f=candidate["team"];proposed_role=candidate["role"]
-                bonus=round(min(25,6+overall*.45+R.uniform(0,7)-rank),1)
                 floor=minimum_offer_salary(c,pr["id"],f["id"])
                 service_seasons=player_seasons_completed(c,pr["id"])
                 market_salary=round(0.30+(overall/100.0)*0.10+R.uniform(-0.015,0.015),2)
+                pool=signing_pool_state(c,f["id"])
                 if service_seasons==0:
+                    # RC113: every CPU rookie gets the same three-year entry offer.
+                    # At the baseline 480 XP club budget, minimum payroll reserves
+                    # 388.8 XP (16 * .30 * 81), leaving 91.2 XP. Dividing that
+                    # evenly across 16 roster jobs produces a 5.7 XP bonus for every
+                    # rookie, so signing order no longer determines who gets paid.
                     salary=SALARY_MIN
+                    years=CPU_ROOKIE_CONTRACT_YEARS
+                    bonus=CPU_ROOKIE_SIGNING_BONUS
                 else:
                     salary=round(max(floor,market_salary),2)
-                years=R.choice([1,2,2,3])
-                pool=signing_pool_state(c,f["id"])
+                    years=R.choice([1,2,2,3])
+                    bonus=round(min(BONUS_CAP,6+overall*.45+R.uniform(0,7)-rank),1)
                 premium=max(0.0,salary-SALARY_MIN)*REGULAR_SEASON_GAMES
                 max_bonus=max(0.0,pool["available"]-premium)
-                bonus=round(min(bonus,max_bonus),1)
+                # A CPU rookie offer is all-or-nothing at the league-standard bonus.
+                # Never shrink a later rookie's bonus merely because earlier players
+                # signed first. Veteran CPU offers may still flex to the club's room.
+                if service_seasons==0:
+                    if bonus>max_bonus+1e-9:
+                        continue
+                else:
+                    bonus=round(min(bonus,max_bonus),1)
                 offer_cost=round(bonus+premium,3)
                 if offer_cost>pool["available"]+1e-9:
                     continue
