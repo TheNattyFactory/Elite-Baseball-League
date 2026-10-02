@@ -8801,6 +8801,60 @@ window.EBL_RECURRING_SUPPORTER_RC109=Object.freeze({version:'RC109',monthlyUsd:5
 <!-- RC100: supporter entitlements + 1 free / 3 supporter career slots -->
 
 <script id="eblPlayerLabRC104Meta">window.EBL_PLAYER_LAB_RC104=Object.freeze({version:'RC104',renderer:'single canonical renderer',changes:['feature-specific option thumbnails','6 nose shapes','6 eye shapes','6 mouth shapes','4 ear sizes','8 hair silhouettes','new long curls','new long locs'],savedAppearanceCompatible:true});</script>
+
+
+<!-- EBL PLAYER LAB RC106 — feature-only thumbnails + readable accessory crops -->
+<style id="eblPlayerLabRC106Style">
+/* RC106: accessory cards use the full preview window instead of the sm-avatar box. */
+#creatorStage .creatorAccessoryV20>.faceThumbV61>.eblPlayerArtV24{
+  width:100%!important;height:100%!important;display:block!important;overflow:hidden!important;border:0!important;border-radius:0!important;background:transparent!important;
+}
+#creatorStage .creatorAccessoryV20>.faceThumbV61>.eblPlayerArtV24>svg{width:100%!important;height:100%!important;display:block!important}
+/* Feature-specific crops: face for eye black/eyewear, collar for chains, torso for sleeves. */
+#creatorStage .faceThumbAccessoryFaceV105>.eblPlayerArtV24>svg{transform:scale(1.74) translateY(8%)!important;transform-origin:50% 31%!important}
+#creatorStage .faceThumbAccessoryChestV105>.eblPlayerArtV24>svg{transform:scale(1.38) translateY(-7%)!important;transform-origin:50% 63%!important}
+#creatorStage .faceThumbAccessorySleevesV105>.eblPlayerArtV24>svg{transform:scale(1.18) translateY(-11%)!important;transform-origin:50% 75%!important}
+@media(max-width:760px){
+  #creatorStage .faceThumbAccessoryFaceV105>.eblPlayerArtV24>svg{transform:scale(1.78) translateY(8%)!important}
+  #creatorStage .faceThumbAccessoryChestV105>.eblPlayerArtV24>svg{transform:scale(1.42) translateY(-7%)!important}
+  #creatorStage .faceThumbAccessorySleevesV105>.eblPlayerArtV24>svg{transform:scale(1.22) translateY(-11%)!important}
+}
+</style>
+<script id="eblPlayerLabRC106">
+(function(){
+  const prior=window.eblCreatorFeatureThumbV63;
+  if(typeof prior!=='function')return;
+  const own=(o,k)=>Object.prototype.hasOwnProperty.call(o||{},k);
+  function neutral(extra={}){
+    const e={...(extra||{})};
+    const cosmetics={eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1};
+    if(own(e,'hair_id')){
+      return {...cosmetics,facial_hair_id:1,...e};
+    }
+    if(own(e,'facial_hair_id')){
+      return {...cosmetics,hair_id:1,...e};
+    }
+    if(own(e,'body_build_id')){
+      return {...cosmetics,hair_id:1,facial_hair_id:1,...e};
+    }
+    if(own(e,'nose_id')||own(e,'eye_shape_id')||own(e,'mouth_id')||own(e,'ear_size_id')){
+      return {...cosmetics,hair_id:1,facial_hair_id:1,...e};
+    }
+    return e;
+  }
+  window.eblCreatorFeatureThumbV63=function(extra={}){
+    const wanted={...(extra||{})};
+    let html=prior(neutral(wanted));
+    /* Neutral hair must not turn a facial-hair card into a hair-focused crop. */
+    if(own(wanted,'facial_hair_id')) html=String(html).replace('featureThumbHairV104','featureThumbFacialV104');
+    return html;
+  };
+  window.EBL_PLAYER_LAB_RC106=Object.freeze({
+    version:'RC106',renderer:'same canonical renderer',newRenderer:false,
+    changes:['accessory previews fill their cards','face crop for eye black and eyewear','neck/chest crop for chains','upper-body crop for sleeves','facial-hair thumbnails use neutral short hair','body-build thumbnails isolate silhouette','face-detail thumbnails isolate the selected feature']
+  });
+})();
+</script>
 </body></html>
 
 <!-- EBL PLAYER CREATOR STUDIO V20 — tabbed sports-game creator -->
