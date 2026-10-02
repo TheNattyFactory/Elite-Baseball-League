@@ -8799,6 +8799,8 @@ window.EBL_RECURRING_SUPPORTER_RC109=Object.freeze({version:'RC109',monthlyUsd:5
 })();
 </script>
 <!-- RC100: supporter entitlements + 1 free / 3 supporter career slots -->
+
+<script id="eblPlayerLabRC104Meta">window.EBL_PLAYER_LAB_RC104=Object.freeze({version:'RC104',renderer:'single canonical renderer',changes:['feature-specific option thumbnails','6 nose shapes','6 eye shapes','6 mouth shapes','4 ear sizes','8 hair silhouettes','new long curls','new long locs'],savedAppearanceCompatible:true});</script>
 </body></html>
 
 <!-- EBL PLAYER CREATOR STUDIO V20 — tabbed sports-game creator -->
@@ -8820,13 +8822,13 @@ window.EBL_RECURRING_SUPPORTER_RC109=Object.freeze({version:'RC109',monthlyUsd:5
 (function(){
  let tab='face';
  const FACE=[{id:1,label:'Classic'},{id:2,label:'Wide'},{id:5,label:'Angular'},{id:3,label:'Oval'},{id:4,label:'Square'}];
- const HAIR=[{id:1,label:'Short'},{id:2,label:'Medium'},{id:3,label:'Long'},{id:4,label:'Long Flow'},{id:5,label:'Long Waves'},{id:6,label:'Shoulder Length'}];
+ const HAIR=[{id:1,label:'Short'},{id:2,label:'Medium'},{id:3,label:'Long'},{id:4,label:'Long Flow'},{id:5,label:'Long Waves'},{id:6,label:'Shoulder Length'},{id:7,label:'Long Curls'},{id:8,label:'Long Locs'}];
  const FACIAL=[{id:1,label:'None'},{id:2,label:'Light Stubble'},{id:3,label:'Goatee'},{id:5,label:'Mustache'},{id:4,label:'Full Beard'},{id:6,label:'Heavy Stubble'},{id:7,label:'Chin Strap'},{id:8,label:'Short Boxed'},{id:11,label:'Soul Patch'},{id:12,label:'Circle Beard'},{id:13,label:'Handlebar'},{id:10,label:'Van Dyke'},{id:14,label:'Mutton Chops'}];
  const BUILDS=[{id:1,label:'Normal'},{id:2,label:'Heavy'},{id:3,label:'Muscular'}];
- const NOSE=[{id:1,label:'Classic'},{id:2,label:'Button'},{id:3,label:'Straight'},{id:4,label:'Broad'}];
- const EYES=[{id:1,label:'Classic'},{id:2,label:'Narrow'},{id:3,label:'Round'},{id:4,label:'Relaxed'}];
- const MOUTHS=[{id:1,label:'Neutral'},{id:2,label:'Soft Smile'},{id:3,label:'Wide Smile'},{id:4,label:'Firm'}];
- const EARS=[{id:1,label:'Small'},{id:2,label:'Standard'},{id:3,label:'Large'}];
+ const NOSE=[{id:1,label:'Classic'},{id:2,label:'Button'},{id:3,label:'Straight'},{id:4,label:'Broad'},{id:5,label:'Narrow'},{id:6,label:'Roman'}];
+ const EYES=[{id:1,label:'Classic'},{id:2,label:'Narrow'},{id:3,label:'Round'},{id:4,label:'Relaxed'},{id:5,label:'Deep Set'},{id:6,label:'Wide'}];
+ const MOUTHS=[{id:1,label:'Neutral'},{id:2,label:'Soft Smile'},{id:3,label:'Wide Smile'},{id:4,label:'Firm'},{id:5,label:'Thin'},{id:6,label:'Full'}];
+ const EARS=[{id:1,label:'Small'},{id:2,label:'Standard'},{id:3,label:'Large'},{id:4,label:'Prominent'}];
  const label=(arr,id)=>(arr.find(x=>x.id===Number(id))||arr[0]).label;
  function thumb(face,hair,facial){const f=(window.FACE_PRESETS||[])[Math.max(0,Number(face)-1)]||(window.FACE_PRESETS||[])[0];return window.faceThumbMarkup?window.faceThumbMarkup(f,hair,facial):''}
  function card(x,sel,onclick,html){return `<div class="creatorStudioCardV20 ${Number(sel)===x.id?'selected':''}" onclick="${onclick}(${x.id})">${html}<div class="eblChoiceTitle">${x.label}</div></div>`}
@@ -8835,7 +8837,7 @@ window.EBL_RECURRING_SUPPORTER_RC109=Object.freeze({version:'RC109',monthlyUsd:5
  function colors(title,arr,key,fn){return `<div class="creatorSubheadV20">${title}</div><div class="colorChoices">${arr.map((x,i)=>`<button class="colorChoice ${Number(CREATOR[key]||1)===i+1?'selected':''}" style="background:${x.color}" title="${x.name}" onclick="${fn}(${i+1})"></button>`).join('')}</div>`}
  function accessories(){const group=(title,names,key,fn)=>`<div class="creatorSubheadV20">${title}</div><div class="creatorAccessoryGridV20">${names.map((n,i)=>`<div class="creatorAccessoryV20 ${Number(CREATOR[key]||1)===i+1?'selected':''}" onclick="${fn}(${i+1})"><small>${title}</small><b>${n}</b></div>`).join('')}</div>`;return group('EYE BLACK',EYE_BLACK_NAMES,'eye_black_id','pickEyeBlack')+group('EYEWEAR',EYEWEAR_NAMES,'eyewear_id','pickEyewear')+group('CHAIN',CHAIN_NAMES,'chain_id','pickChain')+group('SLEEVES',SLEEVE_NAMES,'sleeve_id','pickSleeve')}
  function buildGrid(){return `<h3>BODY BUILD</h3><div class="creatorStudioGridV20">${BUILDS.map(x=>card(x,CREATOR.body_build_id||1,'pickBodyBuild',detailThumb({body_build_id:x.id}))).join('')}</div><div class="card" style="margin-top:12px"><b>JERSEY STAYS CONSISTENT.</b><div class="muted">Build changes the full player silhouette — shoulders, chest, torso, arms, and neck — while keeping the uniform design consistent.</div></div>`}
- function body(){if(tab==='face')return `<h3>FACE SHAPE</h3><div class="creatorStudioGridV20">${FACE.map(x=>card(x,CREATOR.face_id,'pickFace',thumb(x.id,CREATOR.hair_id,CREATOR.facial_hair_id))).join('')}</div>${detailGrid('NOSE',NOSE,'nose_id','pickNose')}${detailGrid('EYES',EYES,'eye_shape_id','pickEyeShape')}${detailGrid('MOUTH',MOUTHS,'mouth_id','pickMouth')}${detailGrid('EARS',EARS,'ear_size_id','pickEarSize')}${colors('SKIN TONE',SKIN_TONES,'skin_color_id','pickSkinTone')}${colors('EYE COLOR',EYE_COLORS,'eye_color_id','pickEyeColor')}`;if(tab==='hair')return `<h3>HAIR</h3><div class="creatorStudioGridV20">${HAIR.map(x=>card(x,CREATOR.hair_id,'pickHair',thumb(CREATOR.face_id,x.id,CREATOR.facial_hair_id))).join('')}</div>${colors('HAIR COLOR',HAIR_COLORS,'hair_color_id','pickHairColor')}`;if(tab==='facial')return `<h3>FACIAL HAIR</h3><div class="creatorStudioGridV20">${FACIAL.map(x=>card(x,CREATOR.facial_hair_id,'pickFacialHair',thumb(CREATOR.face_id,CREATOR.hair_id,x.id))).join('')}</div>`;if(tab==='body')return buildGrid();return `<h3>ACCESSORIES</h3>${accessories()}`}
+ function body(){if(tab==='face')return `<h3>FACE SHAPE</h3><div class="creatorStudioGridV20">${FACE.map(x=>card(x,CREATOR.face_id,'pickFace',thumb(x.id,CREATOR.hair_id,CREATOR.facial_hair_id))).join('')}</div>${detailGrid('NOSE',NOSE,'nose_id','pickNose')}${detailGrid('EYES',EYES,'eye_shape_id','pickEyeShape')}${detailGrid('MOUTH',MOUTHS,'mouth_id','pickMouth')}${detailGrid('EARS',EARS,'ear_size_id','pickEarSize')}${colors('SKIN TONE',SKIN_TONES,'skin_color_id','pickSkinTone')}${colors('EYE COLOR',EYE_COLORS,'eye_color_id','pickEyeColor')}`;if(tab==='hair')return `<h3>HAIR</h3><div class="creatorStudioGridV20">${HAIR.map(x=>card(x,CREATOR.hair_id,'pickHair',detailThumb({hair_id:x.id}))).join('')}</div>${colors('HAIR COLOR',HAIR_COLORS,'hair_color_id','pickHairColor')}`;if(tab==='facial')return `<h3>FACIAL HAIR</h3><div class="creatorStudioGridV20">${FACIAL.map(x=>card(x,CREATOR.facial_hair_id,'pickFacialHair',detailThumb({facial_hair_id:x.id}))).join('')}</div>`;if(tab==='body')return buildGrid();return `<h3>ACCESSORIES</h3>${accessories()}`}
  window.setCreatorAppearanceTabV20=function(t){tab=t;creatorAppearance()};
  window.pickFacialHair=function(id){CREATOR.facial_hair_id=FACIAL.some(x=>x.id===Number(id))?Number(id):1;creatorAppearance()};
  window.pickBodyBuild=function(id){CREATOR.body_build_id=BUILDS.some(x=>x.id===Number(id))?Number(id):1;creatorAppearance()};
@@ -9529,6 +9531,23 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 #creatorStage .creatorStudioCardV20 .faceThumbV61.featureThumbFaceV102>.eblPlayerArtV24>svg{transform:scale(1.72) translateY(10%)!important;transform-origin:50% 28%!important}
 #creatorStage .creatorStudioCardV20 .faceThumbV61.featureThumbBodyV102>.eblPlayerArtV24>svg{transform:scale(1.34) translateY(-7%)!important;transform-origin:50% 77%!important}
 @media(max-width:760px){#creatorStage .creatorStudioCardV20 .faceThumbV61{height:170px!important}#creatorStage .creatorStudioCardV20 .faceThumbV61>.eblPlayerArtV24>svg{transform:scale(1.46) translateY(8%)!important}#creatorStage .creatorStudioCardV20 .faceThumbV61.featureThumbFaceV102>.eblPlayerArtV24>svg{transform:scale(1.76) translateY(10%)!important}#creatorStage .creatorStudioCardV20 .faceThumbV61.featureThumbBodyV102>.eblPlayerArtV24>svg{transform:scale(1.38) translateY(-7%)!important}}
+
+/* RC104: each option card zooms to the feature being changed. */
+#creatorStage .faceThumbV61.featureThumbHairV104>.eblPlayerArtV24>svg{transform:scale(2.00) translateY(16%)!important;transform-origin:50% 19%!important}
+#creatorStage .faceThumbV61.featureThumbEyesV104>.eblPlayerArtV24>svg{transform:scale(2.34) translateY(13%)!important;transform-origin:50% 31%!important}
+#creatorStage .faceThumbV61.featureThumbNoseV104>.eblPlayerArtV24>svg{transform:scale(2.28) translateY(7%)!important;transform-origin:50% 36%!important}
+#creatorStage .faceThumbV61.featureThumbMouthV104>.eblPlayerArtV24>svg{transform:scale(2.18) translateY(-2%)!important;transform-origin:50% 43%!important}
+#creatorStage .faceThumbV61.featureThumbEarsV104>.eblPlayerArtV24>svg{transform:scale(1.98) translateY(5%)!important;transform-origin:50% 36%!important}
+#creatorStage .faceThumbV61.featureThumbFacialV104>.eblPlayerArtV24>svg{transform:scale(2.02) translateY(-1%)!important;transform-origin:50% 42%!important}
+@media(max-width:760px){
+  #creatorStage .faceThumbV61.featureThumbHairV104>.eblPlayerArtV24>svg{transform:scale(2.04) translateY(16%)!important}
+  #creatorStage .faceThumbV61.featureThumbEyesV104>.eblPlayerArtV24>svg{transform:scale(2.38) translateY(13%)!important}
+  #creatorStage .faceThumbV61.featureThumbNoseV104>.eblPlayerArtV24>svg{transform:scale(2.32) translateY(7%)!important}
+  #creatorStage .faceThumbV61.featureThumbMouthV104>.eblPlayerArtV24>svg{transform:scale(2.22) translateY(-2%)!important}
+  #creatorStage .faceThumbV61.featureThumbEarsV104>.eblPlayerArtV24>svg{transform:scale(2.02) translateY(5%)!important}
+  #creatorStage .faceThumbV61.featureThumbFacialV104>.eblPlayerArtV24>svg{transform:scale(2.06) translateY(-1%)!important}
+}
+
 </style>
 <script id="eblUnifiedAppearanceV61">
 (function(){
@@ -9557,14 +9576,16 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     try{return typeof window.eblFullSavedPlayerRC38==='function'?window.eblFullSavedPlayerRC38(raw||{}):(raw||{})}catch(_){return raw||{}}
   }
   function hairUnderCap(p={}){
-    const id=Math.max(1,Math.min(6,N(p.hair_id,1)));if(id===1)return '';
+    const id=Math.max(1,Math.min(8,N(p.hair_id,1)));if(id===1)return '';
     const fid=Math.max(1,Math.min(5,N(p.face_id,1))),lr=FACE_SIDES_V61[fid]||FACE_SIDES_V61[1],l=lr[0],r=lr[1];
     const c=HAIR_COLORS_V61[Math.max(0,Math.min(HAIR_COLORS_V61.length-1,N(p.hair_color_id,3)-1))];
     if(id===2)return `<g data-ebl-hair-under-cap="v63" fill="${c}"><path d="M${l-1} 116Q${l-5} 127 ${l} 143Q${l+4} 135 ${l+8} 124L${l+8} 116Z"/><path d="M${r+1} 116Q${r+5} 127 ${r} 143Q${r-4} 135 ${r-8} 124L${r-8} 116Z"/></g>`;
     if(id===3)return `<g data-ebl-hair-under-cap="v63" fill="${c}"><path d="M${l-3} 113Q${l-10} 136 ${l-7} 166Q${l-6} 184 ${l+1} 195Q${l+2} 171 ${l+11} 145L${l+10} 116Z"/><path d="M${r+3} 113Q${r+10} 136 ${r+7} 166Q${r+6} 184 ${r-1} 195Q${r-2} 171 ${r-11} 145L${r-10} 116Z"/></g>`;
     if(id===4)return `<g data-ebl-hair-under-cap="v63" fill="${c}"><path d="M${l-4} 112Q${l-13} 139 ${l-8} 176Q${l-4} 197 ${l+5} 207Q${l+3} 173 ${l+13} 143L${l+10} 115Z"/><path d="M${r+4} 112Q${r+13} 139 ${r+8} 176Q${r+4} 197 ${r-5} 207Q${r-3} 173 ${r-13} 143L${r-10} 115Z"/></g>`;
     if(id===5)return `<g data-ebl-hair-under-cap="v63" fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"><path d="M${l+4} 117Q${l-9} 143 ${l-2} 169Q${l+5} 189 ${l-2} 208"/><path d="M${r-4} 117Q${r+9} 143 ${r+2} 169Q${r-5} 189 ${r+2} 208"/></g>`;
-    return `<g data-ebl-hair-under-cap="v63" fill="${c}"><path d="M${l-5} 111Q${l-15} 143 ${l-10} 184Q${l-8} 209 ${l+7} 226Q${l+7} 183 ${l+14} 145L${l+10} 114Z"/><path d="M${r+5} 111Q${r+15} 143 ${r+10} 184Q${r+8} 209 ${r-7} 226Q${r-7} 183 ${r-14} 145L${r-10} 114Z"/></g>`;
+    if(id===6)return `<g data-ebl-hair-under-cap="v63" fill="${c}"><path d="M${l-5} 111Q${l-15} 143 ${l-10} 184Q${l-8} 209 ${l+7} 226Q${l+7} 183 ${l+14} 145L${l+10} 114Z"/><path d="M${r+5} 111Q${r+15} 143 ${r+10} 184Q${r+8} 209 ${r-7} 226Q${r-7} 183 ${r-14} 145L${r-10} 114Z"/></g>`;
+    if(id===7)return `<g data-ebl-hair-under-cap="v104" fill="none" stroke="${c}" stroke-width="9" stroke-linecap="round"><path d="M${l+4} 117Q${l-10} 137 ${l-1} 153T${l-1} 182T${l+1} 214"/><path d="M${l+12} 121Q${l+1} 143 ${l+9} 159T${l+8} 192"/><path d="M${r-4} 117Q${r+10} 137 ${r+1} 153T${r+1} 182T${r-1} 214"/><path d="M${r-12} 121Q${r-1} 143 ${r-9} 159T${r-8} 192"/></g>`;
+    return `<g data-ebl-hair-under-cap="v104" fill="none" stroke="${c}" stroke-width="7.4" stroke-linecap="round"><path d="M${l+5} 116Q${l-3} 141 ${l-1} 218"/><path d="M${l+12} 118Q${l+4} 148 ${l+7} 225"/><path d="M${l+19} 122Q${l+12} 151 ${l+15} 211"/><path d="M${r-5} 116Q${r+3} 141 ${r+1} 218"/><path d="M${r-12} 118Q${r-4} 148 ${r-7} 225"/><path d="M${r-19} 122Q${r-12} 151 ${r-15} 211"/></g>`;
   }
   function eyeBlack(p={}){
     const id=Math.max(1,Math.min(5,N(p.eye_black_id,1)));if(id===1)return '';
@@ -9574,33 +9595,39 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     return `<g data-ebl-eye-black="v63" fill="none" stroke="#111317" stroke-width="3.8" stroke-linecap="round" opacity=".96"><path d="M121 155V169M116 162H126M179 155V169M174 162H184"/></g>`;
   }
   function earMarkup(p={},side='left'){
-    const id=Math.max(1,Math.min(3,N(p.ear_size_id,2))),skin=SKIN_COLORS_V61[Math.max(0,Math.min(7,N(p.skin_color_id,1)-1))];
-    const spec=id===1?{rx:7,ry:12,cxL:107,cxR:193}:id===3?{rx:11,ry:18,cxL:103,cxR:197}:{rx:9,ry:15,cxL:105,cxR:195};
+    const id=Math.max(1,Math.min(4,N(p.ear_size_id,2))),skin=SKIN_COLORS_V61[Math.max(0,Math.min(7,N(p.skin_color_id,1)-1))];
+    const spec=id===1?{rx:7,ry:12,cxL:107,cxR:193}:id===3?{rx:11,ry:18,cxL:103,cxR:197}:id===4?{rx:12.5,ry:19.5,cxL:100.5,cxR:199.5}:{rx:9,ry:15,cxL:105,cxR:195};
     const cx=side==='left'?spec.cxL:spec.cxR,inner=side==='left'?cx+1:cx-1,arc=side==='left'?`M${inner+1} 139Q${inner-4} 145 ${inner+1} 151`:`M${inner-1} 139Q${inner+4} 145 ${inner-1} 151`;
     return `<g data-ebl-ear="v63"><ellipse cx="${cx}" cy="145" rx="${spec.rx}" ry="${spec.ry}" fill="${skin}" stroke="#2a1712" stroke-width="2.7"/><path d="${arc}" fill="none" stroke="#9a5c4d" stroke-width="1.5" stroke-linecap="round" opacity=".55"/></g>`;
   }
   function eyeMarkup(p={}){
-    const id=Math.max(1,Math.min(4,N(p.eye_shape_id,1))),ec=EYE_COLORS_V61[Math.max(0,Math.min(5,N(p.eye_color_id,6)-1))];
+    const id=Math.max(1,Math.min(6,N(p.eye_shape_id,1))),ec=EYE_COLORS_V61[Math.max(0,Math.min(5,N(p.eye_color_id,6)-1))];
     const shapes={
       1:['M116 145Q128 138 140 145Q128 152 116 145Z','M160 145Q172 138 184 145Q172 152 160 145Z',4,4.4],
       2:['M116 145Q128 141 140 145Q128 149 116 145Z','M160 145Q172 141 184 145Q172 149 160 145Z',4.2,3.2],
       3:['M117 145Q128 136 139 145Q128 154 117 145Z','M161 145Q172 136 183 145Q172 154 161 145Z',4.4,4.9],
-      4:['M116 146Q128 139 140 145Q128 151 116 146Z','M160 145Q172 139 184 146Q172 151 160 145Z',4,4]
+      4:['M116 146Q128 139 140 145Q128 151 116 146Z','M160 145Q172 139 184 146Q172 151 160 145Z',4,4],
+      5:['M116 145Q128 140 140 144Q128 150 116 145Z','M160 144Q172 140 184 145Q172 150 160 144Z',3.6,3.5],
+      6:['M113 145Q128 136 143 145Q128 153 113 145Z','M157 145Q172 136 187 145Q172 153 157 145Z',4.5,4.5]
     }[id];
     return `<g data-ebl-eyes="v63"><path d="${shapes[0]}" fill="#fff" stroke="#2a1712" stroke-width="1.8"/><path d="${shapes[1]}" fill="#fff" stroke="#2a1712" stroke-width="1.8"/><ellipse cx="128" cy="145" rx="${shapes[2]}" ry="${shapes[3]}" fill="${ec}"/><ellipse cx="172" cy="145" rx="${shapes[2]}" ry="${shapes[3]}" fill="${ec}"/><circle cx="128" cy="145" r="1.45" fill="#111317"/><circle cx="172" cy="145" r="1.45" fill="#111317"/><circle cx="126.8" cy="143.7" r=".75" fill="#fff" opacity=".75"/><circle cx="170.8" cy="143.7" r=".75" fill="#fff" opacity=".75"/></g>`;
   }
   function noseMarkup(p={}){
-    const id=Math.max(1,Math.min(4,N(p.nose_id,1)));
+    const id=Math.max(1,Math.min(6,N(p.nose_id,1)));
     if(id===2)return `<path data-ebl-nose="v63" d="M150 151Q146 162 147 168Q150 172 154 169Q156 167 158 168" fill="none" stroke="#875344" stroke-width="2.35" stroke-linecap="round"/>`;
     if(id===3)return `<path data-ebl-nose="v63" d="M150 147L147 166Q147 172 153 173Q157 173 159 170" fill="none" stroke="#875344" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
     if(id===4)return `<path data-ebl-nose="v63" d="M150 148Q146 161 146 169Q150 174 155 171M143 171Q147 174 151 173M157 171Q160 173 163 170" fill="none" stroke="#875344" stroke-width="2.2" stroke-linecap="round"/>`;
+    if(id===5)return `<path data-ebl-nose="v104" d="M150 148Q148 158 148 168Q150 171 153 170M146 171Q150 173 154 171" fill="none" stroke="#875344" stroke-width="2.05" stroke-linecap="round"/>`;
+    if(id===6)return `<path data-ebl-nose="v104" d="M149 146Q154 154 151 162Q148 168 151 173Q155 176 160 171" fill="none" stroke="#875344" stroke-width="2.35" stroke-linecap="round"/>`;
     return `<path data-ebl-nose="v63" d="M150 147Q144 164 148 171Q153 175 158 171" fill="none" stroke="#875344" stroke-width="2.35" stroke-linecap="round"/>`;
   }
   function mouthMarkup(p={}){
-    const id=Math.max(1,Math.min(4,N(p.mouth_id,1)));
+    const id=Math.max(1,Math.min(6,N(p.mouth_id,1)));
     if(id===2)return `<path data-ebl-mouth="v63" d="M135 184Q150 193 165 184" fill="none" stroke="#704038" stroke-width="2.9" stroke-linecap="round"/>`;
     if(id===3)return `<path data-ebl-mouth="v63" d="M131 183Q150 195 169 183Q163 191 150 192Q137 191 131 183Z" fill="#8a4a45" opacity=".92"/>`;
     if(id===4)return `<path data-ebl-mouth="v63" d="M136 186Q150 184 164 186" fill="none" stroke="#704038" stroke-width="3" stroke-linecap="round"/>`;
+    if(id===5)return `<path data-ebl-mouth="v104" d="M138 185Q150 187 162 185" fill="none" stroke="#704038" stroke-width="2.1" stroke-linecap="round"/>`;
+    if(id===6)return `<g data-ebl-mouth="v104"><path d="M133 184Q150 190 167 184Q160 194 150 194Q140 194 133 184Z" fill="#8a4a45" opacity=".88"/><path d="M136 185Q150 189 164 185" fill="none" stroke="#5e332e" stroke-width="1.5" stroke-linecap="round"/></g>`;
     return `<path data-ebl-mouth="v63" d="M134 184Q150 190 166 184" fill="none" stroke="#704038" stroke-width="2.8" stroke-linecap="round"/>`;
   }
   function facePolish(p={}){
@@ -9855,7 +9882,17 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     return `<span class="eblPlayerBylineV25">${unified(p,opts.size||'sm',opts.action||'portrait')}<span class="eblPlayerBylineV25__copy"><strong>${esc(p.name||p.player_name||'Player')}</strong>${sub?`<span>${esc(sub)}</span>`:''}</span></span>`;
   };
 
-  window.eblCreatorFeatureThumbV63=function(extra={}){const focus=Object.prototype.hasOwnProperty.call(extra,'body_build_id')?'featureThumbBodyV102':'featureThumbFaceV102';return `<div class="faceThumb faceThumbV61 ${focus}">${unified(creatorModel(extra),'sm','portrait')}</div>`};
+  window.eblCreatorFeatureThumbV63=function(extra={}){
+    let focus='featureThumbFaceV102';
+    if(Object.prototype.hasOwnProperty.call(extra,'body_build_id'))focus='featureThumbBodyV102';
+    else if(Object.prototype.hasOwnProperty.call(extra,'hair_id'))focus='featureThumbHairV104';
+    else if(Object.prototype.hasOwnProperty.call(extra,'facial_hair_id'))focus='featureThumbFacialV104';
+    else if(Object.prototype.hasOwnProperty.call(extra,'eye_shape_id'))focus='featureThumbEyesV104';
+    else if(Object.prototype.hasOwnProperty.call(extra,'nose_id'))focus='featureThumbNoseV104';
+    else if(Object.prototype.hasOwnProperty.call(extra,'mouth_id'))focus='featureThumbMouthV104';
+    else if(Object.prototype.hasOwnProperty.call(extra,'ear_size_id'))focus='featureThumbEarsV104';
+    return `<div class="faceThumb faceThumbV61 ${focus}">${unified(creatorModel(extra),'sm','portrait')}</div>`;
+  };
   window.faceThumbMarkup=function(f,hairId=1,facialId=N(creatorState().facial_hair_id,1),eyeColor){
     const faces=typeof FACE_PRESETS!=='undefined'?FACE_PRESETS:[];let faceId=faces.indexOf(f)+1;if(faceId<1)faceId=N(f?.id,1);
     const extra={face_id:faceId,hair_id:N(hairId,1),facial_hair_id:N(facialId,1)};
@@ -9871,20 +9908,20 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   function repaint(){try{if(typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(e){console.warn('V61 creator repaint',e)}}
   window.pickFace=id=>{CREATOR.face_id=Math.max(1,Math.min(5,N(id,1)));repaint()};
   window.pickSkinTone=id=>{CREATOR.skin_color_id=Math.max(1,Math.min(8,N(id,1)));repaint()};
-  window.pickHair=id=>{CREATOR.hair_id=Math.max(1,Math.min(6,N(id,1)));repaint()};
+  window.pickHair=id=>{CREATOR.hair_id=Math.max(1,Math.min(8,N(id,1)));repaint()};
   window.pickHairColor=id=>{CREATOR.hair_color_id=Math.max(1,Math.min(9,N(id,3)));repaint()};
   window.pickFacialHair=id=>{const allowed=[1,2,3,5,4,6,7,8,11,12,13,10,14],q=N(id,1);CREATOR.facial_hair_id=allowed.includes(q)?q:1;repaint()};
   window.pickEyeColor=id=>{CREATOR.eye_color_id=Math.max(1,Math.min(6,N(id,6)));repaint()};
-  window.pickNose=id=>{CREATOR.nose_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
-  window.pickEyeShape=id=>{CREATOR.eye_shape_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
-  window.pickMouth=id=>{CREATOR.mouth_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
-  window.pickEarSize=id=>{CREATOR.ear_size_id=Math.max(1,Math.min(3,N(id,2)));repaint()};
+  window.pickNose=id=>{CREATOR.nose_id=Math.max(1,Math.min(6,N(id,1)));repaint()};
+  window.pickEyeShape=id=>{CREATOR.eye_shape_id=Math.max(1,Math.min(6,N(id,1)));repaint()};
+  window.pickMouth=id=>{CREATOR.mouth_id=Math.max(1,Math.min(6,N(id,1)));repaint()};
+  window.pickEarSize=id=>{CREATOR.ear_size_id=Math.max(1,Math.min(4,N(id,2)));repaint()};
   window.pickEyeBlack=id=>{CREATOR.eye_black_id=Math.max(1,Math.min(5,N(id,1)));repaint()};
   window.pickEyewear=id=>{CREATOR.eyewear_id=Math.max(1,Math.min(5,N(id,1)));repaint()};
   window.pickChain=id=>{CREATOR.chain_id=Math.max(1,Math.min(7,N(id,1)));repaint()};
   window.pickSleeve=id=>{CREATOR.sleeve_id=Math.max(1,Math.min(4,N(id,1)));repaint()};
   window.pickBodyBuild=id=>{CREATOR.body_build_id=Math.max(1,Math.min(3,N(id,1)));repaint()};
-  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'RC103',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'six silhouette choices with three long variations',facialHair:'single final compositor with thirteen choices + natural asymmetric stroke-based stubble + connected/full beard geometry',faceDetails:['four noses','four eye shapes','four mouths','three ear sizes'],eyeBlack:'five choices including triangle and cross',bodyBuilds:['normal','heavy','muscular'],faceTuning:{oval:'fuller while still long',angular:'angled jaw with clearly flattened chin'},accessories:['five eyewear styles','gold/silver single-double-large chains','sleeves'],teamBranding:'preserved through V52/V53'});
+  window.EBL_UNIFIED_APPEARANCE_V61=Object.freeze({version:'RC103',publicRenderer:'eblPlayerArtV24',creatorState:'CREATOR',creatorPreview:'same renderer as saved players',mediumHair:'visible under cap',longHair:'eight silhouette choices with five long variations',facialHair:'single final compositor with thirteen choices + natural asymmetric stroke-based stubble + connected/full beard geometry',faceDetails:['six noses','six eye shapes','six mouths','four ear sizes'],eyeBlack:'five choices including triangle and cross',bodyBuilds:['normal','heavy','muscular'],faceTuning:{oval:'fuller while still long',angular:'angled jaw with clearly flattened chin'},accessories:['five eyewear styles','gold/silver single-double-large chains','sleeves'],teamBranding:'preserved through V52/V53'});
   try{if(document.getElementById('creatorStage')&&typeof window.creatorAppearance==='function')window.creatorAppearance()}catch(_){ }
 })();
 </script>
@@ -9898,7 +9935,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 #creatorStage .creatorSubheadV20{margin-top:20px}
 @media(max-width:760px){#creatorStage .creatorStudioBodyV20{padding-inline:14px}}
 </style>
-<script id="eblAvatarDetailPolishV63Meta">window.EBL_AVATAR_DETAIL_POLISH_V63=Object.freeze({version:'RC103',singleRenderer:true,sourceOfTruth:'saved player appearance',features:{nose:4,eyeShapes:4,mouths:4,earSizes:3,hair:6,facialHair:13,eyewear:5,eyeBlack:5,bodyBuilds:3},polish:'rounder curves, softer line weights, subtle face depth, eye highlights, tuned facial hair, full-silhouette body builds, realistic gold/silver chain options',legacySafeDefaults:true});</script>
+<script id="eblAvatarDetailPolishV63Meta">window.EBL_AVATAR_DETAIL_POLISH_V63=Object.freeze({version:'RC103',singleRenderer:true,sourceOfTruth:'saved player appearance',features:{nose:6,eyeShapes:6,mouths:6,earSizes:4,hair:8,facialHair:13,eyewear:5,eyeBlack:5,bodyBuilds:3},polish:'rounder curves, softer line weights, subtle face depth, eye highlights, tuned facial hair, full-silhouette body builds, realistic gold/silver chain options',legacySafeDefaults:true});</script>
 
 
 <script id="eblAvatarPolishRC103Meta">window.EBL_AVATAR_POLISH_RC103=Object.freeze({version:'RC103',changes:['feature-focused thumbnails','natural asymmetric stubble','subtle upper-lip stubble','organic full-beard edges','organic short-boxed edges','connected short-boxed beard','filled full beard','no translucent chin line','full silhouette body builds'],renderer:'eblUnifiedAppearanceRendererV61',singleSourceOfTruth:true});</script>
