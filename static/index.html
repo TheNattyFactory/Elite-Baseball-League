@@ -10302,3 +10302,209 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 })();
 </script>
 
+
+<!-- EBL GAMECAST RC124 — Gameday visual replay upgrade -->
+<style id="eblGamecastRC124Style">
+#gc.gcGamedayDialogRC124{width:min(1180px,98vw);max-width:1180px;height:min(94vh,980px);max-height:94vh;padding:0;overflow:auto;border-radius:18px;background:#04101c;border:1px solid #38546f;box-shadow:0 28px 90px #000c}
+#gc.gcGamedayDialogRC124::backdrop{background:rgba(0,5,12,.86);backdrop-filter:blur(4px)}
+#gc.gcGamedayDialogRC124>br,#gc.gcGamedayDialogRC124>.btn{display:none!important}
+.gcDayShellRC124{min-height:100%;background:radial-gradient(circle at 50% -10%,rgba(35,79,119,.35),transparent 38%),#04101c}
+.gcDayTopRC124{position:sticky;top:0;z-index:30;background:rgba(4,16,28,.96);backdrop-filter:blur(12px);border-bottom:1px solid rgba(114,148,178,.25);box-shadow:0 8px 28px rgba(0,0,0,.25)}
+.gcDayEyebrowRC124{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px 0}.gcDayEyebrowRC124 span{font-size:10px;font-weight:950;letter-spacing:.15em;color:#98aec2}.gcDayCloseRC124{width:34px;height:34px;border-radius:50%;border:1px solid #36536d;background:#0b2034;color:#fff;font-size:19px;line-height:1;cursor:pointer}
+.gcScorebarRC124{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.52fr) minmax(0,1fr);gap:12px;align-items:center;padding:8px 14px 11px}.gcClubRC124{display:flex;align-items:center;gap:10px;min-width:0}.gcClubRC124.home{justify-content:flex-end;text-align:right}.gcClubRC124 .teamMark{width:46px;height:46px;flex:0 0 46px}.gcClubCopyRC124{min-width:0}.gcClubCopyRC124 b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gcClubCopyRC124 small{display:block;color:#8fa6ba;margin-top:2px;font-size:9px;font-weight:800;letter-spacing:.08em}.gcClubScoreRC124{font-size:34px;line-height:.9;font-weight:1000;color:#fff;min-width:28px}.gcClubRC124.home .gcClubScoreRC124{order:-1}
+.gcCenterStateRC124{text-align:center}.gcStateLineRC124{font-size:12px;font-weight:1000;letter-spacing:.1em;color:#eef4fa}.gcCountLineRC124{margin-top:2px;font-size:10px;color:#9fb0c0}.gcBasesRC124{position:relative;width:52px;height:34px;margin:5px auto 0}.gcBaseRC124{position:absolute;width:12px;height:12px;transform:rotate(45deg);background:#142b41;border:2px solid #7890a4;transition:.2s}.gcBaseRC124.on{background:#f3c84d;border-color:#fff3b1;box-shadow:0 0 10px rgba(243,200,77,.5)}.gcBaseRC124.b1{right:4px;bottom:2px}.gcBaseRC124.b2{left:20px;top:1px}.gcBaseRC124.b3{left:4px;bottom:2px}
+.gcDayTabsRC124{display:flex;gap:0;padding:0 12px;overflow:auto;border-top:1px solid rgba(114,148,178,.12)}.gcDayTabRC124{appearance:none;background:transparent;border:0;border-bottom:3px solid transparent;color:#92a9bd;padding:10px 13px 9px;font-size:11px;font-weight:950;letter-spacing:.06em;white-space:nowrap;cursor:pointer}.gcDayTabRC124.active{color:#fff;border-bottom-color:var(--red)}
+.gcDayBodyRC124{padding:12px}.gcReplayGridRC124{display:grid;grid-template-columns:minmax(150px,.38fr) minmax(420px,1.22fr) minmax(210px,.55fr);gap:10px;align-items:start}.gcPanelRC124{border:1px solid rgba(99,131,160,.32);border-radius:14px;background:linear-gradient(180deg,rgba(10,31,51,.96),rgba(5,20,34,.96));overflow:hidden}.gcPanelHeadRC124{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border-bottom:1px solid rgba(99,131,160,.24);font-size:10px;font-weight:950;letter-spacing:.1em;color:#a9bed0}.gcPanelHeadRC124 strong{color:#fff;font-size:11px}.gcPitchRailRC124{max-height:490px;overflow:auto;padding:6px}.gcPitchRowRC124{display:grid;grid-template-columns:26px 1fr auto;gap:7px;align-items:center;padding:7px 5px;border-bottom:1px solid rgba(90,122,151,.17)}.gcPitchRowRC124:last-child{border-bottom:0}.gcPitchNumRC124{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:1000;border:1px solid #567087;background:#0b2034}.gcPitchNumRC124.ball{background:#17623a;border-color:#55cf83}.gcPitchNumRC124.strike{background:#7f2026;border-color:#e35d64}.gcPitchNumRC124.play{background:#164c75;border-color:#66ace1}.gcPitchRowRC124 b,.gcPitchRowRC124 small{display:block}.gcPitchRowRC124 b{font-size:10px}.gcPitchRowRC124 small{font-size:9px;color:#8da4b8;margin-top:1px}.gcPitchVelRC124{font-size:9px;font-weight:900;color:#d5dee7;white-space:nowrap}
+.gcVisualCardRC124{position:relative;min-height:510px;background:#030b12}.gcVisualStageRC124{position:relative;height:510px;overflow:hidden;background:linear-gradient(180deg,#071724 0 24%,#123c39 24% 50%,#735231 50% 100%)}.gcVisualStageRC124:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 31%,rgba(113,161,194,.24),transparent 32%),linear-gradient(180deg,rgba(4,12,21,.15),rgba(3,10,17,.56));pointer-events:none;z-index:1}.gcStandsRC124{position:absolute;left:-5%;right:-5%;top:19%;height:94px;background:repeating-linear-gradient(90deg,#101d2a 0 7px,#18293a 7px 14px);clip-path:polygon(0 35%,13% 12%,28% 26%,47% 0,66% 18%,84% 8%,100% 30%,100% 100%,0 100%);opacity:.95}.gcOutfieldWallRC124{position:absolute;left:0;right:0;top:43%;height:10px;background:#153a32;border-top:2px solid #d1d8df}.gcMoundRC124{position:absolute;left:50%;top:47%;width:76px;height:24px;border-radius:50%;transform:translateX(-50%);background:#9b724b;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+.gcBatterArtRC124{position:absolute;right:-34px;bottom:-20px;width:58%;max-width:360px;z-index:4;filter:drop-shadow(0 12px 16px rgba(0,0,0,.45));transition:.24s opacity,.24s transform}.gcBatterArtRC124 svg{width:100%;height:auto;display:block}.gcPitcherArtRC124{position:absolute;left:37%;top:28%;width:24%;max-width:140px;z-index:2;opacity:.62;filter:blur(.25px) drop-shadow(0 8px 10px rgba(0,0,0,.45));transform:scale(.78)}.gcPitcherArtRC124 svg{width:100%;height:auto;display:block}
+.gcZoneRigRC124{position:absolute;left:50%;top:51%;width:196px;height:244px;transform:translate(-50%,-50%);z-index:9;transition:.22s opacity,.22s transform}.gcZoneCanvasRC124{position:absolute;inset:0}.gcStrikeZoneRC124{position:absolute;left:22%;right:22%;top:17%;bottom:17%;border:3px solid rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(0,0,0,.35),inset 0 0 24px rgba(13,70,112,.14)}.gcStrikeZoneRC124:before,.gcStrikeZoneRC124:after{content:"";position:absolute;background:rgba(255,255,255,.22)}.gcStrikeZoneRC124:before{left:33.333%;top:0;bottom:0;width:1px;box-shadow:44px 0 0 rgba(255,255,255,.22)}.gcStrikeZoneRC124:after{left:0;right:0;top:33.333%;height:1px;box-shadow:0 53px 0 rgba(255,255,255,.22)}.gcPitchDotRC124{position:absolute;width:21px;height:21px;border-radius:50%;display:grid;place-items:center;transform:translate(-50%,-50%);font-size:9px;font-weight:1000;color:#fff;border:2px solid rgba(255,255,255,.9);box-shadow:0 2px 8px #0009;z-index:4}.gcPitchDotRC124.ball{background:#16834d}.gcPitchDotRC124.strike{background:#cb3039}.gcPitchDotRC124.play{background:#287db8}.gcPitchDotRC124.foul{background:#ba7822}.gcLiveBallRC124{position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid #d6d6d6;box-shadow:0 0 8px #fff,0 2px 7px #000;z-index:15;transition:left .38s cubic-bezier(.12,.72,.27,1),top .38s cubic-bezier(.12,.72,.27,1);pointer-events:none}.gcPitchCallRC124{position:absolute;left:12px;bottom:12px;z-index:12;max-width:calc(100% - 24px);padding:9px 11px;border-radius:10px;background:rgba(3,13,23,.88);border:1px solid rgba(133,162,188,.34);box-shadow:0 8px 22px rgba(0,0,0,.35)}.gcPitchCallRC124 b{font-size:13px}.gcPitchCallRC124 span{display:block;color:#9bb0c2;font-size:10px;margin-top:2px}.gcResultRC124{position:absolute;left:50%;top:16px;z-index:14;transform:translate(-50%,-8px);padding:8px 13px;border-radius:999px;background:rgba(3,14,24,.92);border:1px solid #7890a4;opacity:0;transition:.2s;white-space:nowrap;font-size:11px;font-weight:1000;letter-spacing:.08em}.gcResultRC124.show{opacity:1;transform:translate(-50%,0)}.gcResultRC124.big{color:#ffe893;border-color:#f1c64c;box-shadow:0 0 20px rgba(241,198,76,.28)}
+.gcFieldReplayRC124{position:absolute;inset:0;z-index:8;opacity:0;pointer-events:none;transition:.22s opacity;background:radial-gradient(circle at 50% 82%,#387141 0,#245832 44%,#183d28 76%)}.gcVisualStageRC124.inPlay .gcFieldReplayRC124{opacity:1}.gcVisualStageRC124.inPlay .gcBatterArtRC124,.gcVisualStageRC124.inPlay .gcPitcherArtRC124,.gcVisualStageRC124.inPlay .gcZoneRigRC124{opacity:0;transform:scale(.96)}.gcFieldReplayRC124 svg{width:100%;height:100%;display:block}.gcFieldReplayRC124 .gcTrajRC124{stroke:#fff;stroke-width:4;stroke-linecap:round;stroke-dasharray:10 9;filter:drop-shadow(0 0 4px rgba(255,255,255,.6))}.gcFieldBallRC124{fill:#fff;stroke:#18222b;stroke-width:2;filter:drop-shadow(0 0 4px white)}
+.gcUnderStageRC124{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 10px;border-top:1px solid rgba(99,131,160,.24);background:#071725}.gcAtBatCopyRC124{min-width:0}.gcAtBatCopyRC124 b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gcAtBatCopyRC124 span{display:block;font-size:10px;color:#91a7ba;margin-top:2px}.gcPlaybackRC124{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.gcMiniBtnRC124{border:1px solid #36536e;background:#0b2238;color:#fff;border-radius:8px;padding:7px 9px;font-size:10px;font-weight:900;cursor:pointer}.gcMiniBtnRC124.primary{border-color:#d7262e;background:#5b151a}
+.gcMatchPanelRC124{display:grid;gap:8px}.gcMatchCardRC124{padding:10px;border:1px solid rgba(99,131,160,.28);border-radius:12px;background:#071a2b}.gcMatchLabelRC124{font-size:9px;font-weight:950;letter-spacing:.11em;color:#8fa7bb}.gcMatchPersonRC124{display:grid;grid-template-columns:58px minmax(0,1fr);gap:9px;align-items:center;margin-top:7px}.gcMatchPersonRC124 .playerPortrait{width:58px!important;height:66px!important;margin:0}.gcMatchPersonRC124 b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gcMatchPersonRC124 small{display:block;color:#8ea4b7;font-size:9px;margin-top:2px}.gcGameLineRC124{font-size:10px;color:#dbe5ed;margin-top:7px;padding-top:7px;border-top:1px solid rgba(99,131,160,.18)}.gcManagerRC124{padding:9px 10px;border:1px solid rgba(241,198,76,.28);border-radius:10px;background:rgba(241,198,76,.06)}.gcManagerRC124 span{display:block;font-size:8px;font-weight:950;letter-spacing:.11em;color:#f1c64c}.gcManagerRC124 b{display:block;font-size:10px;margin-top:3px}.gcManagerRC124.pulse{animation:gcPulseRC124 .5s ease}@keyframes gcPulseRC124{0%{transform:scale(.985);background:rgba(241,198,76,.18)}100%{transform:scale(1)}}
+.gcLatestFeedRC124{grid-column:1/-1}.gcFeedRC124{max-height:180px;overflow:auto;padding:4px 9px}.gcFeedPlayRC124{display:grid;grid-template-columns:auto 1fr;gap:8px;padding:7px 2px;border-bottom:1px solid rgba(99,131,160,.16);font-size:10px}.gcFeedTagRC124{font-size:8px;font-weight:1000;letter-spacing:.08em;color:#8fa5b7;white-space:nowrap}.gcFeedPlayRC124.strategy{border-left:3px solid #f1c64c;padding-left:7px}
+.gcSummaryHeroRC124{display:grid;grid-template-columns:1fr 1fr;gap:10px}.gcSummaryCardRC124{border:1px solid rgba(99,131,160,.3);border-radius:14px;background:#071a2b;padding:12px}.gcSummaryCardRC124 h3{font-size:12px;letter-spacing:.08em}.gcScoringPlayRC124{display:grid;grid-template-columns:70px 1fr auto;gap:9px;padding:9px 0;border-bottom:1px solid rgba(99,131,160,.18);font-size:11px}.gcScoringPlayRC124:last-child{border-bottom:0}.gcScoringPlayRC124 span{color:#8fa5b8;font-size:9px;font-weight:900}.gcScorePillRC124{font-weight:1000;color:#fff}.gcLeaderRC124{display:grid;grid-template-columns:50px 1fr;gap:9px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(99,131,160,.14)}.gcLeaderRC124:last-child{border-bottom:0}.gcLeaderRC124 .playerPortrait{width:50px!important;height:58px!important}.gcLeaderRC124 b,.gcLeaderRC124 small{display:block}.gcLeaderRC124 small{font-size:9px;color:#91a6b8;margin-top:2px}.gcPlaysGroupRC124{margin-bottom:14px}.gcPlaysInningRC124{position:sticky;top:133px;z-index:3;padding:7px 9px;border-radius:8px;background:#10263b;border:1px solid rgba(99,131,160,.28);font-size:10px;font-weight:1000;letter-spacing:.09em}.gcPlaysListRC124{padding:0 4px}.gcPlayRC124{display:grid;grid-template-columns:30px 1fr;gap:8px;padding:8px 4px;border-bottom:1px solid rgba(99,131,160,.15)}.gcPlayIconRC124{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#102b43;border:1px solid #48657e;font-size:9px;font-weight:1000}.gcPlayRC124 b{display:block;font-size:11px}.gcPlayRC124 small{display:block;font-size:9px;color:#8ea4b7;margin-top:2px}.gcLineScoreRC124{overflow:auto}.gcLineScoreRC124 table{min-width:520px}.gcLineScoreRC124 th{position:static;top:auto}
+@media(max-width:930px){.gcReplayGridRC124{grid-template-columns:minmax(0,1fr) 220px}.gcPitchPanelRC124{grid-column:1/-1;order:3}.gcPitchRailRC124{display:flex;gap:5px;max-height:none;overflow:auto}.gcPitchRowRC124{min-width:130px;border:1px solid rgba(90,122,151,.18);border-radius:9px}.gcLatestFeedRC124{order:4}.gcVisualCardRC124{min-height:470px}.gcVisualStageRC124{height:470px}}
+@media(max-width:680px){#gc.gcGamedayDialogRC124{width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;border-radius:0;border:0}.gcDayEyebrowRC124{padding-left:10px;padding-right:10px}.gcScorebarRC124{grid-template-columns:1fr 86px 1fr;padding:7px 9px 9px;gap:5px}.gcClubRC124{gap:5px}.gcClubRC124 .teamMark{width:34px;height:34px;flex-basis:34px}.gcClubCopyRC124 b{font-size:10px;max-width:90px}.gcClubCopyRC124 small{display:none}.gcClubScoreRC124{font-size:27px}.gcStateLineRC124{font-size:10px}.gcCountLineRC124{font-size:9px}.gcDayTabsRC124{padding:0 5px}.gcDayTabRC124{padding:9px 10px 8px;font-size:10px}.gcDayBodyRC124{padding:8px}.gcReplayGridRC124{display:flex;flex-direction:column}.gcVisualCardRC124{order:1;width:100%;min-height:430px}.gcVisualStageRC124{height:430px}.gcMatchPanelRC124{order:2;width:100%;grid-template-columns:1fr 1fr}.gcPitchPanelRC124{order:3;width:100%}.gcLatestFeedRC124{order:4;width:100%}.gcPitchRailRC124{display:flex;max-width:100%;overflow:auto}.gcPitchRowRC124{min-width:126px}.gcBatterArtRC124{width:70%;right:-62px;bottom:-14px}.gcPitcherArtRC124{left:34%;top:29%;width:31%}.gcZoneRigRC124{width:174px;height:220px;left:47%;top:50%}.gcUnderStageRC124{grid-template-columns:1fr}.gcPlaybackRC124{justify-content:flex-start}.gcMatchPersonRC124{grid-template-columns:46px minmax(0,1fr)}.gcMatchPersonRC124 .playerPortrait{width:46px!important;height:54px!important}.gcSummaryHeroRC124{grid-template-columns:1fr}.gcScoringPlayRC124{grid-template-columns:58px 1fr auto}.gcPlaysInningRC124{top:124px}}
+@media(max-width:430px){.gcClubCopyRC124 b{max-width:70px}.gcMatchPanelRC124{grid-template-columns:1fr}.gcVisualStageRC124{height:400px}.gcVisualCardRC124{min-height:400px}.gcZoneRigRC124{width:158px;height:204px}.gcBatterArtRC124{width:76%;right:-72px}.gcPitcherArtRC124{left:32%;width:34%}.gcPlaybackRC124 .gcMiniBtnRC124{flex:1 1 auto}.gcSummaryCardRC124{padding:10px}}
+</style>
+<script id="eblGamecastRC124">
+(function(){
+  const BUILD='RC124_GAMEDAY_VISUAL_REPLAY';
+  function esc(v){return typeof escapeHtml==='function'?escapeHtml(String(v??'')):String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));}
+  function N(v,d=0){const n=Number(v);return Number.isFinite(n)?n:d}
+  function player(pid){try{return typeof gamecastPlayerById==='function'?gamecastPlayerById(pid):null}catch(_){return null}}
+  function art(p,action){
+    if(!p)return '';
+    try{if(typeof eblPlayerArtV24==='function')return eblPlayerArtV24(p,'lg',action||'portrait')}catch(_){ }
+    try{if(typeof playerPortraitMarkup==='function')return playerPortraitMarkup(p,action||'portrait')}catch(_){ }
+    return '';
+  }
+  function portrait(p,action){
+    if(!p)return '<div class="playerPortrait"></div>';
+    try{return playerPortraitMarkup(p,action||'portrait')}catch(_){return `<div class="playerPortrait">${art(p,'portrait')}</div>`}
+  }
+  function teamInfo(fid){
+    const t=(LEAGUE?.teams||[]).find(x=>x.id===fid)||{};
+    return {name:t.display_name||t.name||teamName(fid)||fid,mark:teamMark(fid,true)};
+  }
+  function hitterLine(p){
+    if(!p)return 'Waiting for first plate appearance';
+    const r=(GG?.box?.hitter_rows||[]).find(x=>N(x.player_id)===N(p.player_id??p.id))||p;
+    return `${N(r.H)}-${N(r.AB)} • ${N(r.HR)} HR • ${N(r.RBI)} RBI${N(r.BB)?` • ${N(r.BB)} BB`:''}`;
+  }
+  function pitcherLine(p){
+    if(!p)return 'Waiting for first pitch';
+    const r=(GG?.box?.pitcher_rows||[]).find(x=>N(x.player_id)===N(p.player_id??p.id))||p;
+    const outs=N(r.OUTS??r.outs);const ip=`${Math.floor(outs/3)}.${outs%3}`;
+    return `${ip} IP • ${N(r.SO)} K • ${N(r.BB)} BB • ${N(r.ER)} ER`;
+  }
+  function callClass(call){
+    const s=String(call||'').toLowerCase();
+    if(s==='ball')return 'ball';if(s.includes('foul'))return 'foul';if(s.includes('in play'))return 'play';return 'strike';
+  }
+  function pitchCode(t){
+    const map={'Four-Seam':'4S','Slider':'SL','Changeup':'CH','Sinker':'SI','Curve':'CU'};return map[t]||String(t||'P').slice(0,2).toUpperCase();
+  }
+  function inningLabel(e){return `${String(e?.half||'TOP').toUpperCase()==='BOT'?'BOT':'TOP'} ${N(e?.inning,1)}`}
+  function scorebar(){
+    const a=teamInfo(GG.away_id),h=teamInfo(GG.home_id);
+    return `<div class="gcScorebarRC124">
+      <div class="gcClubRC124">${a.mark}<div class="gcClubCopyRC124"><b>${esc(a.name)}</b><small>AWAY</small></div><strong id="gcAwayScore" class="gcClubScoreRC124">0</strong></div>
+      <div class="gcCenterStateRC124"><div id="gcInning" class="gcStateLineRC124">TOP 1</div><div id="gcCount" class="gcCountLineRC124">0-0 • 0 OUTS</div><div class="gcBasesRC124"><i id="gcB3" class="gcBaseRC124 b3"></i><i id="gcB2" class="gcBaseRC124 b2"></i><i id="gcB1" class="gcBaseRC124 b1"></i></div></div>
+      <div class="gcClubRC124 home"><strong id="gcHomeScore" class="gcClubScoreRC124">0</strong><div class="gcClubCopyRC124"><b>${esc(h.name)}</b><small>HOME</small></div>${h.mark}</div>
+    </div>`;
+  }
+  function tabButton(mode,label,active=false){return `<button class="gcDayTabRC124${active?' active':''}" data-gc-tab="${mode}" onclick="gameTab('${mode}',this)">${label}</button>`}
+  window.renderGameShell=function(){
+    const host=document.getElementById('gcontent');if(!host)return;
+    const dlg=document.getElementById('gc');if(dlg){dlg.classList.add('gcGamedayDialogRC124');if(!dlg.dataset.gc124Close){dlg.addEventListener('close',()=>clearInterval(timer));dlg.dataset.gc124Close='1'}}
+    host.innerHTML=`<div class="gcDayShellRC124"><div class="gcDayTopRC124">
+      <div class="gcDayEyebrowRC124"><span>EBL GAMEDAY • DAY ${N(GG?.league_day)}</span><button class="gcDayCloseRC124" aria-label="Close GameCast" onclick="document.getElementById('gc').close()">×</button></div>
+      ${scorebar()}
+      <div class="gcDayTabsRC124">${tabButton('CAST','REPLAY',true)}${tabButton('SUMMARY','SUMMARY')}${tabButton('BOX','BOX SCORE')}${tabButton('PBP','PLAYS')}</div>
+    </div><div id="gameView" class="gcDayBodyRC124"></div></div>`;
+    renderGamecast();
+  };
+  window.gameTab=function(mode,b){
+    clearInterval(timer);
+    document.querySelectorAll('.gcDayTabRC124').forEach(x=>x.classList.remove('active'));if(b)b.classList.add('active');
+    if(mode==='CAST')renderGamecast();
+    else if(mode==='SUMMARY')window.renderGameSummaryRC124();
+    else if(mode==='BOX'){gcSetFinalStateRC124();renderBoxScore();}
+    else if(mode==='PBP')renderFullPlayByPlay();
+  };
+  function matchupCard(p,label,kind){
+    return `<div class="gcMatchCardRC124"><div class="gcMatchLabelRC124">${esc(label)}</div>${p?`<div class="gcMatchPersonRC124">${portrait(p,kind)}<div><b>#${N(p.jersey_number,24)} ${esc(p.name||'Player')}</b><small>${esc(p.primary_pos||'')}</small><div class="gcGameLineRC124">${kind==='pitching'?pitcherLine(p):hitterLine(p)}</div></div></div>`:'<div class="muted" style="padding:10px 0;font-size:10px">Waiting for matchup…</div>'}</div>`;
+  }
+  function updateMatchup(batterId,pitcherId){
+    const b=player(batterId),p=player(pitcherId),box=document.getElementById('gcMatchupRC124');
+    if(box)box.innerHTML=matchupCard(b,'AT BAT','batting')+matchupCard(p,'ON THE MOUND','pitching');
+    const ba=document.getElementById('gcBatterArtRC124');if(ba)ba.innerHTML=art(b,'batting');
+    const pa=document.getElementById('gcPitcherArtRC124');if(pa)pa.innerHTML=art(p,'pitching');
+    const copy=document.getElementById('gcAtBatCopyRC124');if(copy)copy.innerHTML=b&&p?`<b>#${N(b.jersey_number,24)} ${esc(b.name)} vs #${N(p.jersey_number,24)} ${esc(p.name)}</b><span>${esc(hitterLine(b))}</span>`:'<b>Game replay</b><span>Waiting for the first matchup</span>';
+  }
+  function resetPitchVisual(){
+    const stage=document.getElementById('gcVisualStageRC124');if(stage)stage.classList.remove('inPlay');
+    const z=document.getElementById('gcZoneDotsRC124');if(z)z.innerHTML='';
+    const rail=document.getElementById('gcPitchRailRC124');if(rail)rail.innerHTML='<div class="muted" style="padding:9px;font-size:10px">This at-bat is about to begin.</div>';
+    const pc=document.getElementById('gcPitchCallRC124');if(pc)pc.innerHTML='<b>Waiting for first pitch</b><span>Pitch type, velocity, location and call will appear here.</span>';
+    const res=document.getElementById('gcResultRC124');if(res){res.textContent='';res.className='gcResultRC124'}
+  }
+  window.renderGamecast=function(){
+    gi=0;GC_STATE={score:[0,0],inning:1,half:'TOP',balls:0,strikes:0,outs:0,runner:null,base:0,batter_id:null,pitcher_id:null,pitch_no:0};
+    const host=document.getElementById('gameView');if(!host)return;
+    host.innerHTML=`<div class="gcReplayGridRC124">
+      <aside class="gcPanelRC124 gcPitchPanelRC124"><div class="gcPanelHeadRC124"><strong>PITCH SEQUENCE</strong><span id="gcPitchCountRC124">0 PITCHES</span></div><div id="gcPitchRailRC124" class="gcPitchRailRC124"><div class="muted" style="padding:9px;font-size:10px">This at-bat is about to begin.</div></div></aside>
+      <section class="gcPanelRC124 gcVisualCardRC124"><div id="gcVisualStageRC124" class="gcVisualStageRC124"><div class="gcStandsRC124"></div><div class="gcOutfieldWallRC124"></div><div class="gcMoundRC124"></div><div id="gcPitcherArtRC124" class="gcPitcherArtRC124"></div><div id="gcBatterArtRC124" class="gcBatterArtRC124"></div>
+        <div id="gcZoneRigRC124" class="gcZoneRigRC124"><div id="gcZoneCanvasRC124" class="gcZoneCanvasRC124"><div class="gcStrikeZoneRC124"></div><div id="gcZoneDotsRC124"></div></div></div>
+        <div id="gcFieldReplayRC124" class="gcFieldReplayRC124"><svg viewBox="0 0 600 420" preserveAspectRatio="none" aria-label="Ball in play field view"><path d="M300 390 L65 120 L300 28 L535 120 Z" fill="#2f6b3d" stroke="#e7e5d7" stroke-width="3"/><path d="M300 390 L158 230 L300 125 L442 230 Z" fill="#9d7348" stroke="#e7d1ad" stroke-width="2"/><path d="M300 390 L300 125 M300 390 L65 120 M300 390 L535 120" fill="none" stroke="#f4f4ea" stroke-width="2" opacity=".72"/><rect x="294" y="378" width="13" height="13" transform="rotate(45 300 384)" fill="#fff"/><rect x="435" y="224" width="12" height="12" transform="rotate(45 441 230)" fill="#fff"/><rect x="294" y="119" width="12" height="12" transform="rotate(45 300 125)" fill="#fff"/><rect x="153" y="224" width="12" height="12" transform="rotate(45 159 230)" fill="#fff"/><g fill="#d9e0e8" opacity=".8"><circle cx="300" cy="270" r="8"/><circle cx="210" cy="218" r="8"/><circle cx="390" cy="218" r="8"/><circle cx="145" cy="135" r="8"/><circle cx="300" cy="75" r="8"/><circle cx="455" cy="135" r="8"/></g><line id="gcTrajRC124" class="gcTrajRC124" x1="300" y1="382" x2="300" y2="160"/><circle id="gcFieldBallRC124" class="gcFieldBallRC124" cx="300" cy="160" r="7"/></svg></div>
+        <div id="gcResultRC124" class="gcResultRC124"></div><div id="gcPitchCallRC124" class="gcPitchCallRC124"><b>Waiting for first pitch</b><span>Pitch type, velocity, location and call will appear here.</span></div>
+      </div><div class="gcUnderStageRC124"><div id="gcAtBatCopyRC124" class="gcAtBatCopyRC124"><b>Game replay</b><span>Watch the final game unfold pitch by pitch.</span></div><div class="gcPlaybackRC124"><button class="gcMiniBtnRC124 primary" onclick="gcPlayRC124(850)">▶ PLAY</button><button class="gcMiniBtnRC124" onclick="gcPauseRC124()">Ⅱ PAUSE</button><button class="gcMiniBtnRC124" onclick="gcPlayRC124(300)">FAST</button><button class="gcMiniBtnRC124" onclick="instant()">END</button><button class="gcMiniBtnRC124" onclick="replay()">↺ REPLAY</button></div></div></section>
+      <aside id="gcMatchupRC124" class="gcMatchPanelRC124">${matchupCard(null,'AT BAT','batting')}${matchupCard(null,'ON THE MOUND','pitching')}<div id="gcStrategyLive" class="gcManagerRC124"><span>MANAGER DECISIONS</span><b>Game plan loaded</b></div></aside>
+      <section class="gcPanelRC124 gcLatestFeedRC124"><div class="gcPanelHeadRC124"><strong>LIVE FEED</strong><span>REPLAY</span></div><div id="gcFeedRC124" class="gcFeedRC124"></div></section>
+    </div>`;
+    gcUpdateScoreboard();clearInterval(timer);timer=setInterval(step,850);
+  };
+  window.gcPlayRC124=function(ms=850){clearInterval(timer);timer=setInterval(step,ms)};
+  window.gcPauseRC124=function(){clearInterval(timer)};
+  window.gcUpdateScoreboard=function(){
+    const a=document.getElementById('gcAwayScore'),h=document.getElementById('gcHomeScore'),inn=document.getElementById('gcInning'),cnt=document.getElementById('gcCount');
+    if(a)a.textContent=GC_STATE.score?.[0]??0;if(h)h.textContent=GC_STATE.score?.[1]??0;if(inn)inn.textContent=`${GC_STATE.half==='BOT'?'BOT':'TOP'} ${GC_STATE.inning||1}`;if(cnt)cnt.textContent=`${GC_STATE.balls||0}-${GC_STATE.strikes||0} • ${GC_STATE.outs||0} OUT${GC_STATE.outs===1?'':'S'}`;
+    ['1','2','3'].forEach(n=>{const b=document.getElementById('gcB'+n);if(b)b.classList.toggle('on',N(n)===N(GC_STATE.base)&&!!GC_STATE.runner)});
+  };
+  function feedEvent(e){
+    const feed=document.getElementById('gcFeedRC124');if(!feed)return;const d=document.createElement('div');d.className='gcFeedPlayRC124'+(typeof gcStrategyClassRC53==='function'&&gcStrategyClassRC53(e)?' strategy':'');d.innerHTML=`<span class="gcFeedTagRC124">${esc(e?.inning?inningLabel(e):String(e?.type||'PLAY').replaceAll('_',' '))}</span><span>${esc(describe(e))}</span>`;feed.prepend(d);while(feed.children.length>28)feed.removeChild(feed.lastChild);
+  }
+  function addPitch(e){
+    const rail=document.getElementById('gcPitchRailRC124'),dots=document.getElementById('gcZoneDotsRC124'),pc=document.getElementById('gcPitchCallRC124'),counter=document.getElementById('gcPitchCountRC124');
+    const num=N(e.pitch_no,GC_STATE.pitch_no+1),cls=callClass(e.call);GC_STATE.pitch_no=num;
+    if(rail){if(num===1)rail.innerHTML='';const row=document.createElement('div');row.className='gcPitchRowRC124';row.innerHTML=`<span class="gcPitchNumRC124 ${cls}">${num}</span><span><b>${esc(pitchCode(e.pitch_type))} • ${esc(e.call)}</b><small>${esc(e.pitch_type)}</small></span><span class="gcPitchVelRC124">${N(e.velocity).toFixed(1)} MPH</span>`;rail.prepend(row)}
+    if(counter)counter.textContent=`${num} PITCH${num===1?'':'ES'}`;
+    const x=Math.max(6,Math.min(94,8+N(e.px,.5)*84)),y=Math.max(5,Math.min(95,8+(1-N(e.pz,.5))*84));
+    if(dots){const q=document.createElement('div');q.className=`gcPitchDotRC124 ${cls}`;q.style.left=x+'%';q.style.top=y+'%';q.textContent=num;dots.appendChild(q)}
+    if(pc)pc.innerHTML=`<b>${esc(e.pitch_type)} • ${N(e.velocity).toFixed(1)} MPH</b><span>${esc(e.call)} • Count ${N(e.balls)}-${N(e.strikes)}</span>`;
+    animatePitch(e,x,y);
+  }
+  function animatePitch(e,x,y){
+    const stage=document.getElementById('gcVisualStageRC124'),canvas=document.getElementById('gcZoneCanvasRC124');if(!stage||!canvas)return;
+    const sr=stage.getBoundingClientRect(),zr=canvas.getBoundingClientRect(),b=document.createElement('i');b.className='gcLiveBallRC124';b.style.left='50%';b.style.top='34%';stage.appendChild(b);
+    const tx=(zr.left-sr.left)+(x/100)*zr.width,ty=(zr.top-sr.top)+(y/100)*zr.height;requestAnimationFrame(()=>{b.style.left=tx+'px';b.style.top=ty+'px'});setTimeout(()=>b.remove(),650);
+  }
+  function showResult(text,big=false){const el=document.getElementById('gcResultRC124');if(!el)return;el.textContent=text;el.className='gcResultRC124 show'+(big?' big':'');clearTimeout(window.__gc124Result);window.__gc124Result=setTimeout(()=>{if(el)el.className='gcResultRC124'},1750)}
+  function showBallInPlay(e){
+    const stage=document.getElementById('gcVisualStageRC124');if(stage)stage.classList.add('inPlay');
+    const pc=document.getElementById('gcPitchCallRC124');if(pc)pc.innerHTML=`<b>${esc(String(e.result||'BALL IN PLAY'))}</b><span>${N(e.exit_velocity).toFixed(1)} MPH EV • ${N(e.launch_angle).toFixed(1)}° LA • ${esc(e.contact_quality||'Contact')}</span>`;
+    const angle=N(e.spray_angle),result=String(e.result||'').toUpperCase(),ev=N(e.exit_velocity,90),la=N(e.launch_angle,10);let depth=160;
+    if(result==='HR')depth=38;else if(result==='3B')depth=72;else if(result==='2B')depth=102;else if(result==='1B'||result==='ROE')depth=145;else depth=Math.max(80,170-Math.max(0,ev-80)*1.2-Math.max(0,la)*.65);
+    const x=Math.max(88,Math.min(512,300+angle*4.65)),y=Math.max(34,Math.min(220,depth)),line=document.getElementById('gcTrajRC124'),ball=document.getElementById('gcFieldBallRC124');if(line){line.setAttribute('x2',x);line.setAttribute('y2',y)}if(ball){ball.setAttribute('cx',x);ball.setAttribute('cy',y)}showResult(result==='OUT'?esc(e.out_type||'BALL IN PLAY'):result,result==='HR');
+  }
+  function managerEvent(e){
+    const el=document.getElementById('gcStrategyLive');if(!el)return;let text='';
+    if(e.type==='PITCHING_CHANGE'){const p=player(e.pitcher_id);text=`${teamName(e.team)} • ${e.role||'RP'} ${p?`#${N(p.jersey_number,24)} ${p.name}`:'enters'}`}
+    else if(e.type==='DEFENSIVE_SHIFT')text=`${teamName(e.team)} • ${String(e.mode||'STANDARD').replaceAll('_',' ')} alignment`;
+    else if(e.type==='BUNT_ATTEMPT')text=`Offensive call • Bunt ${e.success?'executed':'attempted'}`;
+    else if(e.type==='STEAL_ATTEMPT')text=`Baserunning call • Steal attempt ${e.success?'successful':'unsuccessful'}`;
+    else if(e.type==='PICKOFF')text='Pickoff move • Runner erased';
+    if(!text)return;el.innerHTML=`<span>MANAGER DECISION</span><b>${esc(text)}</b>`;el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse');
+  }
+  window.step=function(){
+    if(gi>=((GG?.events||[]).length)){clearInterval(timer);return}
+    const e=GG.events[gi++];feedEvent(e);
+    if(e.score)GC_STATE.score=[N(e.score[0]),N(e.score[1])];if(e.final_score)GC_STATE.score=[N(e.final_score[0]),N(e.final_score[1])];if(e.inning)GC_STATE.inning=N(e.inning,1);if(e.half&&['TOP','BOT'].includes(e.half))GC_STATE.half=e.half;if(Number.isFinite(Number(e.outs)))GC_STATE.outs=N(e.outs);
+    if(e.type==='PA_START'){
+      GC_STATE.balls=0;GC_STATE.strikes=0;GC_STATE.pitch_no=0;GC_STATE.outs=N(e.outs,GC_STATE.outs);GC_STATE.batter_id=e.batter_id;GC_STATE.pitcher_id=e.pitcher_id;resetPitchVisual();updateMatchup(e.batter_id,e.pitcher_id);
+    }
+    if(e.type==='PITCH'){GC_STATE.balls=N(e.balls);GC_STATE.strikes=N(e.strikes);addPitch(e)}
+    if(e.type==='BALL_IN_PLAY')showBallInPlay(e);
+    if(e.type==='PA_END'){
+      const r=String(e.result||'');if(['1B','ROE'].includes(r)){GC_STATE.runner=e.batter_id;GC_STATE.base=1}else if(r==='BB'&&!GC_STATE.runner){GC_STATE.runner=e.batter_id;GC_STATE.base=1}else if(r==='2B'){GC_STATE.runner=e.batter_id;GC_STATE.base=2}else if(r==='3B'){GC_STATE.runner=e.batter_id;GC_STATE.base=3}else if(r==='HR'){GC_STATE.runner=null;GC_STATE.base=0}
+    }
+    if(e.type==='STEAL_ATTEMPT'){if(e.success&&GC_STATE.runner)GC_STATE.base=Math.min(3,(GC_STATE.base||1)+1);managerEvent(e);showResult(e.success?'STOLEN BASE':'CAUGHT STEALING',true)}
+    if(e.type==='PICKOFF'||(e.type==='OUT'&&e.out_type==='Caught Stealing')){GC_STATE.runner=null;GC_STATE.base=0;managerEvent(e);showResult(e.type==='PICKOFF'?'PICKED OFF':'CAUGHT STEALING',true)}
+    if(e.type==='RUN'){GC_STATE.runner=null;GC_STATE.base=0;showResult(N(e.runs,1)>1?`${N(e.runs,1)} RUNS SCORE`:'RUN SCORES',true)}
+    if(['PITCHING_CHANGE','DEFENSIVE_SHIFT','BUNT_ATTEMPT'].includes(e.type))managerEvent(e);
+    if(e.type==='OUT'&&e.out_type==='Strikeout')showResult('STRIKEOUT',true);if(e.type==='GREAT_PLAY')showResult('GREAT PLAY',true);if(e.type==='FIELDING_ERROR')showResult('ERROR',true);if(e.type==='OUTFIELD_HOLD')showResult('STRONG THROW');
+    if(e.type==='INNING_END'){GC_STATE.outs=0;GC_STATE.balls=0;GC_STATE.strikes=0;GC_STATE.runner=null;GC_STATE.base=0}
+    if(e.type==='GAME_END'){showResult('FINAL',true);clearInterval(timer)}
+    gcUpdateScoreboard();
+  };
+  function gcSetFinalStateRC124(){GC_STATE.score=[N(GG?.away_runs),N(GG?.home_runs)];GC_STATE.inning=9;GC_STATE.half='BOT';GC_STATE.balls=0;GC_STATE.strikes=0;GC_STATE.outs=3;GC_STATE.runner=null;GC_STATE.base=0;gcUpdateScoreboard()}
+  function lineScore(){
+    const a=GG?.line_score?.away||{},h=GG?.line_score?.home||{},at=GG?.totals?.away||{R:GG?.away_runs,H:0,E:0},ht=GG?.totals?.home||{R:GG?.home_runs,H:0,E:0};let heads='',ar='',hr='';for(let i=1;i<=9;i++){heads+=`<th>${i}</th>`;ar+=`<td>${a[String(i)]??0}</td>`;hr+=`<td>${h[String(i)]??0}</td>`}return `<div class="gcLineScoreRC124"><table><tr><th>TEAM</th>${heads}<th>R</th><th>H</th><th>E</th></tr><tr><td>${teamMark(GG.away_id,true)} ${esc(teamName(GG.away_id))}</td>${ar}<td><b>${N(at.R,GG.away_runs)}</b></td><td>${N(at.H)}</td><td>${N(at.E)}</td></tr><tr><td>${teamMark(GG.home_id,true)} ${esc(teamName(GG.home_id))}</td>${hr}<td><b>${N(ht.R,GG.home_runs)}</b></td><td>${N(ht.H)}</td><td>${N(ht.E)}</td></tr></table></div>`;
+  }
+  function leaderRows(fid){
+    const hitters=(GG?.box?.hitter_rows||[]).filter(x=>x.team_id===fid).slice().sort((a,b)=>(N(b.HR)-N(a.HR))||(N(b.RBI)-N(a.RBI))||(N(b.H)-N(a.H))).slice(0,2);
+    return hitters.map(p=>`<div class="gcLeaderRC124">${portrait(p,'batting')}<div><b>#${N(p.jersey_number,24)} ${esc(p.name)}</b><small>${esc(hitterLine(p))}</small></div></div>`).join('')||'<div class="muted">No batting line available.</div>';
+  }
+  window.renderGameSummaryRC124=function(){
+    const runs=(GG?.events||[]).filter(e=>e.type==='RUN');const scoring=runs.map(e=>{const who=player(e.batter_id)||player(e.runner_id),team=e.team?teamName(e.team):'';return `<div class="gcScoringPlayRC124"><span>${inningLabel(e)}</span><div><b>${esc(team)}</b><div class="muted">${who?esc(`#${N(who.jersey_number,24)} ${who.name}`):'Scoring play'}${e.note?` • ${esc(e.note)}`:''}</div></div><b class="gcScorePillRC124">${N(e.score?.[0])}-${N(e.score?.[1])}</b></div>`}).join('')||'<p class="muted">No scoring plays were recorded.</p>';
+    const host=document.getElementById('gameView');if(!host)return;host.innerHTML=`<div class="gcSummaryHeroRC124"><section class="gcSummaryCardRC124" style="grid-column:1/-1"><h3>FINAL LINE</h3>${lineScore()}</section><section class="gcSummaryCardRC124"><h3>SCORING PLAYS</h3>${scoring}</section><section class="gcSummaryCardRC124"><h3>${esc(teamName(GG.away_id))} • NOTABLE BATTING</h3>${leaderRows(GG.away_id)}<h3 style="margin-top:12px">${esc(teamName(GG.home_id))} • NOTABLE BATTING</h3>${leaderRows(GG.home_id)}</section></div>`;
+    gcSetFinalStateRC124();
+  };
+  window.renderFullPlayByPlay=function(){
+    const evs=GG?.events||[],groups=new Map();evs.forEach(e=>{const key=e.inning?`${e.half||'TOP'}|${e.inning}`:'GAME|0';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e)});let html='';for(const [key,arr] of groups){const [half,inn]=key.split('|');const label=half==='GAME'?'GAME':`${half==='BOT'?'BOTTOM':'TOP'} ${inn}`;html+=`<section class="gcPlaysGroupRC124"><div class="gcPlaysInningRC124">${label}</div><div class="gcPlaysListRC124">${arr.map(e=>{const icon=e.type==='PITCH'?'P':e.type==='BALL_IN_PLAY'?'BIP':e.type==='RUN'?'R':e.type==='OUT'?'OUT':'•';return `<div class="gcPlayRC124"><span class="gcPlayIconRC124">${icon}</span><div><b>${esc(describe(e))}</b><small>${esc(String(e.type||'PLAY').replaceAll('_',' '))}</small></div></div>`}).join('')}</div></section>`}document.getElementById('gameView').innerHTML=html||'<div class="gcSummaryCardRC124">No play-by-play available.</div>';
+    gcSetFinalStateRC124();
+  };
+  window.EBL_GAMECAST_BUILD=BUILD;
+})();
+</script>
