@@ -551,7 +551,7 @@ def generated_official_brand_art(brand):
     wordmark_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360"><!-- EBL-RC116-PREMIUM -->{defs}<g transform="translate(-58 -76) scale(.68)" filter="url(#shadow)">{badge}{motif}</g><text x="758" y="96" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="900" letter-spacing="13" fill="{secondary}">{city_e}</text><g transform="skewX(-7)"><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{accent}" stroke-width="13" paint-order="stroke">{team_e}</text><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{dark}" stroke-width="4" paint-order="stroke">{team_e}</text></g><path d="M340 266 H1120" stroke="{secondary}" stroke-width="16" stroke-linecap="round"/><path d="M500 297 H970" stroke="{accent}" stroke-width="6" stroke-linecap="round" opacity=".84"/><polygon points="{_brand_star_points(1050,297,15,6)}" fill="{secondary}"/></svg>'
     return {"primary":_brand_svg_uri(primary_svg),"secondary":_brand_svg_uri(secondary_svg),"wordmark":_brand_svg_uri(wordmark_svg)}
 
-# RC122 static franchise artwork map. Files live in static/assets and are seeded
+# RC123 final franchise artwork map. Coach-owned F21 stays outside static defaults; files live in static/assets and are seeded
 # into SQLite as self-contained data URIs while remaining replaceable by coach uploads.
 PRODUCTION_BRAND_FILES={
     "EBL-F02":{'primary': 'assets/ebl-f02_primary.webp', 'secondary': 'assets/ebl-f02_secondary.webp', 'wordmark': 'assets/ebl-f02_wordmark.webp'},
@@ -573,12 +573,12 @@ PRODUCTION_BRAND_FILES={
     "EBL-F18":{'primary': 'assets/ebl-f18_primary.webp', 'secondary': 'assets/ebl-f18_secondary.webp', 'wordmark': 'assets/ebl-f18_wordmark.webp'},
     "EBL-F19":{'primary': 'assets/ebl-f19_primary.webp', 'secondary': 'assets/ebl-f19_secondary.webp', 'wordmark': 'assets/ebl-f19_wordmark.webp'},
     "EBL-F20":{'primary': 'assets/ebl-f20_primary.webp', 'secondary': 'assets/ebl-f20_secondary.webp', 'wordmark': 'assets/ebl-f20_wordmark.webp'},
-    "EBL-F21":{'primary': 'assets/ebl-f21_primary.webp', 'secondary': 'assets/ebl-f21_secondary.webp', 'wordmark': 'assets/ebl-f21_wordmark.webp'},
     "EBL-F22":{'primary': 'assets/ebl-f22_primary.webp', 'secondary': 'assets/ebl-f22_secondary.webp', 'wordmark': 'assets/ebl-f22_wordmark.webp'},
     "EBL-F23":{'primary': 'assets/ebl-f23_primary.webp', 'secondary': 'assets/ebl-f23_secondary.webp', 'wordmark': 'assets/ebl-f23_wordmark.webp'},
     "EBL-F24":{'primary': 'assets/ebl-f24_primary.webp', 'secondary': 'assets/ebl-f24_secondary.webp', 'wordmark': 'assets/ebl-f24_wordmark.webp'},
     "EBL-F25":{'primary': 'assets/ebl-f25_primary.webp', 'secondary': 'assets/ebl-f25_secondary.webp', 'wordmark': 'assets/ebl-f25_wordmark.webp'},
     "EBL-F26":{'primary': 'assets/ebl-f26_primary.webp', 'secondary': 'assets/ebl-f26_secondary.webp', 'wordmark': 'assets/ebl-f26_wordmark.webp'},
+    "EBL-F27":{'primary': 'assets/ebl-f27_primary.png', 'secondary': 'assets/ebl-f27_secondary.png', 'wordmark': 'assets/ebl-f27_wordmark.png'},
     "EBL-F28":{'primary': 'assets/ebl-f28_primary.webp', 'secondary': 'assets/ebl-f28_secondary.webp', 'wordmark': 'assets/ebl-f28_wordmark.webp'},
     "EBL-F29":{'primary': 'assets/ebl-f29_primary.webp', 'secondary': 'assets/ebl-f29_secondary.webp', 'wordmark': 'assets/ebl-f29_wordmark.webp'},
     "EBL-F30":{'primary': 'assets/ebl-f30_primary.webp', 'secondary': 'assets/ebl-f30_secondary.webp', 'wordmark': 'assets/ebl-f30_wordmark.webp'},
@@ -602,7 +602,8 @@ def _official_static_art_data_uri(asset_name):
         path=os.path.join(STATIC,asset_name)
         with open(path,"rb") as f:
             raw=f.read()
-        return "data:image/webp;base64,"+base64.b64encode(raw).decode("ascii")
+        mime=mimetypes.guess_type(path)[0] or "application/octet-stream"
+        return f"data:{mime};base64,"+base64.b64encode(raw).decode("ascii")
     except Exception:
         return ""
 
@@ -2475,7 +2476,7 @@ def init_db():
 
 
 
-    # RC122: seed each completed franchise independently from static/assets.
+    # RC123: seed each completed static franchise independently from static/assets.
     # A missing/misnamed file can no longer block every other club. Unknown artwork on
     # coach-owned teams is preserved; known league-generated defaults are upgraded.
     rc122_seeded=[]
@@ -2544,7 +2545,7 @@ def init_db():
         c.execute("INSERT OR REPLACE INTO league_config(k,v) VALUES(?,?)",(team_seed_key,"1"))
         rc122_seeded.append(fid)
     if rc122_seeded or rc122_missing:
-        print(f"RC122 branding seed: seeded={len(rc122_seeded)} missing={len(rc122_missing)} missing_ids={','.join(rc122_missing) if rc122_missing else '-'}",flush=True)
+        print(f"RC123 branding seed: seeded={len(rc122_seeded)} missing={len(rc122_missing)} missing_ids={','.join(rc122_missing) if rc122_missing else '-'}",flush=True)
 
 
 
@@ -14804,8 +14805,8 @@ class H(BaseHTTPRequestHandler):
                 eyewear_id=int(d.get("eyewear_id",1));chain_id=int(d.get("chain_id",1));sleeve_id=int(d.get("sleeve_id",1));body_build_id=int(d.get("body_build_id",1))
                 jersey_number=int(d.get("jersey_number",24))
                 if (face_id not in range(1,21) or skin_color_id not in range(1,9) or hair_id not in range(1,29) or facial_hair_id not in range(1,15)
-                    or eye_color_id not in range(1,7) or nose_id not in range(1,5) or eye_shape_id not in range(1,5)
-                    or mouth_id not in range(1,5) or ear_size_id not in range(1,4) or hair_color_id not in range(1,10)
+                    or eye_color_id not in range(1,7) or nose_id not in range(1,7) or eye_shape_id not in range(1,7)
+                    or mouth_id not in range(1,7) or ear_size_id not in range(1,5) or hair_color_id not in range(1,10)
                     or eye_black_id not in range(1,6) or eyewear_id not in range(1,6)
                     or chain_id not in range(1,8) or sleeve_id not in range(1,5) or body_build_id not in range(1,4)
                     or jersey_number not in range(0,100)):
@@ -18991,7 +18992,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.8.1 Full Franchise Branding RC122: http://127.0.0.1:{port}")
+    print(f"EBL v7.8.1 Complete Franchise Branding RC123: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
