@@ -231,7 +231,7 @@ def registration_age_eligible(value, minimum_age=AGE_REQUIREMENT):
 
 # RC84: official EBL baseline branding. These are lightweight league defaults
 # for CPU/unclaimed franchises. Existing uploaded/custom artwork is never overwritten.
-OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc118_clean12_v1"
+OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc120_static_assets13_v1"
 LEGACY_RC116_FRANCHISE_BRANDS={
     "EBL-F01":{"city":"Atlanta","team":"Scouts","primary":"#173F35","secondary":"#D7C7A1","accent":"#0A1D2A","style":4,"home":"CREAM","away":"NAVY"},
     "EBL-F02":{"city":"New York","team":"Empires","primary":"#111827","secondary":"#D4AF37","accent":"#F2F0E8","style":8,"home":"WHITE","away":"BLACK"},
@@ -317,7 +317,6 @@ OFFICIAL_FRANCHISE_BRANDS={
     "EBL-F30":{'city': 'Baltimore', 'team': 'Clippers', 'primary': '#111111', 'secondary': '#F05A16', 'accent': '#F1E3C6', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
 }
 OFFICIAL_REBRAND_FRANCHISE_IDS={"EBL-F06","EBL-F08","EBL-F12","EBL-F13","EBL-F18","EBL-F29"}
-OFFICIAL_BRAND_ASSET_ARCHIVE=os.path.join(ROOT,"EBL_12_Clean_Franchise_Logos.zip")
 
 def _brand_svg_escape(value):
     return (str(value or "")
@@ -558,6 +557,7 @@ PRODUCTION_BRAND_FILES={
     "EBL-F11":{'primary': 'assets/ebl-f11_primary.webp', 'secondary': 'assets/ebl-f11_secondary.webp', 'wordmark': 'assets/ebl-f11_wordmark.webp'},
     "EBL-F19":{'primary': 'assets/ebl-f19_primary.webp', 'secondary': 'assets/ebl-f19_secondary.webp', 'wordmark': 'assets/ebl-f19_wordmark.webp'},
     "EBL-F20":{'primary': 'assets/ebl-f20_primary.webp', 'secondary': 'assets/ebl-f20_secondary.webp', 'wordmark': 'assets/ebl-f20_wordmark.webp'},
+    "EBL-F21":{'primary': 'assets/ebl-f21_primary.webp', 'secondary': 'assets/ebl-f21_secondary.webp', 'wordmark': 'assets/ebl-f21_wordmark.webp'},
     "EBL-F22":{'primary': 'assets/ebl-f22_primary.webp', 'secondary': 'assets/ebl-f22_secondary.webp', 'wordmark': 'assets/ebl-f22_wordmark.webp'},
     "EBL-F23":{'primary': 'assets/ebl-f23_primary.webp', 'secondary': 'assets/ebl-f23_secondary.webp', 'wordmark': 'assets/ebl-f23_wordmark.webp'},
     "EBL-F24":{'primary': 'assets/ebl-f24_primary.webp', 'secondary': 'assets/ebl-f24_secondary.webp', 'wordmark': 'assets/ebl-f24_wordmark.webp'},
@@ -568,20 +568,21 @@ PRODUCTION_BRAND_FILES={
     "EBL-F30":{'primary': 'assets/ebl-f30_primary.webp', 'secondary': 'assets/ebl-f30_secondary.webp', 'wordmark': 'assets/ebl-f30_wordmark.webp'},
 }
 
-def official_brand_archive_ready():
+def rc120_branding_assets_ready():
+    """Only run the clean-brand migration when all 39 approved static assets exist."""
     try:
         required={name for files in PRODUCTION_BRAND_FILES.values() for name in files.values()}
-        if len(PRODUCTION_BRAND_FILES)!=12 or len(required)!=36:
+        if len(PRODUCTION_BRAND_FILES)!=13 or len(required)!=39:
             return False
-        with zipfile.ZipFile(OFFICIAL_BRAND_ASSET_ARCHIVE,"r") as zf:
-            return required.issubset(set(zf.namelist()))
+        return all(os.path.isfile(os.path.join(STATIC,name)) for name in required)
     except Exception:
         return False
 
-def _official_brand_asset_data_uri(archive_name):
+def _official_static_art_data_uri(asset_name):
     try:
-        with zipfile.ZipFile(OFFICIAL_BRAND_ASSET_ARCHIVE,"r") as zf:
-            raw=zf.read(archive_name)
+        path=os.path.join(STATIC,asset_name)
+        with open(path,"rb") as f:
+            raw=f.read()
         return "data:image/webp;base64,"+base64.b64encode(raw).decode("ascii")
     except Exception:
         return ""
@@ -589,7 +590,7 @@ def _official_brand_asset_data_uri(archive_name):
 def official_brand_art(brand,fid=None):
     files=PRODUCTION_BRAND_FILES.get(str(fid or ""))
     if files:
-        art={k:_official_brand_asset_data_uri(v) for k,v in files.items()}
+        art={k:_official_static_art_data_uri(v) for k,v in files.items()}
         if all(art.values()):
             return art
     return generated_official_brand_art(brand)
@@ -2455,13 +2456,12 @@ def init_db():
 
 
 
-    # RC117 one-time production branding seed. This upgrades league-generated art and
-    # preserves genuine coach/commissioner uploads on unchanged franchises. Official
-    # rebrand slots are intentionally forced to the approved city/team/art package. The
-    # seed key prevents repeated writes after the migration is complete.
+    # RC120 one-time production branding seed. The 13 completed franchise sets load
+    # directly from static/assets. Genuine coach/commissioner uploads are preserved.
+    # After this seed is recorded, later coach edits remain authoritative.
     seeded=c.execute("SELECT v FROM league_config WHERE k=?",(OFFICIAL_BRAND_SEED_KEY,)).fetchone()
-    clean_brand_archive_ready=official_brand_archive_ready()
-    if not seeded and clean_brand_archive_ready:
+    rc120_assets_ready=rc120_branding_assets_ready()
+    if not seeded and rc120_assets_ready:
         for fid,brand in OFFICIAL_FRANCHISE_BRANDS.items():
             row=c.execute("""SELECT primary_logo,secondary_logo,jersey_wordmark,display_name,city,team_name,
                                     primary_color,secondary_color,accent_color
@@ -2474,15 +2474,12 @@ def init_db():
             existing_primary=str(row["primary_logo"] or "").strip() if row else ""
             existing_secondary=str(row["secondary_logo"] or "").strip() if row else ""
             existing_wordmark=str(row["jersey_wordmark"] or "").strip() if row else ""
-            # RC118 replaces the rejected RC117 WebP sheet-slices on the 12 managed
-            # teams while preserving genuine custom PNG/SVG uploads.
-            managed_clean_team=fid in PRODUCTION_BRAND_FILES
-            old_rc117_primary=managed_clean_team and existing_primary.startswith("data:image/webp;base64,") and existing_primary!=art["primary"]
-            old_rc117_secondary=managed_clean_team and existing_secondary.startswith("data:image/webp;base64,") and existing_secondary!=art["secondary"]
-            old_rc117_wordmark=managed_clean_team and existing_wordmark.startswith("data:image/webp;base64,") and existing_wordmark!=art["wordmark"]
-            custom_primary=bool(existing_primary and existing_primary not in (legacy["primary"],legacy_premium["primary"],art["primary"]) and not old_rc117_primary) and not force_identity
-            custom_secondary=bool(existing_secondary and existing_secondary not in (legacy["secondary"],legacy_premium["secondary"],art["secondary"]) and not old_rc117_secondary) and not force_identity
-            custom_wordmark=bool(existing_wordmark and existing_wordmark not in (legacy["wordmark"],legacy_premium["wordmark"],art["wordmark"]) and not old_rc117_wordmark) and not force_identity
+            # RC120 upgrades only known league defaults. Any other saved artwork is
+            # treated as a coach/commissioner customization and is preserved.
+            # After this migration the seed never re-runs, so later coach edits stay authoritative.
+            custom_primary=bool(existing_primary and existing_primary not in (legacy["primary"],legacy_premium["primary"],art["primary"])) and not force_identity
+            custom_secondary=bool(existing_secondary and existing_secondary not in (legacy["secondary"],legacy_premium["secondary"],art["secondary"])) and not force_identity
+            custom_wordmark=bool(existing_wordmark and existing_wordmark not in (legacy["wordmark"],legacy_premium["wordmark"],art["wordmark"])) and not force_identity
             has_custom_art=custom_primary or custom_secondary or custom_wordmark
             primary_logo=existing_primary if custom_primary else art["primary"]
             secondary_logo=existing_secondary if custom_secondary else art["secondary"]
@@ -18952,7 +18949,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.8.1 Clean Franchise Branding RC118: http://127.0.0.1:{port}")
+    print(f"EBL v7.8.1 Static Franchise Branding RC120: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
