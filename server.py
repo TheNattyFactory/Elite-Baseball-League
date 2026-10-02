@@ -5559,6 +5559,153 @@ def effective_stamina(sta):
 
 
 
+GENESIS_RESET_UPGRADE_COLUMNS=(
+    "training_level","stadium_level","scouting_level","performance_level","hq_level",
+    "revenue_level","seating_level","concessions_level","marketing_level",
+    "sponsorships_level","merchandising_level","media_level","recovery_level"
+)
+
+def cpu_rookie_baseline_issues(c):
+    """CPU filler should always be a 50-point rookie build; flag alpha-era permanent boosts."""
+    issues=[]
+    for row in c.execute(
+        "SELECT id,franchise_id,name,type,primary_pos,attributes_json FROM players WHERE user_id IS NULL AND active=1 ORDER BY franchise_id,id"
+    ).fetchall():
+        try:
+            attrs=json.loads(row["attributes_json"] or "{}")
+        except Exception:
+            attrs={}
+        keys=PITCHER_ATTRS if row["type"]=="P" else HITTER_ATTRS
+        total=round(sum(float(attrs.get(k,0) or 0) for k in keys),3)
+        if abs(total-50.0)>1e-9:
+            issues.append({
+                "player_id":int(row["id"]),
+                "franchise_id":row["franchise_id"],
+                "name":row["name"],
+                "position":row["primary_pos"],
+                "attribute_points":total
+            })
+    return issues
+
+
+def reset_cpu_rookie_attributes(c):
+    """Return every active CPU filler to a deterministic 50-point rookie baseline."""
+    rng=random.Random(7500831)
+    rows=c.execute(
+        "SELECT id,type,primary_pos FROM players WHERE user_id IS NULL AND active=1 ORDER BY franchise_id,id"
+    ).fetchall()
+    for row in rows:
+        attrs=cpu_build(PITCHER_ATTRS if row["type"]=="P" else HITTER_ATTRS,row["primary_pos"],rng)
+        c.execute(
+            "UPDATE players SET attributes_json=?,xp_wallet=0,age=18 WHERE id=?",
+            (json.dumps(attrs),int(row["id"]))
+        )
+    return len(rows)
+
+
+def franchise_progression_snapshot(c):
+    """Commissioner diagnostic for team-level competitive carryover."""
+    rows=[]
+    for row in c.execute("SELECT * FROM franchises ORDER BY id").fetchall():
+        d=dict(row)
+        upgrades={col:int(d.get(col,0) or 0) for col in GENESIS_RESET_UPGRADE_COLUMNS}
+        active_upgrades={k:v for k,v in upgrades.items() if v}
+        economy={
+            "xp_spent":round(float(d.get("xp_spent",0) or 0),3),
+            "xp_reserve":round(float(d.get("xp_reserve",0) or 0),3),
+            "finish_reward":round(float(d.get("finish_reward",0) or 0),3),
+            "development_bonus":round(float(d.get("development_bonus",0) or 0),5),
+            "funding_growth":round(float(d.get("funding_growth",0) or 0),3),
+            "last_pool_growth":round(float(d.get("last_pool_growth",0) or 0),3),
+        }
+        nonzero_economy={k:v for k,v in economy.items() if abs(float(v))>1e-9}
+        if active_upgrades or nonzero_economy:
+            rows.append({
+                "franchise_id":d["id"],"name":d["name"],
+                "upgrades":active_upgrades,"economy":nonzero_economy
+            })
+    sponsorships=int(c.execute(
+        "SELECT COUNT(*) n FROM team_sponsorships WHERE status='ACTIVE'"
+    ).fetchone()["n"] or 0)
+    development_coaches=int(c.execute(
+        "SELECT COUNT(*) n FROM team_development_coaches"
+    ).fetchone()["n"] or 0)
+    workload=int(c.execute("SELECT COUNT(*) n FROM pitcher_workload").fetchone()["n"] or 0)
+    cpu_issues=cpu_rookie_baseline_issues(c)
+    return {
+        "nonzero_franchises":rows,
+        "nonzero_franchise_count":len(rows),
+        "active_sponsorships":sponsorships,
+        "development_coaches":development_coaches,
+        "pitchers_with_fatigue":workload,
+        "cpu_rookie_attribute_issues":cpu_issues,
+        "cpu_rookie_attribute_issue_count":len(cpu_issues),
+        "clean":not rows and sponsorships==0 and development_coaches==0 and workload==0 and not cpu_issues
+    }
+
+def reset_franchise_competitive_state(c):
+    """Remove alpha/testing carryover without touching team identity or uploaded branding."""
+    before=franchise_progression_snapshot(c)
+
+    # Team-wide boosts and seasonal staff are competitive state, not franchise identity.
+    c.execute("DELETE FROM team_sponsorships")
+    c.execute("DELETE FROM team_development_coaches")
+    c.execute("DELETE FROM team_practice")
+
+    set_parts=[
+        "xp_budget=?","xp_spent=0","xp_reserve=0",
+        "finish_reward=0","development_bonus=0","funding_growth=0","last_pool_growth=0"
+    ]
+    set_parts.extend(f"{col}=0" for col in GENESIS_RESET_UPGRADE_COLUMNS)
+    c.execute("UPDATE franchises SET "+",".join(set_parts),(TEAM_BUDGET,))
+
+    # Reopen the normal brand-edit lifecycle without touching any uploaded/generated art.
+    c.execute("UPDATE franchise_branding SET inseason_edit_season=NULL")
+
+    # Remove stale alpha purchase/staff audit rows. Player/contract history stays intact.
+    c.execute("""DELETE FROM transactions
+                 WHERE event_type IN (
+                   'FRANCHISE_UPGRADE','FACILITY_UPGRADE','TEAM_SPONSORSHIP',
+                   'DEVELOPMENT_COACH_HIRED','TEAM_DEVELOPMENT_MILESTONE'
+                 )""")
+    return before
+
+def reset_team_management_defaults(c, franchise_ids=None):
+    """Clear saved coach strategy so a Genesis reset begins from neutral auto-managed baseball."""
+    ids=list(franchise_ids or [r["id"] for r in c.execute("SELECT id FROM franchises ORDER BY id").fetchall()])
+    reset_count=0
+    for fid in ids:
+        hitter_ids=[int(r["player_id"]) for r in c.execute(
+            """SELECT player_id FROM roster_slots
+               WHERE franchise_id=? AND position_group IN ('C','1B','2B','3B','SS','LF','CF','RF','DH')
+                 AND player_id IS NOT NULL
+               ORDER BY slot_no""",(fid,)
+        ).fetchall()]
+        batting=auto_batting_order(c,hitter_ids[:9]) if len(hitter_ids)>=9 else hitter_ids[:9]
+        rotation,bp=auto_pitching_plan(c,fid)
+        c.execute(
+            "UPDATE lineups SET batting_order_json=?,rotation_json=?,field_positions_json='{}' WHERE franchise_id=?",
+            (json.dumps(batting),json.dumps(rotation[:5]),fid)
+        )
+        c.execute(
+            """UPDATE team_strategy
+               SET bullpen_json=?,defense_json=?,bench_json=?,substitutions_json=?,updated_at=CURRENT_TIMESTAMP
+               WHERE franchise_id=?""",
+            (
+                json.dumps(bp),
+                json.dumps({
+                    "default_shift":"STANDARD","vs_lhb":"STANDARD","vs_rhb":"STANDARD",
+                    "corners_in":False,"infield_in":False
+                }),
+                json.dumps({"C":[],"1B":[],"2B":[],"3B":[],"SS":[],"LF":[],"CF":[],"RF":[],"DH":[]}),
+                json.dumps({"steal_aggression":"NORMAL","bunt_aggression":"NORMAL"}),
+                fid
+            )
+        )
+        reset_count+=1
+    return reset_count
+
+
 def reset_pitcher_fatigue(c,reason,season=None,league_day=None,announce=False):
     """Clear carried pitcher workload at official EBL recovery checkpoints."""
     row=c.execute("SELECT COUNT(*) n FROM pitcher_workload").fetchone()
@@ -10782,6 +10929,24 @@ def storage_report():
 
 
 
+def perform_backup(db_path, out_dir):
+    """Create a consistent SQLite snapshot before commissioner/destructive maintenance."""
+    out=Path(out_dir)
+    out.mkdir(parents=True,exist_ok=True)
+    stamp=datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    dst=out/f"ebl_{stamp}.db"
+    src_conn=sqlite3.connect(str(db_path),timeout=30)
+    dst_conn=sqlite3.connect(str(dst),timeout=30)
+    try:
+        src_conn.execute("PRAGMA busy_timeout=30000")
+        src_conn.backup(dst_conn)
+        dst_conn.commit()
+    finally:
+        dst_conn.close()
+        src_conn.close()
+    return dst
+
+
 def trim_backup_files(keep=1):
     out=Path(os.environ.get("EBL_BACKUP_DIR",os.path.join(ROOT,"backups")))
     if not out.exists():return 0
@@ -12066,7 +12231,7 @@ class H(BaseHTTPRequestHandler):
             missing_slots=[]
             for fid in active_franchise_ids(c,season):
                 n=c.execute("SELECT COUNT(*) n FROM roster_slots WHERE franchise_id=?",(fid,)).fetchone()["n"]
-                if n!=18:missing_slots.append({"franchise_id":fid,"slots":n})
+                if n!=ACTIVE_ROSTER_SIZE:missing_slots.append({"franchise_id":fid,"slots":n})
 
 
 
@@ -12132,7 +12297,7 @@ class H(BaseHTTPRequestHandler):
 
 
             issues=[]
-            expected_slots=team_count*18
+            expected_slots=team_count*ACTIVE_ROSTER_SIZE
             expected_games=team_count*REGULAR_SEASON_GAMES//2
             expected_daily=team_count//2
             if team_count<MIN_ACTIVE_TEAMS:issues.append(f"League requires at least {MIN_ACTIVE_TEAMS} active franchises, found {team_count}")
@@ -12146,7 +12311,7 @@ class H(BaseHTTPRequestHandler):
             ).fetchone()["n"]
             if active_slot_count!=expected_slots:issues.append(f"Expected {expected_slots} active-team roster slots, found {active_slot_count}")
             if regular_games!=expected_games:issues.append(f"Expected {expected_games} regular-season games for Season {season}, found {regular_games}")
-            if missing_slots:issues.append(f"{len(missing_slots)} franchises do not have exactly 18 roster slots")
+            if missing_slots:issues.append(f"{len(missing_slots)} franchises do not have exactly {ACTIVE_ROSTER_SIZE} roster slots")
             if duplicate_slots:issues.append(f"{len(duplicate_slots)} players occupy more than one roster slot")
             if lineup_issues:issues.append(f"{len(lineup_issues)} teams have an incomplete batting order or rotation (3-5 starters required)")
             if phase=="REGULAR" and day<REGULAR_SEASON_CALENDAR_DAYS and next_day_games>expected_daily:
@@ -12167,6 +12332,7 @@ class H(BaseHTTPRequestHandler):
 
 
 
+            competitive_state=franchise_progression_snapshot(c)
             out={
                 "ok":not issues,
                 "season":season,"day":day,"phase":phase,
@@ -12179,7 +12345,8 @@ class H(BaseHTTPRequestHandler):
                 "issues":issues,
                 "missing_slots":missing_slots,
                 "duplicate_slots":duplicate_slots,
-                "lineup_issues":lineup_issues
+                "lineup_issues":lineup_issues,
+                "competitive_state":competitive_state
             }
             c.close()
             return self.out(out)
@@ -17570,6 +17737,16 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             d=self.body()
             requested_team_count=d.get("team_count")
+
+            # RC115: Genesis reset is destructive. Take a consistent SQLite snapshot
+            # first and abort the reset if the snapshot cannot be created.
+            try:
+                backup_dir=os.environ.get("EBL_BACKUP_DIR",os.path.join(os.path.dirname(DB),"backups"))
+                reset_backup=perform_backup(DB,backup_dir)
+            except Exception as exc:
+                print(f"GENESIS_RESET_BACKUP_ERROR: {type(exc).__name__}: {exc}")
+                return self.out({"error":"RESET_BACKUP_FAILED","detail":type(exc).__name__},500)
+
             c=conn()
             try:
                 # Optional Commissioner-controlled Genesis league size.
@@ -17612,36 +17789,16 @@ class H(BaseHTTPRequestHandler):
                 c.execute("DELETE FROM news")
                 c.execute("DELETE FROM xp_ledger")
                 c.execute("DELETE FROM chat_messages")
-                c.execute("DELETE FROM notifications WHERE type IN ('GAME','AWARD')")
-
-
-
-
-
-
-
+                c.execute("DELETE FROM notifications WHERE type IN ('GAME','AWARD','DEVELOPMENT')")
+                c.execute("DELETE FROM offers WHERE status IN ('OPEN','HELD')")
 
                 c.execute("UPDATE players SET xp_wallet=0,career_extension_through=12")
-                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,xp_spent=0,xp_reserve=0,finish_reward=0,development_bonus=0,funding_growth=0,last_pool_growth=0")
-                enforce_active_rosters(c)
+                c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0")
 
-
-
-
-
-
-
-
-                # Reset every club to its infrastructure-adjusted annual XP pool.
-                for fr in c.execute("SELECT * FROM franchises").fetchall():
-                    c.execute("UPDATE franchises SET xp_budget=? WHERE id=?",(annual_team_budget(dict(fr)),fr["id"]))
-
-
-
-
-
-
-
+                # RC115: zero every franchise-wide competitive modifier before rosters,
+                # finance, lineups or strategy are rebuilt. Older Genesis resets left
+                # infrastructure, revenue branches, sponsors and development coaches behind.
+                pre_reset_competitive_state=reset_franchise_competitive_state(c)
 
                 # Clear current-season stat lines without touching career identity or progression.
                 players=c.execute("SELECT id,type FROM players").fetchall()
@@ -17651,6 +17808,11 @@ class H(BaseHTTPRequestHandler):
                     else:
                         stats={"G":0,"GS":0,"OUTS":0,"H":0,"ER":0,"BB":0,"SO":0,"W":0,"L":0,"SV":0}
                     c.execute("UPDATE players SET season_json=? WHERE id=?",(json.dumps(stats),pl["id"]))
+
+                # CPU filler is league infrastructure. Rebuild every CPU to exactly the same
+                # 50-point rookie budget so alpha development-coach points cannot survive.
+                cpu_players_rebased=reset_cpu_rookie_attributes(c)
+
 
 
 
@@ -17667,6 +17829,10 @@ class H(BaseHTTPRequestHandler):
                     (team_count,)
                 ).fetchall()]
                 set_season_membership(c,1,selected_ids)
+                enforce_active_rosters(c)
+                management_resets=reset_team_management_defaults(c)
+                fatigue_cleared=reset_pitcher_fatigue(c,"GENESIS_RESET",season=1,league_day=0,announce=False)
+
                 # Persist the Commissioner's choice so no later initialization or
                 # season-membership repair can silently snap the league back to 8.
                 c.execute(
@@ -17692,12 +17858,22 @@ class H(BaseHTTPRequestHandler):
                     "INSERT INTO league_config(k,v) VALUES('season_number','1') ON CONFLICT(k) DO UPDATE SET v='1'"
                 )
 
+                post_reset_competitive_state=franchise_progression_snapshot(c)
+                if not post_reset_competitive_state["clean"]:
+                    c.rollback()
+                    return self.out({
+                        "error":"GENESIS_COMPETITIVE_RESET_INCOMPLETE",
+                        "competitive_state":post_reset_competitive_state
+                    },500)
 
-
-
-
-
-
+                c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                          ("GENESIS_CLEAN_SLATE_RESET",u["id"],json.dumps({
+                              "team_count":team_count,
+                              "management_resets":management_resets,
+                              "fatigue_cleared":fatigue_cleared,
+                              "cpu_players_rebased":cpu_players_rebased,
+                              "pre_reset_competitive_state":pre_reset_competitive_state
+                          })))
 
                 c.commit()
                 actual_active=c.execute(
@@ -17713,7 +17889,15 @@ class H(BaseHTTPRequestHandler):
                     "games_created":c.execute("SELECT COUNT(*) n FROM games WHERE season=1").fetchone()["n"],
                     "active_team_count":actual_active,
                     "rivalries_reset":True,
-                    "history_reset":True
+                    "history_reset":True,
+                    "franchise_upgrades_reset":True,
+                    "sponsorships_reset":True,
+                    "development_coaches_reset":True,
+                    "team_management_reset":management_resets,
+                    "pitcher_fatigue_cleared":fatigue_cleared,
+                    "cpu_players_rebased":cpu_players_rebased,
+                    "competitive_state":post_reset_competitive_state,
+                    "backup":str(reset_backup)
                 })
             finally:
                 c.close()
@@ -18589,7 +18773,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.8.1 Supporter Login Hotfix RC101: http://127.0.0.1:{port}")
+    print(f"EBL v7.8.1 Genesis Clean Slate RC115: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
@@ -18636,3 +18820,4 @@ if __name__=="__main__":
 
 
 # EBL_RECURRING_SUPPORTER_RC109
+# EBL_GENESIS_CLEAN_SLATE_RC115
