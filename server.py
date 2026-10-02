@@ -231,7 +231,7 @@ def registration_age_eligible(value, minimum_age=AGE_REQUIREMENT):
 
 # RC84: official EBL baseline branding. These are lightweight league defaults
 # for CPU/unclaimed franchises. Existing uploaded/custom artwork is never overwritten.
-OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc121_static_assets_per_team_v1"
+OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc122_static_assets_28teams_v1"
 LEGACY_RC116_FRANCHISE_BRANDS={
     "EBL-F01":{"city":"Atlanta","team":"Scouts","primary":"#173F35","secondary":"#D7C7A1","accent":"#0A1D2A","style":4,"home":"CREAM","away":"NAVY"},
     "EBL-F02":{"city":"New York","team":"Empires","primary":"#111827","secondary":"#D4AF37","accent":"#F2F0E8","style":8,"home":"WHITE","away":"BLACK"},
@@ -292,12 +292,12 @@ OFFICIAL_FRANCHISE_BRANDS={
     "EBL-F05":{'city': 'Houston', 'team': 'Apollos', 'primary': '#0B1F3A', 'secondary': '#F47C20', 'accent': '#F4F1EA', 'style': 5, 'home': 'WHITE', 'away': 'NAVY'},
     "EBL-F06":{'city': 'New Orleans', 'team': 'Rougarou', 'primary': '#3B185F', 'secondary': '#D4AF37', 'accent': '#0F4C3A', 'style': 8, 'home': 'CREAM', 'away': 'BLACK'},
     "EBL-F07":{'city': 'Philadelphia', 'team': 'Founders', 'primary': '#17324D', 'secondary': '#A61B2B', 'accent': '#E7D9B5', 'style': 7, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F08":{'city': 'San Antonio', 'team': 'Vaqueros', 'primary': '#111111', 'secondary': '#9E1B32', 'accent': '#D4AF37', 'style': 4, 'home': 'CREAM', 'away': 'BLACK'},
+    "EBL-F08":{'city': 'Jackson', 'team': 'Catfish', 'primary': '#062A47', 'secondary': '#0E7490', 'accent': '#D4AF37', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
     "EBL-F09":{'city': 'Birmingham', 'team': 'Hammers', 'primary': '#15191F', 'secondary': '#B7372F', 'accent': '#D9DDE2', 'style': 3, 'home': 'GRAY', 'away': 'BLACK'},
     "EBL-F10":{'city': 'Dallas', 'team': 'Wranglers', 'primary': '#17365D', 'secondary': '#8B5A2B', 'accent': '#F2E6C9', 'style': 1, 'home': 'CREAM', 'away': 'NAVY'},
     "EBL-F11":{'city': 'Jacksonville', 'team': 'Breakers', 'primary': '#062A47', 'secondary': '#00A9C6', 'accent': '#F2F7F7', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
     "EBL-F12":{'city': 'Minneapolis', 'team': 'Northmen', 'primary': '#0B2545', 'secondary': '#1E5AA8', 'accent': '#D9B36C', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F13":{'city': 'Kansas City', 'team': 'Crossroads', 'primary': '#0B2545', 'secondary': '#C1121F', 'accent': '#D4AF37', 'style': 4, 'home': 'CREAM', 'away': 'NAVY'},
+    "EBL-F13":{'city': 'St. Louis', 'team': 'Archers', 'primary': '#0B2545', 'secondary': '#C1121F', 'accent': '#D4AF37', 'style': 4, 'home': 'CREAM', 'away': 'NAVY'},
     "EBL-F14":{'city': 'San Jose', 'team': 'Circuit', 'primary': '#050505', 'secondary': '#00D1C7', 'accent': '#7CFF35', 'style': 9, 'home': 'WHITE', 'away': 'BLACK'},
     "EBL-F15":{'city': 'Columbus', 'team': 'Aviators', 'primary': '#123B63', 'secondary': '#C1121F', 'accent': '#D9E0E8', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
     "EBL-F16":{'city': 'Charlotte', 'team': 'Crowns', 'primary': '#4B2E83', 'secondary': '#D4AF37', 'accent': '#111111', 'style': 5, 'home': 'WHITE', 'away': 'BLACK'},
@@ -317,6 +317,7 @@ OFFICIAL_FRANCHISE_BRANDS={
     "EBL-F30":{'city': 'Baltimore', 'team': 'Clippers', 'primary': '#111111', 'secondary': '#F05A16', 'accent': '#F1E3C6', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
 }
 OFFICIAL_REBRAND_FRANCHISE_IDS={"EBL-F06","EBL-F08","EBL-F12","EBL-F13","EBL-F18","EBL-F29"}
+RC122_FORCE_IDENTITY_IDS={"EBL-F08","EBL-F13"}
 
 def _brand_svg_escape(value):
     return (str(value or "")
@@ -550,11 +551,26 @@ def generated_official_brand_art(brand):
     wordmark_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360"><!-- EBL-RC116-PREMIUM -->{defs}<g transform="translate(-58 -76) scale(.68)" filter="url(#shadow)">{badge}{motif}</g><text x="758" y="96" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="900" letter-spacing="13" fill="{secondary}">{city_e}</text><g transform="skewX(-7)"><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{accent}" stroke-width="13" paint-order="stroke">{team_e}</text><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{dark}" stroke-width="4" paint-order="stroke">{team_e}</text></g><path d="M340 266 H1120" stroke="{secondary}" stroke-width="16" stroke-linecap="round"/><path d="M500 297 H970" stroke="{accent}" stroke-width="6" stroke-linecap="round" opacity=".84"/><polygon points="{_brand_star_points(1050,297,15,6)}" fill="{secondary}"/></svg>'
     return {"primary":_brand_svg_uri(primary_svg),"secondary":_brand_svg_uri(secondary_svg),"wordmark":_brand_svg_uri(wordmark_svg)}
 
-# RC121 static franchise artwork map. Files live in static/assets and are seeded
+# RC122 static franchise artwork map. Files live in static/assets and are seeded
 # into SQLite as self-contained data URIs while remaining replaceable by coach uploads.
 PRODUCTION_BRAND_FILES={
+    "EBL-F02":{'primary': 'assets/ebl-f02_primary.webp', 'secondary': 'assets/ebl-f02_secondary.webp', 'wordmark': 'assets/ebl-f02_wordmark.webp'},
+    "EBL-F03":{'primary': 'assets/ebl-f03_primary.webp', 'secondary': 'assets/ebl-f03_secondary.webp', 'wordmark': 'assets/ebl-f03_wordmark.webp'},
     "EBL-F04":{'primary': 'assets/ebl-f04_primary.webp', 'secondary': 'assets/ebl-f04_secondary.webp', 'wordmark': 'assets/ebl-f04_wordmark.webp'},
+    "EBL-F05":{'primary': 'assets/ebl-f05_primary.webp', 'secondary': 'assets/ebl-f05_secondary.webp', 'wordmark': 'assets/ebl-f05_wordmark.webp'},
+    "EBL-F06":{'primary': 'assets/ebl-f06_primary.webp', 'secondary': 'assets/ebl-f06_secondary.webp', 'wordmark': 'assets/ebl-f06_wordmark.webp'},
+    "EBL-F07":{'primary': 'assets/ebl-f07_primary.webp', 'secondary': 'assets/ebl-f07_secondary.webp', 'wordmark': 'assets/ebl-f07_wordmark.webp'},
+    "EBL-F08":{'primary': 'assets/ebl-f08_primary.webp', 'secondary': 'assets/ebl-f08_secondary.webp', 'wordmark': 'assets/ebl-f08_wordmark.webp'},
+    "EBL-F09":{'primary': 'assets/ebl-f09_primary.webp', 'secondary': 'assets/ebl-f09_secondary.webp', 'wordmark': 'assets/ebl-f09_wordmark.webp'},
+    "EBL-F10":{'primary': 'assets/ebl-f10_primary.webp', 'secondary': 'assets/ebl-f10_secondary.webp', 'wordmark': 'assets/ebl-f10_wordmark.webp'},
     "EBL-F11":{'primary': 'assets/ebl-f11_primary.webp', 'secondary': 'assets/ebl-f11_secondary.webp', 'wordmark': 'assets/ebl-f11_wordmark.webp'},
+    "EBL-F12":{'primary': 'assets/ebl-f12_primary.webp', 'secondary': 'assets/ebl-f12_secondary.webp', 'wordmark': 'assets/ebl-f12_wordmark.webp'},
+    "EBL-F13":{'primary': 'assets/ebl-f13_primary.webp', 'secondary': 'assets/ebl-f13_secondary.webp', 'wordmark': 'assets/ebl-f13_wordmark.webp'},
+    "EBL-F14":{'primary': 'assets/ebl-f14_primary.webp', 'secondary': 'assets/ebl-f14_secondary.webp', 'wordmark': 'assets/ebl-f14_wordmark.webp'},
+    "EBL-F15":{'primary': 'assets/ebl-f15_primary.webp', 'secondary': 'assets/ebl-f15_secondary.webp', 'wordmark': 'assets/ebl-f15_wordmark.webp'},
+    "EBL-F16":{'primary': 'assets/ebl-f16_primary.webp', 'secondary': 'assets/ebl-f16_secondary.webp', 'wordmark': 'assets/ebl-f16_wordmark.webp'},
+    "EBL-F17":{'primary': 'assets/ebl-f17_primary.webp', 'secondary': 'assets/ebl-f17_secondary.webp', 'wordmark': 'assets/ebl-f17_wordmark.webp'},
+    "EBL-F18":{'primary': 'assets/ebl-f18_primary.webp', 'secondary': 'assets/ebl-f18_secondary.webp', 'wordmark': 'assets/ebl-f18_wordmark.webp'},
     "EBL-F19":{'primary': 'assets/ebl-f19_primary.webp', 'secondary': 'assets/ebl-f19_secondary.webp', 'wordmark': 'assets/ebl-f19_wordmark.webp'},
     "EBL-F20":{'primary': 'assets/ebl-f20_primary.webp', 'secondary': 'assets/ebl-f20_secondary.webp', 'wordmark': 'assets/ebl-f20_wordmark.webp'},
     "EBL-F21":{'primary': 'assets/ebl-f21_primary.webp', 'secondary': 'assets/ebl-f21_secondary.webp', 'wordmark': 'assets/ebl-f21_wordmark.webp'},
@@ -568,7 +584,7 @@ PRODUCTION_BRAND_FILES={
     "EBL-F30":{'primary': 'assets/ebl-f30_primary.webp', 'secondary': 'assets/ebl-f30_secondary.webp', 'wordmark': 'assets/ebl-f30_wordmark.webp'},
 }
 
-def rc121_branding_assets_ready(fid):
+def rc122_branding_assets_ready(fid):
     """Return True when this franchise's complete 3-piece static brand set exists."""
     try:
         files=PRODUCTION_BRAND_FILES.get(str(fid or "")) or {}
@@ -578,7 +594,7 @@ def rc121_branding_assets_ready(fid):
     except Exception:
         return False
 
-def rc121_brand_seed_key(fid):
+def rc122_brand_seed_key(fid):
     return f"{OFFICIAL_BRAND_SEED_KEY}:{str(fid or '').lower()}"
 
 def _official_static_art_data_uri(asset_name):
@@ -2222,12 +2238,12 @@ def init_db():
         "Houston Apollos",
         "New Orleans Rougarou",
         "Philadelphia Founders",
-        "San Antonio Vaqueros",
+        "Jackson Catfish",
         "Birmingham Hammers",
         "Dallas Wranglers",
         "Jacksonville Breakers",
         "Minneapolis Northmen",
-        "Kansas City Crossroads",
+        "St. Louis Archers",
         "San Jose Circuit",
         "Columbus Aviators",
         "Charlotte Crowns",
@@ -2459,18 +2475,18 @@ def init_db():
 
 
 
-    # RC121: seed each completed franchise independently from static/assets.
+    # RC122: seed each completed franchise independently from static/assets.
     # A missing/misnamed file can no longer block every other club. Unknown artwork on
     # coach-owned teams is preserved; known league-generated defaults are upgraded.
-    rc121_seeded=[]
-    rc121_missing=[]
+    rc122_seeded=[]
+    rc122_missing=[]
     for fid in PRODUCTION_BRAND_FILES:
-        team_seed_key=rc121_brand_seed_key(fid)
+        team_seed_key=rc122_brand_seed_key(fid)
         already=c.execute("SELECT v FROM league_config WHERE k=?",(team_seed_key,)).fetchone()
         if already:
             continue
-        if not rc121_branding_assets_ready(fid):
-            rc121_missing.append(fid)
+        if not rc122_branding_assets_ready(fid):
+            rc122_missing.append(fid)
             continue
         brand=OFFICIAL_FRANCHISE_BRANDS[fid]
         row=c.execute("""SELECT primary_logo,secondary_logo,jersey_wordmark,display_name,city,team_name,
@@ -2492,6 +2508,8 @@ def init_db():
         def is_custom(existing,key):
             if not existing or owner_id is None:
                 return False
+            if fid in RC122_FORCE_IDENTITY_IDS and existing.startswith("data:image/svg+xml;base64,"):
+                return False
             known={legacy[key],legacy_premium[key],current_generated[key],art[key]}
             return existing not in known
 
@@ -2505,7 +2523,7 @@ def init_db():
 
         # Preserve a human-owned club's identity fields. Unowned clubs use the official
         # league identity/palette that matches the static artwork.
-        preserve_identity=bool(row and owner_id is not None)
+        preserve_identity=bool(row and owner_id is not None and fid not in RC122_FORCE_IDENTITY_IDS)
         display=(str(row["display_name"] or "").strip() if preserve_identity else "") or f"{brand['city']} {brand['team']}".strip()
         city=(str(row["city"] or "").strip() if preserve_identity else "") or brand["city"]
         team_name=(str(row["team_name"] or "").strip() if preserve_identity else "") or brand["team"]
@@ -2521,12 +2539,12 @@ def init_db():
                   (display,city,team_name,int(brand["style"]),
                    primary_logo,secondary_logo,wordmark,
                    pc,sc,ac,brand["home"],brand["away"],fid))
-        if owner_id is None:
+        if owner_id is None or fid in RC122_FORCE_IDENTITY_IDS:
             c.execute("UPDATE franchises SET name=? WHERE id=?",(display,fid))
         c.execute("INSERT OR REPLACE INTO league_config(k,v) VALUES(?,?)",(team_seed_key,"1"))
-        rc121_seeded.append(fid)
-    if rc121_seeded or rc121_missing:
-        print(f"RC121 branding seed: seeded={len(rc121_seeded)} missing={len(rc121_missing)} missing_ids={','.join(rc121_missing) if rc121_missing else '-'}",flush=True)
+        rc122_seeded.append(fid)
+    if rc122_seeded or rc122_missing:
+        print(f"RC122 branding seed: seeded={len(rc122_seeded)} missing={len(rc122_missing)} missing_ids={','.join(rc122_missing) if rc122_missing else '-'}",flush=True)
 
 
 
@@ -18973,7 +18991,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.8.1 Static Franchise Branding RC121: http://127.0.0.1:{port}")
+    print(f"EBL v7.8.1 Full Franchise Branding RC122: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
