@@ -1,7 +1,7 @@
 ﻿from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 from pathlib import Path
-import sqlite3, json, secrets, hashlib, os, mimetypes, hmac, random, math, smtplib, ssl, datetime, time, threading, base64
+import sqlite3, json, secrets, hashlib, os, mimetypes, hmac, random, math, smtplib, ssl, datetime, time, threading, base64, zipfile
 from email.message import EmailMessage
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
@@ -231,8 +231,8 @@ def registration_age_eligible(value, minimum_age=AGE_REQUIREMENT):
 
 # RC84: official EBL baseline branding. These are lightweight league defaults
 # for CPU/unclaimed franchises. Existing uploaded/custom artwork is never overwritten.
-OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc114_logo_sets_v1"
-OFFICIAL_FRANCHISE_BRANDS={
+OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc117_custom_art_v1"
+LEGACY_RC116_FRANCHISE_BRANDS={
     "EBL-F01":{"city":"Atlanta","team":"Scouts","primary":"#173F35","secondary":"#D7C7A1","accent":"#0A1D2A","style":4,"home":"CREAM","away":"NAVY"},
     "EBL-F02":{"city":"New York","team":"Empires","primary":"#111827","secondary":"#D4AF37","accent":"#F2F0E8","style":8,"home":"WHITE","away":"BLACK"},
     "EBL-F03":{"city":"Los Angeles","team":"Stars","primary":"#1E3A8A","secondary":"#F5C542","accent":"#FFFFFF","style":2,"home":"WHITE","away":"NAVY"},
@@ -283,6 +283,42 @@ OFFICIAL_FRANCHISE_BRANDS={
 # RC114: league-wide production logo sets. These SVG data URIs give every
 # franchise a coherent PRIMARY / SECONDARY / WORDMARK system while preserving
 # any artwork a coach or commissioner has already uploaded.
+# RC117: final commissioner-approved EBL franchise identities and palettes.
+OFFICIAL_FRANCHISE_BRANDS={
+    "EBL-F01":{'city': 'Atlanta', 'team': 'Scouts', 'primary': '#173F35', 'secondary': '#D7C7A1', 'accent': '#0A1D2A', 'style': 4, 'home': 'CREAM', 'away': 'NAVY'},
+    "EBL-F02":{'city': 'New York', 'team': 'Empires', 'primary': '#111827', 'secondary': '#D4AF37', 'accent': '#F2F0E8', 'style': 8, 'home': 'WHITE', 'away': 'BLACK'},
+    "EBL-F03":{'city': 'Los Angeles', 'team': 'Stars', 'primary': '#0B1F4A', 'secondary': '#F5C542', 'accent': '#FFFFFF', 'style': 2, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F04":{'city': 'Chicago', 'team': 'Wind', 'primary': '#0B2545', 'secondary': '#69B8E5', 'accent': '#FFFFFF', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F05":{'city': 'Houston', 'team': 'Apollos', 'primary': '#0B1F3A', 'secondary': '#F47C20', 'accent': '#F4F1EA', 'style': 5, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F06":{'city': 'New Orleans', 'team': 'Rougarou', 'primary': '#3B185F', 'secondary': '#D4AF37', 'accent': '#0F4C3A', 'style': 8, 'home': 'CREAM', 'away': 'BLACK'},
+    "EBL-F07":{'city': 'Philadelphia', 'team': 'Founders', 'primary': '#17324D', 'secondary': '#A61B2B', 'accent': '#E7D9B5', 'style': 7, 'home': 'CREAM', 'away': 'NAVY'},
+    "EBL-F08":{'city': 'San Antonio', 'team': 'Vaqueros', 'primary': '#111111', 'secondary': '#9E1B32', 'accent': '#D4AF37', 'style': 4, 'home': 'CREAM', 'away': 'BLACK'},
+    "EBL-F09":{'city': 'Birmingham', 'team': 'Hammers', 'primary': '#15191F', 'secondary': '#B7372F', 'accent': '#D9DDE2', 'style': 3, 'home': 'GRAY', 'away': 'BLACK'},
+    "EBL-F10":{'city': 'Dallas', 'team': 'Wranglers', 'primary': '#17365D', 'secondary': '#8B5A2B', 'accent': '#F2E6C9', 'style': 1, 'home': 'CREAM', 'away': 'NAVY'},
+    "EBL-F11":{'city': 'Jacksonville', 'team': 'Breakers', 'primary': '#062A47', 'secondary': '#00A9C6', 'accent': '#F2F7F7', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F12":{'city': 'Minneapolis', 'team': 'Northmen', 'primary': '#0B2545', 'secondary': '#1E5AA8', 'accent': '#D9B36C', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F13":{'city': 'Kansas City', 'team': 'Crossroads', 'primary': '#0B2545', 'secondary': '#C1121F', 'accent': '#D4AF37', 'style': 4, 'home': 'CREAM', 'away': 'NAVY'},
+    "EBL-F14":{'city': 'San Jose', 'team': 'Circuit', 'primary': '#050505', 'secondary': '#00D1C7', 'accent': '#7CFF35', 'style': 9, 'home': 'WHITE', 'away': 'BLACK'},
+    "EBL-F15":{'city': 'Columbus', 'team': 'Aviators', 'primary': '#123B63', 'secondary': '#C1121F', 'accent': '#D9E0E8', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F16":{'city': 'Charlotte', 'team': 'Crowns', 'primary': '#4B2E83', 'secondary': '#D4AF37', 'accent': '#111111', 'style': 5, 'home': 'WHITE', 'away': 'BLACK'},
+    "EBL-F17":{'city': 'Indianapolis', 'team': 'Racers', 'primary': '#C1121F', 'secondary': '#111827', 'accent': '#F1FAEE', 'style': 3, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F18":{'city': 'Wilmington', 'team': 'Admirals', 'primary': '#0B2545', 'secondary': '#0E7490', 'accent': '#D4AF37', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
+    "EBL-F19":{'city': 'Seattle', 'team': 'Evergreens', 'primary': '#0B5D3B', 'secondary': '#203A43', 'accent': '#DDE9E4', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F20":{'city': 'Denver', 'team': 'Summit', 'primary': '#0052CC', 'secondary': '#0B1F44', 'accent': '#D4AF37', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F21":{'city': 'Oklahoma City', 'team': 'Twisters', 'primary': '#0B1F44', 'secondary': '#00BCEB', 'accent': '#F7F9FC', 'style': 7, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F22":{'city': 'Nashville', 'team': 'Sound', 'primary': '#14213D', 'secondary': '#D4AF37', 'accent': '#F6F1E1', 'style': 7, 'home': 'CREAM', 'away': 'NAVY'},
+    "EBL-F23":{'city': 'Washington', 'team': 'Eagles', 'primary': '#0D2B4E', 'secondary': '#8B1538', 'accent': '#D4AF37', 'style': 5, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F24":{'city': 'Las Vegas', 'team': 'High Rollers', 'primary': '#000000', 'secondary': '#8B0000', 'accent': '#D4AF37', 'style': 3, 'home': 'BLACK', 'away': 'RED'},
+    "EBL-F25":{'city': 'Boston', 'team': 'Minutemen', 'primary': '#0B2545', 'secondary': '#A61B2B', 'accent': '#D8C3A5', 'style': 7, 'home': 'CREAM', 'away': 'NAVY'},
+    "EBL-F26":{'city': 'Portland', 'team': 'Pioneers', 'primary': '#285943', 'secondary': '#6B4F2A', 'accent': '#E8E0C8', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
+    "EBL-F27":{'city': 'Detroit', 'team': 'Motors', 'primary': '#111820', 'secondary': '#D7262E', 'accent': '#BFC5CA', 'style': 4, 'home': 'GRAY', 'away': 'BLACK'},
+    "EBL-F28":{'city': 'Louisville', 'team': 'Thoroughbreds', 'primary': '#6B0F1A', 'secondary': '#111111', 'accent': '#D4AF37', 'style': 5, 'home': 'WHITE', 'away': 'BLACK'},
+    "EBL-F29":{'city': 'Memphis', 'team': 'Tigers', 'primary': '#071A31', 'secondary': '#0F4CC9', 'accent': '#F0A23A', 'style': 5, 'home': 'WHITE', 'away': 'NAVY'},
+    "EBL-F30":{'city': 'Baltimore', 'team': 'Clippers', 'primary': '#111111', 'secondary': '#F05A16', 'accent': '#F1E3C6', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
+}
+OFFICIAL_REBRAND_FRANCHISE_IDS={"EBL-F06","EBL-F08","EBL-F12","EBL-F13","EBL-F18","EBL-F29"}
+RC117_BRANDING_ASSET_ARCHIVE=os.path.join(ROOT,"EBL_RC117_Approved_Team_Artwork.zip")
+
 def _brand_svg_escape(value):
     return (str(value or "")
             .replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
@@ -397,7 +433,7 @@ def _brand_motif(team,primary,secondary,accent):
 
 
 
-def official_brand_art(brand):
+def legacy_rc114_brand_art(brand):
     city=str(brand.get("city") or "Elite")
     team=str(brand.get("team") or "Baseball")
     primary=str(brand.get("primary") or "#153c63")
@@ -432,6 +468,139 @@ def official_brand_art(brand):
 
 
 
+
+
+
+# RC116: premium franchise identity renderer. The RC114 renderer remains above so
+# the seed can identify exact league-generated art and safely replace only that.
+def _brand_color_tuple(value):
+    v=str(value or "#000000").strip().lstrip("#")
+    if len(v)==3:
+        v="".join(ch*2 for ch in v)
+    try:
+        return tuple(int(v[i:i+2],16) for i in (0,2,4))
+    except Exception:
+        return (0,0,0)
+
+
+def _brand_mix(a,b,t):
+    aa=_brand_color_tuple(a); bb=_brand_color_tuple(b)
+    t=max(0.0,min(1.0,float(t)))
+    vals=[round(aa[i]*(1-t)+bb[i]*t) for i in range(3)]
+    return "#"+"".join(f"{max(0,min(255,v)):02X}" for v in vals)
+
+
+def _premium_brand_motif(team,primary,secondary,accent):
+    t=str(team or "").lower()
+    if "scout" in t:
+        compass=_brand_star_points(256,190,88,26,4)
+        return f'<circle cx="256" cy="190" r="104" fill="{_brand_mix(primary,"#000000",.22)}" stroke="{secondary}" stroke-width="10"/><polygon points="{compass}" fill="{accent}" stroke="{secondary}" stroke-width="8"/><path d="M256 88 L270 167 L256 190 L242 167Z" fill="{secondary}"/><path d="M150 287 L190 226 H176 L210 178 L196 178 L229 128 L262 178 L248 178 L282 226 H268 L308 287Z" fill="{primary}" stroke="{accent}" stroke-width="5"/>'
+    return _brand_motif(team,primary,secondary,accent)
+
+
+def _premium_badge(style,primary,secondary,accent):
+    dark=_brand_mix(primary,"#000000",.46)
+    if style in (3,4):
+        outer='M256 22 L448 96 V265 Q448 391 256 486 Q64 391 64 265 V96Z'
+        inner='M256 54 L416 116 V258 Q416 365 256 448 Q96 365 96 258 V116Z'
+        return f'<path d="{outer}" fill="url(#pbg)" stroke="{accent}" stroke-width="15"/><path d="{inner}" fill="none" stroke="{secondary}" stroke-width="9"/><path d="{inner}" fill="none" stroke="{accent}" stroke-opacity=".25" stroke-width="3" stroke-dasharray="11 9"/>'
+    if style in (5,8):
+        return f'<circle cx="256" cy="256" r="228" fill="url(#pbg)" stroke="{accent}" stroke-width="15"/><circle cx="256" cy="256" r="198" fill="none" stroke="{secondary}" stroke-width="10"/><circle cx="256" cy="256" r="174" fill="none" stroke="{accent}" stroke-opacity=".25" stroke-width="4"/>'
+    if style in (6,9):
+        return f'<polygon points="256,24 454,138 454,374 256,488 58,374 58,138" fill="url(#pbg)" stroke="{accent}" stroke-width="15"/><polygon points="256,58 424,155 424,357 256,454 88,357 88,155" fill="none" stroke="{secondary}" stroke-width="9"/><polygon points="256,76 407,164 407,348 256,436 105,348 105,164" fill="none" stroke="{accent}" stroke-opacity=".22" stroke-width="3" stroke-dasharray="10 8"/>'
+    return f'<path d="M256 23 L472 256 L256 489 L40 256Z" fill="url(#pbg)" stroke="{accent}" stroke-width="15"/><path d="M256 58 L438 256 L256 454 L74 256Z" fill="none" stroke="{secondary}" stroke-width="9"/><path d="M256 78 L419 256 L256 434 L93 256Z" fill="none" stroke="{accent}" stroke-opacity=".22" stroke-width="3" stroke-dasharray="10 8"/>'
+
+
+def _premium_title_size(team):
+    n=len(str(team or ""))
+    return 58 if n<=7 else (51 if n<=10 else (43 if n<=13 else 35))
+
+
+def _premium_wordmark_size(team):
+    n=len(str(team or ""))
+    return 124 if n<=7 else (108 if n<=10 else (92 if n<=13 else 76))
+
+
+def generated_official_brand_art(brand):
+    city=str(brand.get("city") or "Elite")
+    team=str(brand.get("team") or "Baseball")
+    primary=str(brand.get("primary") or "#153c63")
+    secondary=str(brand.get("secondary") or "#d7262e")
+    accent=str(brand.get("accent") or "#f7f7f7")
+    style=int(brand.get("style") or 1)
+    city_code=_brand_city_code(city)
+    team_code=_brand_team_code(team)
+    city_e=_brand_svg_escape(city.upper())
+    team_e=_brand_svg_escape(team.upper())
+    monogram=_brand_svg_escape((city_code[:1]+team_code[:1])[:2])
+    dark=_brand_mix(primary,"#000000",.58)
+    light=_brand_mix(accent,"#FFFFFF",.18)
+    sec_light=_brand_mix(secondary,"#FFFFFF",.14)
+    defs=f'<defs><linearGradient id="pbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{_brand_mix(primary,"#FFFFFF",.10)}"/><stop offset=".56" stop-color="{primary}"/><stop offset="1" stop-color="{dark}"/></linearGradient><linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{light}"/><stop offset=".48" stop-color="{accent}"/><stop offset="1" stop-color="{_brand_mix(accent,"#000000",.28)}"/></linearGradient><linearGradient id="teamG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{sec_light}"/><stop offset="1" stop-color="{secondary}"/></linearGradient><filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#000" flood-opacity=".48"/></filter></defs>'
+    badge=_premium_badge(style,primary,secondary,accent)
+    motif=_premium_brand_motif(team,primary,secondary,accent)
+    title_size=_premium_title_size(team)
+    wm_size=_premium_wordmark_size(team)
+
+    primary_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><!-- EBL-RC116-PREMIUM -->{defs}<g filter="url(#shadow)">{badge}</g><path d="M130 88 Q256 51 382 88" fill="none" stroke="{secondary}" stroke-width="5"/><text x="256" y="105" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="21" font-weight="900" letter-spacing="6" fill="{accent}">{city_e}</text><g transform="translate(0 24) scale(1 .94)" filter="url(#shadow)">{motif}</g><path d="M48 344 L112 319 H400 L464 344 L433 413 L256 442 L79 413Z" fill="{dark}" stroke="{accent}" stroke-width="11"/><path d="M79 347 H433 L407 397 Q256 425 105 397Z" fill="url(#teamG)" stroke="{primary}" stroke-width="5"/><text x="256" y="391" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{title_size}" font-weight="900" fill="{accent}" stroke="{dark}" stroke-width="8" paint-order="stroke">{team_e}</text><path d="M157 458 H355" stroke="{secondary}" stroke-width="9" stroke-linecap="round"/><polygon points="{_brand_star_points(256,458,14,6)}" fill="{accent}"/><text x="256" y="488" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="800" letter-spacing="5" fill="{accent}" opacity=".82">ELITE BASEBALL</text></svg>'
+
+    # Cap/scorebug mark: same club icon, tighter framing, prominent monogram.
+    secondary_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><!-- EBL-RC116-PREMIUM -->{defs}<g filter="url(#shadow)">{_premium_badge(5 if style in (1,3,4,7,8) else style,primary,secondary,accent)}</g><g transform="translate(38 42) scale(.85)" opacity=".98">{motif}</g><path d="M159 326 H353 L335 397 H177Z" fill="{dark}" stroke="{accent}" stroke-width="8"/><text x="256" y="383" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="72" font-weight="900" fill="{accent}" stroke="{primary}" stroke-width="7" paint-order="stroke">{monogram}</text><text x="256" y="438" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="900" letter-spacing="6" fill="{secondary}">{city_code}</text></svg>'
+
+    # Merchandise/header wordmark with a mini crest and full outlined athletic type.
+    wordmark_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360"><!-- EBL-RC116-PREMIUM -->{defs}<g transform="translate(-58 -76) scale(.68)" filter="url(#shadow)">{badge}{motif}</g><text x="758" y="96" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="900" letter-spacing="13" fill="{secondary}">{city_e}</text><g transform="skewX(-7)"><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{accent}" stroke-width="13" paint-order="stroke">{team_e}</text><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{dark}" stroke-width="4" paint-order="stroke">{team_e}</text></g><path d="M340 266 H1120" stroke="{secondary}" stroke-width="16" stroke-linecap="round"/><path d="M500 297 H970" stroke="{accent}" stroke-width="6" stroke-linecap="round" opacity=".84"/><polygon points="{_brand_star_points(1050,297,15,6)}" fill="{secondary}"/></svg>'
+    return {"primary":_brand_svg_uri(primary_svg),"secondary":_brand_svg_uri(secondary_svg),"wordmark":_brand_svg_uri(wordmark_svg)}
+
+# RC117 artwork archive loader. The archive ships beside server.py so deploys keep
+# the Python source small while still seeding self-contained image data into SQLite.
+PRODUCTION_BRAND_FILES={
+    "EBL-F01":{'primary': 'assets/ebl-f01_primary.webp', 'secondary': 'assets/ebl-f01_secondary.webp', 'wordmark': 'assets/ebl-f01_wordmark.webp'},
+    "EBL-F02":{'primary': 'assets/ebl-f02_primary.webp', 'secondary': 'assets/ebl-f02_secondary.webp', 'wordmark': 'assets/ebl-f02_wordmark.webp'},
+    "EBL-F03":{'primary': 'assets/ebl-f03_primary.webp', 'secondary': 'assets/ebl-f03_secondary.webp', 'wordmark': 'assets/ebl-f03_wordmark.webp'},
+    "EBL-F04":{'primary': 'assets/ebl-f04_primary.webp', 'secondary': 'assets/ebl-f04_secondary.webp', 'wordmark': 'assets/ebl-f04_wordmark.webp'},
+    "EBL-F05":{'primary': 'assets/ebl-f05_primary.webp', 'secondary': 'assets/ebl-f05_secondary.webp', 'wordmark': 'assets/ebl-f05_wordmark.webp'},
+    "EBL-F06":{'primary': 'assets/ebl-f06_primary.webp', 'secondary': 'assets/ebl-f06_secondary.webp', 'wordmark': 'assets/ebl-f06_wordmark.webp'},
+    "EBL-F07":{'primary': 'assets/ebl-f07_primary.webp', 'secondary': 'assets/ebl-f07_secondary.webp', 'wordmark': 'assets/ebl-f07_wordmark.webp'},
+    "EBL-F08":{'primary': 'assets/ebl-f08_primary.webp', 'secondary': 'assets/ebl-f08_secondary.webp', 'wordmark': 'assets/ebl-f08_wordmark.webp'},
+    "EBL-F09":{'primary': 'assets/ebl-f09_primary.webp', 'secondary': 'assets/ebl-f09_secondary.webp', 'wordmark': 'assets/ebl-f09_wordmark.webp'},
+    "EBL-F10":{'primary': 'assets/ebl-f10_primary.webp', 'secondary': 'assets/ebl-f10_secondary.webp', 'wordmark': 'assets/ebl-f10_wordmark.webp'},
+    "EBL-F11":{'primary': 'assets/ebl-f11_primary.webp', 'secondary': 'assets/ebl-f11_secondary.webp', 'wordmark': 'assets/ebl-f11_wordmark.webp'},
+    "EBL-F12":{'primary': 'assets/ebl-f12_primary.webp', 'secondary': 'assets/ebl-f12_secondary.webp', 'wordmark': 'assets/ebl-f12_wordmark.webp'},
+    "EBL-F13":{'primary': 'assets/ebl-f13_primary.webp', 'secondary': 'assets/ebl-f13_secondary.webp', 'wordmark': 'assets/ebl-f13_wordmark.webp'},
+    "EBL-F14":{'primary': 'assets/ebl-f14_primary.webp', 'secondary': 'assets/ebl-f14_secondary.webp', 'wordmark': 'assets/ebl-f14_wordmark.webp'},
+    "EBL-F15":{'primary': 'assets/ebl-f15_primary.webp', 'secondary': 'assets/ebl-f15_secondary.webp', 'wordmark': 'assets/ebl-f15_wordmark.webp'},
+    "EBL-F16":{'primary': 'assets/ebl-f16_primary.webp', 'secondary': 'assets/ebl-f16_secondary.webp', 'wordmark': 'assets/ebl-f16_wordmark.webp'},
+    "EBL-F17":{'primary': 'assets/ebl-f17_primary.webp', 'secondary': 'assets/ebl-f17_secondary.webp', 'wordmark': 'assets/ebl-f17_wordmark.webp'},
+    "EBL-F18":{'primary': 'assets/ebl-f18_primary.webp', 'secondary': 'assets/ebl-f18_secondary.webp', 'wordmark': 'assets/ebl-f18_wordmark.webp'},
+    "EBL-F19":{'primary': 'assets/ebl-f19_primary.webp', 'secondary': 'assets/ebl-f19_secondary.webp', 'wordmark': 'assets/ebl-f19_wordmark.webp'},
+    "EBL-F20":{'primary': 'assets/ebl-f20_primary.webp', 'secondary': 'assets/ebl-f20_secondary.webp', 'wordmark': 'assets/ebl-f20_wordmark.webp'},
+    "EBL-F21":{'primary': 'assets/ebl-f21_primary.webp', 'secondary': 'assets/ebl-f21_secondary.webp', 'wordmark': 'assets/ebl-f21_wordmark.webp'},
+    "EBL-F22":{'primary': 'assets/ebl-f22_primary.webp', 'secondary': 'assets/ebl-f22_secondary.webp', 'wordmark': 'assets/ebl-f22_wordmark.webp'},
+    "EBL-F23":{'primary': 'assets/ebl-f23_primary.webp', 'secondary': 'assets/ebl-f23_secondary.webp', 'wordmark': 'assets/ebl-f23_wordmark.webp'},
+    "EBL-F24":{'primary': 'assets/ebl-f24_primary.webp', 'secondary': 'assets/ebl-f24_secondary.webp', 'wordmark': 'assets/ebl-f24_wordmark.webp'},
+    "EBL-F25":{'primary': 'assets/ebl-f25_primary.webp', 'secondary': 'assets/ebl-f25_secondary.webp', 'wordmark': 'assets/ebl-f25_wordmark.webp'},
+    "EBL-F26":{'primary': 'assets/ebl-f26_primary.webp', 'secondary': 'assets/ebl-f26_secondary.webp', 'wordmark': 'assets/ebl-f26_wordmark.webp'},
+    "EBL-F27":{'primary': 'assets/ebl-f27_primary.webp', 'secondary': 'assets/ebl-f27_secondary.webp', 'wordmark': 'assets/ebl-f27_wordmark.webp'},
+    "EBL-F28":{'primary': 'assets/ebl-f28_primary.webp', 'secondary': 'assets/ebl-f28_secondary.webp', 'wordmark': 'assets/ebl-f28_wordmark.webp'},
+    "EBL-F29":{'primary': 'assets/ebl-f29_primary.webp', 'secondary': 'assets/ebl-f29_secondary.webp', 'wordmark': 'assets/ebl-f29_wordmark.webp'},
+    "EBL-F30":{'primary': 'assets/ebl-f30_primary.webp', 'secondary': 'assets/ebl-f30_secondary.webp', 'wordmark': 'assets/ebl-f30_wordmark.webp'},
+}
+
+def _rc117_art_data_uri(archive_name):
+    try:
+        with zipfile.ZipFile(RC117_BRANDING_ASSET_ARCHIVE,"r") as zf:
+            raw=zf.read(archive_name)
+        return "data:image/webp;base64,"+base64.b64encode(raw).decode("ascii")
+    except Exception:
+        return ""
+
+def official_brand_art(brand,fid=None):
+    files=PRODUCTION_BRAND_FILES.get(str(fid or ""))
+    if files:
+        art={k:_rc117_art_data_uri(v) for k,v in files.items()}
+        if all(art.values()):
+            return art
+    return generated_official_brand_art(brand)
 
 
 POSITION_GROUPS=("INF","OF","PITCHER")
@@ -2055,19 +2224,19 @@ def init_db():
         "Los Angeles Stars",
         "Chicago Wind",
         "Houston Apollos",
-        "Phoenix Firebirds",
+        "New Orleans Rougarou",
         "Philadelphia Founders",
-        "San Antonio Defenders",
+        "San Antonio Vaqueros",
         "Birmingham Hammers",
         "Dallas Wranglers",
         "Jacksonville Breakers",
-        "Fort Worth Longhorns",
-        "Austin Outlaws",
+        "Minneapolis Northmen",
+        "Kansas City Crossroads",
         "San Jose Circuit",
         "Columbus Aviators",
         "Charlotte Crowns",
         "Indianapolis Racers",
-        "San Francisco Gold",
+        "Wilmington Admirals",
         "Seattle Evergreens",
         "Denver Summit",
         "Oklahoma City Twisters",
@@ -2078,7 +2247,7 @@ def init_db():
         "Portland Pioneers",
         "Detroit Motors",
         "Louisville Thoroughbreds",
-        "Memphis Kings",
+        "Memphis Tigers",
         "Baltimore Clippers"
     ]
 
@@ -2294,27 +2463,40 @@ def init_db():
 
 
 
-    # RC84 one-time official branding seed. This fills only franchises that do not
-    # already have uploaded artwork, so Atlanta/Birmingham/OKC and future coach
-    # rebrands remain untouched. The seed key prevents later restarts from
-    # re-applying league defaults over a coach's color-only customization.
+    # RC117 one-time production branding seed. This upgrades league-generated art and
+    # preserves genuine coach/commissioner uploads on unchanged franchises. Official
+    # rebrand slots are intentionally forced to the approved city/team/art package. The
+    # seed key prevents repeated writes after the migration is complete.
     seeded=c.execute("SELECT v FROM league_config WHERE k=?",(OFFICIAL_BRAND_SEED_KEY,)).fetchone()
     if not seeded:
         for fid,brand in OFFICIAL_FRANCHISE_BRANDS.items():
             row=c.execute("""SELECT primary_logo,secondary_logo,jersey_wordmark,display_name,city,team_name,
                                     primary_color,secondary_color,accent_color
                                FROM franchise_branding WHERE franchise_id=?""",(fid,)).fetchone()
-            art=official_brand_art(brand)
+            art=official_brand_art(brand,fid)
+            old_brand=LEGACY_RC116_FRANCHISE_BRANDS.get(fid,brand)
+            legacy=legacy_rc114_brand_art(old_brand)
+            legacy_premium=generated_official_brand_art(old_brand)
+            force_identity=fid in OFFICIAL_REBRAND_FRANCHISE_IDS
             existing_primary=str(row["primary_logo"] or "").strip() if row else ""
             existing_secondary=str(row["secondary_logo"] or "").strip() if row else ""
             existing_wordmark=str(row["jersey_wordmark"] or "").strip() if row else ""
-            has_uploaded=bool(existing_primary or existing_secondary or existing_wordmark)
-            display=(str(row["display_name"] or "").strip() if row and has_uploaded else "") or f"{brand['city']} {brand['team']}".strip()
-            city=(str(row["city"] or "").strip() if row and has_uploaded else "") or brand["city"]
-            team_name=(str(row["team_name"] or "").strip() if row and has_uploaded else "") or brand["team"]
-            pc=(str(row["primary_color"] or "").strip() if row and has_uploaded else "") or brand["primary"]
-            sc=(str(row["secondary_color"] or "").strip() if row and has_uploaded else "") or brand["secondary"]
-            ac=(str(row["accent_color"] or "").strip() if row and has_uploaded else "") or brand["accent"]
+            # RC116 upgrades blank fields and exact RC114 league SVGs only.
+            # Coach/commissioner uploads remain untouched, including custom SVG.
+            custom_primary=bool(existing_primary and existing_primary not in (legacy["primary"],legacy_premium["primary"],art["primary"])) and not force_identity
+            custom_secondary=bool(existing_secondary and existing_secondary not in (legacy["secondary"],legacy_premium["secondary"],art["secondary"])) and not force_identity
+            custom_wordmark=bool(existing_wordmark and existing_wordmark not in (legacy["wordmark"],legacy_premium["wordmark"],art["wordmark"])) and not force_identity
+            has_custom_art=custom_primary or custom_secondary or custom_wordmark
+            primary_logo=existing_primary if custom_primary else art["primary"]
+            secondary_logo=existing_secondary if custom_secondary else art["secondary"]
+            wordmark=existing_wordmark if custom_wordmark else art["wordmark"]
+            preserve_custom=bool(row and has_custom_art and not force_identity)
+            display=(str(row["display_name"] or "").strip() if preserve_custom else "") or f"{brand['city']} {brand['team']}".strip()
+            city=(str(row["city"] or "").strip() if preserve_custom else "") or brand["city"]
+            team_name=(str(row["team_name"] or "").strip() if preserve_custom else "") or brand["team"]
+            pc=(str(row["primary_color"] or "").strip() if preserve_custom else "") or brand["primary"]
+            sc=(str(row["secondary_color"] or "").strip() if preserve_custom else "") or brand["secondary"]
+            ac=(str(row["accent_color"] or "").strip() if preserve_custom else "") or brand["accent"]
             c.execute("""UPDATE franchise_branding
                          SET display_name=?,city=?,team_name=?,logo_style=?,
                              primary_logo=?,secondary_logo=?,jersey_wordmark=?,
@@ -2322,9 +2504,9 @@ def init_db():
                              uniform_home=?,uniform_away=?,updated_at=CURRENT_TIMESTAMP
                          WHERE franchise_id=?""",
                       (display,city,team_name,int(brand["style"]),
-                       existing_primary or art["primary"],existing_secondary or art["secondary"],existing_wordmark or art["wordmark"],
+                       primary_logo,secondary_logo,wordmark,
                        pc,sc,ac,brand["home"],brand["away"],fid))
-            if not has_uploaded:
+            if not has_custom_art or force_identity:
                 c.execute("UPDATE franchises SET name=? WHERE id=?",(display,fid))
         c.execute("INSERT OR REPLACE INTO league_config(k,v) VALUES(?,?)",(OFFICIAL_BRAND_SEED_KEY,"1"))
 
@@ -18773,7 +18955,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.8.1 Genesis Clean Slate RC115: http://127.0.0.1:{port}")
+    print(f"EBL v7.8.1 Premium Franchise Branding RC116: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
@@ -18821,3 +19003,5 @@ if __name__=="__main__":
 
 # EBL_RECURRING_SUPPORTER_RC109
 # EBL_GENESIS_CLEAN_SLATE_RC115
+
+# EBL_PREMIUM_FRANCHISE_BRANDING_RC116
