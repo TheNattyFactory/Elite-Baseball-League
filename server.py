@@ -231,7 +231,7 @@ def registration_age_eligible(value, minimum_age=AGE_REQUIREMENT):
 
 # RC84: official EBL baseline branding. These are lightweight league defaults
 # for CPU/unclaimed franchises. Existing uploaded/custom artwork is never overwritten.
-OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc120_static_assets13_v1"
+OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc121_static_assets_per_team_v1"
 LEGACY_RC116_FRANCHISE_BRANDS={
     "EBL-F01":{"city":"Atlanta","team":"Scouts","primary":"#173F35","secondary":"#D7C7A1","accent":"#0A1D2A","style":4,"home":"CREAM","away":"NAVY"},
     "EBL-F02":{"city":"New York","team":"Empires","primary":"#111827","secondary":"#D4AF37","accent":"#F2F0E8","style":8,"home":"WHITE","away":"BLACK"},
@@ -550,8 +550,8 @@ def generated_official_brand_art(brand):
     wordmark_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360"><!-- EBL-RC116-PREMIUM -->{defs}<g transform="translate(-58 -76) scale(.68)" filter="url(#shadow)">{badge}{motif}</g><text x="758" y="96" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="900" letter-spacing="13" fill="{secondary}">{city_e}</text><g transform="skewX(-7)"><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{accent}" stroke-width="13" paint-order="stroke">{team_e}</text><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{dark}" stroke-width="4" paint-order="stroke">{team_e}</text></g><path d="M340 266 H1120" stroke="{secondary}" stroke-width="16" stroke-linecap="round"/><path d="M500 297 H970" stroke="{accent}" stroke-width="6" stroke-linecap="round" opacity=".84"/><polygon points="{_brand_star_points(1050,297,15,6)}" fill="{secondary}"/></svg>'
     return {"primary":_brand_svg_uri(primary_svg),"secondary":_brand_svg_uri(secondary_svg),"wordmark":_brand_svg_uri(wordmark_svg)}
 
-# RC117 artwork archive loader. The archive ships beside server.py so deploys keep
-# the Python source small while still seeding self-contained image data into SQLite.
+# RC121 static franchise artwork map. Files live in static/assets and are seeded
+# into SQLite as self-contained data URIs while remaining replaceable by coach uploads.
 PRODUCTION_BRAND_FILES={
     "EBL-F04":{'primary': 'assets/ebl-f04_primary.webp', 'secondary': 'assets/ebl-f04_secondary.webp', 'wordmark': 'assets/ebl-f04_wordmark.webp'},
     "EBL-F11":{'primary': 'assets/ebl-f11_primary.webp', 'secondary': 'assets/ebl-f11_secondary.webp', 'wordmark': 'assets/ebl-f11_wordmark.webp'},
@@ -568,15 +568,18 @@ PRODUCTION_BRAND_FILES={
     "EBL-F30":{'primary': 'assets/ebl-f30_primary.webp', 'secondary': 'assets/ebl-f30_secondary.webp', 'wordmark': 'assets/ebl-f30_wordmark.webp'},
 }
 
-def rc120_branding_assets_ready():
-    """Only run the clean-brand migration when all 39 approved static assets exist."""
+def rc121_branding_assets_ready(fid):
+    """Return True when this franchise's complete 3-piece static brand set exists."""
     try:
-        required={name for files in PRODUCTION_BRAND_FILES.values() for name in files.values()}
-        if len(PRODUCTION_BRAND_FILES)!=13 or len(required)!=39:
-            return False
-        return all(os.path.isfile(os.path.join(STATIC,name)) for name in required)
+        files=PRODUCTION_BRAND_FILES.get(str(fid or "")) or {}
+        return set(files)=={"primary","secondary","wordmark"} and all(
+            os.path.isfile(os.path.join(STATIC,name)) for name in files.values()
+        )
     except Exception:
         return False
+
+def rc121_brand_seed_key(fid):
+    return f"{OFFICIAL_BRAND_SEED_KEY}:{str(fid or '').lower()}"
 
 def _official_static_art_data_uri(asset_name):
     try:
@@ -2456,53 +2459,74 @@ def init_db():
 
 
 
-    # RC120 one-time production branding seed. The 13 completed franchise sets load
-    # directly from static/assets. Genuine coach/commissioner uploads are preserved.
-    # After this seed is recorded, later coach edits remain authoritative.
-    seeded=c.execute("SELECT v FROM league_config WHERE k=?",(OFFICIAL_BRAND_SEED_KEY,)).fetchone()
-    rc120_assets_ready=rc120_branding_assets_ready()
-    if not seeded and rc120_assets_ready:
-        for fid,brand in OFFICIAL_FRANCHISE_BRANDS.items():
-            row=c.execute("""SELECT primary_logo,secondary_logo,jersey_wordmark,display_name,city,team_name,
-                                    primary_color,secondary_color,accent_color
-                               FROM franchise_branding WHERE franchise_id=?""",(fid,)).fetchone()
-            art=official_brand_art(brand,fid)
-            old_brand=LEGACY_RC116_FRANCHISE_BRANDS.get(fid,brand)
-            legacy=legacy_rc114_brand_art(old_brand)
-            legacy_premium=generated_official_brand_art(old_brand)
-            force_identity=fid in OFFICIAL_REBRAND_FRANCHISE_IDS
-            existing_primary=str(row["primary_logo"] or "").strip() if row else ""
-            existing_secondary=str(row["secondary_logo"] or "").strip() if row else ""
-            existing_wordmark=str(row["jersey_wordmark"] or "").strip() if row else ""
-            # RC120 upgrades only known league defaults. Any other saved artwork is
-            # treated as a coach/commissioner customization and is preserved.
-            # After this migration the seed never re-runs, so later coach edits stay authoritative.
-            custom_primary=bool(existing_primary and existing_primary not in (legacy["primary"],legacy_premium["primary"],art["primary"])) and not force_identity
-            custom_secondary=bool(existing_secondary and existing_secondary not in (legacy["secondary"],legacy_premium["secondary"],art["secondary"])) and not force_identity
-            custom_wordmark=bool(existing_wordmark and existing_wordmark not in (legacy["wordmark"],legacy_premium["wordmark"],art["wordmark"])) and not force_identity
-            has_custom_art=custom_primary or custom_secondary or custom_wordmark
-            primary_logo=existing_primary if custom_primary else art["primary"]
-            secondary_logo=existing_secondary if custom_secondary else art["secondary"]
-            wordmark=existing_wordmark if custom_wordmark else art["wordmark"]
-            preserve_custom=bool(row and has_custom_art and not force_identity)
-            display=(str(row["display_name"] or "").strip() if preserve_custom else "") or f"{brand['city']} {brand['team']}".strip()
-            city=(str(row["city"] or "").strip() if preserve_custom else "") or brand["city"]
-            team_name=(str(row["team_name"] or "").strip() if preserve_custom else "") or brand["team"]
-            pc=(str(row["primary_color"] or "").strip() if preserve_custom else "") or brand["primary"]
-            sc=(str(row["secondary_color"] or "").strip() if preserve_custom else "") or brand["secondary"]
-            ac=(str(row["accent_color"] or "").strip() if preserve_custom else "") or brand["accent"]
-            c.execute("""UPDATE franchise_branding
-                         SET display_name=?,city=?,team_name=?,logo_style=?,
-                             primary_logo=?,secondary_logo=?,jersey_wordmark=?,
-                             primary_color=?,secondary_color=?,accent_color=?,
-                             uniform_home=?,uniform_away=?,updated_at=CURRENT_TIMESTAMP
-                         WHERE franchise_id=?""",
-                      (display,city,team_name,int(brand["style"]),
-                       primary_logo,secondary_logo,wordmark,
-                       pc,sc,ac,brand["home"],brand["away"],fid))
-            if not has_custom_art or force_identity:
-                c.execute("UPDATE franchises SET name=? WHERE id=?",(display,fid))
-        c.execute("INSERT OR REPLACE INTO league_config(k,v) VALUES(?,?)",(OFFICIAL_BRAND_SEED_KEY,"1"))
+    # RC121: seed each completed franchise independently from static/assets.
+    # A missing/misnamed file can no longer block every other club. Unknown artwork on
+    # coach-owned teams is preserved; known league-generated defaults are upgraded.
+    rc121_seeded=[]
+    rc121_missing=[]
+    for fid in PRODUCTION_BRAND_FILES:
+        team_seed_key=rc121_brand_seed_key(fid)
+        already=c.execute("SELECT v FROM league_config WHERE k=?",(team_seed_key,)).fetchone()
+        if already:
+            continue
+        if not rc121_branding_assets_ready(fid):
+            rc121_missing.append(fid)
+            continue
+        brand=OFFICIAL_FRANCHISE_BRANDS[fid]
+        row=c.execute("""SELECT primary_logo,secondary_logo,jersey_wordmark,display_name,city,team_name,
+                                primary_color,secondary_color,accent_color
+                           FROM franchise_branding WHERE franchise_id=?""",(fid,)).fetchone()
+        owner_row=c.execute("SELECT owner_user_id FROM franchises WHERE id=?",(fid,)).fetchone()
+        owner_id=owner_row["owner_user_id"] if owner_row else None
+        art=official_brand_art(brand,fid)
+        old_brand=LEGACY_RC116_FRANCHISE_BRANDS.get(fid,brand)
+        legacy=legacy_rc114_brand_art(old_brand)
+        legacy_premium=generated_official_brand_art(old_brand)
+        current_generated=generated_official_brand_art(brand)
+        existing_primary=str(row["primary_logo"] or "").strip() if row else ""
+        existing_secondary=str(row["secondary_logo"] or "").strip() if row else ""
+        existing_wordmark=str(row["jersey_wordmark"] or "").strip() if row else ""
+
+        # Unowned clubs always receive the league set. On owned clubs, preserve any
+        # artwork that is not one of the known EBL-generated defaults/current static art.
+        def is_custom(existing,key):
+            if not existing or owner_id is None:
+                return False
+            known={legacy[key],legacy_premium[key],current_generated[key],art[key]}
+            return existing not in known
+
+        custom_primary=is_custom(existing_primary,"primary")
+        custom_secondary=is_custom(existing_secondary,"secondary")
+        custom_wordmark=is_custom(existing_wordmark,"wordmark")
+        has_custom_art=custom_primary or custom_secondary or custom_wordmark
+        primary_logo=existing_primary if custom_primary else art["primary"]
+        secondary_logo=existing_secondary if custom_secondary else art["secondary"]
+        wordmark=existing_wordmark if custom_wordmark else art["wordmark"]
+
+        # Preserve a human-owned club's identity fields. Unowned clubs use the official
+        # league identity/palette that matches the static artwork.
+        preserve_identity=bool(row and owner_id is not None)
+        display=(str(row["display_name"] or "").strip() if preserve_identity else "") or f"{brand['city']} {brand['team']}".strip()
+        city=(str(row["city"] or "").strip() if preserve_identity else "") or brand["city"]
+        team_name=(str(row["team_name"] or "").strip() if preserve_identity else "") or brand["team"]
+        pc=(str(row["primary_color"] or "").strip() if preserve_identity else "") or brand["primary"]
+        sc=(str(row["secondary_color"] or "").strip() if preserve_identity else "") or brand["secondary"]
+        ac=(str(row["accent_color"] or "").strip() if preserve_identity else "") or brand["accent"]
+        c.execute("""UPDATE franchise_branding
+                     SET display_name=?,city=?,team_name=?,logo_style=?,
+                         primary_logo=?,secondary_logo=?,jersey_wordmark=?,
+                         primary_color=?,secondary_color=?,accent_color=?,
+                         uniform_home=?,uniform_away=?,updated_at=CURRENT_TIMESTAMP
+                     WHERE franchise_id=?""",
+                  (display,city,team_name,int(brand["style"]),
+                   primary_logo,secondary_logo,wordmark,
+                   pc,sc,ac,brand["home"],brand["away"],fid))
+        if owner_id is None:
+            c.execute("UPDATE franchises SET name=? WHERE id=?",(display,fid))
+        c.execute("INSERT OR REPLACE INTO league_config(k,v) VALUES(?,?)",(team_seed_key,"1"))
+        rc121_seeded.append(fid)
+    if rc121_seeded or rc121_missing:
+        print(f"RC121 branding seed: seeded={len(rc121_seeded)} missing={len(rc121_missing)} missing_ids={','.join(rc121_missing) if rc121_missing else '-'}",flush=True)
 
 
 
@@ -18949,7 +18973,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.8.1 Static Franchise Branding RC120: http://127.0.0.1:{port}")
+    print(f"EBL v7.8.1 Static Franchise Branding RC121: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
