@@ -1,7 +1,10 @@
-﻿/* Elite Baseball League — RC125 PWA service worker
+/* Elite Baseball League — RC125 PWA service worker
    Static shell only. API/game/account traffic is intentionally never cached. */
-const CACHE_NAME='ebl-shell-rc125-v1';
-const SHELL=['/','/index.html','/manifest.webmanifest','/assets/ebl_logo.png'];
+const CACHE_NAME='ebl-shell-rc126-v1';
+const SHELL=['/','/index.html','/manifest.webmanifest','/assets/ebl_logo.png',
+  '/assets/icon-192.png',
+  '/assets/icon-512.png',
+  '/assets/icon-maskable-512.png'];
 
 
 self.addEventListener('install',event=>{

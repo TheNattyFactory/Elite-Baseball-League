@@ -10569,4 +10569,63 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   window.EBL_GAMECAST_BUILD=BUILD;
 })();
 </script>
-\n<script id="eblPWARC125">\n(()=>{\n  const BUILD='RC125-PWA';\n  let deferredInstallPrompt=null;\n  const installBtn=()=>document.getElementById('eblInstallAppRC125');\n  const help=()=>document.getElementById('eblInstallHelpRC125');\n  const helpBody=()=>document.getElementById('eblInstallHelpBodyRC125');\n  const isStandalone=()=>window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone===true;\n  const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);\n\n  function showInstallButton(){\n    if(isStandalone())return;\n    installBtn()?.classList.remove('hidden');\n  }\n  function hideInstallButton(){installBtn()?.classList.add('hidden');}\n  function openHelp(message){\n    const body=helpBody(); if(body)body.innerHTML=message;\n    help()?.classList.remove('hidden');\n  }\n  window.closeEBLInstallHelpRC125=()=>help()?.classList.add('hidden');\n\n  window.installEBLAppRC125=async()=>{\n    if(deferredInstallPrompt){\n      try{\n        deferredInstallPrompt.prompt();\n        await deferredInstallPrompt.userChoice;\n      }catch(_){ }\n      deferredInstallPrompt=null;\n      hideInstallButton();\n      return;\n    }\n    if(isIOS()){\n      openHelp('<b>On iPhone or iPad:</b><ol class="pwaHelpSteps"><li>Tap the Share button in Safari.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>. EBL will open in its own app window.</li></ol>');\n    }else{\n      openHelp('<b>Install EBL from your browser menu.</b><ol class="pwaHelpSteps"><li>Open the browser menu.</li><li>Choose <b>Install app</b> or <b>Add to Home screen</b>.</li><li>Open EBL from your new app icon.</li></ol>');\n    }\n  };\n\n  window.addEventListener('beforeinstallprompt',e=>{\n    e.preventDefault();\n    deferredInstallPrompt=e;\n    showInstallButton();\n  });\n  window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;hideInstallButton();});\n  window.matchMedia?.('(display-mode: standalone)').addEventListener?.('change',e=>{if(e.matches)hideInstallButton();});\n\n  document.addEventListener('DOMContentLoaded',()=>{\n    installBtn()?.addEventListener('click',window.installEBLAppRC125);\n    if(isIOS() && !isStandalone())showInstallButton();\n  });\n\n  if('serviceWorker' in navigator){\n    window.addEventListener('load',()=>{\n      navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(err=>console.warn('EBL service worker registration failed',err));\n    });\n  }\n  window.EBL_PWA_BUILD=BUILD;\n})();\n</script>\n
+
+<script id="eblPWARC126">
+(()=>{
+  const BUILD='RC126-PWA';
+  let deferredInstallPrompt=null;
+  const installBtn=()=>document.getElementById('eblInstallAppRC125');
+  const help=()=>document.getElementById('eblInstallHelpRC125');
+  const helpBody=()=>document.getElementById('eblInstallHelpBodyRC125');
+  const isStandalone=()=>window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone===true;
+  const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  function showInstallButton(){
+    if(isStandalone())return;
+    installBtn()?.classList.remove('hidden');
+  }
+  function hideInstallButton(){installBtn()?.classList.add('hidden');}
+  function openHelp(message){
+    const body=helpBody(); if(body)body.innerHTML=message;
+    help()?.classList.remove('hidden');
+  }
+  window.closeEBLInstallHelpRC125=()=>help()?.classList.add('hidden');
+
+  window.installEBLAppRC125=async()=>{
+    if(deferredInstallPrompt){
+      try{
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+      }catch(_){ }
+      deferredInstallPrompt=null;
+      hideInstallButton();
+      return;
+    }
+    if(isIOS()){
+      openHelp('<b>On iPhone or iPad:</b><ol class="pwaHelpSteps"><li>Tap the Share button in Safari.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>. EBL will open in its own app window.</li></ol>');
+    }else{
+      openHelp('<b>Install EBL from your browser menu.</b><ol class="pwaHelpSteps"><li>Open the browser menu.</li><li>Choose <b>Install app</b> or <b>Add to Home screen</b>.</li><li>Open EBL from your new app icon.</li></ol>');
+    }
+  };
+
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();
+    deferredInstallPrompt=e;
+    showInstallButton();
+  });
+  window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;hideInstallButton();});
+  window.matchMedia?.('(display-mode: standalone)').addEventListener?.('change',e=>{if(e.matches)hideInstallButton();});
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    installBtn()?.addEventListener('click',window.installEBLAppRC125);
+    if(!isStandalone())showInstallButton();
+  });
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(err=>console.warn('EBL service worker registration failed',err));
+    });
+  }
+  window.EBL_PWA_BUILD=BUILD;
+})();
+</script>

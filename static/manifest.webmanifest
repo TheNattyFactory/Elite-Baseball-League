@@ -1,4 +1,4 @@
-﻿{
+{
   "id": "/",
   "name": "Elite Baseball League",
   "short_name": "EBL",
@@ -6,15 +6,41 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "background_color": "#040b14",
   "theme_color": "#071426",
-  "categories": ["sports", "games"],
+  "categories": [
+    "sports",
+    "games"
+  ],
   "icons": [
-    {"src": "/assets/ebl_logo.png", "sizes": "any", "type": "image/png", "purpose": "any"},
-    {"src": "/assets/ebl_logo.png", "sizes": "any", "type": "image/png", "purpose": "maskable"}
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    {"name": "Open EBL", "short_name": "EBL", "url": "/"}
+    {
+      "name": "Open EBL",
+      "short_name": "EBL",
+      "url": "/"
+    }
   ]
 }
