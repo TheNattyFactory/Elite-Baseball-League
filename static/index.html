@@ -1,8 +1,14 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Elite Baseball League — Genesis</title>
 <meta name="description" content="Create your ballplayer, earn a contract, develop across seasons, and build a legacy in the Elite Baseball League.">
 <meta name="theme-color" content="#071426">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EBL">
+<link rel="apple-touch-icon" href="/assets/ebl_logo.png">
 <meta property="og:title" content="Elite Baseball League">
 <meta property="og:description" content="Make your player. Earn your spot. Build your legacy.">
 <meta property="og:type" content="website">
@@ -1085,6 +1091,25 @@ dialog{
 </style>
 <script id="eblOnboardingRC110Meta">window.EBL_ONBOARDING_RC110=Object.freeze({version:'RC110',separateSignup:true,verifyToCreator:true,separatePlayerIdentity:true});</script>
 
+
+<style id="eblPWARC125Styles">
+/* RC125: installable mobile-app shell. Does not alter game simulation or API data. */
+html{background:#040b14}
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}
+#eblInstallAppRC125{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:80;display:flex;align-items:center;gap:7px;border-color:var(--gold);box-shadow:0 10px 28px #0009,inset 0 -2px 0 var(--gold);font-weight:900}
+#eblInstallAppRC125.hidden{display:none!important}
+#eblInstallHelpRC125{position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:18px;background:#000b}
+#eblInstallHelpRC125.hidden{display:none!important}
+#eblInstallHelpRC125 .pwaHelpCard{width:min(460px,100%);background:linear-gradient(180deg,#102844,#071426);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:16px;padding:18px;box-shadow:0 18px 50px #000b}
+#eblInstallHelpRC125 .pwaHelpCard h3{margin:0 0 8px}.pwaHelpSteps{margin:10px 0 0;padding-left:20px;color:var(--mut);line-height:1.55}
+@media(display-mode:standalone){
+ body{min-height:100dvh}
+ header{padding-top:calc(12px + env(safe-area-inset-top))}
+ #eblInstallAppRC125{display:none!important}
+}
+@media(max-width:520px){#eblInstallAppRC125{right:10px;bottom:calc(10px + env(safe-area-inset-bottom));padding:9px 11px;font-size:12px}}
+</style>
+
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -1092,6 +1117,15 @@ dialog{
 <nav id="mainNav">
 <button class="navbtn active" data-page="home">HOME</button><button class="navbtn" data-page="news">NEWS</button><button class="navbtn" data-page="community">COMMUNITY</button><button class="navbtn" data-page="support">SUPPORT</button><button class="navbtn authOnly hidden" data-page="messages">MESSAGES</button><button class="navbtn authOnly hidden" data-page="player">PLAYER</button><button class="navbtn authOnly hidden" data-page="team">TEAM</button><button id="coachNav" class="navbtn authOnly hidden" data-page="coach">COACH</button><button class="navbtn" data-page="league">LEAGUE</button><button class="navbtn authOnly hidden" data-page="analytics">ANALYTICS</button><button class="navbtn" data-page="awards">AWARDS</button><button class="navbtn" data-page="gamecast">GAMECAST</button><button class="navbtn" data-page="rules">RULES</button><button id="adminNav" class="navbtn hidden" data-page="admin">ADMIN</button>
 </nav>
+<button id="eblInstallAppRC125" class="btn hidden" type="button" aria-label="Install Elite Baseball League app">📲 INSTALL EBL</button>
+<div id="eblInstallHelpRC125" class="hidden" role="dialog" aria-modal="true" aria-labelledby="eblInstallHelpTitleRC125">
+ <div class="pwaHelpCard">
+  <h3 id="eblInstallHelpTitleRC125">Install Elite Baseball League</h3>
+  <div id="eblInstallHelpBodyRC125" class="muted"></div>
+  <button class="btn" type="button" style="margin-top:14px" onclick="window.closeEBLInstallHelpRC125?.()">GOT IT</button>
+ </div>
+</div>
+
 <main>
 <section id="home" class="page active">
 <div id="loginCard" class="card loginShellRC110"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><div class="loginHeroRC110"><span class="newsMeta">WELCOME BACK</span><h2>Log in to Elite Baseball League <span class="betaSiteBadge">BETA</span></h2><p class="muted">Continue your player career, contracts, stats, awards, messages, and league history.</p><div id="genesisPromoLogin" class="offer" style="margin-top:12px;text-align:left"><span class="newsMeta">GENESIS EARLY ACCOUNT BONUS</span><b style="display:block;margin:4px 0">First 100 verified accounts get EBL Supporter benefits free through Season 1.</b><span class="muted">Create your account, verify your email, and claim an early spot while they remain. No payment is required for the Genesis bonus.</span></div></div><div class="loginPanelRC110"><h3>Login</h3><label class="label" for="lu">USERNAME</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><label class="label" for="lp">PASSWORD</label><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn loginPrimaryRC110" onclick="login()">LOGIN</button><div class="loginCreateRC110"><span>New to EBL?</span><a class="btn" href="/create-account">CREATE ACCOUNT</a></div></div><details class="loginRecoveryRC110"><summary>Password Recovery</summary><div class="grid" style="margin-top:10px"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></details><div id="loginMsg" class="muted"></div></div>
@@ -10535,3 +10569,4 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   window.EBL_GAMECAST_BUILD=BUILD;
 })();
 </script>
+\n<script id="eblPWARC125">\n(()=>{\n  const BUILD='RC125-PWA';\n  let deferredInstallPrompt=null;\n  const installBtn=()=>document.getElementById('eblInstallAppRC125');\n  const help=()=>document.getElementById('eblInstallHelpRC125');\n  const helpBody=()=>document.getElementById('eblInstallHelpBodyRC125');\n  const isStandalone=()=>window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone===true;\n  const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);\n\n  function showInstallButton(){\n    if(isStandalone())return;\n    installBtn()?.classList.remove('hidden');\n  }\n  function hideInstallButton(){installBtn()?.classList.add('hidden');}\n  function openHelp(message){\n    const body=helpBody(); if(body)body.innerHTML=message;\n    help()?.classList.remove('hidden');\n  }\n  window.closeEBLInstallHelpRC125=()=>help()?.classList.add('hidden');\n\n  window.installEBLAppRC125=async()=>{\n    if(deferredInstallPrompt){\n      try{\n        deferredInstallPrompt.prompt();\n        await deferredInstallPrompt.userChoice;\n      }catch(_){ }\n      deferredInstallPrompt=null;\n      hideInstallButton();\n      return;\n    }\n    if(isIOS()){\n      openHelp('<b>On iPhone or iPad:</b><ol class="pwaHelpSteps"><li>Tap the Share button in Safari.</li><li>Choose <b>Add to Home Screen</b>.</li><li>Tap <b>Add</b>. EBL will open in its own app window.</li></ol>');\n    }else{\n      openHelp('<b>Install EBL from your browser menu.</b><ol class="pwaHelpSteps"><li>Open the browser menu.</li><li>Choose <b>Install app</b> or <b>Add to Home screen</b>.</li><li>Open EBL from your new app icon.</li></ol>');\n    }\n  };\n\n  window.addEventListener('beforeinstallprompt',e=>{\n    e.preventDefault();\n    deferredInstallPrompt=e;\n    showInstallButton();\n  });\n  window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;hideInstallButton();});\n  window.matchMedia?.('(display-mode: standalone)').addEventListener?.('change',e=>{if(e.matches)hideInstallButton();});\n\n  document.addEventListener('DOMContentLoaded',()=>{\n    installBtn()?.addEventListener('click',window.installEBLAppRC125);\n    if(isIOS() && !isStandalone())showInstallButton();\n  });\n\n  if('serviceWorker' in navigator){\n    window.addEventListener('load',()=>{\n      navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(err=>console.warn('EBL service worker registration failed',err));\n    });\n  }\n  window.EBL_PWA_BUILD=BUILD;\n})();\n</script>\n
