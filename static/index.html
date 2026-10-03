@@ -10938,7 +10938,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
 
 <script id="eblPushRC128Script">
 (()=>{
-  const BUILD='RC128-WEB-PUSH';
+  const BUILD='RC129-PUSH-DIAGNOSTIC';
   const $=id=>document.getElementById(id);
   const b64ToBytes=value=>{
     const padding='='.repeat((4-value.length%4)%4);
@@ -11016,8 +11016,20 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   };
 
   window.eblTestPushRC128=async()=>{
-    msg('Sending a test alert…');
-    try{await api('/api/push/test',{method:'POST',body:'{}'});msg('Test queued. It should appear as an EBL notification within a few seconds.')}catch(e){msg(String(e?.message||e||''))}
+    msg('Sending a real background test…');
+    try{
+      const r=await api('/api/push/test',{method:'POST',body:'{}'});
+      if(r?.delivered>0){
+        msg(`Push service accepted the test for ${r.delivered} device${r.delivered===1?'':'s'}. Check your Android notification shade.`);
+      }else{
+        msg('The device is subscribed, but the push service did not accept the test.');
+      }
+    }catch(e){
+      const code=e?.data||e?.payload||{};
+      const status=code?.failure_status?` (${code.failure_status})`:'';
+      const kind=code?.failure_type?` ${code.failure_type}`:'';
+      msg(`Background delivery failed${status}${kind}. The in-app notification may still appear.`);
+    }
   };
 
   // Keep an already-approved subscription tied to the currently logged-in account

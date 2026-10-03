@@ -1,6 +1,6 @@
 /* Elite Baseball League — RC125 PWA service worker
    Static shell only. API/game/account traffic is intentionally never cached. */
-const CACHE_NAME='ebl-shell-rc128-v1';
+const CACHE_NAME='ebl-shell-rc129-v1';
 const SHELL=['/','/index.html','/manifest.webmanifest','/assets/ebl_logo.png',
   '/assets/icon-192.png',
   '/assets/icon-512.png',
@@ -79,6 +79,8 @@ self.addEventListener('push',event=>{
       tag:'ebl-'+String(data.id||Date.now()),
       data:{url},
       renotify:false,
+      silent:false,
+      timestamp:Date.now(),
     });
   })());
 });
