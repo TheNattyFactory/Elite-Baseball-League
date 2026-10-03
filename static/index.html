@@ -1239,6 +1239,20 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 }
 </style>
 
+
+<style id="eblPushRC128Styles">
+#eblPushDialogRC128{max-width:560px}
+.eblPushStateRC128{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#081827;margin:12px 0}
+.eblPushDotRC128{width:12px;height:12px;border-radius:50%;background:#66788b;box-shadow:0 0 0 4px rgba(102,120,139,.12);flex:0 0 12px}
+.eblPushStateRC128.on .eblPushDotRC128{background:var(--green);box-shadow:0 0 0 4px rgba(88,201,139,.12)}
+.eblPushStateRC128.blocked .eblPushDotRC128{background:var(--red);box-shadow:0 0 0 4px rgba(215,38,46,.12)}
+.eblPushActionsRC128{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.eblPushFineRC128{font-size:12px;line-height:1.45;color:var(--mut);margin-top:10px}
+#eblPushMoreStatusRC128{font-weight:900;color:#9fb0bf}
+#eblPushMoreStatusRC128.on{color:var(--green)}
+@media(max-width:600px){.eblPushActionsRC128 .btn{flex:1;min-width:120px}}
+</style>
+
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -1275,6 +1289,7 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
       <button class="eblAppMoreLinkRC127" onclick="eblAppNavigateRC127('community')"><span>💬</span><span>Community<small>Friends & league chat</small></span></button>
       <button class="eblAppMoreLinkRC127" data-auth="1" onclick="eblAppNavigateRC127('team')"><span>⚾</span><span>Team<small>Your clubhouse</small></span></button>
       <button class="eblAppMoreLinkRC127" data-auth="1" onclick="eblAppNavigateRC127('messages')"><span>✉️</span><span>Messages<small>Private messages</small></span></button>
+      <button class="eblAppMoreLinkRC127" data-auth="1" onclick="eblOpenPushRC128()"><span>🔔</span><span>App Alerts<small id="eblPushMoreStatusRC128">Tap to set up</small></span></button>
       <button class="eblAppMoreLinkRC127" onclick="eblAppNavigateRC127('awards')"><span>🏆</span><span>Awards<small>Races & honors</small></span></button>
       <button class="eblAppMoreLinkRC127" data-auth="1" onclick="eblAppNavigateRC127('analytics')"><span>📊</span><span>Analytics<small>League leaders</small></span></button>
       <button class="eblAppMoreLinkRC127" data-role="coach" onclick="eblAppNavigateRC127('coach')"><span>📋</span><span>Coach<small>Franchise operations</small></span></button>
@@ -1284,6 +1299,23 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
     </div>
   </div>
 </div>
+
+
+<dialog id="eblPushDialogRC128">
+  <div class="eblAppMoreHeadRC127">
+    <div><span class="newsMeta">EBL APP</span><h2>App Alerts</h2></div>
+    <button class="btn" type="button" onclick="document.getElementById('eblPushDialogRC128')?.close()">CLOSE</button>
+  </div>
+  <p class="muted">Get EBL alerts on this device for contract offers, private messages, awards, game-day notices, development and career events.</p>
+  <div id="eblPushStateRC128" class="eblPushStateRC128"><span class="eblPushDotRC128"></span><div><b id="eblPushStateTitleRC128">Checking alerts…</b><div id="eblPushStateBodyRC128" class="muted">One moment.</div></div></div>
+  <div class="eblPushActionsRC128">
+    <button id="eblPushEnableRC128" class="btn" type="button" onclick="eblEnablePushRC128()">ENABLE ALERTS</button>
+    <button id="eblPushTestRC128" class="btn hidden" type="button" onclick="eblTestPushRC128()">SEND TEST</button>
+    <button id="eblPushDisableRC128" class="btn hidden" type="button" onclick="eblDisablePushRC128()">DISABLE</button>
+  </div>
+  <div id="eblPushMsgRC128" class="eblPushFineRC128"></div>
+  <div class="eblPushFineRC128">Alerts are optional and tied to this browser/app installation. EBL never needs your notification permission to play.</div>
+</dialog>
 
 <div id="eblAppDockRC127" role="navigation" aria-label="EBL app navigation">
   <button class="eblAppDockBtnRC127 active" data-app-page="home" onclick="eblAppNavigateRC127('home')"><span class="appIcon">⌂</span><span class="appLabel">HOME</span></button>
@@ -10901,5 +10933,96 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
   });
 
   window.EBL_APP_SHELL_BUILD=BUILD;
+})();
+</script>
+
+<script id="eblPushRC128Script">
+(()=>{
+  const BUILD='RC128-WEB-PUSH';
+  const $=id=>document.getElementById(id);
+  const b64ToBytes=value=>{
+    const padding='='.repeat((4-value.length%4)%4);
+    const base64=(value+padding).replace(/-/g,'+').replace(/_/g,'/');
+    const raw=atob(base64);const out=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);
+    return out;
+  };
+  const supported=()=>('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
+
+  function state(kind,title,body){
+    const box=$('eblPushStateRC128');if(!box)return;
+    box.classList.toggle('on',kind==='on');box.classList.toggle('blocked',kind==='blocked');
+    $('eblPushStateTitleRC128').textContent=title;$('eblPushStateBodyRC128').textContent=body;
+    const enabled=kind==='on';
+    $('eblPushEnableRC128')?.classList.toggle('hidden',enabled||kind==='blocked');
+    $('eblPushTestRC128')?.classList.toggle('hidden',!enabled);
+    $('eblPushDisableRC128')?.classList.toggle('hidden',!enabled);
+    const more=$('eblPushMoreStatusRC128');if(more){more.textContent=enabled?'Alerts on':kind==='blocked'?'Blocked':'Alerts off';more.classList.toggle('on',enabled)}
+  }
+  const msg=t=>{const el=$('eblPushMsgRC128');if(el)el.textContent=t||''};
+
+  async function currentSubscription(){
+    if(!supported())return null;
+    const reg=await navigator.serviceWorker.ready;
+    return await reg.pushManager.getSubscription();
+  }
+
+  window.eblRefreshPushRC128=async()=>{
+    if(!window.ME){state('off','Sign in to use app alerts','Alerts are connected to your EBL account.');return}
+    if(!supported()){state('blocked','Alerts are not supported here','This browser or app shell does not provide Web Push.');return}
+    if(Notification.permission==='denied'){state('blocked','Notifications are blocked','Enable notifications for EBL in your device/site settings to use alerts.');return}
+    try{
+      const cfg=await api('/api/push/config');
+      if(!cfg.configured){state('off','Push setup is finishing','The EBL server is not ready to send device alerts yet.');return}
+      const sub=await currentSubscription();
+      if(sub){
+        await api('/api/push/subscribe',{method:'POST',body:JSON.stringify({subscription:sub.toJSON()})});
+        state('on','App alerts are on','This device is subscribed to EBL notifications.');
+      }else state('off','App alerts are off','Enable alerts to receive EBL notifications on this device.');
+    }catch(e){state('off','Could not check app alerts','Open this panel again in a moment.');msg(String(e?.message||e||''))}
+  };
+
+  window.eblOpenPushRC128=async()=>{
+    window.eblCloseMoreRC127?.();
+    const d=$('eblPushDialogRC128');if(!d)return;
+    d.showModal();msg('');await window.eblRefreshPushRC128();
+  };
+
+  window.eblEnablePushRC128=async()=>{
+    if(!window.ME){state('off','Sign in first','You need an EBL account to enable alerts.');return}
+    if(!supported()){state('blocked','Alerts are not supported here','Try the installed EBL app or a supported browser.');return}
+    msg('');
+    try{
+      const cfg=await api('/api/push/config');
+      if(!cfg.configured)throw new Error('EBL push server is not configured yet.');
+      const permission=await Notification.requestPermission();
+      if(permission!=='granted'){state(permission==='denied'?'blocked':'off','Notifications were not enabled','You can keep playing without alerts.');return}
+      const reg=await navigator.serviceWorker.ready;
+      let sub=await reg.pushManager.getSubscription();
+      if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToBytes(cfg.public_key)});
+      await api('/api/push/subscribe',{method:'POST',body:JSON.stringify({subscription:sub.toJSON()})});
+      state('on','App alerts are on','This device is subscribed to EBL notifications.');
+      msg('Ready. Tap SEND TEST to verify delivery.');
+    }catch(e){state('off','Could not enable alerts','No changes were made.');msg(String(e?.message||e||''))}
+  };
+
+  window.eblDisablePushRC128=async()=>{
+    msg('');
+    try{
+      const sub=await currentSubscription();
+      if(sub){await api('/api/push/unsubscribe',{method:'POST',body:JSON.stringify({endpoint:sub.endpoint})});await sub.unsubscribe()}
+      state('off','App alerts are off','You can turn them back on anytime.');
+    }catch(e){msg(String(e?.message||e||''))}
+  };
+
+  window.eblTestPushRC128=async()=>{
+    msg('Sending a test alert…');
+    try{await api('/api/push/test',{method:'POST',body:'{}'});msg('Test queued. It should appear as an EBL notification within a few seconds.')}catch(e){msg(String(e?.message||e||''))}
+  };
+
+  // Keep an already-approved subscription tied to the currently logged-in account
+  // without ever triggering a permission prompt automatically.
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&window.ME&&Notification?.permission==='granted')setTimeout(()=>window.eblRefreshPushRC128?.(),800)});
+  window.EBL_PUSH_BUILD=BUILD;
 })();
 </script>
