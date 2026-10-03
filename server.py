@@ -109,6 +109,10 @@ MAX_REQUEST_BYTES=20*1024*1024
 MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
 MAX_PROFILE_PHOTO_DATA_URL_CHARS=900_000
 BETA_MODE=str(os.environ.get("EBL_BETA_MODE","1")).strip().lower() not in ("0","false","off","no")
+try:
+    GENESIS_PLAYER_TARGET=max(1,int(os.environ.get("EBL_GENESIS_PLAYER_TARGET","150") or 150))
+except (TypeError,ValueError):
+    GENESIS_PLAYER_TARGET=150
 COACH_APPLICATIONS_OPEN=str(os.environ.get("EBL_COACH_APPLICATIONS_OPEN","0")).strip().lower() in ("1","true","on","yes")
 EBL_SUPPORTER_LEGACY_RC107="RC107"
 EBL_SUPPORTER_PRICE_RC108="RC108"
@@ -10179,6 +10183,16 @@ def auto_advance_worker(port):
                 audit(c,"AUTO_ADVANCE_STOPPED",f"phase={state['phase']}")
                 c.commit();c.close();time.sleep(15);continue
             now=time.time()
+            if state["season"]==1 and state["league_day"]==0:
+                genesis=roster_readiness(c)
+                if int(genesis.get("human",0) or 0)<GENESIS_PLAYER_TARGET:
+                    # Keep the scheduler armed, but hold Opening Day until Genesis
+                    # registration reaches the public launch target. Recheck within
+                    # five minutes so the season can start soon after the threshold.
+                    if state["next_at"]<=0 or state["next_at"]<=now+300:
+                        set_league_cfg(c,"auto_advance_next_at",now+300)
+                        c.commit()
+                    c.close();time.sleep(15);continue
             if state["next_at"]<=0:
                 set_league_cfg(c,"auto_advance_next_at",now+state["interval_seconds"])
                 c.commit();c.close();time.sleep(15);continue
@@ -12724,7 +12738,16 @@ class H(BaseHTTPRequestHandler):
                 LEFT JOIN users b ON b.id=r.reported_user_id ORDER BY CASE r.status WHEN 'OPEN' THEN 0 ELSE 1 END,r.id DESC LIMIT 300""")]
             c.close();return self.out({"reports":rows})
         if p=="/api/league/readiness":
-            c=conn();r=roster_readiness(c);r["phase"]=league_cfg(c,"phase","RECRUITING");r["alpha_cpu_fill"]=league_cfg(c,"alpha_cpu_fill","1")=="1"
+            c=conn();r=roster_readiness(c)
+            state={x["k"]:x["v"] for x in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','league_day','phase')")}
+            r["phase"]=state.get("phase","REGULAR") or "REGULAR"
+            r["season"]=int(state.get("season",1) or 1)
+            r["league_day"]=int(state.get("league_day",0) or 0)
+            r["alpha_cpu_fill"]=league_cfg(c,"alpha_cpu_fill","1")=="1"
+            r["genesis_player_target"]=GENESIS_PLAYER_TARGET
+            r["genesis_players_remaining"]=max(0,GENESIS_PLAYER_TARGET-int(r.get("human",0) or 0))
+            r["genesis_ready"]=int(r.get("human",0) or 0)>=GENESIS_PLAYER_TARGET
+            r["genesis_waiting"]=r["season"]==1 and r["league_day"]==0 and not r["genesis_ready"]
             c.close();return self.out(r)
         if p=="/api/league/position-demand":
             c=conn();rows,catcher=position_demand(c);c.close()
@@ -16681,7 +16704,25 @@ class H(BaseHTTPRequestHandler):
             else:
                 u=self.auth(["COMMISSIONER"])
                 if not u:return
-            c=conn();day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])+1
+            d=self.body()
+            c=conn()
+            current_day=int(c.execute("SELECT v FROM league_state WHERE k='league_day'").fetchone()["v"])
+            season_row=c.execute("SELECT v FROM league_state WHERE k='season'").fetchone()
+            current_season=int(season_row["v"] if season_row else 1)
+            if current_season==1 and current_day==0:
+                genesis=roster_readiness(c)
+                human_players=int(genesis.get("human",0) or 0)
+                force_start=(not internal_auto) and bool(d.get("force_genesis_start",False))
+                if human_players<GENESIS_PLAYER_TARGET and not force_start:
+                    c.close()
+                    return self.out({
+                        "error":"GENESIS_REGISTRATION_OPEN",
+                        "message":f"Opening Day unlocks at {GENESIS_PLAYER_TARGET} human players.",
+                        "human_players":human_players,
+                        "target":GENESIS_PLAYER_TARGET,
+                        "remaining":max(0,GENESIS_PLAYER_TARGET-human_players)
+                    },409)
+            day=current_day+1
             if day>REGULAR_SEASON_CALENDAR_DAYS:
                 season=int(c.execute(
                     "SELECT v FROM league_state WHERE k='season'"
