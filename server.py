@@ -103,6 +103,11 @@ ABSOLUTE_PLAYER_LIMIT=3
 # Turn EBL_SUPPORTER_SLOTS_ENFORCED=1 on before public recruiting to make
 # Free=1 / Supporter=3 the live creation rule without another code deploy.
 SUPPORTER_SLOTS_ENFORCED=str(os.environ.get("EBL_SUPPORTER_SLOTS_ENFORCED","0")).strip().lower() in ("1","true","on","yes")
+try:
+    GENESIS_FREE_SUPPORTER_SLOTS=max(0,int(os.environ.get("EBL_GENESIS_FREE_SUPPORTER_SLOTS","100") or 100))
+except (TypeError,ValueError):
+    GENESIS_FREE_SUPPORTER_SLOTS=100
+GENESIS_FREE_SUPPORTER_SEASON=1
 EBL_SUPPORTER_PROFILE_CUSTOMIZATION_RC106=True
 RENEWAL_OPEN_DAY=70
 MAX_REQUEST_BYTES=20*1024*1024
@@ -1828,6 +1833,11 @@ def init_db():
         c.execute("ALTER TABLE users ADD COLUMN founding_supporter_since TEXT")
     if "founding_supporter_ref" not in user_cols:
         c.execute("ALTER TABLE users ADD COLUMN founding_supporter_ref TEXT NOT NULL DEFAULT ''")
+    if "genesis_supporter_rank" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN genesis_supporter_rank INTEGER")
+    if "genesis_supporter_since" not in user_cols:
+        c.execute("ALTER TABLE users ADD COLUMN genesis_supporter_since TEXT")
+    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_genesis_supporter_rank ON users(genesis_supporter_rank) WHERE genesis_supporter_rank IS NOT NULL")
 
 
 
@@ -2716,6 +2726,11 @@ def init_db():
 
 
 
+
+    # Give the earliest verified player accounts their Genesis Supporter promo rank.
+    # This is entitlement-only: it does not grant XP, ratings, salary, roster priority,
+    # or the permanent paid Founding Supporter marker.
+    ensure_genesis_supporter_ranks(c)
 
     # Normalize existing leagues to the current active-roster shape on startup.
     enforce_active_rosters(c)
@@ -10411,26 +10426,102 @@ def parse_iso(v):
 
 
 
-def supporter_entitlement(c,user_id):
-    """Canonical account entitlement. Stripe subscription state mutates this account tier; gameplay reads it here."""
+def genesis_supporter_promo_open(c):
+    try:
+        season=_season_number(c)
+    except Exception:
+        season=GENESIS_FREE_SUPPORTER_SEASON
+    return bool(BETA_MODE and GENESIS_FREE_SUPPORTER_SLOTS>0 and season<=GENESIS_FREE_SUPPORTER_SEASON)
+
+
+def assign_genesis_supporter_slot(c,user_id):
+    """Reserve one of the first verified-player Genesis promo slots. Returns (rank, newly_assigned)."""
+    if GENESIS_FREE_SUPPORTER_SLOTS<=0:
+        return None,False
     row=c.execute(
-        """SELECT support_tier,supporter_since,supporter_expires_at,
-                  founding_supporter,founding_supporter_since,founding_supporter_ref
+        """SELECT u.id,u.role,u.genesis_supporter_rank,s.email_verified
+           FROM users u LEFT JOIN user_security s ON s.user_id=u.id
+           WHERE u.id=?""",(user_id,)
+    ).fetchone()
+    if not row or str(row["role"] or "").upper()!="PLAYER" or not int(row["email_verified"] or 0):
+        return None,False
+    if row["genesis_supporter_rank"] is not None:
+        return int(row["genesis_supporter_rank"]),False
+    claimed=int(c.execute("SELECT COUNT(*) n FROM users WHERE genesis_supporter_rank IS NOT NULL").fetchone()["n"] or 0)
+    if claimed>=GENESIS_FREE_SUPPORTER_SLOTS:
+        return None,False
+    next_rank=int(c.execute("SELECT COALESCE(MAX(genesis_supporter_rank),0)+1 n FROM users").fetchone()["n"] or 1)
+    if next_rank>GENESIS_FREE_SUPPORTER_SLOTS:
+        return None,False
+    now=utcnow().isoformat()
+    cur=c.execute(
+        "UPDATE users SET genesis_supporter_rank=?,genesis_supporter_since=COALESCE(genesis_supporter_since,?) WHERE id=? AND genesis_supporter_rank IS NULL",
+        (next_rank,now,user_id)
+    )
+    if cur.rowcount:
+        c.execute(
+            """INSERT INTO supporter_entitlement_history(user_id,event_type,old_tier,new_tier,source,external_ref,note)
+               VALUES(?,?,?,?,?,?,?)""",
+            (user_id,"GENESIS_PROMO_GRANT","FREE","SUPPORTER","GENESIS_EARLY_ACCOUNT",f"GENESIS-{next_rank}",f"Free Supporter benefits through Season {GENESIS_FREE_SUPPORTER_SEASON}; early verified account #{next_rank}")
+        )
+        return next_rank,True
+    row=c.execute("SELECT genesis_supporter_rank FROM users WHERE id=?",(user_id,)).fetchone()
+    return (int(row["genesis_supporter_rank"]) if row and row["genesis_supporter_rank"] is not None else None),False
+
+
+def ensure_genesis_supporter_ranks(c):
+    """Backfill promo ranks for already-verified early PLAYER accounts without touching paid entitlements."""
+    if GENESIS_FREE_SUPPORTER_SLOTS<=0:
+        return 0
+    claimed=int(c.execute("SELECT COUNT(*) n FROM users WHERE genesis_supporter_rank IS NOT NULL").fetchone()["n"] or 0)
+    remaining=max(0,GENESIS_FREE_SUPPORTER_SLOTS-claimed)
+    if remaining<=0:
+        return 0
+    rows=c.execute(
+        """SELECT u.id FROM users u
+           JOIN user_security s ON s.user_id=u.id AND s.email_verified=1
+           WHERE u.role='PLAYER' AND u.genesis_supporter_rank IS NULL
+           ORDER BY u.id LIMIT ?""",(remaining,)
+    ).fetchall()
+    added=0
+    for row in rows:
+        _rank,newly=assign_genesis_supporter_slot(c,int(row["id"]))
+        if newly: added+=1
+    return added
+
+
+def genesis_supporter_promo_stats(c):
+    claimed=int(c.execute("SELECT COUNT(*) n FROM users WHERE genesis_supporter_rank BETWEEN 1 AND ?",(GENESIS_FREE_SUPPORTER_SLOTS,)).fetchone()["n"] or 0) if GENESIS_FREE_SUPPORTER_SLOTS>0 else 0
+    return {
+        "slots":GENESIS_FREE_SUPPORTER_SLOTS,
+        "claimed":min(GENESIS_FREE_SUPPORTER_SLOTS,claimed),
+        "remaining":max(0,GENESIS_FREE_SUPPORTER_SLOTS-claimed),
+        "open":bool(genesis_supporter_promo_open(c) and claimed<GENESIS_FREE_SUPPORTER_SLOTS),
+        "through_season":GENESIS_FREE_SUPPORTER_SEASON
+    }
+
+
+def supporter_entitlement(c,user_id):
+    """Canonical account entitlement. Paid/admin support and the Genesis early-account promo are layered without competitive power."""
+    row=c.execute(
+        """SELECT support_tier,supporter_since,supporter_expires_at,supporter_source,
+                  founding_supporter,founding_supporter_since,founding_supporter_ref,
+                  genesis_supporter_rank,genesis_supporter_since
            FROM users WHERE id=?""",
         (user_id,)
     ).fetchone()
     tier=str((row["support_tier"] if row else "FREE") or "FREE").upper()
     expires=(row["supporter_expires_at"] if row else None)
-    active=tier=="SUPPORTER"
-    if active and expires:
-        active=parse_iso(expires)>utcnow()
+    standard_active=tier=="SUPPORTER"
+    if standard_active and expires:
+        standard_active=parse_iso(expires)>utcnow()
 
-
-
-
-
-
-
+    promo_rank=int(row["genesis_supporter_rank"] or 0) if row else 0
+    genesis_active=bool(
+        row and genesis_supporter_promo_open(c) and
+        promo_rank>0 and promo_rank<=GENESIS_FREE_SUPPORTER_SLOTS
+    )
+    active=bool(standard_active or genesis_active)
 
     sub=c.execute(
         """SELECT stripe_subscription_id,plan,status,current_period_end,cancel_at_period_end
@@ -10446,14 +10537,22 @@ def supporter_entitlement(c,user_id):
     return {
         "tier":"SUPPORTER" if active else "FREE",
         "supporter":bool(active),
-        "badge":"EBL SUPPORTER" if active else "",
-        "supporter_since":row["supporter_since"] if row and active else None,
-        "supporter_expires_at":expires if active else None,
-        "subscription_id":sub.get("stripe_subscription_id") if active else None,
-        "subscription_plan":sub.get("plan") if active else None,
-        "subscription_status":sub.get("status") if active else None,
-        "subscription_period_end":sub.get("current_period_end") if active else None,
-        "cancel_at_period_end":bool(int(sub.get("cancel_at_period_end") or 0)) if active else False,
+        "standard_supporter":bool(standard_active),
+        "genesis_supporter":bool(genesis_active),
+        "genesis_supporter_only":bool(genesis_active and not standard_active),
+        "genesis_supporter_rank":promo_rank if promo_rank else None,
+        "genesis_supporter_since":row["genesis_supporter_since"] if row and promo_rank else None,
+        "genesis_supporter_through_season":GENESIS_FREE_SUPPORTER_SEASON if promo_rank else None,
+        "genesis_supporter_slots":GENESIS_FREE_SUPPORTER_SLOTS,
+        "badge":"GENESIS SUPPORTER" if genesis_active and not standard_active else ("EBL SUPPORTER" if active else ""),
+        "supporter_since":row["supporter_since"] if row and standard_active else (row["genesis_supporter_since"] if row and genesis_active else None),
+        "supporter_expires_at":expires if standard_active else None,
+        "supporter_source":str(row["supporter_source"] or "") if row and standard_active else ("GENESIS_EARLY_ACCOUNT" if genesis_active else ""),
+        "subscription_id":sub.get("stripe_subscription_id") if standard_active else None,
+        "subscription_plan":sub.get("plan") if standard_active else None,
+        "subscription_status":sub.get("status") if standard_active else None,
+        "subscription_period_end":sub.get("current_period_end") if standard_active else None,
+        "cancel_at_period_end":bool(int(sub.get("cancel_at_period_end") or 0)) if standard_active else False,
         "founding_supporter":bool(row and int(row["founding_supporter"] or 0)),
         "founding_supporter_since":row["founding_supporter_since"] if row else None,
         "entitled_player_limit":entitled_limit,
@@ -10463,12 +10562,6 @@ def supporter_entitlement(c,user_id):
         "policy_enforced":bool(SUPPORTER_SLOTS_ENFORCED),
         "absolute_player_limit":ABSOLUTE_PLAYER_LIMIT
     }
-
-
-
-
-
-
 
 
 def set_supporter_entitlement(c,user_id,supporter,source="COMMISSIONER",expires_at=None,note="",external_ref=""):
@@ -11866,6 +11959,9 @@ class H(BaseHTTPRequestHandler):
             if not u:return self.out({"user":None})
             c=conn();ent=supporter_entitlement(c,u["id"]);c.close()
             user=dict(u);user["supporter"]=ent["supporter"];user["support_tier"]=ent["tier"]
+            user["genesis_supporter"]=ent.get("genesis_supporter",False)
+            user["genesis_supporter_only"]=ent.get("genesis_supporter_only",False)
+            user["genesis_supporter_rank"]=ent.get("genesis_supporter_rank")
             user["founding_supporter"]=ent.get("founding_supporter",False)
             user["founding_supporter_since"]=ent.get("founding_supporter_since")
             return self.out({"user":user,"entitlements":ent})
@@ -12748,6 +12844,12 @@ class H(BaseHTTPRequestHandler):
             r["genesis_players_remaining"]=max(0,GENESIS_PLAYER_TARGET-int(r.get("human",0) or 0))
             r["genesis_ready"]=int(r.get("human",0) or 0)>=GENESIS_PLAYER_TARGET
             r["genesis_waiting"]=r["season"]==1 and r["league_day"]==0 and not r["genesis_ready"]
+            promo=genesis_supporter_promo_stats(c)
+            r["genesis_supporter_slots"]=promo["slots"]
+            r["genesis_supporter_claimed"]=promo["claimed"]
+            r["genesis_supporter_remaining"]=promo["remaining"]
+            r["genesis_supporter_promo_open"]=promo["open"]
+            r["genesis_supporter_through_season"]=promo["through_season"]
             c.close();return self.out(r)
         if p=="/api/league/position-demand":
             c=conn();rows,catcher=position_demand(c);c.close()
@@ -14522,7 +14624,7 @@ class H(BaseHTTPRequestHandler):
                     c.rollback();c.close()
                     return self.out({"error":"RATE_LIMITED"},429)
                 ent=supporter_entitlement(c,u["id"])
-                if ent.get("supporter"):
+                if ent.get("supporter") and not ent.get("genesis_supporter_only"):
                     c.commit();c.close()
                     return self.out({"already_supporter":True,"entitlements":ent})
                 token=secrets.token_urlsafe(24)
@@ -14704,9 +14806,13 @@ class H(BaseHTTPRequestHandler):
             if not r or not r["email_token_hash"] or parse_iso(r["email_token_expires"])<utcnow() or not hmac.compare_digest(r["email_token_hash"],token_hash(token)):
                 c.close();return self.out({"error":"INVALID_OR_EXPIRED_TOKEN"},400)
             c.execute("UPDATE user_security SET email_verified=1,email_token_hash=NULL,email_token_expires=NULL,updated_at=CURRENT_TIMESTAMP WHERE user_id=?",(uid,))
+            promo_rank,promo_new=assign_genesis_supporter_slot(c,uid)
+            if promo_new:
+                notify_user(c,uid,"SUPPORTER","Genesis Supporter unlocked",f"You are verified EBL account #{promo_rank} in the early-account promotion. Supporter benefits are free through Season {GENESIS_FREE_SUPPORTER_SEASON}.",str(promo_rank))
+            ent=supporter_entitlement(c,uid)
             sid,_=new_session(c,uid,self,remember=False)
             c.commit();c.close()
-            return self.out({"ok":True,"next":"/#player"},200,{"Set-Cookie":session_cookie(sid,None)})
+            return self.out({"ok":True,"next":"/#player","genesis_supporter":bool(ent.get("genesis_supporter")),"genesis_supporter_rank":ent.get("genesis_supporter_rank")},200,{"Set-Cookie":session_cookie(sid,None)})
         if p=="/api/account/request-password-reset":
             d=self.body();email=str(d.get("email","")).strip().lower();c=conn();ip=get_client_ip(self)
             if not rate_limit(c,f"pwreset:{ip}",8,3600):c.commit();c.close();return self.out({"ok":True})
