@@ -1110,6 +1110,135 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 @media(max-width:520px){#eblInstallAppRC125{right:10px;bottom:calc(10px + env(safe-area-inset-bottom));padding:9px 11px;font-size:12px}}
 </style>
 
+
+<style id="eblAppShellRC127Styles">
+/* RC127 — standalone/mobile app shell only. No simulation or API rules are changed. */
+#eblAppDockRC127,#eblAppMoreRC127,#eblAppSplashRC127{display:none}
+
+@media (display-mode:standalone) and (max-width:900px){
+  body{
+    padding-bottom:calc(76px + env(safe-area-inset-bottom))!important;
+  }
+  #mainNav{display:none!important}
+  main{padding-bottom:calc(94px + env(safe-area-inset-bottom))!important}
+
+  #eblAppDockRC127{
+    position:fixed;
+    left:0;right:0;bottom:0;
+    z-index:84;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:2px;
+    padding:7px 8px calc(7px + env(safe-area-inset-bottom));
+    background:rgba(4,15,27,.96);
+    border-top:1px solid rgba(143,184,217,.28);
+    box-shadow:0 -10px 32px rgba(0,0,0,.42);
+    backdrop-filter:blur(16px);
+  }
+  .eblAppDockBtnRC127{
+    min-width:0;
+    min-height:54px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2px;
+    border:0;
+    border-radius:12px;
+    background:transparent;
+    color:#aab8c7;
+    font:inherit;
+    cursor:pointer;
+    position:relative;
+  }
+  .eblAppDockBtnRC127 .appIcon{font-size:19px;line-height:1}
+  .eblAppDockBtnRC127 .appLabel{font-size:9px;font-weight:900;letter-spacing:.045em}
+  .eblAppDockBtnRC127.active{
+    color:#fff;
+    background:linear-gradient(180deg,rgba(24,55,87,.95),rgba(10,30,50,.95));
+    box-shadow:inset 0 2px 0 var(--gold);
+  }
+  .eblAppDockBtnRC127:active{transform:scale(.97)}
+  #eblAppMoreBadgeRC127{
+    position:absolute;right:13px;top:6px;
+    min-width:16px;height:16px;padding:0 4px;
+    border-radius:999px;
+    display:none;place-items:center;
+    background:var(--red);color:#fff;
+    font-size:9px;font-weight:950;
+  }
+
+  #eblAppMoreRC127{
+    position:fixed;
+    inset:0;
+    z-index:92;
+    align-items:flex-end;
+    background:rgba(0,0,0,.58);
+    backdrop-filter:blur(3px);
+  }
+  #eblAppMoreRC127.open{display:flex}
+  .eblAppMoreSheetRC127{
+    width:100%;
+    max-height:min(74vh,650px);
+    overflow:auto;
+    padding:12px 14px calc(92px + env(safe-area-inset-bottom));
+    border-radius:22px 22px 0 0;
+    border:1px solid rgba(143,184,217,.28);
+    border-bottom:0;
+    background:linear-gradient(180deg,#102844,#061522);
+    box-shadow:0 -18px 50px rgba(0,0,0,.55);
+  }
+  .eblAppMoreHeadRC127{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin-bottom:10px;
+  }
+  .eblAppMoreHeadRC127 h3{margin:0}
+  .eblAppMoreGridRC127{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  .eblAppMoreLinkRC127{
+    min-height:54px;
+    display:flex;align-items:center;gap:10px;
+    text-align:left;
+    border:1px solid rgba(143,184,217,.24);
+    border-radius:13px;
+    padding:10px 12px;
+    background:linear-gradient(180deg,#112e4b,#0a2036);
+    color:#fff;
+    font:inherit;font-weight:850;
+  }
+  .eblAppMoreLinkRC127 span:first-child{font-size:20px}
+  .eblAppMoreLinkRC127 small{display:block;color:#9fb0bf;font-size:9px;margin-top:2px}
+  .eblAppMoreLinkRC127[data-auth="1"].appLockedRC127{display:none!important}
+  .eblAppMoreLinkRC127[data-role="coach"].appLockedRC127{display:none!important}
+  .eblAppMoreLinkRC127[data-role="commissioner"].appLockedRC127{display:none!important}
+
+  #eblAppSplashRC127{
+    position:fixed;inset:0;z-index:120;
+    display:grid;place-items:center;
+    background:
+      radial-gradient(circle at 50% 28%,#173d61 0,#071a2e 42%,#030a12 100%);
+    transition:opacity .22s ease,visibility .22s ease;
+  }
+  #eblAppSplashRC127.dismissed{opacity:0;visibility:hidden;pointer-events:none}
+  .eblAppSplashInnerRC127{text-align:center;padding:24px}
+  .eblAppSplashInnerRC127 img{
+    width:min(230px,60vw);height:auto;
+    filter:drop-shadow(0 14px 30px rgba(0,0,0,.48));
+  }
+  .eblAppSplashInnerRC127 b{
+    display:block;margin-top:14px;
+    font-size:14px;letter-spacing:.14em;
+  }
+  .eblAppSplashInnerRC127 small{
+    display:block;margin-top:5px;
+    color:#a8b4c2;letter-spacing:.08em;
+  }
+}
+</style>
+
 </head>
 <!-- EBL SPORTS CARTOON V19: anatomy and proportion pass -->
 <body>
@@ -1124,6 +1253,44 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
   <div id="eblInstallHelpBodyRC125" class="muted"></div>
   <button class="btn" type="button" style="margin-top:14px" onclick="window.closeEBLInstallHelpRC125?.()">GOT IT</button>
  </div>
+</div>
+
+
+<div id="eblAppSplashRC127" aria-hidden="true">
+  <div class="eblAppSplashInnerRC127">
+    <img src="/assets/ebl_logo.png" alt="">
+    <b>ELITE BASEBALL LEAGUE</b>
+    <small>BUILD YOUR LEGACY</small>
+  </div>
+</div>
+
+<div id="eblAppMoreRC127" aria-hidden="true" onclick="if(event.target===this)window.eblCloseMoreRC127?.()">
+  <div class="eblAppMoreSheetRC127" role="dialog" aria-modal="true" aria-labelledby="eblAppMoreTitleRC127">
+    <div class="eblAppMoreHeadRC127">
+      <div><span class="newsMeta">EBL APP</span><h3 id="eblAppMoreTitleRC127">More</h3></div>
+      <button class="btn" type="button" onclick="window.eblCloseMoreRC127?.()">CLOSE</button>
+    </div>
+    <div class="eblAppMoreGridRC127">
+      <button class="eblAppMoreLinkRC127" onclick="eblAppNavigateRC127('news')"><span>📰</span><span>News<small>League headlines</small></span></button>
+      <button class="eblAppMoreLinkRC127" onclick="eblAppNavigateRC127('community')"><span>💬</span><span>Community<small>Friends & league chat</small></span></button>
+      <button class="eblAppMoreLinkRC127" data-auth="1" onclick="eblAppNavigateRC127('team')"><span>⚾</span><span>Team<small>Your clubhouse</small></span></button>
+      <button class="eblAppMoreLinkRC127" data-auth="1" onclick="eblAppNavigateRC127('messages')"><span>✉️</span><span>Messages<small>Private messages</small></span></button>
+      <button class="eblAppMoreLinkRC127" onclick="eblAppNavigateRC127('awards')"><span>🏆</span><span>Awards<small>Races & honors</small></span></button>
+      <button class="eblAppMoreLinkRC127" data-auth="1" onclick="eblAppNavigateRC127('analytics')"><span>📊</span><span>Analytics<small>League leaders</small></span></button>
+      <button class="eblAppMoreLinkRC127" data-role="coach" onclick="eblAppNavigateRC127('coach')"><span>📋</span><span>Coach<small>Franchise operations</small></span></button>
+      <button class="eblAppMoreLinkRC127" data-role="commissioner" onclick="eblAppNavigateRC127('admin')"><span>🛡️</span><span>Commissioner<small>League controls</small></span></button>
+      <button class="eblAppMoreLinkRC127" onclick="eblAppNavigateRC127('support')"><span>⭐</span><span>Support EBL<small>Supporter account</small></span></button>
+      <button class="eblAppMoreLinkRC127" onclick="eblAppNavigateRC127('rules')"><span>📖</span><span>Rules<small>How EBL works</small></span></button>
+    </div>
+  </div>
+</div>
+
+<div id="eblAppDockRC127" role="navigation" aria-label="EBL app navigation">
+  <button class="eblAppDockBtnRC127 active" data-app-page="home" onclick="eblAppNavigateRC127('home')"><span class="appIcon">⌂</span><span class="appLabel">HOME</span></button>
+  <button class="eblAppDockBtnRC127" data-app-page="player" onclick="eblAppNavigateRC127('player')"><span class="appIcon">👤</span><span class="appLabel">PLAYER</span></button>
+  <button class="eblAppDockBtnRC127" data-app-page="gamecast" onclick="eblAppNavigateRC127('gamecast')"><span class="appIcon">⚾</span><span class="appLabel">GAMECAST</span></button>
+  <button class="eblAppDockBtnRC127" data-app-page="league" onclick="eblAppNavigateRC127('league')"><span class="appIcon">▦</span><span class="appLabel">LEAGUE</span></button>
+  <button class="eblAppDockBtnRC127" data-app-page="more" onclick="eblOpenMoreRC127()"><span id="eblAppMoreBadgeRC127"></span><span class="appIcon">•••</span><span class="appLabel">MORE</span></button>
 </div>
 
 <main>
@@ -1674,6 +1841,8 @@ function showPage(id,b){
     if(gcRoot && !gcRoot.innerHTML.trim())gcRoot.innerHTML='<div class="card" style="margin-top:14px"><span class="muted">Loading completed games…</span></div>';
     loadSchedule().catch(()=>{});
   }
+  window.eblSyncAppNavRC127?.(id);
+  window.eblSyncDeepLinkRC127?.(id);
 }
 
 
@@ -1840,6 +2009,7 @@ async function refresh(){
  if(ME.role==='COMMISSIONER')await Promise.allSettled([loadLeagueSizeAdmin(),loadCoachApplications(),loadCoachAssignments(),loadBetaFeedback()]);
  await Promise.allSettled([loadChat('EBL'),loadChat('TEAM')]);
  renderHome();
+ setTimeout(()=>window.eblApplyDeepLinkRC127?.(),160);
  startDMPoll();
  if(ME.role==='PLAYER' && !PLAYER && !(CAREERS||[]).length){
   setTimeout(()=>{goPage('player');setCreatorStep(1)},0);
@@ -10627,5 +10797,109 @@ window.EBL_LIVE_SCREENSHOT_POLISH_V46={
     });
   }
   window.EBL_PWA_BUILD=BUILD;
+})();
+</script>
+
+<script id="eblAppShellRC127Script">
+(()=>{
+  const BUILD='RC127-APP-SHELL';
+  const rootPages=new Set(['home','news','community','support','messages','player','team','coach','league','analytics','awards','gamecast','rules','admin']);
+  const dockPages=new Set(['home','player','gamecast','league']);
+  let applyingHash=false;
+
+  const standalone=()=>window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone===true;
+  const more=()=>document.getElementById('eblAppMoreRC127');
+
+  function parsedHash(){
+    const raw=decodeURIComponent(String(location.hash||'').replace(/^#/,'')).trim();
+    if(!raw)return {page:'',ref:''};
+    const parts=raw.split('/').filter(Boolean);
+    const page=String(parts[0]||'').toLowerCase();
+    return {page:rootPages.has(page)?page:'',ref:parts.slice(1).join('/')};
+  }
+
+  window.eblOpenMoreRC127=()=>{
+    const panel=more();if(!panel)return;
+    const signed=!!window.ME;
+    panel.querySelectorAll('[data-auth="1"]').forEach(x=>x.classList.toggle('appLockedRC127',!signed));
+    panel.querySelectorAll('[data-role="coach"]').forEach(x=>x.classList.toggle('appLockedRC127',!['COACH','COMMISSIONER'].includes(String(window.ME?.role||''))));
+    panel.querySelectorAll('[data-role="commissioner"]').forEach(x=>x.classList.toggle('appLockedRC127',String(window.ME?.role||'')!=='COMMISSIONER'));
+    panel.classList.add('open');panel.setAttribute('aria-hidden','false');
+    window.eblSyncAppNavRC127?.('more');
+  };
+
+  window.eblCloseMoreRC127=()=>{
+    const panel=more();if(!panel)return;
+    panel.classList.remove('open');panel.setAttribute('aria-hidden','true');
+    const active=document.querySelector('.page.active')?.id||'home';
+    window.eblSyncAppNavRC127?.(active);
+  };
+
+  window.eblAppNavigateRC127=(page)=>{
+    window.eblCloseMoreRC127?.();
+    if((page==='player'||page==='messages'||page==='team'||page==='analytics'||page==='coach'||page==='admin')&&!window.ME){
+      goPage('home');
+      document.getElementById('loginCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+      return;
+    }
+    goPage(page);
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+
+  window.eblSyncAppNavRC127=(page)=>{
+    const target=dockPages.has(page)?page:'more';
+    document.querySelectorAll('.eblAppDockBtnRC127').forEach(b=>b.classList.toggle('active',b.dataset.appPage===target));
+  };
+
+  window.eblSyncDeepLinkRC127=(page)=>{
+    if(applyingHash||location.pathname!=='/'||!rootPages.has(page))return;
+    const current=parsedHash();
+    if(current.page===page && !current.ref)return;
+    history.replaceState(history.state||{},'',location.pathname+location.search+'#'+page);
+  };
+
+  window.eblApplyDeepLinkRC127=async()=>{
+    const {page,ref}=parsedHash();if(!page)return false;
+    applyingHash=true;
+    try{
+      if((page==='player'||page==='messages'||page==='team'||page==='analytics'||page==='coach'||page==='admin')&&!window.ME)return false;
+      goPage(page);
+      if(ref && page==='gamecast' && typeof window.watch==='function'){
+        setTimeout(()=>window.watch(ref).catch?.(()=>{}),120);
+      }else if(ref && page==='team' && typeof window.openTeam==='function'){
+        setTimeout(()=>window.openTeam(ref),120);
+      }else if(ref && page==='messages' && typeof window.openDM==='function' && /^\d+$/.test(ref)){
+        setTimeout(()=>window.openDM(Number(ref)),120);
+      }
+      return true;
+    }finally{
+      applyingHash=false;
+    }
+  };
+
+  function mirrorUnread(){
+    const src=document.getElementById('pmCount');
+    const dst=document.getElementById('eblAppMoreBadgeRC127');
+    if(!dst)return;
+    const n=Number(src?.textContent||0);
+    dst.textContent=n>99?'99+':String(n||'');
+    dst.style.display=n>0?'grid':'none';
+  }
+
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')window.eblCloseMoreRC127?.()});
+  window.addEventListener('hashchange',()=>window.eblApplyDeepLinkRC127?.());
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    if(standalone()){
+      setTimeout(()=>document.getElementById('eblAppSplashRC127')?.classList.add('dismissed'),520);
+      setTimeout(()=>document.getElementById('eblAppSplashRC127')?.remove(),900);
+    }
+    mirrorUnread();
+    const tag=document.getElementById('accountTag');
+    if(tag)new MutationObserver(mirrorUnread).observe(tag,{subtree:true,childList:true,characterData:true});
+    setTimeout(()=>window.eblApplyDeepLinkRC127?.(),500);
+  });
+
+  window.EBL_APP_SHELL_BUILD=BUILD;
 })();
 </script>

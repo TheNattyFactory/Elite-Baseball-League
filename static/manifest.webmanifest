@@ -38,9 +38,52 @@
   ],
   "shortcuts": [
     {
-      "name": "Open EBL",
-      "short_name": "EBL",
-      "url": "/"
+      "name": "EBL Home",
+      "short_name": "Home",
+      "url": "/#home",
+      "icons": [
+        {
+          "src": "/assets/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Player HQ",
+      "short_name": "Player",
+      "url": "/#player",
+      "icons": [
+        {
+          "src": "/assets/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "GameCast",
+      "short_name": "GameCast",
+      "url": "/#gamecast",
+      "icons": [
+        {
+          "src": "/assets/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "League",
+      "short_name": "League",
+      "url": "/#league",
+      "icons": [
+        {
+          "src": "/assets/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
