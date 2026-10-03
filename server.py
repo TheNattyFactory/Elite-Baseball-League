@@ -3185,6 +3185,80 @@ def queue_push_notification(c,notification_id,user_id):
     c.execute("INSERT OR IGNORE INTO push_outbox(notification_id,user_id) VALUES(?,?)",(int(notification_id),int(user_id)))
 
 
+
+def _push_error_summary(exc):
+    status=getattr(exc,"status_code",None)
+    if status is None:
+        response=getattr(exc,"response",None)
+        status=getattr(response,"status_code",None) if response is not None else None
+    return {"type":type(exc).__name__,"status":int(status) if status is not None else None}
+
+
+def _send_push_subscription(sub,payload,cfg):
+    """Send one Web Push payload and return a small diagnostic result."""
+    try:
+        response=webpush(
+            subscription_info={"endpoint":sub["endpoint"],"keys":{"p256dh":sub["p256dh"],"auth":sub["auth"]}},
+            data=json.dumps(payload,separators=(",",":")),
+            vapid_private_key=cfg["private_key"],
+            vapid_claims={"sub":cfg["subject"]},
+            ttl=3600,
+            timeout=8,
+        )
+        status=getattr(response,"status_code",None)
+        return {"ok":True,"status":int(status) if status is not None else 201,"type":""}
+    except WebPushException as exc:
+        out=_push_error_summary(exc)
+        print(f"EBL WEB PUSH REJECTED: {out['type']} status={out['status']}",flush=True)
+        return {"ok":False,**out}
+    except Exception as exc:
+        out=_push_error_summary(exc)
+        print(f"EBL WEB PUSH ERROR: {out['type']} status={out['status']} detail={str(exc)[:180]}",flush=True)
+        return {"ok":False,**out}
+
+
+def send_push_to_user_now(user_id,title,body="",url="/#home",notification_id=None):
+    """Synchronous diagnostic/test delivery used by the App Alerts test button."""
+    cfg=web_push_config()
+    if not cfg["configured"]:
+        return {"configured":False,"subscriptions":0,"delivered":0,"failed":0,"results":[]}
+    c=conn()
+    try:
+        subs=c.execute(
+            "SELECT id,endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=? AND enabled=1 ORDER BY id",
+            (int(user_id),)
+        ).fetchall()
+        payload={
+            "id":int(notification_id or int(time.time()*1000)),
+            "type":"PUSH_TEST",
+            "title":str(title or "Elite Baseball League")[:120],
+            "body":str(body or "")[:240],
+            "url":str(url or "/#home"),
+        }
+        results=[]
+        delivered=0
+        for sub in subs:
+            result=_send_push_subscription(sub,payload,cfg)
+            results.append(result)
+            if result["ok"]:
+                delivered+=1
+            elif result.get("status") in (404,410):
+                c.execute(
+                    "UPDATE push_subscriptions SET enabled=0,updated_at=? WHERE id=?",
+                    (utcnow().isoformat(),sub["id"])
+                )
+        c.commit()
+        return {
+            "configured":True,
+            "subscriptions":len(subs),
+            "delivered":delivered,
+            "failed":max(0,len(subs)-delivered),
+            "results":results,
+        }
+    finally:
+        c.close()
+
+
 def deliver_push_outbox_once(limit=20):
     cfg=web_push_config()
     if not cfg["configured"]:return 0
@@ -3210,23 +3284,14 @@ def deliver_push_outbox_once(limit=20):
             },separators=(",",":"))
             successes=0;last_error=""
             for sub in subs:
-                try:
-                    webpush(
-                        subscription_info={"endpoint":sub["endpoint"],"keys":{"p256dh":sub["p256dh"],"auth":sub["auth"]}},
-                        data=payload,
-                        vapid_private_key=cfg["private_key"],
-                        vapid_claims={"sub":cfg["subject"]},
-                        ttl=3600,
-                        timeout=8,
-                    )
+                result=_send_push_subscription(sub,json.loads(payload),cfg)
+                if result["ok"]:
                     successes+=1
-                except WebPushException as e:
-                    status=getattr(e,"status_code",None)
-                    last_error=f"{type(e).__name__}:{status or ''}:{str(e)[:180]}"
+                else:
+                    status=result.get("status")
+                    last_error=f"{result.get('type','PushError')}:{status or ''}"
                     if status in (404,410):
                         c.execute("UPDATE push_subscriptions SET enabled=0,updated_at=? WHERE id=?",(utcnow().isoformat(),sub["id"]))
-                except Exception as e:
-                    last_error=f"{type(e).__name__}:{str(e)[:180]}"
             if successes:
                 c.execute("UPDATE push_outbox SET sent_at=?,attempts=attempts+1,last_error=? WHERE notification_id=?",(utcnow().isoformat(),last_error,row["notification_id"]))
                 delivered+=successes
@@ -14784,10 +14849,44 @@ class H(BaseHTTPRequestHandler):
             if not u:return
             cfg=web_push_config()
             if not cfg["configured"]:return self.out({"error":"PUSH_NOT_CONFIGURED"},503)
-            c=conn();active=int(c.execute("SELECT COUNT(*) n FROM push_subscriptions WHERE user_id=? AND enabled=1",(u["id"],)).fetchone()["n"] or 0)
-            if not active:c.close();return self.out({"error":"NO_PUSH_SUBSCRIPTION"},409)
-            nid=notify_user(c,u["id"],"PUSH_TEST","EBL alerts are live","You will receive contract, message, award, game and career alerts here.",None)
-            c.commit();c.close();return self.out({"ok":True,"notification_id":nid})
+            c=conn()
+            active=int(c.execute("SELECT COUNT(*) n FROM push_subscriptions WHERE user_id=? AND enabled=1",(u["id"],)).fetchone()["n"] or 0)
+            if not active:
+                c.close();return self.out({"error":"NO_PUSH_SUBSCRIPTION"},409)
+            # Keep the normal in-app notification record, but do not queue a second copy.
+            cur=c.execute(
+                "INSERT INTO notifications(user_id,type,title,body,ref_id) VALUES(?,?,?,?,?)",
+                (u["id"],"PUSH_TEST","EBL alerts are live",
+                 "Background notifications are connected to this device.",None)
+            )
+            nid=int(cur.lastrowid)
+            c.commit();c.close()
+            result=send_push_to_user_now(
+                u["id"],
+                "EBL alerts are live",
+                "Background notifications are connected to this device.",
+                "/#home",
+                nid
+            )
+            if result["delivered"]<1:
+                code=next((x for x in result["results"] if not x.get("ok")),{})
+                return self.out({
+                    "ok":False,
+                    "error":"PUSH_DELIVERY_FAILED",
+                    "notification_id":nid,
+                    "subscriptions":result["subscriptions"],
+                    "delivered":result["delivered"],
+                    "failed":result["failed"],
+                    "failure_type":code.get("type",""),
+                    "failure_status":code.get("status"),
+                },502)
+            return self.out({
+                "ok":True,
+                "notification_id":nid,
+                "subscriptions":result["subscriptions"],
+                "delivered":result["delivered"],
+                "failed":result["failed"],
+            })
         if p=="/api/support/checkout":
             u=self.auth()
             if not u:return
