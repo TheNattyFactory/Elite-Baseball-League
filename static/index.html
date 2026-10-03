@@ -1094,7 +1094,7 @@ dialog{
 </nav>
 <main>
 <section id="home" class="page active">
-<div id="loginCard" class="card loginShellRC110"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><div class="loginHeroRC110"><span class="newsMeta">WELCOME BACK</span><h2>Log in to Elite Baseball League <span class="betaSiteBadge">BETA</span></h2><p class="muted">Continue your player career, contracts, stats, awards, messages, and league history.</p></div><div class="loginPanelRC110"><h3>Login</h3><label class="label" for="lu">USERNAME</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><label class="label" for="lp">PASSWORD</label><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn loginPrimaryRC110" onclick="login()">LOGIN</button><div class="loginCreateRC110"><span>New to EBL?</span><a class="btn" href="/create-account">CREATE ACCOUNT</a></div></div><details class="loginRecoveryRC110"><summary>Password Recovery</summary><div class="grid" style="margin-top:10px"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></details><div id="loginMsg" class="muted"></div></div>
+<div id="loginCard" class="card loginShellRC110"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><div class="loginHeroRC110"><span class="newsMeta">WELCOME BACK</span><h2>Log in to Elite Baseball League <span class="betaSiteBadge">BETA</span></h2><p class="muted">Continue your player career, contracts, stats, awards, messages, and league history.</p><div id="genesisPromoLogin" class="offer" style="margin-top:12px;text-align:left"><span class="newsMeta">GENESIS EARLY ACCOUNT BONUS</span><b style="display:block;margin:4px 0">First 100 verified accounts get EBL Supporter benefits free through Season 1.</b><span class="muted">Create your account, verify your email, and claim an early spot while they remain. No payment is required for the Genesis bonus.</span></div></div><div class="loginPanelRC110"><h3>Login</h3><label class="label" for="lu">USERNAME</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><label class="label" for="lp">PASSWORD</label><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn loginPrimaryRC110" onclick="login()">LOGIN</button><div class="loginCreateRC110"><span>New to EBL?</span><a class="btn" href="/create-account">CREATE ACCOUNT</a></div></div><details class="loginRecoveryRC110"><summary>Password Recovery</summary><div class="grid" style="margin-top:10px"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" onclick="requestReset()">Email Reset Link</button></div><div id="recMsg" class="muted"></div></details><div id="loginMsg" class="muted"></div></div>
 <div id="dashboard" class="hidden">
 <div id="ticker" class="ticker"><div id="tickerTrack" class="tickerTrack"></div></div>
 <div id="betaStatusCard" class="card betaStatusCard"></div>
@@ -1720,6 +1720,7 @@ async function handleAccountAction(){
   loginCard.className='card createAccountShellRC110';
   loginCard.innerHTML=`<img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline">
    <div class="createAccountHeadRC110"><span class="newsMeta">NEW EBL ACCOUNT</span><h2>Create Your Account</h2><p class="muted">Create the account first. After your email is verified, EBL takes you straight into Player Creation.</p></div>
+   <div id="genesisPromoLogin" class="offer" style="margin:0 0 14px"><span class="newsMeta">GENESIS EARLY ACCOUNT BONUS</span><h3 style="margin:4px 0">First 100 verified accounts get Supporter benefits free through Season 1.</h3><p class="muted" style="margin:0">That includes up to 3 active careers plus Supporter profile and legacy customization. The bonus never changes ratings, XP, contracts, awards, or simulation results.</p></div>
    <div class="accountCreateGridRC110">
     <div><label class="label">USERNAME</label><input id="ru" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24" placeholder="username"></div>
     <div><label class="label">EMAIL</label><input id="re" name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="verified email"></div>
@@ -1741,9 +1742,9 @@ async function handleAccountAction(){
   loginCard.classList.remove('hidden');dashboard.classList.add('hidden');
   loginMsg.textContent='Confirming your email...';
   try{
-   await api('/api/account/verify-email',{method:'POST',body:JSON.stringify({user_id:q.get('user'),token:q.get('token')})});
+   const verified=await api('/api/account/verify-email',{method:'POST',body:JSON.stringify({user_id:q.get('user'),token:q.get('token')})});
    history.replaceState({},'', '/');
-   loginMsg.textContent='Email confirmed! Opening Player Creation…';
+   loginMsg.textContent=verified?.genesis_supporter?`Email confirmed! Genesis Supporter spot #${Number(verified.genesis_supporter_rank||0)} secured. Opening Player Creation…`:'Email confirmed! Opening Player Creation…';
    await refresh();
    goPage('player');
    if(!PLAYER)setCreatorStep(1);
@@ -1780,7 +1781,7 @@ async function refresh(){
  if(!ME){
   accountTag.textContent='Not signed in';
   document.querySelectorAll('.authOnly').forEach(x=>x.classList.add('hidden'));
-  await Promise.allSettled([loadLeague(),loadSchedule(),loadAwards(),loadNews(),loadCommunity(),loadPlayoffs()]);
+  await Promise.allSettled([loadLeague(),loadSchedule(),loadAwards(),loadNews(),loadReadiness(),loadCommunity(),loadPlayoffs()]);
   return;
  }
  document.querySelectorAll('.authOnly').forEach(x=>x.classList.remove('hidden'));
@@ -3853,7 +3854,8 @@ function renderBetaStatus(){
  const remaining=countKnown?Math.max(0,genesisTarget-humanPlayers):GENESIS_PLAYER_TARGET;
  if(waitingForGenesis){
   const countLine=countKnown?`<b>${humanPlayers} / ${genesisTarget} PLAYERS</b><span>${remaining>0?`${remaining} player${remaining===1?'':'s'} until Opening Day`:'Opening Day target reached'}</span>`:`<b>OPENING DAY TARGET: ${genesisTarget}</b><span>Loading current Genesis registration…</span>`;
-  box.innerHTML=`<div class="betaStatusHead"><div><span class="betaSiteBadge">GENESIS REGISTRATION</span><h2>Season 1 Begins at ${genesisTarget} Players</h2><div class="muted">Create your ballplayer and claim your place in EBL history. The inaugural Genesis season will begin once ${genesisTarget} human players have entered the league.</div></div><button class="btn ghost" onclick="openBetaFeedback()">Send Feedback</button></div><div class="genesisProgress"><div class="genesisProgressText">${countLine}</div><div class="genesisProgressBar" role="progressbar" aria-label="Genesis player registration progress" aria-valuemin="0" aria-valuemax="${genesisTarget}" aria-valuenow="${countKnown?humanPlayers:0}"><span style="width:${pct}%"></span></div></div><div class="betaStatusGrid"><div class="betaStatusStat"><b>PRESEASON</b><span>Registration open • Opening Day unlocks at ${genesisTarget} players.</span></div><div class="betaStatusStat"><b>Build Your Player</b><span>Create, develop, and prepare your ballplayer before the first pitch.</span></div><div class="betaStatusStat"><b>Player-only Launch</b><span>CPU clubs manage teams during Genesis; human coaching opens later.</span></div></div><div class="muted" style="margin-top:10px"><b>Beta notice:</b> EBL is still being tested and balanced before official launch. Careers, statistics, progression, and league systems may be adjusted or reset during Genesis.</div>`;
+  const promoSlots=Number(READINESS?.genesis_supporter_slots||100),promoLeft=Math.max(0,Number(READINESS?.genesis_supporter_remaining??promoSlots));
+  box.innerHTML=`<div class="betaStatusHead"><div><span class="betaSiteBadge">GENESIS REGISTRATION</span><h2>Season 1 Begins at ${genesisTarget} Players</h2><div class="muted">Create your ballplayer and claim your place in EBL history. The inaugural Genesis season will begin once ${genesisTarget} human players have entered the league.</div></div><button class="btn ghost" onclick="openBetaFeedback()">Send Feedback</button></div><div class="genesisProgress"><div class="genesisProgressText">${countLine}</div><div class="genesisProgressBar" role="progressbar" aria-label="Genesis player registration progress" aria-valuemin="0" aria-valuemax="${genesisTarget}" aria-valuenow="${countKnown?humanPlayers:0}"><span style="width:${pct}%"></span></div></div><div class="betaStatusGrid"><div class="betaStatusStat"><b>PRESEASON</b><span>Registration open • Opening Day unlocks at ${genesisTarget} players.</span></div><div class="betaStatusStat"><b>EARLY SUPPORTER BONUS</b><span>${promoLeft>0?`${promoLeft} of ${promoSlots} free Supporter spots remain`:`First ${promoSlots} Supporter spots claimed`} • benefits last through Season 1.</span></div><div class="betaStatusStat"><b>Build Your Player</b><span>Create, develop, and prepare your ballplayer before the first pitch.</span></div><div class="betaStatusStat"><b>Player-only Launch</b><span>CPU clubs manage teams during Genesis; human coaching opens later.</span></div></div><div class="muted" style="margin-top:10px"><b>Beta notice:</b> EBL is still being tested and balanced before official launch. Careers, statistics, progression, and league systems may be adjusted or reset during Genesis.</div>`;
   return;
  }
  const phaseLabel=phase==='REGULAR'?`Calendar Day ${day}/95`:phase.replaceAll('_',' ');
@@ -4199,6 +4201,11 @@ async function loadReadiness(){
   if(bar?.querySelector('span'))bar.querySelector('span').style.width=pct+'%';
   if(text)text.innerHTML=`<b>${r.filled}/${r.total}</b> roster slots filled • ${r.human} human • ${r.cpu} CPU • Phase: <b>${r.phase}</b>`;
   if(positions)positions.innerHTML=(r.positions||[]).map(p=>`<div class="statBox"><b>${p.position_group}</b><span>${p.filled}/${p.total}</span><small>${p.human} human</small></div>`).join('');
+  const promo=document.getElementById('genesisPromoLogin');
+  if(promo&&Number(r.genesis_supporter_slots||0)>0){
+   const slots=Number(r.genesis_supporter_slots||100),claimed=Number(r.genesis_supporter_claimed||0),left=Math.max(0,Number(r.genesis_supporter_remaining??(slots-claimed)));
+   promo.innerHTML=`<span class="newsMeta">GENESIS EARLY ACCOUNT BONUS</span><b style="display:block;margin:4px 0">First ${slots} verified accounts get EBL Supporter benefits free through Season ${Number(r.genesis_supporter_through_season||1)}.</b><span class="muted">${left>0?`${left} free Supporter spot${left===1?'':'s'} remaining. Verify your email to claim one.`:'All early Supporter spots have been claimed.'} No competitive advantages are included.</span>`;
+  }
  }catch(e){}
 }
 async function loadNews(){
@@ -4241,8 +4248,8 @@ async function pollSupporterReturn(){
   try{
    const e=await api('/api/account/entitlements');
    ENTITLEMENTS=e.entitlements||ENTITLEMENTS;
-   if(ENTITLEMENTS?.supporter){
-    ME.supporter=true;
+   if(ENTITLEMENTS?.standard_supporter&&ENTITLEMENTS?.subscription_plan){
+    ME.supporter=true;ME.genesis_supporter_only=false;
     const plan=String(ENTITLEMENTS.subscription_plan||'').toUpperCase();
     if(root)root.insertAdjacentHTML('afterbegin',`<div class="supportCurrentRC100"><b>✓ VERIFIED SUBSCRIPTION — SUPPORTER ACTIVE</b><span>Stripe confirmed ${plan?plan+' ':''}billing and EBL upgraded this account automatically.</span></div>`);
     return true;
@@ -4257,10 +4264,13 @@ async function loadSupport(){
  const root=document.getElementById('supportActions');if(!root)return;
  try{
   const j=await api('/api/support');SUPPORT_CONFIG=j||{};
+  if(ME){
+   try{const e=await api('/api/account/entitlements');ENTITLEMENTS=e.entitlements||ENTITLEMENTS;if(ENTITLEMENTS){ME.supporter=Boolean(ENTITLEMENTS.supporter);ME.genesis_supporter=Boolean(ENTITLEMENTS.genesis_supporter);ME.genesis_supporter_only=Boolean(ENTITLEMENTS.genesis_supporter_only);}}catch(_){}
+  }
   const buttons=[];
   const monthly=j?.plans?.monthly,yearly=j?.plans?.yearly;
   if(j?.checkout_path){
-   if(ME?.supporter){
+   if(ME?.supporter&&!ENTITLEMENTS?.genesis_supporter_only){
     buttons.push('<button class="btn supportBtn primary" disabled>✓ EBL Supporter Active</button>');
     if(j?.portal_url)buttons.push(`<a class="btn supportBtn" href="${escapeHtml(j.portal_url)}" target="_blank" rel="noopener noreferrer">⚙ Manage Billing / Cancel</a>`);
    }else{
@@ -4274,15 +4284,15 @@ async function loadSupport(){
   root.innerHTML=buttons.length?`${buttons.join('')}${modeNote}`:'<div class="offer"><b>Supporter checkout is being set up.</b><div class="muted" style="margin-top:4px">The Free and Supporter account rules are already built; payment activation will come before public recruiting.</div></div>';
   if(ME){
    try{
-    const e=await api('/api/account/entitlements');ENTITLEMENTS=e.entitlements||ENTITLEMENTS;
     const box=document.getElementById('supportEntitlementCard');
     box?.querySelector('.supportCurrentRC100')?.remove();
     if(box&&ENTITLEMENTS){
       const plan=String(ENTITLEMENTS.subscription_plan||'').toUpperCase();
       const end=ENTITLEMENTS.subscription_period_end||ENTITLEMENTS.supporter_expires_at||'';
       const endText=end?new Date(end).toLocaleDateString():'';
-      const billing=ENTITLEMENTS.supporter&&plan?` • ${plan}${endText?(ENTITLEMENTS.cancel_at_period_end?' active through ':' renews around ')+endText:''}`:'';
-      box.insertAdjacentHTML('afterbegin',`<div class="supportCurrentRC100"><b>${ENTITLEMENTS.supporter?'YOU ARE AN EBL SUPPORTER':'YOUR ACCOUNT: FREE'}${ENTITLEMENTS.founding_supporter?' <span class="foundingSupporterBadgeV107">FOUNDING SUPPORTER</span>':''}</b><span>${Number(ENTITLEMENTS.active_players||0)}/${Number(ENTITLEMENTS.entitled_player_limit||1)} entitled active player slots used${billing}${ENTITLEMENTS.policy_enforced?'':' • Genesis slot enforcement paused'}</span></div>`);
+      const billing=ENTITLEMENTS.standard_supporter&&plan?` • ${plan}${endText?(ENTITLEMENTS.cancel_at_period_end?' active through ':' renews around ')+endText:''}`:'';
+      const promo=ENTITLEMENTS.genesis_supporter_only?` • Genesis early-account bonus #${Number(ENTITLEMENTS.genesis_supporter_rank||0)} • free through Season ${Number(ENTITLEMENTS.genesis_supporter_through_season||1)}`:'';
+      box.insertAdjacentHTML('afterbegin',`<div class="supportCurrentRC100"><b>${ENTITLEMENTS.genesis_supporter_only?'GENESIS SUPPORTER — FREE EARLY-ACCOUNT BENEFITS':(ENTITLEMENTS.supporter?'YOU ARE AN EBL SUPPORTER':'YOUR ACCOUNT: FREE')}${ENTITLEMENTS.founding_supporter?' <span class="foundingSupporterBadgeV107">FOUNDING SUPPORTER</span>':''}</b><span>${Number(ENTITLEMENTS.active_players||0)}/${Number(ENTITLEMENTS.entitled_player_limit||1)} entitled active player slots used${promo}${billing}${ENTITLEMENTS.policy_enforced?'':' • Genesis slot enforcement paused'}</span>${ENTITLEMENTS.genesis_supporter_only?'<span class="muted">You can still choose a paid Supporter plan during Genesis; a verified real-money Genesis subscription earns the permanent Founding Supporter marker.</span>':''}</div>`);
     }
    }catch(_){}
   }
