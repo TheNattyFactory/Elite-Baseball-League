@@ -1,1 +1,1 @@
-# Standard-library app; no external Python packages required.
+pywebpush==2.5.0

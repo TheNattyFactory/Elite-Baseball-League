@@ -6,6 +6,14 @@ from email.message import EmailMessage
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
+try:
+    from pywebpush import webpush, WebPushException
+    EBL_WEBPUSH_LIBRARY=True
+except Exception:
+    webpush=None
+    WebPushException=Exception
+    EBL_WEBPUSH_LIBRARY=False
+
 
 
 
@@ -1644,6 +1652,29 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id,is_read,id DESC);
 
+    CREATE TABLE IF NOT EXISTS push_subscriptions(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT NOT NULL DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id,enabled,id DESC);
+    CREATE TABLE IF NOT EXISTS push_outbox(
+      notification_id INTEGER PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      next_attempt_at TEXT,
+      sent_at TEXT,
+      last_error TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_push_outbox_pending ON push_outbox(sent_at,next_attempt_at,notification_id);
+
 
 
 
@@ -3111,10 +3142,124 @@ def apply_finish_economy(c,season,active_ids):
 
 
 
+
+def web_push_config():
+    public=str(os.environ.get("EBL_VAPID_PUBLIC_KEY","") or "").strip()
+    private=str(os.environ.get("EBL_VAPID_PRIVATE_KEY","") or "").strip()
+    subject=str(os.environ.get("EBL_VAPID_SUBJECT","https://elite-baseball.com/") or "https://elite-baseball.com/").strip()
+    return {
+        "configured":bool(EBL_WEBPUSH_LIBRARY and public and private),
+        "library":bool(EBL_WEBPUSH_LIBRARY),
+        "public_key":public,
+        "private_key":private,
+        "subject":subject,
+    }
+
+
+def push_target_for_notification(kind,ref_id=None):
+    kind=str(kind or "").upper()
+    ref="" if ref_id is None else str(ref_id)
+    if kind=="GAME" and ref:return f"/#gamecast/{ref}"
+    if kind=="DM" and ref:return f"/#messages/{ref}"
+    if kind in ("CONTRACT","AWARD","BONUS","DEVELOPMENT","CAREER"):return "/#player"
+    if kind=="COACH_CONTRACT" or kind=="COACH":return "/#coach"
+    if kind=="FRIEND":return "/#community"
+    if kind=="SUPPORTER":return "/#support"
+    return "/#home"
+
+
+def valid_push_subscription_payload(subscription):
+    if not isinstance(subscription,dict):return None
+    endpoint=str(subscription.get("endpoint") or "").strip()
+    keys=subscription.get("keys") or {}
+    p256dh=str(keys.get("p256dh") or "").strip()
+    auth=str(keys.get("auth") or "").strip()
+    if not endpoint.startswith("https://") or len(endpoint)>4096:return None
+    if not p256dh or not auth or len(p256dh)>512 or len(auth)>256:return None
+    return {"endpoint":endpoint,"p256dh":p256dh,"auth":auth}
+
+
+def queue_push_notification(c,notification_id,user_id):
+    if not notification_id or not user_id:return
+    if not web_push_config()["configured"]:return
+    c.execute("INSERT OR IGNORE INTO push_outbox(notification_id,user_id) VALUES(?,?)",(int(notification_id),int(user_id)))
+
+
+def deliver_push_outbox_once(limit=20):
+    cfg=web_push_config()
+    if not cfg["configured"]:return 0
+    c=conn();delivered=0
+    try:
+        now=utcnow()
+        rows=c.execute("""SELECT o.notification_id,o.user_id,o.attempts,n.type,n.title,n.body,n.ref_id,n.created_at
+                          FROM push_outbox o JOIN notifications n ON n.id=o.notification_id
+                          WHERE o.sent_at IS NULL AND (o.next_attempt_at IS NULL OR o.next_attempt_at<=?)
+                          ORDER BY o.notification_id LIMIT ?""",(now.isoformat(),int(limit))).fetchall()
+        for row in rows:
+            subs=c.execute("SELECT id,endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=? AND enabled=1 ORDER BY id",(row["user_id"],)).fetchall()
+            # No active devices: finish the queue item rather than retaining stale alerts forever.
+            if not subs:
+                c.execute("UPDATE push_outbox SET sent_at=?,last_error='' WHERE notification_id=?",(utcnow().isoformat(),row["notification_id"]))
+                c.commit();continue
+            payload=json.dumps({
+                "id":int(row["notification_id"]),
+                "type":str(row["type"] or "EBL"),
+                "title":str(row["title"] or "Elite Baseball League")[:120],
+                "body":str(row["body"] or "")[:240],
+                "url":push_target_for_notification(row["type"],row["ref_id"]),
+            },separators=(",",":"))
+            successes=0;last_error=""
+            for sub in subs:
+                try:
+                    webpush(
+                        subscription_info={"endpoint":sub["endpoint"],"keys":{"p256dh":sub["p256dh"],"auth":sub["auth"]}},
+                        data=payload,
+                        vapid_private_key=cfg["private_key"],
+                        vapid_claims={"sub":cfg["subject"]},
+                        ttl=3600,
+                        timeout=8,
+                    )
+                    successes+=1
+                except WebPushException as e:
+                    status=getattr(e,"status_code",None)
+                    last_error=f"{type(e).__name__}:{status or ''}:{str(e)[:180]}"
+                    if status in (404,410):
+                        c.execute("UPDATE push_subscriptions SET enabled=0,updated_at=? WHERE id=?",(utcnow().isoformat(),sub["id"]))
+                except Exception as e:
+                    last_error=f"{type(e).__name__}:{str(e)[:180]}"
+            if successes:
+                c.execute("UPDATE push_outbox SET sent_at=?,attempts=attempts+1,last_error=? WHERE notification_id=?",(utcnow().isoformat(),last_error,row["notification_id"]))
+                delivered+=successes
+            else:
+                attempts=int(row["attempts"] or 0)+1
+                active=c.execute("SELECT COUNT(*) n FROM push_subscriptions WHERE user_id=? AND enabled=1",(row["user_id"],)).fetchone()["n"]
+                if not active or attempts>=5:
+                    c.execute("UPDATE push_outbox SET sent_at=?,attempts=?,last_error=? WHERE notification_id=?",(utcnow().isoformat(),attempts,last_error,row["notification_id"]))
+                else:
+                    delay=min(3600,60*(2**max(0,attempts-1)))
+                    retry=(utcnow()+datetime.timedelta(seconds=delay)).isoformat()
+                    c.execute("UPDATE push_outbox SET attempts=?,next_attempt_at=?,last_error=? WHERE notification_id=?",(attempts,retry,last_error,row["notification_id"]))
+            c.commit()
+    finally:
+        c.close()
+    return delivered
+
+
+def web_push_worker():
+    while True:
+        try:
+            deliver_push_outbox_once()
+        except Exception as e:
+            print(f"WEB PUSH WORKER ERROR: {type(e).__name__}: {str(e)[:200]}")
+        time.sleep(4)
+
 def notify_user(c,user_id,kind,title,body="",ref_id=None):
-    if not user_id:return
-    c.execute("INSERT INTO notifications(user_id,type,title,body,ref_id) VALUES(?,?,?,?,?)",
-              (int(user_id),str(kind),str(title),str(body),None if ref_id is None else str(ref_id)))
+    if not user_id:return None
+    cur=c.execute("INSERT INTO notifications(user_id,type,title,body,ref_id) VALUES(?,?,?,?,?)",
+                  (int(user_id),str(kind),str(title),str(body),None if ref_id is None else str(ref_id)))
+    nid=cur.lastrowid
+    queue_push_notification(c,nid,user_id)
+    return nid
 
 
 
@@ -11971,6 +12116,15 @@ class H(BaseHTTPRequestHandler):
             c=conn();ent=supporter_entitlement(c,au["id"]);c.close()
             return self.out({"entitlements":ent})
         if p=="/api/support":return self.out(support_public_config())
+        if p=="/api/push/config":
+            cfg=web_push_config()
+            return self.out({"configured":cfg["configured"],"library":cfg["library"],"public_key":cfg["public_key"] if cfg["configured"] else ""})
+        if p=="/api/push/status":
+            au=self.auth()
+            if not au:return
+            cfg=web_push_config();c=conn()
+            active=int(c.execute("SELECT COUNT(*) n FROM push_subscriptions WHERE user_id=? AND enabled=1",(au["id"],)).fetchone()["n"] or 0)
+            c.close();return self.out({"configured":cfg["configured"],"library":cfg["library"],"active_subscriptions":active})
         if p=="/api/league":
             c=conn()
 
@@ -14605,6 +14759,35 @@ class H(BaseHTTPRequestHandler):
 
 
     def api_post(self,p):
+        if p=="/api/push/subscribe":
+            u=self.auth()
+            if not u:return
+            cfg=web_push_config()
+            if not cfg["configured"]:return self.out({"error":"PUSH_NOT_CONFIGURED"},503)
+            d=self.body();sub=valid_push_subscription_payload(d.get("subscription"))
+            if not sub:return self.out({"error":"INVALID_PUSH_SUBSCRIPTION"},400)
+            ua=str(self.headers.get("User-Agent","") or "")[:500];now=utcnow().isoformat();c=conn()
+            c.execute("""INSERT INTO push_subscriptions(user_id,endpoint,p256dh,auth,user_agent,enabled,updated_at)
+                         VALUES(?,?,?,?,?,1,?)
+                         ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id,p256dh=excluded.p256dh,auth=excluded.auth,user_agent=excluded.user_agent,enabled=1,updated_at=excluded.updated_at""",
+                      (u["id"],sub["endpoint"],sub["p256dh"],sub["auth"],ua,now))
+            c.commit();c.close();return self.out({"ok":True})
+        if p=="/api/push/unsubscribe":
+            u=self.auth()
+            if not u:return
+            d=self.body();endpoint=str(d.get("endpoint") or "").strip();c=conn()
+            if endpoint:c.execute("DELETE FROM push_subscriptions WHERE user_id=? AND endpoint=?",(u["id"],endpoint))
+            else:c.execute("DELETE FROM push_subscriptions WHERE user_id=?",(u["id"],))
+            c.commit();c.close();return self.out({"ok":True})
+        if p=="/api/push/test":
+            u=self.auth()
+            if not u:return
+            cfg=web_push_config()
+            if not cfg["configured"]:return self.out({"error":"PUSH_NOT_CONFIGURED"},503)
+            c=conn();active=int(c.execute("SELECT COUNT(*) n FROM push_subscriptions WHERE user_id=? AND enabled=1",(u["id"],)).fetchone()["n"] or 0)
+            if not active:c.close();return self.out({"error":"NO_PUSH_SUBSCRIPTION"},409)
+            nid=notify_user(c,u["id"],"PUSH_TEST","EBL alerts are live","You will receive contract, message, award, game and career alerts here.",None)
+            c.commit();c.close();return self.out({"ok":True,"notification_id":nid})
         if p=="/api/support/checkout":
             u=self.auth()
             if not u:return
@@ -19149,6 +19332,9 @@ if __name__=="__main__":
         print(f"DISCORD BRIDGE BOOTSTRAP ERROR: {type(e).__name__}: {str(e)[:200]}")
     threading.Thread(target=discord_bridge_worker,daemon=True,name="EBL-DiscordBridge").start()
     threading.Thread(target=auto_advance_worker,args=(port,),daemon=True,name="EBL-AutoAdvance").start()
+    threading.Thread(target=web_push_worker,daemon=True,name="EBL-WebPush").start()
+    push_cfg=web_push_config()
+    print(f"EBL Web Push: {'ready' if push_cfg['configured'] else 'not configured'} (library={push_cfg['library']})")
     httpd.serve_forever()
 
 
