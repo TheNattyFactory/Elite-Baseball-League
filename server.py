@@ -6,32 +6,41 @@ from email.message import EmailMessage
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-try:
-    from pywebpush import webpush, WebPushException
-    EBL_WEBPUSH_LIBRARY=True
-except Exception:
-    webpush=None
-    WebPushException=Exception
-    EBL_WEBPUSH_LIBRARY=False
 
+from ebl_config import (
+    ROOT, DB, STATIC, HITTER_ATTRS, PITCHER_ATTRS, SALARY_MIN, BONUS_CAP,
+    REGULAR_SEASON_GAMES, REGULAR_SEASON_SERIES, REGULAR_SEASON_OFF_DAYS,
+    REGULAR_SEASON_CALENDAR_DAYS, REGULAR_SEASON_REST_SERIES,
+    REGULAR_SEASON_CHECKPOINT_DAYS, ALL_STAR_BREAK_DAY, ALL_STAR_SELECTION_XP,
+    PLAYOFF_ROSTER_XP, FINAL_FOUR_XP, CHAMPIONSHIP_BERTH_XP, CHAMPIONSHIP_WIN_XP,
+    DIVISIONS, DIVISION_RENAMES, ACTIVE_ROSTER_SIZE, TEAM_BUDGET,
+    CPU_ROOKIE_CONTRACT_YEARS, CPU_ROOKIE_SIGNING_BONUS, CONTRACT_ESCALATION,
+    REVENUE_UPGRADE_COSTS, REVENUE_UPGRADE_BONUSES, REVENUE_BRANCH_MAX,
+    FINISH_REWARD_MIN, FINISH_REWARD_MAX, REBUILD_XP_MAX, POOL_GROWTH_TOP,
+    POOL_GROWTH_MIDDLE, POOL_GROWTH_BOTTOM, STORAGE_KEEP_FULL_GAME_DAYS,
+    SP_XP_MULTIPLIER, RP_XP_MULTIPLIER, CHAT_RETENTION_HOURS, FREE_PLAYER_LIMIT,
+    SUPPORTER_PLAYER_LIMIT, ABSOLUTE_PLAYER_LIMIT, SUPPORTER_SLOTS_ENFORCED,
+    GENESIS_FREE_SUPPORTER_SLOTS, GENESIS_FREE_SUPPORTER_SEASON, RENEWAL_OPEN_DAY,
+    MAX_REQUEST_BYTES, MAX_TEAM_LOGO_DATA_URL_CHARS, MAX_PROFILE_PHOTO_DATA_URL_CHARS,
+    BETA_MODE, GENESIS_PLAYER_TARGET, COACH_APPLICATIONS_OPEN, AGE_REQUIREMENT,
+)
+from ebl_support import stripe_support_plans, support_public_config
+from ebl_security import registration_age_eligible, pwhash, pwcheck
+from ebl_branding import (
+    OFFICIAL_BRAND_SEED_KEY, LEGACY_FRANCHISE_BRANDS, OFFICIAL_FRANCHISE_BRANDS,
+    FORCE_OFFICIAL_IDENTITY_IDS, PRODUCTION_BRAND_FILES, legacy_brand_art,
+    generated_official_brand_art, branding_assets_ready, brand_seed_key, official_brand_art,
+)
+from ebl_roster import (
+    POSITION_GROUPS, INF_POSITIONS, OF_POSITIONS, PITCHER_POSITIONS,
+    position_group_for_pos, eligible_roster_slot_groups, available_roster_roles,
+    roster_offer_slot, human_roster_count, roster_capacity_state,
+)
+from ebl_db import conn
 
+# Domain modules keep stable rules out of the HTTP entry point.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-ROOT=os.path.dirname(os.path.abspath(__file__))
-DB=os.environ.get("EBL_DB_PATH", os.path.join(ROOT,"ebl.db"))
-STATIC=os.path.join(ROOT,"static")
+# Process-local runtime state. These are intentionally not configuration constants.
 SESSIONS={}
 R=random.Random(7500831)
 RATE_STATE={}
@@ -54,84 +63,6 @@ AUTO_ADVANCE_LOCK=threading.Lock()
 
 
 
-HITTER_ATTRS=["CON","POW","VIS","DISC","TIM","SPD","BRIQ","LEAD","FLD","ARM","ACC","REAC","CALL"]
-PITCHER_ATTRS=["STA","PCLT","CTRL","CMD","VEL","BRK","MOV","DEC","SEQ","FLD","ARM","ACC","REAC"]
-SALARY_MIN=0.30
-BONUS_CAP=25.0
-REGULAR_SEASON_GAMES=81
-REGULAR_SEASON_SERIES=27
-REGULAR_SEASON_OFF_DAYS=14
-REGULAR_SEASON_CALENDAR_DAYS=REGULAR_SEASON_GAMES+REGULAR_SEASON_OFF_DAYS  # 95 simulated calendar days
-# Series 2,4,...,26 plus the final series use a staggered fourth day. Each club
-# still plays exactly three games in the series and receives one team-specific off day.
-REGULAR_SEASON_REST_SERIES=set(range(2,27,2))|{27}
-REGULAR_SEASON_CHECKPOINT_DAYS=(24,49,70,95)  # 21, 42, 60 and 81 games completed per club
-ALL_STAR_BREAK_DAY=49
-ALL_STAR_SELECTION_XP=1.0
-PLAYOFF_ROSTER_XP=1.0
-FINAL_FOUR_XP=1.0
-CHAMPIONSHIP_BERTH_XP=1.0
-CHAMPIONSHIP_WIN_XP=1.0
-DIVISIONS=["Heritage","Liberty","Union","Frontier","Continental","Pioneer"]
-DIVISION_RENAMES={
-    "Atlantic":"Heritage","North":"Liberty","Central":"Union",
-    "South":"Frontier","West":"Continental","Pacific":"Pioneer"
-}
-ACTIVE_ROSTER_SIZE=16
-TEAM_BUDGET=480.0
-# RC113: CPU-generated rookie offers use one league-standard entry contract.
-# The baseline club budget protects all 16 roster jobs at rookie minimum first;
-# the remaining baseline pool is divided evenly so every rookie can receive the
-# same signing bonus regardless of whether they sign first or last.
-CPU_ROOKIE_CONTRACT_YEARS=3
-CPU_ROOKIE_SIGNING_BONUS=round(
-    max(0.0, TEAM_BUDGET-(ACTIVE_ROSTER_SIZE*SALARY_MIN*REGULAR_SEASON_GAMES))
-    / ACTIVE_ROSTER_SIZE,
-    1
-)
-CONTRACT_ESCALATION=0.01
-# RC90: contract renewal human identity is carried through the coach contract payload.
-REVENUE_UPGRADE_COSTS=[50.0,65.0,80.0,100.0,125.0]
-REVENUE_UPGRADE_BONUSES=[0.0,5.0,10.0,20.0,40.0,80.0]
-REVENUE_BRANCH_MAX=5
-FINISH_REWARD_MIN=1.0
-FINISH_REWARD_MAX=30.0
-REBUILD_XP_MAX=0.05
-POOL_GROWTH_TOP=5.0
-POOL_GROWTH_MIDDLE=4.0
-POOL_GROWTH_BOTTOM=3.0
-STORAGE_KEEP_FULL_GAME_DAYS=7
-SP_XP_MULTIPLIER=4.0
-RP_XP_MULTIPLIER=1.75
-CHAT_RETENTION_HOURS=12
-FREE_PLAYER_LIMIT=1
-SUPPORTER_PLAYER_LIMIT=3
-ABSOLUTE_PLAYER_LIMIT=3
-# Slot enforcement stays disabled during the current Genesis validation run.
-# Turn EBL_SUPPORTER_SLOTS_ENFORCED=1 on before public recruiting to make
-# Free=1 / Supporter=3 the live creation rule without another code deploy.
-SUPPORTER_SLOTS_ENFORCED=str(os.environ.get("EBL_SUPPORTER_SLOTS_ENFORCED","0")).strip().lower() in ("1","true","on","yes")
-try:
-    GENESIS_FREE_SUPPORTER_SLOTS=max(0,int(os.environ.get("EBL_GENESIS_FREE_SUPPORTER_SLOTS","100") or 100))
-except (TypeError,ValueError):
-    GENESIS_FREE_SUPPORTER_SLOTS=100
-GENESIS_FREE_SUPPORTER_SEASON=1
-EBL_SUPPORTER_PROFILE_CUSTOMIZATION_RC106=True
-RENEWAL_OPEN_DAY=70
-MAX_REQUEST_BYTES=20*1024*1024
-MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
-MAX_PROFILE_PHOTO_DATA_URL_CHARS=900_000
-BETA_MODE=str(os.environ.get("EBL_BETA_MODE","1")).strip().lower() not in ("0","false","off","no")
-try:
-    GENESIS_PLAYER_TARGET=max(1,int(os.environ.get("EBL_GENESIS_PLAYER_TARGET","150") or 150))
-except (TypeError,ValueError):
-    GENESIS_PLAYER_TARGET=150
-COACH_APPLICATIONS_OPEN=str(os.environ.get("EBL_COACH_APPLICATIONS_OPEN","0")).strip().lower() in ("1","true","on","yes")
-EBL_SUPPORTER_LEGACY_RC107="RC107"
-EBL_SUPPORTER_PRICE_RC108="RC108"
-EBL_ONBOARDING_RC110="RC110"
-EBL_DB_MIGRATION_RC111="RC111"
-AGE_REQUIREMENT=13
 
 
 
@@ -140,12 +71,6 @@ AGE_REQUIREMENT=13
 
 
 
-# RC109: recurring Supporter subscriptions are configured at deploy time.
-# Checkout stays on Stripe-hosted pages; EBL attaches a one-time account reference
-# and grants access only after signed Stripe webhooks confirm the subscription.
-def _safe_support_url(value):
-    value=str(value or "").strip()
-    return value if value.startswith(("https://","http://")) else ""
 
 
 
@@ -154,658 +79,6 @@ def _safe_support_url(value):
 
 
 
-def stripe_support_plans():
-    currency=str(os.environ.get("EBL_STRIPE_EXPECTED_CURRENCY","usd") or "usd").strip().lower()
-    mode=str(os.environ.get("EBL_STRIPE_MODE","test") or "test").strip().lower()
-    monthly={
-        "key":"monthly",
-        "label":"Monthly",
-        "url":_safe_support_url(os.environ.get("EBL_SUPPORT_MONTHLY_URL","")),
-        "payment_link_id":str(os.environ.get("EBL_STRIPE_MONTHLY_PAYMENT_LINK_ID","") or "").strip(),
-        "price_id":str(os.environ.get("EBL_STRIPE_MONTHLY_PRICE_ID","") or "").strip(),
-        "amount":int(os.environ.get("EBL_STRIPE_MONTHLY_AMOUNT","500") or 500),
-        "currency":currency,
-        "interval":"month"
-    }
-    yearly={
-        "key":"yearly",
-        "label":"Yearly",
-        "url":_safe_support_url(os.environ.get("EBL_SUPPORT_YEARLY_URL","")),
-        "payment_link_id":str(os.environ.get("EBL_STRIPE_YEARLY_PAYMENT_LINK_ID","") or "").strip(),
-        "price_id":str(os.environ.get("EBL_STRIPE_YEARLY_PRICE_ID","") or "").strip(),
-        "amount":int(os.environ.get("EBL_STRIPE_YEARLY_AMOUNT","5400") or 5400),
-        "currency":currency,
-        "interval":"year"
-    }
-    return {"monthly":monthly,"yearly":yearly,"mode":mode}
-
-
-
-
-
-
-
-
-def support_public_config():
-    plans=stripe_support_plans()
-    provider=str(os.environ.get("EBL_SUPPORT_PROVIDER","Stripe").strip() or "Stripe")[:40]
-    portal_url=_safe_support_url(os.environ.get("EBL_SUPPORT_PORTAL_URL",""))
-    available={}
-    for key in ("monthly","yearly"):
-        p=plans[key]
-        if p["url"] and p["payment_link_id"]:
-            available[key]={
-                "label":p["label"],
-                "price_usd":round(max(0,p["amount"])/100,2),
-                "interval":p["interval"]
-            }
-    monthly_amt=int(plans["monthly"]["amount"])
-    yearly_amt=int(plans["yearly"]["amount"])
-    full_year=monthly_amt*12
-    savings=max(0,full_year-yearly_amt)
-    savings_pct=round((savings/full_year)*100) if full_year else 0
-    return {
-        "enabled":bool(available),
-        "provider":provider,
-        "checkout_path":"/api/support/checkout" if available else "",
-        "verified_checkout":bool(available),
-        "mode":"test" if plans["mode"]=="test" else ("live" if plans["mode"]=="live" else ""),
-        "plans":available,
-        "yearly_savings_usd":round(savings/100,2),
-        "yearly_savings_pct":savings_pct,
-        "portal_url":portal_url,
-        "currency":"USD"
-    }
-
-
-
-
-
-
-
-
-def registration_age_eligible(value, minimum_age=AGE_REQUIREMENT):
-    """Validate 13+ eligibility without persisting the submitted birth date."""
-    try:
-        dob=datetime.date.fromisoformat(str(value or "").strip())
-    except Exception:
-        return False
-    today=datetime.datetime.now(datetime.timezone.utc).date()
-    if dob>today:
-        return False
-    try:
-        cutoff=today.replace(year=today.year-int(minimum_age))
-    except ValueError:
-        cutoff=today.replace(year=today.year-int(minimum_age),day=28)
-    return dob<=cutoff
-
-
-
-
-
-
-
-
-# RC84: official EBL baseline branding. These are lightweight league defaults
-# for CPU/unclaimed franchises. Existing uploaded/custom artwork is never overwritten.
-OFFICIAL_BRAND_SEED_KEY="official_franchise_branding_rc122_static_assets_28teams_v1"
-LEGACY_RC116_FRANCHISE_BRANDS={
-    "EBL-F01":{"city":"Atlanta","team":"Scouts","primary":"#173F35","secondary":"#D7C7A1","accent":"#0A1D2A","style":4,"home":"CREAM","away":"NAVY"},
-    "EBL-F02":{"city":"New York","team":"Empires","primary":"#111827","secondary":"#D4AF37","accent":"#F2F0E8","style":8,"home":"WHITE","away":"BLACK"},
-    "EBL-F03":{"city":"Los Angeles","team":"Stars","primary":"#1E3A8A","secondary":"#F5C542","accent":"#FFFFFF","style":2,"home":"WHITE","away":"NAVY"},
-    "EBL-F04":{"city":"Chicago","team":"Wind","primary":"#5BC0EB","secondary":"#1B365D","accent":"#FFFFFF","style":6,"home":"WHITE","away":"NAVY"},
-    "EBL-F05":{"city":"Houston","team":"Apollos","primary":"#0B1F3A","secondary":"#F47C20","accent":"#F4F1EA","style":5,"home":"WHITE","away":"NAVY"},
-    "EBL-F06":{"city":"Phoenix","team":"Firebirds","primary":"#7A1E2C","secondary":"#F47B20","accent":"#F7D08A","style":5,"home":"CREAM","away":"RED"},
-    "EBL-F07":{"city":"Philadelphia","team":"Founders","primary":"#17324D","secondary":"#A61B2B","accent":"#E7D9B5","style":7,"home":"CREAM","away":"NAVY"},
-    "EBL-F08":{"city":"San Antonio","team":"Defenders","primary":"#171717","secondary":"#A7A9AC","accent":"#8C1D24","style":4,"home":"WHITE","away":"BLACK"},
-    "EBL-F09":{"city":"Birmingham","team":"Hammers","primary":"#15191F","secondary":"#B7372F","accent":"#D9DDE2","style":3,"home":"GRAY","away":"BLACK"},
-    "EBL-F10":{"city":"Dallas","team":"Wranglers","primary":"#17365D","secondary":"#A65A2E","accent":"#F2E6C9","style":1,"home":"CREAM","away":"NAVY"},
-    "EBL-F11":{"city":"Jacksonville","team":"Breakers","primary":"#007C91","secondary":"#0A2342","accent":"#F2F7F7","style":6,"home":"WHITE","away":"NAVY"},
-    "EBL-F12":{"city":"Fort Worth","team":"Longhorns","primary":"#A44A1F","secondary":"#4B2E1E","accent":"#F2E1C2","style":4,"home":"CREAM","away":"BLACK"},
-    "EBL-F13":{"city":"Austin","team":"Outlaws","primary":"#151515","secondary":"#B87333","accent":"#F4E8D0","style":3,"home":"CREAM","away":"BLACK"},
-    "EBL-F14":{"city":"San Jose","team":"Circuit","primary":"#0A6F7A","secondary":"#111827","accent":"#A7F3D0","style":9,"home":"WHITE","away":"BLACK"},
-    "EBL-F15":{"city":"Columbus","team":"Aviators","primary":"#123B63","secondary":"#5DADE2","accent":"#D9E0E8","style":6,"home":"WHITE","away":"NAVY"},
-    "EBL-F16":{"city":"Charlotte","team":"Crowns","primary":"#4B2E83","secondary":"#D4AF37","accent":"#111111","style":5,"home":"WHITE","away":"BLACK"},
-    "EBL-F17":{"city":"Indianapolis","team":"Racers","primary":"#C1121F","secondary":"#1D3557","accent":"#F1FAEE","style":3,"home":"WHITE","away":"NAVY"},
-    "EBL-F18":{"city":"San Francisco","team":"Gold","primary":"#1A1A1A","secondary":"#C99700","accent":"#F5F0E1","style":2,"home":"CREAM","away":"BLACK"},
-    "EBL-F19":{"city":"Seattle","team":"Evergreens","primary":"#0B5D3B","secondary":"#203A43","accent":"#DDE9E4","style":6,"home":"WHITE","away":"NAVY"},
-    "EBL-F20":{"city":"Denver","team":"Summit","primary":"#1E4E8C","secondary":"#7D8790","accent":"#F4F8FB","style":6,"home":"WHITE","away":"NAVY"},
-    "EBL-F21":{"city":"Oklahoma City","team":"Twisters","primary":"#123B63","secondary":"#D7262E","accent":"#F7F9FC","style":7,"home":"WHITE","away":"NAVY"},
-    "EBL-F22":{"city":"Nashville","team":"Sound","primary":"#14213D","secondary":"#D4AF37","accent":"#F6F1E1","style":7,"home":"CREAM","away":"NAVY"},
-    "EBL-F23":{"city":"Washington","team":"Eagles","primary":"#0D2B4E","secondary":"#7D1D2A","accent":"#C8CED4","style":5,"home":"WHITE","away":"NAVY"},
-    "EBL-F24":{"city":"Las Vegas","team":"High Rollers","primary":"#111111","secondary":"#B11226","accent":"#D4AF37","style":3,"home":"BLACK","away":"RED"},
-    "EBL-F25":{"city":"Boston","team":"Minutemen","primary":"#0B2545","secondary":"#A61B2B","accent":"#D8C3A5","style":7,"home":"CREAM","away":"NAVY"},
-    "EBL-F26":{"city":"Portland","team":"Pioneers","primary":"#285943","secondary":"#6B4F2A","accent":"#E8E0C8","style":6,"home":"CREAM","away":"NAVY"},
-    "EBL-F27":{"city":"Detroit","team":"Motors","primary":"#2B2F33","secondary":"#BFC5CA","accent":"#1F4E79","style":4,"home":"GRAY","away":"BLACK"},
-    "EBL-F28":{"city":"Louisville","team":"Thoroughbreds","primary":"#0B5D3B","secondary":"#111111","accent":"#D4AF37","style":5,"home":"WHITE","away":"BLACK"},
-    "EBL-F29":{"city":"Memphis","team":"Kings","primary":"#4B2E83","secondary":"#A7A9AC","accent":"#111111","style":5,"home":"WHITE","away":"BLACK"},
-    "EBL-F30":{"city":"Baltimore","team":"Clippers","primary":"#0C2D48","secondary":"#C96A2B","accent":"#F1E3C6","style":6,"home":"CREAM","away":"NAVY"},
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# RC114: league-wide production logo sets. These SVG data URIs give every
-# franchise a coherent PRIMARY / SECONDARY / WORDMARK system while preserving
-# any artwork a coach or commissioner has already uploaded.
-# RC117: final commissioner-approved EBL franchise identities and palettes.
-OFFICIAL_FRANCHISE_BRANDS={
-    "EBL-F01":{'city': 'Atlanta', 'team': 'Scouts', 'primary': '#173F35', 'secondary': '#D7C7A1', 'accent': '#0A1D2A', 'style': 4, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F02":{'city': 'New York', 'team': 'Empires', 'primary': '#111827', 'secondary': '#D4AF37', 'accent': '#F2F0E8', 'style': 8, 'home': 'WHITE', 'away': 'BLACK'},
-    "EBL-F03":{'city': 'Los Angeles', 'team': 'Stars', 'primary': '#0B1F4A', 'secondary': '#F5C542', 'accent': '#FFFFFF', 'style': 2, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F04":{'city': 'Chicago', 'team': 'Wind', 'primary': '#0B2545', 'secondary': '#69B8E5', 'accent': '#FFFFFF', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F05":{'city': 'Houston', 'team': 'Apollos', 'primary': '#0B1F3A', 'secondary': '#F47C20', 'accent': '#F4F1EA', 'style': 5, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F06":{'city': 'New Orleans', 'team': 'Rougarou', 'primary': '#3B185F', 'secondary': '#D4AF37', 'accent': '#0F4C3A', 'style': 8, 'home': 'CREAM', 'away': 'BLACK'},
-    "EBL-F07":{'city': 'Philadelphia', 'team': 'Founders', 'primary': '#17324D', 'secondary': '#A61B2B', 'accent': '#E7D9B5', 'style': 7, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F08":{'city': 'Jackson', 'team': 'Catfish', 'primary': '#062A47', 'secondary': '#0E7490', 'accent': '#D4AF37', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F09":{'city': 'Birmingham', 'team': 'Hammers', 'primary': '#15191F', 'secondary': '#B7372F', 'accent': '#D9DDE2', 'style': 3, 'home': 'GRAY', 'away': 'BLACK'},
-    "EBL-F10":{'city': 'Dallas', 'team': 'Wranglers', 'primary': '#17365D', 'secondary': '#8B5A2B', 'accent': '#F2E6C9', 'style': 1, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F11":{'city': 'Jacksonville', 'team': 'Breakers', 'primary': '#062A47', 'secondary': '#00A9C6', 'accent': '#F2F7F7', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F12":{'city': 'Minneapolis', 'team': 'Northmen', 'primary': '#0B2545', 'secondary': '#1E5AA8', 'accent': '#D9B36C', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F13":{'city': 'St. Louis', 'team': 'Archers', 'primary': '#0B2545', 'secondary': '#C1121F', 'accent': '#D4AF37', 'style': 4, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F14":{'city': 'San Jose', 'team': 'Circuit', 'primary': '#050505', 'secondary': '#00D1C7', 'accent': '#7CFF35', 'style': 9, 'home': 'WHITE', 'away': 'BLACK'},
-    "EBL-F15":{'city': 'Columbus', 'team': 'Aviators', 'primary': '#123B63', 'secondary': '#C1121F', 'accent': '#D9E0E8', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F16":{'city': 'Charlotte', 'team': 'Crowns', 'primary': '#4B2E83', 'secondary': '#D4AF37', 'accent': '#111111', 'style': 5, 'home': 'WHITE', 'away': 'BLACK'},
-    "EBL-F17":{'city': 'Indianapolis', 'team': 'Racers', 'primary': '#C1121F', 'secondary': '#111827', 'accent': '#F1FAEE', 'style': 3, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F18":{'city': 'Wilmington', 'team': 'Admirals', 'primary': '#0B2545', 'secondary': '#0E7490', 'accent': '#D4AF37', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F19":{'city': 'Seattle', 'team': 'Evergreens', 'primary': '#0B5D3B', 'secondary': '#203A43', 'accent': '#DDE9E4', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F20":{'city': 'Denver', 'team': 'Summit', 'primary': '#0052CC', 'secondary': '#0B1F44', 'accent': '#D4AF37', 'style': 6, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F21":{'city': 'Oklahoma City', 'team': 'Twisters', 'primary': '#0B1F44', 'secondary': '#00BCEB', 'accent': '#F7F9FC', 'style': 7, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F22":{'city': 'Nashville', 'team': 'Sound', 'primary': '#14213D', 'secondary': '#D4AF37', 'accent': '#F6F1E1', 'style': 7, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F23":{'city': 'Washington', 'team': 'Eagles', 'primary': '#0D2B4E', 'secondary': '#8B1538', 'accent': '#D4AF37', 'style': 5, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F24":{'city': 'Las Vegas', 'team': 'High Rollers', 'primary': '#000000', 'secondary': '#8B0000', 'accent': '#D4AF37', 'style': 3, 'home': 'BLACK', 'away': 'RED'},
-    "EBL-F25":{'city': 'Boston', 'team': 'Minutemen', 'primary': '#0B2545', 'secondary': '#A61B2B', 'accent': '#D8C3A5', 'style': 7, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F26":{'city': 'Portland', 'team': 'Pioneers', 'primary': '#285943', 'secondary': '#6B4F2A', 'accent': '#E8E0C8', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
-    "EBL-F27":{'city': 'Detroit', 'team': 'Motors', 'primary': '#111820', 'secondary': '#D7262E', 'accent': '#BFC5CA', 'style': 4, 'home': 'GRAY', 'away': 'BLACK'},
-    "EBL-F28":{'city': 'Louisville', 'team': 'Thoroughbreds', 'primary': '#6B0F1A', 'secondary': '#111111', 'accent': '#D4AF37', 'style': 5, 'home': 'WHITE', 'away': 'BLACK'},
-    "EBL-F29":{'city': 'Memphis', 'team': 'Tigers', 'primary': '#071A31', 'secondary': '#0F4CC9', 'accent': '#F0A23A', 'style': 5, 'home': 'WHITE', 'away': 'NAVY'},
-    "EBL-F30":{'city': 'Baltimore', 'team': 'Clippers', 'primary': '#111111', 'secondary': '#F05A16', 'accent': '#F1E3C6', 'style': 6, 'home': 'CREAM', 'away': 'NAVY'},
-}
-OFFICIAL_REBRAND_FRANCHISE_IDS={"EBL-F06","EBL-F08","EBL-F12","EBL-F13","EBL-F18","EBL-F29"}
-RC122_FORCE_IDENTITY_IDS={"EBL-F08","EBL-F13"}
-
-def _brand_svg_escape(value):
-    return (str(value or "")
-            .replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
-            .replace('"',"&quot;").replace("'","&apos;"))
-
-
-
-
-
-
-
-
-def _brand_svg_uri(svg):
-    raw=base64.b64encode(svg.encode("utf-8")).decode("ascii")
-    return "data:image/svg+xml;base64,"+raw
-
-
-
-
-
-
-
-
-def _brand_city_code(city):
-    bits=[x for x in str(city or "").replace("-"," ").split() if x]
-    if not bits:return "EBL"
-    if len(bits)==1:return bits[0][:3].upper()
-    return "".join(x[0] for x in bits).upper()[:3]
-
-
-
-
-
-
-
-
-def _brand_team_code(team):
-    bits=[x for x in str(team or "").replace("-"," ").split() if x]
-    if not bits:return "E"
-    return ("".join(x[0] for x in bits) if len(bits)>1 else bits[0][:2]).upper()[:3]
-
-
-
-
-
-
-
-
-def _brand_star_points(cx,cy,r1,r2,n=5):
-    pts=[]
-    for i in range(n*2):
-        a=-math.pi/2+i*math.pi/n
-        r=r1 if i%2==0 else r2
-        pts.append(f"{cx+math.cos(a)*r:.1f},{cy+math.sin(a)*r:.1f}")
-    return " ".join(pts)
-
-
-
-
-
-
-
-
-def _brand_motif(team,primary,secondary,accent):
-    t=str(team or "").lower()
-    if any(k in t for k in ("empire","crown","king")):
-        return f'<path d="M176 206 L198 132 L238 171 L256 112 L274 171 L314 132 L336 206 Z" fill="{secondary}" stroke="{accent}" stroke-width="10" stroke-linejoin="round"/><rect x="180" y="205" width="152" height="38" rx="12" fill="{primary}" stroke="{accent}" stroke-width="9"/>'
-    if "star" in t:
-        return f'<polygon points="{_brand_star_points(256,180,82,34)}" fill="{secondary}" stroke="{accent}" stroke-width="10"/>'
-    if any(k in t for k in ("wind","twister","breaker")):
-        return f'<path d="M154 164 C205 102 322 108 350 163 C310 139 274 145 248 171 C224 196 218 232 236 263 C185 247 150 211 154 164Z" fill="none" stroke="{secondary}" stroke-width="24" stroke-linecap="round"/><path d="M205 178 C238 149 295 151 314 182 C286 171 263 181 252 202 C240 225 248 247 267 260" fill="none" stroke="{accent}" stroke-width="16" stroke-linecap="round"/>'
-    if "apollo" in t:
-        return f'<ellipse cx="256" cy="182" rx="112" ry="52" fill="none" stroke="{secondary}" stroke-width="16" transform="rotate(-20 256 182)"/><circle cx="256" cy="182" r="44" fill="{primary}" stroke="{accent}" stroke-width="10"/><polygon points="{_brand_star_points(350,125,30,12)}" fill="{accent}"/>'
-    if "firebird" in t:
-        return f'<path d="M260 88 C334 144 335 202 292 250 C291 215 270 192 247 180 C266 220 250 258 210 281 C218 232 181 210 194 165 C203 134 229 120 260 88Z" fill="{secondary}" stroke="{accent}" stroke-width="10" stroke-linejoin="round"/><path d="M251 145 C274 173 274 202 252 225 C254 198 238 187 225 177 C229 160 239 151 251 145Z" fill="{accent}"/>'
-    if "founder" in t:
-        return f'<path d="M216 108 H296 L306 160 C339 190 324 244 277 253 H235 C188 244 173 190 206 160Z" fill="{secondary}" stroke="{accent}" stroke-width="10"/><path d="M256 92 V269" stroke="{primary}" stroke-width="16"/><path d="M210 185 H302" stroke="{primary}" stroke-width="13"/><circle cx="256" cy="270" r="14" fill="{accent}"/>'
-    if "defender" in t:
-        return f'<path d="M256 89 L347 126 V198 C347 250 309 290 256 315 C203 290 165 250 165 198 V126Z" fill="{primary}" stroke="{secondary}" stroke-width="16"/><path d="M201 145 H311 V184 H289 V226 H223 V184 H201Z" fill="{accent}"/>'
-    if "hammer" in t:
-        return f'<g transform="rotate(-28 256 185)"><rect x="241" y="105" width="30" height="168" rx="10" fill="{accent}"/><path d="M185 92 H315 V137 H285 L270 158 H242 L227 137 H185Z" fill="{secondary}" stroke="{accent}" stroke-width="8"/></g><g transform="rotate(28 256 185)"><rect x="241" y="105" width="30" height="168" rx="10" fill="{accent}"/><path d="M185 92 H315 V137 H285 L270 158 H242 L227 137 H185Z" fill="{primary}" stroke="{accent}" stroke-width="8"/></g>'
-    if any(k in t for k in ("wrangler","outlaw")):
-        return f'<polygon points="{_brand_star_points(256,184,91,39)}" fill="{secondary}" stroke="{accent}" stroke-width="10"/><circle cx="256" cy="184" r="40" fill="{primary}" stroke="{accent}" stroke-width="8"/>'
-    if "longhorn" in t:
-        return f'<path d="M170 155 C198 120 230 135 256 163 C282 135 314 120 342 155 C323 148 306 158 291 180 C277 201 273 226 256 249 C239 226 235 201 221 180 C206 158 189 148 170 155Z" fill="{secondary}" stroke="{accent}" stroke-width="11"/><path d="M169 153 C145 132 132 111 135 87 C160 105 181 111 208 112 M343 153 C367 132 380 111 377 87 C352 105 331 111 304 112" fill="none" stroke="{accent}" stroke-width="13" stroke-linecap="round"/>'
-    if any(k in t for k in ("circuit","motor")):
-        return f'<circle cx="256" cy="184" r="78" fill="none" stroke="{secondary}" stroke-width="22" stroke-dasharray="28 14"/><circle cx="256" cy="184" r="30" fill="{accent}"/><path d="M256 74 V110 M256 258 V294 M146 184 H182 M330 184 H366" stroke="{accent}" stroke-width="14" stroke-linecap="round"/>'
-    if any(k in t for k in ("aviator","eagle")):
-        return f'<path d="M256 142 C224 116 185 113 151 128 C181 148 196 169 206 198 C179 190 157 194 135 208 C176 231 214 234 256 216 C298 234 336 231 377 208 C355 194 333 190 306 198 C316 169 331 148 361 128 C327 113 288 116 256 142Z" fill="{secondary}" stroke="{accent}" stroke-width="9"/><polygon points="{_brand_star_points(256,184,37,15)}" fill="{primary}"/>'
-    if "racer" in t:
-        return f'<path d="M160 133 H329 L307 165 H185Z" fill="{secondary}"/><path d="M139 181 H307 L285 213 H164Z" fill="{accent}"/><path d="M179 229 H337 L315 261 H154Z" fill="{secondary}"/><g fill="{primary}"><rect x="303" y="116" width="26" height="26"/><rect x="329" y="142" width="26" height="26"/><rect x="303" y="168" width="26" height="26"/><rect x="329" y="194" width="26" height="26"/></g>'
-    if any(k in t for k in ("gold","summit","pioneer")):
-        return f'<path d="M142 261 L226 126 L258 176 L298 111 L376 261Z" fill="{secondary}" stroke="{accent}" stroke-width="10" stroke-linejoin="round"/><path d="M218 138 L242 176 L257 157 L275 183 L299 121" fill="none" stroke="{primary}" stroke-width="16" stroke-linecap="round"/>'
-    if "evergreen" in t:
-        return f'<path d="M256 90 L197 172 H226 L179 234 H221 L165 306 H347 L291 234 H333 L286 172 H315Z" fill="{secondary}" stroke="{accent}" stroke-width="10" stroke-linejoin="round"/><rect x="244" y="277" width="24" height="48" fill="{primary}"/>'
-    if "sound" in t:
-        return f'<path d="M230 104 V239 C208 224 172 233 164 260 C156 289 190 307 219 292 C243 279 252 255 252 224 V151 L331 132 V213 C310 198 274 207 266 234 C257 264 291 282 320 267 C344 254 353 230 353 199 V91Z" fill="{secondary}" stroke="{accent}" stroke-width="8"/>'
-    if "high roller" in t:
-        return f'<rect x="174" y="105" width="164" height="164" rx="24" fill="{primary}" stroke="{secondary}" stroke-width="14" transform="rotate(8 256 187)"/><circle cx="215" cy="150" r="13" fill="{accent}"/><circle cx="298" cy="150" r="13" fill="{accent}"/><circle cx="256" cy="188" r="13" fill="{accent}"/><circle cx="215" cy="226" r="13" fill="{accent}"/><circle cx="298" cy="226" r="13" fill="{accent}"/>'
-    if "minutemen" in t:
-        return f'<path d="M166 130 H346" stroke="{secondary}" stroke-width="18" stroke-linecap="round"/><path d="M190 102 C228 79 284 79 322 102 L307 145 H205Z" fill="{secondary}" stroke="{accent}" stroke-width="9"/><path d="M256 146 V277" stroke="{accent}" stroke-width="14"/><path d="M205 277 H307" stroke="{secondary}" stroke-width="18" stroke-linecap="round"/>'
-    if "thoroughbred" in t:
-        return f'<path d="M192 108 C224 96 288 106 313 139 C329 160 326 187 305 207 C290 221 278 239 281 270 H221 C225 237 214 216 194 198 C172 178 169 145 192 108Z" fill="{secondary}" stroke="{accent}" stroke-width="10"/><path d="M218 146 C238 131 267 130 289 145" fill="none" stroke="{primary}" stroke-width="12" stroke-linecap="round"/><circle cx="278" cy="160" r="7" fill="{accent}"/>'
-    if "clipper" in t:
-        return f'<path d="M256 91 V277 M201 137 H311 M185 213 C205 260 230 281 256 293 C282 281 307 260 327 213 M185 213 H221 M327 213 H291" fill="none" stroke="{secondary}" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/><circle cx="256" cy="117" r="27" fill="none" stroke="{accent}" stroke-width="12"/>'
-    return f'<polygon points="{_brand_star_points(256,184,79,34)}" fill="{secondary}" stroke="{accent}" stroke-width="10"/>'
-
-
-
-
-
-
-
-
-def legacy_rc114_brand_art(brand):
-    city=str(brand.get("city") or "Elite")
-    team=str(brand.get("team") or "Baseball")
-    primary=str(brand.get("primary") or "#153c63")
-    secondary=str(brand.get("secondary") or "#d7262e")
-    accent=str(brand.get("accent") or "#f7f7f7")
-    style=int(brand.get("style") or 1)
-    city_code=_brand_city_code(city)
-    team_code=_brand_team_code(team)
-    city_e=_brand_svg_escape(city.upper())
-    team_e=_brand_svg_escape(team.upper())
-    monogram=_brand_svg_escape((city_code[:1]+team_code[:1])[:2])
-    motif=_brand_motif(team,primary,secondary,accent)
-    if style in (3,4):
-        badge=f'<path d="M256 34 L432 104 V254 C432 358 359 433 256 480 C153 433 80 358 80 254 V104Z" fill="{primary}" stroke="{accent}" stroke-width="16"/>'
-    elif style in (5,8):
-        badge=f'<circle cx="256" cy="256" r="214" fill="{primary}" stroke="{accent}" stroke-width="16"/><circle cx="256" cy="256" r="184" fill="none" stroke="{secondary}" stroke-width="8"/>'
-    elif style in (6,9):
-        badge=f'<polygon points="256,34 433,137 433,342 256,478 79,342 79,137" fill="{primary}" stroke="{accent}" stroke-width="16"/>'
-    else:
-        badge=f'<path d="M256 30 L464 256 L256 482 L48 256Z" fill="{primary}" stroke="{accent}" stroke-width="16"/>'
-    primary_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><g>{badge}{motif}<text x="256" y="384" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="72" font-weight="900" fill="{accent}" stroke="{primary}" stroke-width="5" paint-order="stroke">{monogram}</text><text x="256" y="430" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="25" font-weight="800" letter-spacing="4" fill="{secondary}">{team_e}</text></g></svg>'
-    secondary_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><g><circle cx="256" cy="256" r="210" fill="{primary}" stroke="{secondary}" stroke-width="22"/><circle cx="256" cy="256" r="170" fill="none" stroke="{accent}" stroke-width="8"/><text x="256" y="296" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="150" font-weight="900" letter-spacing="-10" fill="{accent}" stroke="{primary}" stroke-width="8" paint-order="stroke">{monogram}</text><path d="M151 344 H361" stroke="{secondary}" stroke-width="16" stroke-linecap="round"/><text x="256" y="390" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="28" font-weight="900" letter-spacing="5" fill="{secondary}">{city_code}</text></g></svg>'
-    wordmark_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360"><g><text x="600" y="112" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="62" font-weight="900" letter-spacing="16" fill="{secondary}">{city_e}</text><text x="600" y="242" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="138" font-style="italic" font-weight="900" letter-spacing="-3" fill="{primary}" stroke="{accent}" stroke-width="12" paint-order="stroke">{team_e}</text><path d="M190 287 H1010" stroke="{secondary}" stroke-width="18" stroke-linecap="round"/><path d="M365 319 H835" stroke="{accent}" stroke-width="8" stroke-linecap="round"/></g></svg>'
-    return {
-        "primary":_brand_svg_uri(primary_svg),
-        "secondary":_brand_svg_uri(secondary_svg),
-        "wordmark":_brand_svg_uri(wordmark_svg),
-    }
-
-
-
-
-
-
-
-
-
-# RC116: premium franchise identity renderer. The RC114 renderer remains above so
-# the seed can identify exact league-generated art and safely replace only that.
-def _brand_color_tuple(value):
-    v=str(value or "#000000").strip().lstrip("#")
-    if len(v)==3:
-        v="".join(ch*2 for ch in v)
-    try:
-        return tuple(int(v[i:i+2],16) for i in (0,2,4))
-    except Exception:
-        return (0,0,0)
-
-
-def _brand_mix(a,b,t):
-    aa=_brand_color_tuple(a); bb=_brand_color_tuple(b)
-    t=max(0.0,min(1.0,float(t)))
-    vals=[round(aa[i]*(1-t)+bb[i]*t) for i in range(3)]
-    return "#"+"".join(f"{max(0,min(255,v)):02X}" for v in vals)
-
-
-def _premium_brand_motif(team,primary,secondary,accent):
-    t=str(team or "").lower()
-    if "scout" in t:
-        compass=_brand_star_points(256,190,88,26,4)
-        return f'<circle cx="256" cy="190" r="104" fill="{_brand_mix(primary,"#000000",.22)}" stroke="{secondary}" stroke-width="10"/><polygon points="{compass}" fill="{accent}" stroke="{secondary}" stroke-width="8"/><path d="M256 88 L270 167 L256 190 L242 167Z" fill="{secondary}"/><path d="M150 287 L190 226 H176 L210 178 L196 178 L229 128 L262 178 L248 178 L282 226 H268 L308 287Z" fill="{primary}" stroke="{accent}" stroke-width="5"/>'
-    return _brand_motif(team,primary,secondary,accent)
-
-
-def _premium_badge(style,primary,secondary,accent):
-    dark=_brand_mix(primary,"#000000",.46)
-    if style in (3,4):
-        outer='M256 22 L448 96 V265 Q448 391 256 486 Q64 391 64 265 V96Z'
-        inner='M256 54 L416 116 V258 Q416 365 256 448 Q96 365 96 258 V116Z'
-        return f'<path d="{outer}" fill="url(#pbg)" stroke="{accent}" stroke-width="15"/><path d="{inner}" fill="none" stroke="{secondary}" stroke-width="9"/><path d="{inner}" fill="none" stroke="{accent}" stroke-opacity=".25" stroke-width="3" stroke-dasharray="11 9"/>'
-    if style in (5,8):
-        return f'<circle cx="256" cy="256" r="228" fill="url(#pbg)" stroke="{accent}" stroke-width="15"/><circle cx="256" cy="256" r="198" fill="none" stroke="{secondary}" stroke-width="10"/><circle cx="256" cy="256" r="174" fill="none" stroke="{accent}" stroke-opacity=".25" stroke-width="4"/>'
-    if style in (6,9):
-        return f'<polygon points="256,24 454,138 454,374 256,488 58,374 58,138" fill="url(#pbg)" stroke="{accent}" stroke-width="15"/><polygon points="256,58 424,155 424,357 256,454 88,357 88,155" fill="none" stroke="{secondary}" stroke-width="9"/><polygon points="256,76 407,164 407,348 256,436 105,348 105,164" fill="none" stroke="{accent}" stroke-opacity=".22" stroke-width="3" stroke-dasharray="10 8"/>'
-    return f'<path d="M256 23 L472 256 L256 489 L40 256Z" fill="url(#pbg)" stroke="{accent}" stroke-width="15"/><path d="M256 58 L438 256 L256 454 L74 256Z" fill="none" stroke="{secondary}" stroke-width="9"/><path d="M256 78 L419 256 L256 434 L93 256Z" fill="none" stroke="{accent}" stroke-opacity=".22" stroke-width="3" stroke-dasharray="10 8"/>'
-
-
-def _premium_title_size(team):
-    n=len(str(team or ""))
-    return 58 if n<=7 else (51 if n<=10 else (43 if n<=13 else 35))
-
-
-def _premium_wordmark_size(team):
-    n=len(str(team or ""))
-    return 124 if n<=7 else (108 if n<=10 else (92 if n<=13 else 76))
-
-
-def generated_official_brand_art(brand):
-    city=str(brand.get("city") or "Elite")
-    team=str(brand.get("team") or "Baseball")
-    primary=str(brand.get("primary") or "#153c63")
-    secondary=str(brand.get("secondary") or "#d7262e")
-    accent=str(brand.get("accent") or "#f7f7f7")
-    style=int(brand.get("style") or 1)
-    city_code=_brand_city_code(city)
-    team_code=_brand_team_code(team)
-    city_e=_brand_svg_escape(city.upper())
-    team_e=_brand_svg_escape(team.upper())
-    monogram=_brand_svg_escape((city_code[:1]+team_code[:1])[:2])
-    dark=_brand_mix(primary,"#000000",.58)
-    light=_brand_mix(accent,"#FFFFFF",.18)
-    sec_light=_brand_mix(secondary,"#FFFFFF",.14)
-    defs=f'<defs><linearGradient id="pbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{_brand_mix(primary,"#FFFFFF",.10)}"/><stop offset=".56" stop-color="{primary}"/><stop offset="1" stop-color="{dark}"/></linearGradient><linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{light}"/><stop offset=".48" stop-color="{accent}"/><stop offset="1" stop-color="{_brand_mix(accent,"#000000",.28)}"/></linearGradient><linearGradient id="teamG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{sec_light}"/><stop offset="1" stop-color="{secondary}"/></linearGradient><filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#000" flood-opacity=".48"/></filter></defs>'
-    badge=_premium_badge(style,primary,secondary,accent)
-    motif=_premium_brand_motif(team,primary,secondary,accent)
-    title_size=_premium_title_size(team)
-    wm_size=_premium_wordmark_size(team)
-
-    primary_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><!-- EBL-RC116-PREMIUM -->{defs}<g filter="url(#shadow)">{badge}</g><path d="M130 88 Q256 51 382 88" fill="none" stroke="{secondary}" stroke-width="5"/><text x="256" y="105" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="21" font-weight="900" letter-spacing="6" fill="{accent}">{city_e}</text><g transform="translate(0 24) scale(1 .94)" filter="url(#shadow)">{motif}</g><path d="M48 344 L112 319 H400 L464 344 L433 413 L256 442 L79 413Z" fill="{dark}" stroke="{accent}" stroke-width="11"/><path d="M79 347 H433 L407 397 Q256 425 105 397Z" fill="url(#teamG)" stroke="{primary}" stroke-width="5"/><text x="256" y="391" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{title_size}" font-weight="900" fill="{accent}" stroke="{dark}" stroke-width="8" paint-order="stroke">{team_e}</text><path d="M157 458 H355" stroke="{secondary}" stroke-width="9" stroke-linecap="round"/><polygon points="{_brand_star_points(256,458,14,6)}" fill="{accent}"/><text x="256" y="488" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="800" letter-spacing="5" fill="{accent}" opacity=".82">ELITE BASEBALL</text></svg>'
-
-    # Cap/scorebug mark: same club icon, tighter framing, prominent monogram.
-    secondary_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><!-- EBL-RC116-PREMIUM -->{defs}<g filter="url(#shadow)">{_premium_badge(5 if style in (1,3,4,7,8) else style,primary,secondary,accent)}</g><g transform="translate(38 42) scale(.85)" opacity=".98">{motif}</g><path d="M159 326 H353 L335 397 H177Z" fill="{dark}" stroke="{accent}" stroke-width="8"/><text x="256" y="383" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="72" font-weight="900" fill="{accent}" stroke="{primary}" stroke-width="7" paint-order="stroke">{monogram}</text><text x="256" y="438" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="18" font-weight="900" letter-spacing="6" fill="{secondary}">{city_code}</text></svg>'
-
-    # Merchandise/header wordmark with a mini crest and full outlined athletic type.
-    wordmark_svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360"><!-- EBL-RC116-PREMIUM -->{defs}<g transform="translate(-58 -76) scale(.68)" filter="url(#shadow)">{badge}{motif}</g><text x="758" y="96" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="900" letter-spacing="13" fill="{secondary}">{city_e}</text><g transform="skewX(-7)"><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{accent}" stroke-width="13" paint-order="stroke">{team_e}</text><text x="795" y="220" text-anchor="middle" font-family="Arial Black,Impact,Arial,sans-serif" font-size="{wm_size}" font-weight="900" fill="{primary}" stroke="{dark}" stroke-width="4" paint-order="stroke">{team_e}</text></g><path d="M340 266 H1120" stroke="{secondary}" stroke-width="16" stroke-linecap="round"/><path d="M500 297 H970" stroke="{accent}" stroke-width="6" stroke-linecap="round" opacity=".84"/><polygon points="{_brand_star_points(1050,297,15,6)}" fill="{secondary}"/></svg>'
-    return {"primary":_brand_svg_uri(primary_svg),"secondary":_brand_svg_uri(secondary_svg),"wordmark":_brand_svg_uri(wordmark_svg)}
-
-# RC123 final franchise artwork map. Coach-owned F21 stays outside static defaults; files live in static/assets and are seeded
-# into SQLite as self-contained data URIs while remaining replaceable by coach uploads.
-PRODUCTION_BRAND_FILES={
-    "EBL-F02":{'primary': 'assets/ebl-f02_primary.webp', 'secondary': 'assets/ebl-f02_secondary.webp', 'wordmark': 'assets/ebl-f02_wordmark.webp'},
-    "EBL-F03":{'primary': 'assets/ebl-f03_primary.webp', 'secondary': 'assets/ebl-f03_secondary.webp', 'wordmark': 'assets/ebl-f03_wordmark.webp'},
-    "EBL-F04":{'primary': 'assets/ebl-f04_primary.webp', 'secondary': 'assets/ebl-f04_secondary.webp', 'wordmark': 'assets/ebl-f04_wordmark.webp'},
-    "EBL-F05":{'primary': 'assets/ebl-f05_primary.webp', 'secondary': 'assets/ebl-f05_secondary.webp', 'wordmark': 'assets/ebl-f05_wordmark.webp'},
-    "EBL-F06":{'primary': 'assets/ebl-f06_primary.webp', 'secondary': 'assets/ebl-f06_secondary.webp', 'wordmark': 'assets/ebl-f06_wordmark.webp'},
-    "EBL-F07":{'primary': 'assets/ebl-f07_primary.webp', 'secondary': 'assets/ebl-f07_secondary.webp', 'wordmark': 'assets/ebl-f07_wordmark.webp'},
-    "EBL-F08":{'primary': 'assets/ebl-f08_primary.webp', 'secondary': 'assets/ebl-f08_secondary.webp', 'wordmark': 'assets/ebl-f08_wordmark.webp'},
-    "EBL-F09":{'primary': 'assets/ebl-f09_primary.webp', 'secondary': 'assets/ebl-f09_secondary.webp', 'wordmark': 'assets/ebl-f09_wordmark.webp'},
-    "EBL-F10":{'primary': 'assets/ebl-f10_primary.webp', 'secondary': 'assets/ebl-f10_secondary.webp', 'wordmark': 'assets/ebl-f10_wordmark.webp'},
-    "EBL-F11":{'primary': 'assets/ebl-f11_primary.webp', 'secondary': 'assets/ebl-f11_secondary.webp', 'wordmark': 'assets/ebl-f11_wordmark.webp'},
-    "EBL-F12":{'primary': 'assets/ebl-f12_primary.webp', 'secondary': 'assets/ebl-f12_secondary.webp', 'wordmark': 'assets/ebl-f12_wordmark.webp'},
-    "EBL-F13":{'primary': 'assets/ebl-f13_primary.webp', 'secondary': 'assets/ebl-f13_secondary.webp', 'wordmark': 'assets/ebl-f13_wordmark.webp'},
-    "EBL-F14":{'primary': 'assets/ebl-f14_primary.webp', 'secondary': 'assets/ebl-f14_secondary.webp', 'wordmark': 'assets/ebl-f14_wordmark.webp'},
-    "EBL-F15":{'primary': 'assets/ebl-f15_primary.webp', 'secondary': 'assets/ebl-f15_secondary.webp', 'wordmark': 'assets/ebl-f15_wordmark.webp'},
-    "EBL-F16":{'primary': 'assets/ebl-f16_primary.webp', 'secondary': 'assets/ebl-f16_secondary.webp', 'wordmark': 'assets/ebl-f16_wordmark.webp'},
-    "EBL-F17":{'primary': 'assets/ebl-f17_primary.webp', 'secondary': 'assets/ebl-f17_secondary.webp', 'wordmark': 'assets/ebl-f17_wordmark.webp'},
-    "EBL-F18":{'primary': 'assets/ebl-f18_primary.webp', 'secondary': 'assets/ebl-f18_secondary.webp', 'wordmark': 'assets/ebl-f18_wordmark.webp'},
-    "EBL-F19":{'primary': 'assets/ebl-f19_primary.webp', 'secondary': 'assets/ebl-f19_secondary.webp', 'wordmark': 'assets/ebl-f19_wordmark.webp'},
-    "EBL-F20":{'primary': 'assets/ebl-f20_primary.webp', 'secondary': 'assets/ebl-f20_secondary.webp', 'wordmark': 'assets/ebl-f20_wordmark.webp'},
-    "EBL-F22":{'primary': 'assets/ebl-f22_primary.webp', 'secondary': 'assets/ebl-f22_secondary.webp', 'wordmark': 'assets/ebl-f22_wordmark.webp'},
-    "EBL-F23":{'primary': 'assets/ebl-f23_primary.webp', 'secondary': 'assets/ebl-f23_secondary.webp', 'wordmark': 'assets/ebl-f23_wordmark.webp'},
-    "EBL-F24":{'primary': 'assets/ebl-f24_primary.webp', 'secondary': 'assets/ebl-f24_secondary.webp', 'wordmark': 'assets/ebl-f24_wordmark.webp'},
-    "EBL-F25":{'primary': 'assets/ebl-f25_primary.webp', 'secondary': 'assets/ebl-f25_secondary.webp', 'wordmark': 'assets/ebl-f25_wordmark.webp'},
-    "EBL-F26":{'primary': 'assets/ebl-f26_primary.webp', 'secondary': 'assets/ebl-f26_secondary.webp', 'wordmark': 'assets/ebl-f26_wordmark.webp'},
-    "EBL-F27":{'primary': 'assets/ebl-f27_primary.png', 'secondary': 'assets/ebl-f27_secondary.png', 'wordmark': 'assets/ebl-f27_wordmark.png'},
-    "EBL-F28":{'primary': 'assets/ebl-f28_primary.webp', 'secondary': 'assets/ebl-f28_secondary.webp', 'wordmark': 'assets/ebl-f28_wordmark.webp'},
-    "EBL-F29":{'primary': 'assets/ebl-f29_primary.webp', 'secondary': 'assets/ebl-f29_secondary.webp', 'wordmark': 'assets/ebl-f29_wordmark.webp'},
-    "EBL-F30":{'primary': 'assets/ebl-f30_primary.webp', 'secondary': 'assets/ebl-f30_secondary.webp', 'wordmark': 'assets/ebl-f30_wordmark.webp'},
-}
-
-def rc122_branding_assets_ready(fid):
-    """Return True when this franchise's complete 3-piece static brand set exists."""
-    try:
-        files=PRODUCTION_BRAND_FILES.get(str(fid or "")) or {}
-        return set(files)=={"primary","secondary","wordmark"} and all(
-            os.path.isfile(os.path.join(STATIC,name)) for name in files.values()
-        )
-    except Exception:
-        return False
-
-def rc122_brand_seed_key(fid):
-    return f"{OFFICIAL_BRAND_SEED_KEY}:{str(fid or '').lower()}"
-
-def _official_static_art_data_uri(asset_name):
-    try:
-        path=os.path.join(STATIC,asset_name)
-        with open(path,"rb") as f:
-            raw=f.read()
-        mime=mimetypes.guess_type(path)[0] or "application/octet-stream"
-        return f"data:{mime};base64,"+base64.b64encode(raw).decode("ascii")
-    except Exception:
-        return ""
-
-def official_brand_art(brand,fid=None):
-    files=PRODUCTION_BRAND_FILES.get(str(fid or ""))
-    if files:
-        art={k:_official_static_art_data_uri(v) for k,v in files.items()}
-        if all(art.values()):
-            return art
-    return generated_official_brand_art(brand)
-
-
-POSITION_GROUPS=("INF","OF","PITCHER")
-INF_POSITIONS={"C","1B","2B","3B","SS"}
-OF_POSITIONS={"LF","CF","RF","DH","UTIL"}
-PITCHER_POSITIONS={"SP","RP","LR","MR","SU","CL"}
-
-
-
-
-
-
-
-
-def position_group_for_pos(pos):
-    pos=str(pos or "").upper()
-    if pos in PITCHER_POSITIONS:return "PITCHER"
-    if pos in OF_POSITIONS:return "OF"
-    return "INF"
-
-
-
-
-
-
-
-
-def eligible_roster_slot_groups(player):
-    """Exact roster slots a player may occupy based on broad market group.
-
-
-
-
-
-
-
-
-    Catcher is never a roster gate: any position player may occupy C when a
-    club needs one. Choosing C as the preferred position is a specialization
-    that unlocks CALL development, not eligibility. Pitcher SP/RP labels are
-    preferences only; coach rotation/bullpen assignment controls game usage.
-    """
-    group=str(player.get("position_group") or position_group_for_pos(player.get("primary_pos"))).upper()
-    pref=str(player.get("primary_pos") or "").upper()
-    if group=="PITCHER":
-        slots=["SP","RP"]
-    elif group=="OF":
-        slots=["LF","CF","RF","DH","C"]
-    else:
-        slots=["1B","2B","3B","SS","DH","C"]
-    if pref in slots:
-        slots=[pref]+[x for x in slots if x!=pref]
-    return slots
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def available_roster_roles(c,fid,player):
-    """Open/CPU roles this player can legally take, preferred role first."""
-    allowed=eligible_roster_slot_groups(player)
-    if str(player.get("type") or "H").upper()=="P":
-        allowed=[x for x in allowed if x in ("SP","RP")]
-    else:
-        allowed=[x for x in allowed if x in ("C","1B","2B","3B","SS","LF","CF","RF","DH")]
-    if not allowed:return []
-    marks=",".join("?" for _ in allowed)
-    rows=c.execute(f"""SELECT position_group,occupant_type,slot_no
-                       FROM roster_slots
-                       WHERE franchise_id=? AND position_group IN ({marks})
-                         AND occupant_type IN ('OPEN','CPU')""",
-                   (fid,*allowed)).fetchall()
-    rank={role:i for i,role in enumerate(allowed)}
-    rows=sorted(rows,key=lambda row:(rank.get(str(row["position_group"] or "").upper(),999),0 if row["occupant_type"]=="OPEN" else 1,int(row["slot_no"] or 0)))
-    seen=set();out=[]
-    for row in rows:
-        role=str(row["position_group"] or "").upper()
-        if role and role not in seen:
-            seen.add(role);out.append(role)
-    return out
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def roster_offer_slot(c,fid,player,proposed_role=None):
-    """Return the best open/CPU slot, honoring a proposed role when it is available."""
-    roles=available_roster_roles(c,fid,player)
-    target=str(proposed_role or "").upper()
-    if target and target in roles:
-        roles=[target]+[x for x in roles if x!=target]
-    if not roles:return None
-    marks=",".join("?" for _ in roles)
-    return c.execute(f"""SELECT slot_no,player_id,occupant_type,position_group
-                          FROM roster_slots
-                          WHERE franchise_id=? AND position_group IN ({marks})
-                            AND occupant_type IN ('OPEN','CPU')
-                          ORDER BY CASE WHEN position_group=? THEN 0 ELSE 1 END,
-                                   CASE occupant_type WHEN 'OPEN' THEN 0 ELSE 1 END,slot_no
-                          LIMIT 1""",(fid,*roles,roles[0])).fetchone()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def human_roster_count(c,fid):
-    row=c.execute("SELECT COUNT(*) n FROM roster_slots WHERE franchise_id=? AND occupant_type='HUMAN'",(fid,)).fetchone()
-    return int(row["n"] or 0) if row else 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def roster_capacity_state(c,fid):
-    """RC57: authoritative 16-man EBL roster capacity."""
-    rows=c.execute("""
-        SELECT rs.slot_no,rs.position_group,rs.player_id,rs.occupant_type,
-               p.type,p.user_id,p.active,p.status
-        FROM roster_slots rs
-        LEFT JOIN players p ON p.id=rs.player_id
-        WHERE rs.franchise_id=?
-        ORDER BY rs.slot_no
-    """,(fid,)).fetchall()
-    hitter_groups={"C","1B","2B","3B","SS","LF","CF","RF","DH"}
-    hitters=[r for r in rows if r["position_group"] in hitter_groups]
-    pitchers=[r for r in rows if r["position_group"] in ("SP","RP")]
-    return {
-        "total_slots":len(rows),"hitter_slots":len(hitters),"pitcher_slots":len(pitchers),
-        "open_or_cpu_hitters":sum(1 for r in hitters if r["occupant_type"] in ("OPEN","CPU")),
-        "open_or_cpu_pitchers":sum(1 for r in pitchers if r["occupant_type"] in ("OPEN","CPU"))
-    }
 
 
 
@@ -882,11 +155,6 @@ def cpu_build(attr_names, role, rng):
 
 
 
-def conn():
-    c = sqlite3.connect(DB, timeout=30)
-    c.row_factory = sqlite3.Row
-    c.execute("PRAGMA busy_timeout=30000")
-    return c
 
 
 
@@ -903,59 +171,6 @@ def conn():
 
 
 
-def pwhash(password,salt=None):
-    salt=salt or secrets.token_hex(16)
-    dk=hashlib.pbkdf2_hmac("sha256",password.encode(),salt.encode(),200_000)
-    return salt+"$"+dk.hex()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def pwcheck(password, stored):
-    try:
-        salt, expected = stored.split("$", 1)
-        dk = hashlib.pbkdf2_hmac(
-            "sha256",
-            password.encode(),
-            salt.encode(),
-            200_000
-        )
-        return hmac.compare_digest(dk.hex(), expected)
-    except (ValueError, AttributeError, TypeError):
-        return False
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def pwok(password,stored):
-    try:
-        salt,hexd=stored.split("$",1)
-        return hmac.compare_digest(pwhash(password,salt).split("$",1)[1],hexd)
-    except: return False
 
 
 
@@ -1652,29 +867,6 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id,is_read,id DESC);
 
-    CREATE TABLE IF NOT EXISTS push_subscriptions(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      endpoint TEXT NOT NULL UNIQUE,
-      p256dh TEXT NOT NULL,
-      auth TEXT NOT NULL,
-      user_agent TEXT NOT NULL DEFAULT '',
-      enabled INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id,enabled,id DESC);
-    CREATE TABLE IF NOT EXISTS push_outbox(
-      notification_id INTEGER PRIMARY KEY,
-      user_id INTEGER NOT NULL,
-      attempts INTEGER NOT NULL DEFAULT 0,
-      next_attempt_at TEXT,
-      sent_at TEXT,
-      last_error TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE INDEX IF NOT EXISTS idx_push_outbox_pending ON push_outbox(sent_at,next_attempt_at,notification_id);
-
 
 
 
@@ -1779,8 +971,8 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_support_checkout_user ON support_checkout_refs(user_id,created_at);
     CREATE INDEX IF NOT EXISTS idx_support_checkout_pi ON support_checkout_refs(stripe_payment_intent);
-    -- RC111: idx_support_checkout_sub is intentionally created AFTER the in-place
-    -- RC109 column migration below so older databases can upgrade safely.
+    -- idx_support_checkout_sub is intentionally created AFTER the in-place
+    -- column migration below so older databases can upgrade safely.
 
 
 
@@ -1877,7 +1069,7 @@ def init_db():
 
 
 
-    # RC109 recurring-support migrations.
+    # recurring-support migrations.
     checkout_cols={r["name"] for r in c.execute("PRAGMA table_info(support_checkout_refs)").fetchall()}
     for col,ddl in {
         "plan":"TEXT NOT NULL DEFAULT ''",
@@ -2006,7 +1198,7 @@ def init_db():
 
 
 
-    # RC81 contract-renewal negotiation metadata. Existing free-agent offers remain
+    # contract-renewal negotiation metadata. Existing free-agent offers remain
     # valid and default to FREE_AGENT; renewals use the same player-facing offer flow.
     offer_cols={r["name"] for r in c.execute("PRAGMA table_info(offers)").fetchall()}
     for col,ddl in {
@@ -2151,7 +1343,7 @@ def init_db():
 
 
 
-    # RC82: development-coach system now supports one free seasonal specialist plus
+    # development-coach system now supports one free seasonal specialist plus
     # additional paid specialists with selectable intensity. Older databases used a
     # UNIQUE(franchise_id,season) table, so rebuild it in place while preserving every
     # historical coach and its already-applied milestones.
@@ -2521,17 +1713,17 @@ def init_db():
 
 
 
-    # RC123: seed each completed static franchise independently from static/assets.
+    # seed each completed static franchise independently from static/assets.
     # A missing/misnamed file can no longer block every other club. Unknown artwork on
     # coach-owned teams is preserved; known league-generated defaults are upgraded.
     rc122_seeded=[]
     rc122_missing=[]
     for fid in PRODUCTION_BRAND_FILES:
-        team_seed_key=rc122_brand_seed_key(fid)
+        team_seed_key=brand_seed_key(fid)
         already=c.execute("SELECT v FROM league_config WHERE k=?",(team_seed_key,)).fetchone()
         if already:
             continue
-        if not rc122_branding_assets_ready(fid):
+        if not branding_assets_ready(fid):
             rc122_missing.append(fid)
             continue
         brand=OFFICIAL_FRANCHISE_BRANDS[fid]
@@ -2541,8 +1733,8 @@ def init_db():
         owner_row=c.execute("SELECT owner_user_id FROM franchises WHERE id=?",(fid,)).fetchone()
         owner_id=owner_row["owner_user_id"] if owner_row else None
         art=official_brand_art(brand,fid)
-        old_brand=LEGACY_RC116_FRANCHISE_BRANDS.get(fid,brand)
-        legacy=legacy_rc114_brand_art(old_brand)
+        old_brand=LEGACY_FRANCHISE_BRANDS.get(fid,brand)
+        legacy=legacy_brand_art(old_brand)
         legacy_premium=generated_official_brand_art(old_brand)
         current_generated=generated_official_brand_art(brand)
         existing_primary=str(row["primary_logo"] or "").strip() if row else ""
@@ -2554,7 +1746,7 @@ def init_db():
         def is_custom(existing,key):
             if not existing or owner_id is None:
                 return False
-            if fid in RC122_FORCE_IDENTITY_IDS and existing.startswith("data:image/svg+xml;base64,"):
+            if fid in FORCE_OFFICIAL_IDENTITY_IDS and existing.startswith("data:image/svg+xml;base64,"):
                 return False
             known={legacy[key],legacy_premium[key],current_generated[key],art[key]}
             return existing not in known
@@ -2569,7 +1761,7 @@ def init_db():
 
         # Preserve a human-owned club's identity fields. Unowned clubs use the official
         # league identity/palette that matches the static artwork.
-        preserve_identity=bool(row and owner_id is not None and fid not in RC122_FORCE_IDENTITY_IDS)
+        preserve_identity=bool(row and owner_id is not None and fid not in FORCE_OFFICIAL_IDENTITY_IDS)
         display=(str(row["display_name"] or "").strip() if preserve_identity else "") or f"{brand['city']} {brand['team']}".strip()
         city=(str(row["city"] or "").strip() if preserve_identity else "") or brand["city"]
         team_name=(str(row["team_name"] or "").strip() if preserve_identity else "") or brand["team"]
@@ -2585,12 +1777,12 @@ def init_db():
                   (display,city,team_name,int(brand["style"]),
                    primary_logo,secondary_logo,wordmark,
                    pc,sc,ac,brand["home"],brand["away"],fid))
-        if owner_id is None or fid in RC122_FORCE_IDENTITY_IDS:
+        if owner_id is None or fid in FORCE_OFFICIAL_IDENTITY_IDS:
             c.execute("UPDATE franchises SET name=? WHERE id=?",(display,fid))
         c.execute("INSERT OR REPLACE INTO league_config(k,v) VALUES(?,?)",(team_seed_key,"1"))
         rc122_seeded.append(fid)
     if rc122_seeded or rc122_missing:
-        print(f"RC123 branding seed: seeded={len(rc122_seeded)} missing={len(rc122_missing)} missing_ids={','.join(rc122_missing) if rc122_missing else '-'}",flush=True)
+        print(f"Branding seed: seeded={len(rc122_seeded)} missing={len(rc122_missing)} missing_ids={','.join(rc122_missing) if rc122_missing else '-'}",flush=True)
 
 
 
@@ -2599,7 +1791,7 @@ def init_db():
 
 
 
-    # RC98: division names are identities, not geography. Preserve team membership
+    # division names are identities, not geography. Preserve team membership
     # while migrating old Atlantic/North/Central/South/West/Pacific labels in place.
     for old_div,new_div in DIVISION_RENAMES.items():
         c.execute("UPDATE franchise_seasons SET division=? WHERE division=?",(new_div,old_div))
@@ -2682,7 +1874,7 @@ def init_db():
 
 
 
-        # RC98 Genesis schedule: the full 30-club EBL opens with 27 three-game
+        # Genesis schedule: the full 30-club EBL opens with 27 three-game
         # series across a 95-day calendar. Rebuild membership here because the
         # earlier defensive membership seed may have created an Original-Eight
         # placeholder before the fresh database had any schedule to inspect.
@@ -2724,7 +1916,7 @@ def init_db():
                 pid=players[i-1]["id"] if i-1<len(players) else None
                 c.execute("""INSERT OR IGNORE INTO roster_slots(franchise_id,slot_no,position_group,player_id,occupant_type)
                              VALUES(?,?,?,?,?)""",(fid,i,posgrp,pid,"CPU" if pid else "OPEN"))
-    # RC89 economy: active multi-year salary rises +0.01 XP/game at each season rollover.
+    # economy: active multi-year salary rises +0.01 XP/game at each season rollover.
     contract_cols={r["name"] for r in c.execute("PRAGMA table_info(contracts)").fetchall()}
     if "years_total" not in contract_cols:
         c.execute("ALTER TABLE contracts ADD COLUMN years_total INTEGER NOT NULL DEFAULT 1")
@@ -2745,7 +1937,7 @@ def init_db():
     for col,ddl in [("revenue_level","INTEGER NOT NULL DEFAULT 0"),("finish_reward","REAL NOT NULL DEFAULT 0"),("development_bonus","REAL NOT NULL DEFAULT 0"),("funding_growth","REAL NOT NULL DEFAULT 0"),("last_pool_growth","REAL NOT NULL DEFAULT 0")]:
         if col not in franchise_cols:
             c.execute(f"ALTER TABLE franchises ADD COLUMN {col} {ddl}")
-    # RC73: startup/deploys must never reset an established club treasury.
+    # startup/deploys must never reset an established club treasury.
     # xp_budget already has a schema default for brand-new franchises, and the
     # explicit Genesis reset / season rollover paths are responsible for
     # intentionally establishing a new season's treasury.
@@ -2924,7 +2116,7 @@ def revenue_upgrade_levels(fr):
 
 
 def revenue_upgrade_bonus(fr):
-    """RC92: permanent annual revenue generated by franchise investments.
+    """permanent annual revenue generated by franchise investments.
 
 
 
@@ -2963,7 +2155,7 @@ def annual_team_budget(fr):
 
 
 def signing_pool_state(c, fid, exclude_offer_id=None):
-    """RC61: dynamic annual club economy.
+    """dynamic annual club economy.
 
 
 
@@ -3054,7 +2246,7 @@ def signing_pool_state(c, fid, exclude_offer_id=None):
 
 
 def team_finance_snapshot(c,fid):
-    """RC61 finance card values: funding, payroll floor, commitments, spending room."""
+    """Finance card values: funding, payroll floor, commitments, spending room."""
     state=signing_pool_state(c,fid)
     fr=c.execute("SELECT xp_spent,revenue_level,finish_reward FROM franchises WHERE id=?",(fid,)).fetchone()
     state.update({
@@ -3142,189 +2334,10 @@ def apply_finish_economy(c,season,active_ids):
 
 
 
-
-def web_push_config():
-    public=str(os.environ.get("EBL_VAPID_PUBLIC_KEY","") or "").strip()
-    private=str(os.environ.get("EBL_VAPID_PRIVATE_KEY","") or "").strip()
-    subject=str(os.environ.get("EBL_VAPID_SUBJECT","https://elite-baseball.com/") or "https://elite-baseball.com/").strip()
-    return {
-        "configured":bool(EBL_WEBPUSH_LIBRARY and public and private),
-        "library":bool(EBL_WEBPUSH_LIBRARY),
-        "public_key":public,
-        "private_key":private,
-        "subject":subject,
-    }
-
-
-def push_target_for_notification(kind,ref_id=None):
-    kind=str(kind or "").upper()
-    ref="" if ref_id is None else str(ref_id)
-    if kind=="GAME" and ref:return f"/#gamecast/{ref}"
-    if kind=="DM" and ref:return f"/#messages/{ref}"
-    if kind in ("CONTRACT","AWARD","BONUS","DEVELOPMENT","CAREER"):return "/#player"
-    if kind=="COACH_CONTRACT" or kind=="COACH":return "/#coach"
-    if kind=="FRIEND":return "/#community"
-    if kind=="SUPPORTER":return "/#support"
-    return "/#home"
-
-
-def valid_push_subscription_payload(subscription):
-    if not isinstance(subscription,dict):return None
-    endpoint=str(subscription.get("endpoint") or "").strip()
-    keys=subscription.get("keys") or {}
-    p256dh=str(keys.get("p256dh") or "").strip()
-    auth=str(keys.get("auth") or "").strip()
-    if not endpoint.startswith("https://") or len(endpoint)>4096:return None
-    if not p256dh or not auth or len(p256dh)>512 or len(auth)>256:return None
-    return {"endpoint":endpoint,"p256dh":p256dh,"auth":auth}
-
-
-def queue_push_notification(c,notification_id,user_id):
-    if not notification_id or not user_id:return
-    if not web_push_config()["configured"]:return
-    c.execute("INSERT OR IGNORE INTO push_outbox(notification_id,user_id) VALUES(?,?)",(int(notification_id),int(user_id)))
-
-
-
-def _push_error_summary(exc):
-    status=getattr(exc,"status_code",None)
-    if status is None:
-        response=getattr(exc,"response",None)
-        status=getattr(response,"status_code",None) if response is not None else None
-    return {"type":type(exc).__name__,"status":int(status) if status is not None else None}
-
-
-def _send_push_subscription(sub,payload,cfg):
-    """Send one Web Push payload and return a small diagnostic result."""
-    try:
-        response=webpush(
-            subscription_info={"endpoint":sub["endpoint"],"keys":{"p256dh":sub["p256dh"],"auth":sub["auth"]}},
-            data=json.dumps(payload,separators=(",",":")),
-            vapid_private_key=cfg["private_key"],
-            vapid_claims={"sub":cfg["subject"]},
-            ttl=3600,
-            timeout=8,
-        )
-        status=getattr(response,"status_code",None)
-        return {"ok":True,"status":int(status) if status is not None else 201,"type":""}
-    except WebPushException as exc:
-        out=_push_error_summary(exc)
-        print(f"EBL WEB PUSH REJECTED: {out['type']} status={out['status']}",flush=True)
-        return {"ok":False,**out}
-    except Exception as exc:
-        out=_push_error_summary(exc)
-        print(f"EBL WEB PUSH ERROR: {out['type']} status={out['status']} detail={str(exc)[:180]}",flush=True)
-        return {"ok":False,**out}
-
-
-def send_push_to_user_now(user_id,title,body="",url="/#home",notification_id=None):
-    """Synchronous diagnostic/test delivery used by the App Alerts test button."""
-    cfg=web_push_config()
-    if not cfg["configured"]:
-        return {"configured":False,"subscriptions":0,"delivered":0,"failed":0,"results":[]}
-    c=conn()
-    try:
-        subs=c.execute(
-            "SELECT id,endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=? AND enabled=1 ORDER BY id",
-            (int(user_id),)
-        ).fetchall()
-        payload={
-            "id":int(notification_id or int(time.time()*1000)),
-            "type":"PUSH_TEST",
-            "title":str(title or "Elite Baseball League")[:120],
-            "body":str(body or "")[:240],
-            "url":str(url or "/#home"),
-        }
-        results=[]
-        delivered=0
-        for sub in subs:
-            result=_send_push_subscription(sub,payload,cfg)
-            results.append(result)
-            if result["ok"]:
-                delivered+=1
-            elif result.get("status") in (404,410):
-                c.execute(
-                    "UPDATE push_subscriptions SET enabled=0,updated_at=? WHERE id=?",
-                    (utcnow().isoformat(),sub["id"])
-                )
-        c.commit()
-        return {
-            "configured":True,
-            "subscriptions":len(subs),
-            "delivered":delivered,
-            "failed":max(0,len(subs)-delivered),
-            "results":results,
-        }
-    finally:
-        c.close()
-
-
-def deliver_push_outbox_once(limit=20):
-    cfg=web_push_config()
-    if not cfg["configured"]:return 0
-    c=conn();delivered=0
-    try:
-        now=utcnow()
-        rows=c.execute("""SELECT o.notification_id,o.user_id,o.attempts,n.type,n.title,n.body,n.ref_id,n.created_at
-                          FROM push_outbox o JOIN notifications n ON n.id=o.notification_id
-                          WHERE o.sent_at IS NULL AND (o.next_attempt_at IS NULL OR o.next_attempt_at<=?)
-                          ORDER BY o.notification_id LIMIT ?""",(now.isoformat(),int(limit))).fetchall()
-        for row in rows:
-            subs=c.execute("SELECT id,endpoint,p256dh,auth FROM push_subscriptions WHERE user_id=? AND enabled=1 ORDER BY id",(row["user_id"],)).fetchall()
-            # No active devices: finish the queue item rather than retaining stale alerts forever.
-            if not subs:
-                c.execute("UPDATE push_outbox SET sent_at=?,last_error='' WHERE notification_id=?",(utcnow().isoformat(),row["notification_id"]))
-                c.commit();continue
-            payload=json.dumps({
-                "id":int(row["notification_id"]),
-                "type":str(row["type"] or "EBL"),
-                "title":str(row["title"] or "Elite Baseball League")[:120],
-                "body":str(row["body"] or "")[:240],
-                "url":push_target_for_notification(row["type"],row["ref_id"]),
-            },separators=(",",":"))
-            successes=0;last_error=""
-            for sub in subs:
-                result=_send_push_subscription(sub,json.loads(payload),cfg)
-                if result["ok"]:
-                    successes+=1
-                else:
-                    status=result.get("status")
-                    last_error=f"{result.get('type','PushError')}:{status or ''}"
-                    if status in (404,410):
-                        c.execute("UPDATE push_subscriptions SET enabled=0,updated_at=? WHERE id=?",(utcnow().isoformat(),sub["id"]))
-            if successes:
-                c.execute("UPDATE push_outbox SET sent_at=?,attempts=attempts+1,last_error=? WHERE notification_id=?",(utcnow().isoformat(),last_error,row["notification_id"]))
-                delivered+=successes
-            else:
-                attempts=int(row["attempts"] or 0)+1
-                active=c.execute("SELECT COUNT(*) n FROM push_subscriptions WHERE user_id=? AND enabled=1",(row["user_id"],)).fetchone()["n"]
-                if not active or attempts>=5:
-                    c.execute("UPDATE push_outbox SET sent_at=?,attempts=?,last_error=? WHERE notification_id=?",(utcnow().isoformat(),attempts,last_error,row["notification_id"]))
-                else:
-                    delay=min(3600,60*(2**max(0,attempts-1)))
-                    retry=(utcnow()+datetime.timedelta(seconds=delay)).isoformat()
-                    c.execute("UPDATE push_outbox SET attempts=?,next_attempt_at=?,last_error=? WHERE notification_id=?",(attempts,retry,last_error,row["notification_id"]))
-            c.commit()
-    finally:
-        c.close()
-    return delivered
-
-
-def web_push_worker():
-    while True:
-        try:
-            deliver_push_outbox_once()
-        except Exception as e:
-            print(f"WEB PUSH WORKER ERROR: {type(e).__name__}: {str(e)[:200]}")
-        time.sleep(4)
-
 def notify_user(c,user_id,kind,title,body="",ref_id=None):
-    if not user_id:return None
-    cur=c.execute("INSERT INTO notifications(user_id,type,title,body,ref_id) VALUES(?,?,?,?,?)",
-                  (int(user_id),str(kind),str(title),str(body),None if ref_id is None else str(ref_id)))
-    nid=cur.lastrowid
-    queue_push_notification(c,nid,user_id)
-    return nid
+    if not user_id:return
+    c.execute("INSERT INTO notifications(user_id,type,title,body,ref_id) VALUES(?,?,?,?,?)",
+              (int(user_id),str(kind),str(title),str(body),None if ref_id is None else str(ref_id)))
 
 
 
@@ -3343,7 +2356,7 @@ def award_player(c,season,period,code,name,pid,xp,detail=None,announce=True):
                       (season,period,code,name,pid,pl["franchise_id"],awarded_xp,json.dumps(detail or {})))
     except sqlite3.IntegrityError:
         return False
-    # RC76: CPU fillers may produce stats, but they are infrastructure rather than
+    # CPU fillers may produce stats, but they are infrastructure rather than
     # developing careers. Only human-owned players receive award XP.
     if awarded_xp:
         c.execute("UPDATE players SET xp_wallet=xp_wallet+? WHERE id=?",(awarded_xp,pid))
@@ -3676,7 +2689,7 @@ def process_all_star_game(c,season,league_day):
 
 
 def process_quarter_awards(c,season,end_day):
-    # RC98 calendar checkpoints land only after every club has completed a full
+    # calendar checkpoints land only after every club has completed a full
     # series block: 21, 42, 60 and 81 games respectively. Off days therefore
     # never give one club an extra award-window game.
     windows={24:1,49:25,70:50,95:71}
@@ -4225,7 +3238,7 @@ def enforce_active_rosters(c,season=None):
         rows=[dict(x) for x in c.execute("SELECT * FROM players WHERE franchise_id=? AND active=1 AND status='SIGNED' ORDER BY CASE WHEN user_id IS NOT NULL THEN 0 ELSE 1 END,id",(fid,))]
         humans=[x for x in rows if x.get("user_id") is not None]
         cpus=[x for x in rows if x.get("user_id") is None]
-        # RC76: CPU fillers are fixed rookie infrastructure. Purge any legacy XP
+        # CPU fillers are fixed rookie infrastructure. Purge any legacy XP
         # they may have accumulated under older builds.
         if cpus:
             c.executemany("UPDATE players SET xp_wallet=0 WHERE id=?",[(x["id"],) for x in cpus])
@@ -4245,7 +3258,7 @@ def enforce_active_rosters(c,season=None):
         overflow=[]
         for pl in humans:
             if not place(pl):overflow.append(pl)
-        # RC57: impossible legacy overflow cannot remain as a hidden bench.
+        # impossible legacy overflow cannot remain as a hidden bench.
         for pl in overflow:
             c.execute("DELETE FROM contracts WHERE player_id=?",(pl["id"],))
             c.execute("UPDATE players SET franchise_id=NULL,status='FREE_AGENT' WHERE id=?",(pl["id"],))
@@ -5394,7 +4407,7 @@ def sim_player_obj(c,pid):
     if not r:return None
     d=dict(r)
     d["attributes"]=json.loads(d.pop("attributes_json"))
-    # RC65 — sponsorships are temporary team modifiers, never permanent player development.
+    # sponsorships are temporary team modifiers, never permanent player development.
     # Apply them only to the simulation copy of the player's attributes.
     fid=d.get("franchise_id")
     if fid:
@@ -5643,7 +4656,7 @@ def previous_team_salary(c,player_id,franchise_id):
 
 
 def player_salary_floor(c,player_id):
-    """RC72: veteran free-agent floor is based on completed service seasons.
+    """veteran free-agent floor is based on completed service seasons.
 
 
 
@@ -6430,7 +5443,7 @@ def should_pull_starter(line, inning, sta=0, readiness=100):
 
 
 
-    # RC99 workhorse curve: STA is a build-defining capacity stat. Rough rested targets:
+    # workhorse curve: STA is a build-defining capacity stat. Rough rested targets:
     # 0≈3-4 IP, 10≈4-5, 20≈5-6, 30≈6-7, 40≈7-8, 50+≈8-9 with a strong outing.
     # Performance hooks above still pull a high-STA pitcher who is getting hit hard.
     target_outs=11+int(round(sta_eff*.23))
@@ -6538,7 +5551,7 @@ def should_change_reliever(line,inning,role,lead_margin):
 
 
 
-# EBL RC55: no position-player bench.
+# EBL uses a fixed Starting Nine with no position-player bench.
 # The Starting Nine remains the position-player unit for the full game.
 # Pitching changes remain available through the pitching staff.
 
@@ -6925,7 +5938,7 @@ def post_news(c,category,headline,body,league_day=0,franchise_id=None,player_id=
 
 
 
-# RC97: Discord bridge ---------------------------------------------------------
+# Discord bridge ---------------------------------------------------------
 # Discord is an output surface, never a source of league truth. The database stays
 # authoritative and the bridge only publishes events after they have been committed.
 # Each channel is optional; leave an environment variable blank to disable that feed.
@@ -8010,7 +7023,7 @@ def simulate_game(c,g):
 
 
 
-        # RC56 — EBL has no position-player bench.
+        # EBL has no position-player bench.
         # A club may carry only the nine active hitters used by the Starting Nine.
         # Do not rotate extra hitters into/out of the lineup at simulation time.
         # If legacy data somehow contains more than nine active hitters, preserve
@@ -8560,7 +7573,7 @@ def simulate_game(c,g):
                             ev={"type":"PITCHING_CHANGE","team":opp,"pitcher_id":rp,"role":role,"inning":inning,"half":half,"reason":"RELIEVER_TROUBLE"}
                             events.append(ev);box["strategy_events"].append(ev)
                 starter_batter_id=lineups[fid][idx%9];idx+=1
-                # RC55 — no position-player bench: the scheduled Starting Nine bats.
+                # no position-player bench: the scheduled Starting Nine bats.
                 batter=sim_player_obj(c,starter_batter_id)
                 batline=hitter_line(batter["id"])
                 pitcher=sim_player_obj(c,current_pitcher[opp])
@@ -8700,7 +7713,7 @@ def simulate_game(c,g):
 
 
 
-                    # RC57 ATTRIBUTE SPECIALIZATION GATES
+                    # ATTRIBUTE SPECIALIZATION GATES
                     # CTRL/CMD determine whether the pitcher can actually reach useful locations.
                     # DEC/SEQ can improve choices, but they cannot substitute for raw command.
                     # The lower baseline intentionally makes very low-control pitchers pay a
@@ -9179,7 +8192,7 @@ def simulate_game(c,g):
 
 
 
-                                # RC55 — no pinch runners; the batter who reached base remains the runner.
+                                # no pinch runners; the batter who reached base remains the runner.
                                 runner_id=batter["id"]
                                 base_runner[fid]=runner_id
                                 runner=sim_player_obj(c,runner_id)
@@ -9300,7 +8313,7 @@ def simulate_game(c,g):
                         })
                         break
             events.append({"type":"INNING_END","inning":inning,"half":half,"score":[score[away],score[home]]})
-        # RC55 — no position-player defensive replacements; Starting Nine stays on the field.
+        # no position-player defensive replacements; Starting Nine stays on the field.
 
 
 
@@ -9418,7 +8431,7 @@ def simulate_game(c,g):
 
 
                 con=contract_for(c,salary_pid)
-                # RC75: unsigned CPU/fallback roster jobs are budgeted at league minimum
+                # unsigned CPU/fallback roster jobs are budgeted at league minimum
                 # by signing_pool_state, so game payroll must use that same minimum.
                 # Otherwise every CPU slot silently costs .35 while finance reserves .30.
                 salary=round(float(con["salary"]) if con else SALARY_MIN,3)
@@ -9442,7 +8455,7 @@ def simulate_game(c,g):
 
 
 
-                # RC76: the club still pays a CPU filler at league minimum, but CPU
+                # the club still pays a CPU filler at league minimum, but CPU
                 # players never bank XP or develop. Salary XP belongs only to humans.
                 if salary_player.get("user_id") is not None:
                     salary_player["xp_wallet"]=round(
@@ -10790,7 +9803,7 @@ def set_supporter_entitlement(c,user_id,supporter,source="COMMISSIONER",expires_
         (user_id,"GRANT" if supporter else "REVOKE",current.get("tier","FREE"),new_tier,str(source or "")[:40],str(external_ref or "")[:160],str(note or "")[:500])
     )
     source_key=str(source or "").upper()
-    # RC107: only a real Stripe purchase during Genesis/Beta can create the permanent
+    # only a real Stripe purchase during Genesis/Beta can create the permanent
     # Founding Supporter marker. Stripe TEST purchases never grant it.
     if supporter and BETA_MODE and source_key=="STRIPE":
         c.execute(
@@ -12181,15 +11194,6 @@ class H(BaseHTTPRequestHandler):
             c=conn();ent=supporter_entitlement(c,au["id"]);c.close()
             return self.out({"entitlements":ent})
         if p=="/api/support":return self.out(support_public_config())
-        if p=="/api/push/config":
-            cfg=web_push_config()
-            return self.out({"configured":cfg["configured"],"library":cfg["library"],"public_key":cfg["public_key"] if cfg["configured"] else ""})
-        if p=="/api/push/status":
-            au=self.auth()
-            if not au:return
-            cfg=web_push_config();c=conn()
-            active=int(c.execute("SELECT COUNT(*) n FROM push_subscriptions WHERE user_id=? AND enabled=1",(au["id"],)).fetchone()["n"] or 0)
-            c.close();return self.out({"configured":cfg["configured"],"library":cfg["library"],"active_subscriptions":active})
         if p=="/api/league":
             c=conn()
 
@@ -12515,7 +11519,7 @@ class H(BaseHTTPRequestHandler):
             profile["customization_active"]=bool(public_entitlement["supporter"])
             profile["founding_supporter"]=bool(public_entitlement.get("founding_supporter",profile.get("founding_supporter",0)))
             profile["founding_supporter_since"]=public_entitlement.get("founding_supporter_since") or profile.get("founding_supporter_since")
-            # RC106/RC107: Supporter customization stays stored if support lapses, but a
+            # Supporter customization stays stored if support lapses, but a
             # Free account presents the standard EBL identity. Founding status is historical.
             if not public_entitlement["supporter"]:
                 profile["display_name"]=""
@@ -14517,7 +13521,7 @@ class H(BaseHTTPRequestHandler):
                 if player.get("type")=="P":
                     player["recovery"]=pitcher_recovery_state(c,player["id"],day)
             team=dict(f)
-            # RC78: show the full current-season cost of every signed human contract
+            # show the full current-season cost of every signed human contract
             # immediately. Players are still paid XP game-by-game; this is the
             # season commitment view so coaches can see what the roster has already
             # consumed before making another move.
@@ -14573,7 +13577,7 @@ class H(BaseHTTPRequestHandler):
             u=self.auth()
             if not u:return
             c=conn()
-            # RC78: friendship is account/profile-level, never player-level. A user
+            # friendship is account/profile-level, never player-level. A user
             # with three active players must still appear exactly once in the friends list.
             accepted=[dict(x) for x in c.execute(
                 """SELECT f.id,
@@ -14824,69 +13828,6 @@ class H(BaseHTTPRequestHandler):
 
 
     def api_post(self,p):
-        if p=="/api/push/subscribe":
-            u=self.auth()
-            if not u:return
-            cfg=web_push_config()
-            if not cfg["configured"]:return self.out({"error":"PUSH_NOT_CONFIGURED"},503)
-            d=self.body();sub=valid_push_subscription_payload(d.get("subscription"))
-            if not sub:return self.out({"error":"INVALID_PUSH_SUBSCRIPTION"},400)
-            ua=str(self.headers.get("User-Agent","") or "")[:500];now=utcnow().isoformat();c=conn()
-            c.execute("""INSERT INTO push_subscriptions(user_id,endpoint,p256dh,auth,user_agent,enabled,updated_at)
-                         VALUES(?,?,?,?,?,1,?)
-                         ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id,p256dh=excluded.p256dh,auth=excluded.auth,user_agent=excluded.user_agent,enabled=1,updated_at=excluded.updated_at""",
-                      (u["id"],sub["endpoint"],sub["p256dh"],sub["auth"],ua,now))
-            c.commit();c.close();return self.out({"ok":True})
-        if p=="/api/push/unsubscribe":
-            u=self.auth()
-            if not u:return
-            d=self.body();endpoint=str(d.get("endpoint") or "").strip();c=conn()
-            if endpoint:c.execute("DELETE FROM push_subscriptions WHERE user_id=? AND endpoint=?",(u["id"],endpoint))
-            else:c.execute("DELETE FROM push_subscriptions WHERE user_id=?",(u["id"],))
-            c.commit();c.close();return self.out({"ok":True})
-        if p=="/api/push/test":
-            u=self.auth()
-            if not u:return
-            cfg=web_push_config()
-            if not cfg["configured"]:return self.out({"error":"PUSH_NOT_CONFIGURED"},503)
-            c=conn()
-            active=int(c.execute("SELECT COUNT(*) n FROM push_subscriptions WHERE user_id=? AND enabled=1",(u["id"],)).fetchone()["n"] or 0)
-            if not active:
-                c.close();return self.out({"error":"NO_PUSH_SUBSCRIPTION"},409)
-            # Keep the normal in-app notification record, but do not queue a second copy.
-            cur=c.execute(
-                "INSERT INTO notifications(user_id,type,title,body,ref_id) VALUES(?,?,?,?,?)",
-                (u["id"],"PUSH_TEST","EBL alerts are live",
-                 "Background notifications are connected to this device.",None)
-            )
-            nid=int(cur.lastrowid)
-            c.commit();c.close()
-            result=send_push_to_user_now(
-                u["id"],
-                "EBL alerts are live",
-                "Background notifications are connected to this device.",
-                "/#home",
-                nid
-            )
-            if result["delivered"]<1:
-                code=next((x for x in result["results"] if not x.get("ok")),{})
-                return self.out({
-                    "ok":False,
-                    "error":"PUSH_DELIVERY_FAILED",
-                    "notification_id":nid,
-                    "subscriptions":result["subscriptions"],
-                    "delivered":result["delivered"],
-                    "failed":result["failed"],
-                    "failure_type":code.get("type",""),
-                    "failure_status":code.get("status"),
-                },502)
-            return self.out({
-                "ok":True,
-                "notification_id":nid,
-                "subscriptions":result["subscriptions"],
-                "delivered":result["delivered"],
-                "failed":result["failed"],
-            })
         if p=="/api/support/checkout":
             u=self.auth()
             if not u:return
@@ -15442,7 +14383,7 @@ class H(BaseHTTPRequestHandler):
                 market_salary=round(0.30+(overall/100.0)*0.10+R.uniform(-0.015,0.015),2)
                 pool=signing_pool_state(c,f["id"])
                 if service_seasons==0:
-                    # RC113: every CPU rookie gets the same three-year entry offer.
+                    # every CPU rookie gets the same three-year entry offer.
                     # At the baseline 480 XP club budget, minimum payroll reserves
                     # 388.8 XP (16 * .30 * 81), leaving 91.2 XP. Dividing that
                     # evenly across 16 roster jobs produces a 5.7 XP bonus for every
@@ -15651,14 +14592,14 @@ class H(BaseHTTPRequestHandler):
             if not f:c.close();return self.out({"error":"NO_FRANCHISE"},404)
             previous_salary=previous_team_salary(c,pid,f["id"])
             minimum_salary=minimum_offer_salary(c,pid,f["id"])
-            # RC91: rookie/veteran status is service-time based, not tied to whether
+            # rookie/veteran status is service-time based, not tied to whether
             # this coach has previously employed the player or whether a contract-history
             # row happens to exist. A free agent with completed EBL seasons is a veteran.
             service_seasons=player_seasons_completed(c,pid)
             is_rookie_contract=service_seasons==0
             if salary<minimum_salary:
                 c.close();return self.out({"error":"SALARY_FLOOR_REQUIRED","minimum_salary":minimum_salary,"previous_team_salary":previous_salary},400)
-            # RC78: rookie contracts are fixed at league minimum. This prevents a
+            # rookie contracts are fixed at league minimum. This prevents a
             # coach from front-loading the economy before a player has EBL service time.
             # Veteran contracts keep the normal service-time floor with no hard ceiling.
             if is_rookie_contract and abs(salary-SALARY_MIN)>1e-9:
@@ -15674,7 +14615,7 @@ class H(BaseHTTPRequestHandler):
 
 
 
-            # RC58 — don't create or reserve XP for an offer the roster cannot accept.
+            # don't create or reserve XP for an offer the roster cannot accept.
             cap=roster_capacity_state(c,f["id"])
             if cap["total_slots"]!=ACTIVE_ROSTER_SIZE or cap["hitter_slots"]!=9 or cap["pitcher_slots"]!=7:
                 enforce_active_rosters(c)
@@ -15832,7 +14773,7 @@ class H(BaseHTTPRequestHandler):
 
 
 
-                # RC68: revalidate salary rules at acceptance because OPEN/HELD
+                # revalidate salary rules at acceptance because OPEN/HELD
                 # offers can outlive the state used when the offer was created.
                 minimum_salary=minimum_offer_salary(c,pl["id"],f["id"])
                 if float(off["salary"] or 0)+1e-9 < minimum_salary:
@@ -15867,7 +14808,7 @@ class H(BaseHTTPRequestHandler):
 
 
 
-                # RC57: nine hitter jobs + seven pitcher jobs. No hitter bench.
+                # nine hitter jobs + seven pitcher jobs. No hitter bench.
                 cap=roster_capacity_state(c,off["franchise_id"])
                 if cap["total_slots"]!=ACTIVE_ROSTER_SIZE or cap["hitter_slots"]!=9 or cap["pitcher_slots"]!=7:
                     enforce_active_rosters(c)
@@ -15980,7 +14921,7 @@ class H(BaseHTTPRequestHandler):
 
 
 
-                # RC72: signing bonuses are immediate treasury purchases, like
+                # signing bonuses are immediate treasury purchases, like
                 # facilities/sponsorships. Reduce the season's spendable budget once.
                 # Do not add the bonus to xp_spent: xp_spent tracks payroll paid during
                 # games, while signing_pool_state already protects full-season payroll.
@@ -16067,7 +15008,7 @@ class H(BaseHTTPRequestHandler):
             current_branch_bonus=REVENUE_UPGRADE_BONUSES[level]
             next_branch_bonus=REVENUE_UPGRADE_BONUSES[next_level]
             annual_gain=round(next_branch_bonus-current_branch_bonus,3)
-            # RC92: five-level revenue branches with escalating cost and long-term return.
+            # five-level revenue branches with escalating cost and long-term return.
             finance=signing_pool_state(c,fr["id"])
             if float(finance["available"] or 0)<cost:
                 c.close();return self.out({"error":"INSUFFICIENT_RESERVE","cost":cost,"available":finance["available"]},400)
@@ -16318,7 +15259,7 @@ class H(BaseHTTPRequestHandler):
 
 
 
-            # RC55 — EBL has no position-player bench. Only steal/bunt aggression remain.
+            # EBL has no position-player bench. Only steal/bunt aggression remain.
             bench={}
             subs={
                 "steal_aggression":subs.get("steal_aggression","NORMAL"),
@@ -18386,7 +17327,7 @@ class H(BaseHTTPRequestHandler):
             d=self.body()
             requested_team_count=d.get("team_count")
 
-            # RC115: Genesis reset is destructive. Take a consistent SQLite snapshot
+            # Genesis reset is destructive. Take a consistent SQLite snapshot
             # first and abort the reset if the snapshot cannot be created.
             try:
                 backup_dir=os.environ.get("EBL_BACKUP_DIR",os.path.join(os.path.dirname(DB),"backups"))
@@ -18443,7 +17384,7 @@ class H(BaseHTTPRequestHandler):
                 c.execute("UPDATE players SET xp_wallet=0,career_extension_through=12")
                 c.execute("UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0")
 
-                # RC115: zero every franchise-wide competitive modifier before rosters,
+                # zero every franchise-wide competitive modifier before rosters,
                 # finance, lineups or strategy are rebuilt. Older Genesis resets left
                 # infrastructure, revenue branches, sponsors and development coaches behind.
                 pre_reset_competitive_state=reset_franchise_competitive_state(c)
@@ -18774,7 +17715,7 @@ class H(BaseHTTPRequestHandler):
                     unused=max(0.0,budget-spent)
                     reserve=float(fr.get("xp_reserve",0) or 0)+unused
                     fr["xp_reserve"]=reserve
-                    # RC61: reserve is spendable next season, not merely tracked.
+                    # reserve is spendable next season, not merely tracked.
                     # annual_team_budget includes the 480 base, permanent standings growth, and revenue upgrades.
                     next_budget=round(annual_team_budget(fr)+reserve,3)
                     c.execute("""UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,
@@ -18818,7 +17759,7 @@ class H(BaseHTTPRequestHandler):
 
 
 
-                    # RC59/RC60 — return offers spend from the same shared signing pool
+                    # return offers spend from the same shared signing pool
                     # and can never undercut the player's career salary floor.
                     # The 16 league-minimum salaries are protected first; bonuses and
                     # salary premiums for signed contracts + OPEN/HELD offers all consume
@@ -19421,7 +18362,7 @@ class H(BaseHTTPRequestHandler):
 if __name__=="__main__":
     init_db()
     port=int(os.environ.get("PORT","8000"))
-    print(f"EBL v7.8.1 Complete Franchise Branding RC123: http://127.0.0.1:{port}")
+    print(f"Elite Baseball League server: http://127.0.0.1:{port}")
     print("Privileged bootstrap accounts require explicit environment passwords; player accounts register in the UI.")
     host=os.environ.get("HOST","0.0.0.0")
     httpd=ThreadingHTTPServer((host,port),H)
@@ -19431,46 +18372,5 @@ if __name__=="__main__":
         print(f"DISCORD BRIDGE BOOTSTRAP ERROR: {type(e).__name__}: {str(e)[:200]}")
     threading.Thread(target=discord_bridge_worker,daemon=True,name="EBL-DiscordBridge").start()
     threading.Thread(target=auto_advance_worker,args=(port,),daemon=True,name="EBL-AutoAdvance").start()
-    threading.Thread(target=web_push_worker,daemon=True,name="EBL-WebPush").start()
-    push_cfg=web_push_config()
-    print(f"EBL Web Push: {'ready' if push_cfg['configured'] else 'not configured'} (library={push_cfg['library']})")
     httpd.serve_forever()
 
-
-
-
-
-
-
-
-# EBL member profile identity layer: RC87
-
-
-
-
-
-
-
-
-# RC89: sustainable franchise economy + veteran career extension
-
-
-
-
-
-
-
-
-# EBL_STRIPE_VERIFIED_SUPPORTER_TEST_RC105
-
-
-
-
-
-
-
-
-# EBL_RECURRING_SUPPORTER_RC109
-# EBL_GENESIS_CLEAN_SLATE_RC115
-
-# EBL_PREMIUM_FRANCHISE_BRANDING_RC116
