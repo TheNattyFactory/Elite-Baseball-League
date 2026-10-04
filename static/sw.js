@@ -1,10 +1,7 @@
-/* Elite Baseball League — RC125 PWA service worker
+/* Elite Baseball League — PWA service worker
    Static shell only. API/game/account traffic is intentionally never cached. */
-const CACHE_NAME='ebl-shell-rc129-v1';
-const SHELL=['/','/index.html','/manifest.webmanifest','/assets/ebl_logo.png',
-  '/assets/icon-192.png',
-  '/assets/icon-512.png',
-  '/assets/icon-maskable-512.png'];
+const CACHE_NAME='ebl-shell-v2';
+const SHELL=["/","/index.html","/manifest.webmanifest","/assets/ebl_logo.png","/ebl.css","/ebl-feedback.js","/ebl-core.js","/ebl-profile.js","/ebl-actions.js","/ebl-commands.js","/ebl-appearance.js","/ebl-franchise.js","/ebl-creator.js","/ebl-gamecast.js","/ebl-app-shell.js"];
 
 
 self.addEventListener('install',event=>{
@@ -50,7 +47,7 @@ self.addEventListener('fetch',event=>{
   }
 
 
-  if(url.pathname.startsWith('/assets/') || url.pathname==='/manifest.webmanifest'){
+  if(url.pathname.startsWith('/assets/') || SHELL.includes(url.pathname)){
     event.respondWith((async()=>{
       const cached=await caches.match(req);
       const network=fetch(req).then(async res=>{
@@ -63,37 +60,4 @@ self.addEventListener('fetch',event=>{
       return cached || (await network) || Response.error();
     })());
   }
-});
-
-self.addEventListener('push',event=>{
-  event.waitUntil((async()=>{
-    let data={};
-    try{data=event.data?event.data.json():{}}catch(_){try{data={body:event.data?.text()||''}}catch(__){data={}}}
-    const title=data.title||'Elite Baseball League';
-    const body=data.body||'You have a new EBL update.';
-    const url=data.url||'/#home';
-    await self.registration.showNotification(title,{
-      body,
-      icon:'/assets/icon-192.png',
-      badge:'/assets/icon-192.png',
-      tag:'ebl-'+String(data.id||Date.now()),
-      data:{url},
-      renotify:false,
-      silent:false,
-      timestamp:Date.now(),
-    });
-  })());
-});
-
-self.addEventListener('notificationclick',event=>{
-  event.notification.close();
-  const target=new URL(event.notification?.data?.url||'/#home',self.location.origin).href;
-  event.waitUntil((async()=>{
-    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    for(const client of windows){
-      try{await client.navigate(target)}catch(_){}
-      if('focus' in client)return client.focus();
-    }
-    if(self.clients.openWindow)return self.clients.openWindow(target);
-  })());
 });
