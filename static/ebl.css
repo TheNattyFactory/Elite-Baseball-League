@@ -1645,3 +1645,201 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 .eblDialogFooter{padding:0 18px 18px}
 .eblFlexWrapSm{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:700px){.eblAdminGrid3,.eblAdminGrid2,.eblAdminSupportGrid{grid-template-columns:1fr}}
+
+
+/* EBL GAMECAST RC134 — timeline, fielders, spotlight */
+.gcPitchNumGameday.foul{background:#d99b36!important;color:#071522!important;border-color:#f2c66c!important}
+.gcReplayGridRC134{position:relative}
+.gcWaitingGameday{padding:10px;font-size:10px;line-height:1.4}
+.gcTimelineGameday{display:grid;grid-template-columns:auto minmax(110px,1fr) auto auto;gap:8px;align-items:center;width:100%;margin-top:10px;padding:8px 9px;border:1px solid rgba(130,163,192,.2);border-radius:12px;background:rgba(3,14,25,.58)}
+.gcTimelineBtnGameday{border:1px solid #38566f;background:#0b2238;color:#eef5fb;border-radius:9px;padding:6px 9px;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap}
+.gcTimelineBtnGameday:hover{border-color:var(--gold)}
+.gcTimelineRangeGameday{width:100%;padding:0!important;accent-color:var(--gold);cursor:pointer;background:transparent!important;border:0!important;box-shadow:none!important}
+.gcTimelineGameday>span{font-size:10px;color:#9fb1c2;font-weight:850;white-space:nowrap;text-align:right}
+.gcReplayStatusGameday{display:inline-flex;align-items:center;justify-content:center;min-width:58px;padding:4px 8px;border-radius:999px;border:1px solid rgba(217,175,55,.34);background:rgba(217,175,55,.08);color:#f1d477;font-size:9px;font-weight:950;letter-spacing:.08em}
+.gcQueueCardGameday{margin-top:9px;padding:9px 10px;border:1px solid rgba(113,145,173,.2);border-radius:12px;background:rgba(4,17,29,.52)}
+.gcQueueRowGameday{display:grid;grid-template-columns:56px minmax(0,1fr);gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(113,145,173,.13)}
+.gcQueueRowGameday:last-child{border-bottom:0}
+.gcQueueRowGameday span{font-size:8px;letter-spacing:.09em;color:#91a6b8;font-weight:900}
+.gcQueueRowGameday b{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcQueueEmptyGameday{padding:7px 0;color:#8195a7;font-size:10px}
+.gcFieldReplayGameday .gcFielderGameday circle{fill:#0b2034;stroke:#c9d8e5;stroke-width:2;transition:.2s}
+.gcFieldReplayGameday .gcFielderGameday text{fill:#f7f9fc;font-size:10px;font-weight:900;pointer-events:none}
+.gcFieldReplayGameday .gcFielderGameday.active circle{fill:#d4af37;stroke:#fff0a8;stroke-width:4;filter:drop-shadow(0 0 7px rgba(212,175,55,.9))}
+.gcFieldReplayGameday .gcFielderGameday.active text{fill:#071522}
+.gcFieldReplayGameday .gcTrajGameday{fill:none;stroke:#fff;stroke-width:3;stroke-dasharray:7 5;opacity:.88}
+.gcFieldReadoutGameday{position:absolute;left:10px;bottom:9px;z-index:4;max-width:calc(100% - 20px);padding:5px 8px;border-radius:8px;background:rgba(3,13,22,.8);border:1px solid rgba(255,255,255,.15);font-size:9px;font-weight:850;color:#dce8f1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcSpotlightGameday{position:fixed;inset:0;z-index:500;display:none;place-items:center;pointer-events:none;background:radial-gradient(circle at 50% 42%,rgba(16,48,75,.45),rgba(0,0,0,.78))}
+.gcSpotlightGameday.show{display:grid;animation:gcMomentFadeRC134 2.05s ease both}
+.gcSpotlightInnerGameday{display:grid;grid-template-columns:minmax(120px,220px) minmax(190px,360px);align-items:center;gap:22px;width:min(92vw,650px);padding:22px 26px;border:1px solid rgba(255,255,255,.2);border-radius:24px;background:linear-gradient(140deg,rgba(11,35,58,.97),rgba(4,15,27,.98));box-shadow:0 28px 80px #000c;overflow:hidden}
+.gcSpotlightGameday.home-run .gcSpotlightInnerGameday{border-color:#d4af37;box-shadow:0 28px 80px #000c,0 0 45px rgba(212,175,55,.18)}
+.gcSpotlightGameday.defense .gcSpotlightInnerGameday{border-color:#6cbbe8}
+.gcSpotlightGameday.strikeout .gcSpotlightInnerGameday{border-color:#ef6a70}
+.gcSpotlightArtGameday{min-height:180px;display:grid;place-items:center;overflow:hidden;border-radius:18px;background:radial-gradient(circle at 50% 28%,rgba(70,125,167,.32),rgba(4,18,31,.88) 72%)}
+.gcSpotlightArtGameday svg{width:100%!important;height:auto!important;max-height:230px!important}
+.gcSpotlightCopyGameday{min-width:0}
+.gcSpotlightCopyGameday span{display:block;color:#b9c8d6;font-size:10px;font-weight:900;letter-spacing:.16em;margin-bottom:8px}
+.gcSpotlightCopyGameday strong{display:block;font-size:clamp(29px,7vw,52px);line-height:.92;letter-spacing:-.035em;font-weight:1000;color:#fff;text-shadow:0 4px 16px #000}
+.gcSpotlightCopyGameday b{display:block;margin-top:10px;color:#d7e3ed;font-size:12px;line-height:1.4}
+@keyframes gcMomentFadeRC134{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
+.gcStarsGameday{display:grid;gap:8px}
+.gcStarGameday{display:grid;grid-template-columns:28px 52px minmax(0,1fr);align-items:center;gap:9px;padding:8px;border:1px solid rgba(113,145,173,.18);border-radius:12px;background:rgba(5,20,34,.56)}
+.gcStarGameday .playerPortrait{width:52px!important;height:58px!important;min-width:52px!important;border-radius:11px!important}
+.gcStarGameday b,.gcStarGameday small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcStarGameday small{font-size:9px;color:#9fb2c3;margin-top:3px}
+.gcStarRankGameday{width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:#d4af37;color:#071522;font-size:11px;font-weight:1000}
+.gcSummaryFullGameday{grid-template-columns:1fr 1fr}
+.gcSummaryWideGameday{grid-column:1/-1}
+.gcNotableGridGameday{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gcNotableGridGameday h4{margin:0 0 8px;color:#c8d5df}
+.gcPlaybackGameday{flex-wrap:wrap}
+.gcUnderStageGameday{gap:9px}
+.gcPitchCallGameday span{line-height:1.35}
+.gcLiveBallGameday{will-change:left,top,transform}
+@media(max-width:680px){
+  .gcTimelineGameday{grid-template-columns:auto 1fr auto;gap:6px}
+  .gcTimelineGameday>span{grid-column:1/-1;text-align:center;order:5}
+  .gcTimelineBtnGameday{padding:7px 8px}
+  .gcSpotlightInnerGameday{grid-template-columns:110px minmax(0,1fr);gap:13px;padding:16px}
+  .gcSpotlightArtGameday{min-height:130px}
+  .gcSpotlightCopyGameday strong{font-size:30px}
+  .gcSummaryFullGameday,.gcNotableGridGameday{grid-template-columns:1fr}
+  .gcSummaryWideGameday{grid-column:auto}
+}
+@media(max-width:430px){
+  .gcTimelineGameday{grid-template-columns:1fr 1fr}
+  .gcTimelineRangeGameday{grid-column:1/-1;grid-row:1}
+  .gcTimelineBtnGameday{width:100%}
+  .gcSpotlightInnerGameday{grid-template-columns:88px 1fr;padding:13px;border-radius:18px}
+  .gcSpotlightArtGameday{min-height:104px;border-radius:13px}
+  .gcSpotlightCopyGameday strong{font-size:25px}
+  .gcQueueCardGameday{padding:8px}
+}
+
+
+/* EBL GAMECAST RC135 — stadium motion + baserunning + defensive sequences */
+.gcStadiumRC135{--gc-crowd:.12}
+.gcBroadcastBugGameday{
+  position:absolute;left:12px;right:12px;top:10px;z-index:18;
+  display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:8px;
+  padding:6px 8px;border-radius:10px;
+  background:linear-gradient(90deg,rgba(3,12,21,.94),rgba(8,29,48,.9));
+  border:1px solid rgba(160,186,208,.22);box-shadow:0 8px 24px rgba(0,0,0,.28);
+  pointer-events:none
+}
+.gcBroadcastBugGameday .live{
+  display:inline-flex;align-items:center;gap:5px;padding:3px 6px;border-radius:999px;
+  background:#b91f29;color:#fff;font-size:8px;font-weight:1000;letter-spacing:.12em
+}
+.gcBroadcastBugGameday .live:before{content:"";width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff}
+.gcBroadcastBugGameday strong{font-size:9px;letter-spacing:.12em;white-space:nowrap}
+.gcBroadcastBugGameday>span:not(.live){font-size:8px;font-weight:900;color:#adc0d0;letter-spacing:.09em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcCrowdMeterGameday{display:flex;align-items:end;gap:2px;height:15px}
+.gcCrowdMeterGameday i{display:block;width:4px;height:5px;border-radius:2px;background:#314a60;transition:.18s}
+.gcCrowdMeterGameday i:nth-child(2){height:7px}.gcCrowdMeterGameday i:nth-child(3){height:9px}.gcCrowdMeterGameday i:nth-child(4){height:12px}.gcCrowdMeterGameday i:nth-child(5){height:15px}
+.gcCrowdMeterGameday i.on{background:#e1c65a;box-shadow:0 0 6px rgba(225,198,90,.55)}
+.gcCrowdGlowGameday{
+  position:absolute;left:-8%;right:-8%;top:16%;height:120px;z-index:2;pointer-events:none;
+  opacity:calc(.18 + var(--gc-crowd) * .58);
+  background:
+    radial-gradient(circle at 12% 68%,rgba(255,230,152,.9) 0 1.4px,transparent 1.8px) 0 0/18px 12px,
+    radial-gradient(circle at 60% 40%,rgba(189,221,245,.8) 0 1px,transparent 1.7px) 0 0/15px 10px;
+  mix-blend-mode:screen;filter:blur(.2px)
+}
+.gcVisualStageGameday.crowdRoar .gcCrowdGlowGameday{animation:gcCrowdRoar135 .4s steps(2,end) infinite}
+.gcVisualStageGameday.lateClose:after{
+  content:"LATE & CLOSE";position:absolute;right:12px;top:48px;z-index:18;
+  padding:4px 7px;border-radius:999px;background:rgba(180,27,38,.85);border:1px solid rgba(255,255,255,.24);
+  color:#fff;font-size:8px;font-weight:1000;letter-spacing:.09em;pointer-events:none
+}
+@keyframes gcCrowdRoar135{0%{transform:translateX(0);filter:brightness(1)}50%{transform:translateX(1px);filter:brightness(1.35)}100%{transform:translateX(-1px);filter:brightness(1.08)}}
+
+.gcLowerThirdGameday{
+  position:absolute;left:12px;bottom:62px;z-index:16;width:min(330px,calc(100% - 24px));
+  padding:8px 10px;border-left:4px solid #d7262e;border-radius:8px;
+  background:linear-gradient(90deg,rgba(4,15,27,.96),rgba(9,32,53,.9));
+  box-shadow:0 10px 24px rgba(0,0,0,.34);opacity:0;transform:translateX(-14px);
+  transition:.22s opacity,.22s transform;pointer-events:none
+}
+.gcLowerThirdGameday.show{opacity:1;transform:translateX(0)}
+.gcLowerThirdGameday span,.gcLowerThirdGameday b,.gcLowerThirdGameday small{display:block}
+.gcLowerThirdGameday span{font-size:7px;font-weight:1000;letter-spacing:.14em;color:#d7262e}
+.gcLowerThirdGameday b{font-size:12px;margin-top:2px}
+.gcLowerThirdGameday small{font-size:8px;color:#9fb3c4;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcVisualStageGameday.inPlay .gcLowerThirdGameday{opacity:0;transform:translateX(-14px)}
+
+.gcThrowPathGameday{
+  fill:none;stroke:#e9f6ff;stroke-width:4;stroke-linecap:round;stroke-dasharray:7 5;
+  opacity:0;filter:drop-shadow(0 0 5px rgba(255,255,255,.7));transition:.12s opacity
+}
+.gcThrowPathGameday.show{opacity:.92}
+.gcThrowBallGameday{fill:#fff;stroke:#071522;stroke-width:2;opacity:0;filter:url(#gcGlow135)}
+.gcThrowBallGameday.show{opacity:1}
+.gcCatchRingGameday{fill:none;stroke:#8fe4ff;stroke-width:5;opacity:0;filter:url(#gcGlow135)}
+.gcCatchRingGameday.pop{animation:gcCatchPop135 .62s ease-out both}
+@keyframes gcCatchPop135{0%{opacity:0;stroke-width:8;r:8}30%{opacity:1}100%{opacity:0;stroke-width:2;r:30}}
+
+.gcRunnerMarkerGameday{opacity:0;pointer-events:none}
+.gcRunnerMarkerGameday.show{opacity:1}
+.gcRunnerMarkerGameday>circle:first-child{fill:#d9bd50;stroke:#fff4bd;stroke-width:3;filter:url(#gcGlow135)}
+.gcRunnerMarkerGameday .pulse{fill:none;stroke:#ffe582;stroke-width:3;opacity:.42}
+.gcRunnerMarkerGameday text{fill:#071522;font-size:10px;font-weight:1000}
+.gcRunnerMarkerGameday.moving .pulse{animation:gcRunnerPulse135 .42s ease-in-out infinite alternate}
+@keyframes gcRunnerPulse135{from{opacity:.18;stroke-width:2}to{opacity:.85;stroke-width:5}}
+.gcFieldBaseGameday{transition:.15s;transform-box:fill-box;transform-origin:center}
+.gcFieldBaseGameday.flash{animation:gcBaseFlash135 .64s ease}
+@keyframes gcBaseFlash135{0%,100%{filter:none}30%{filter:drop-shadow(0 0 12px #ffe582);fill:#ffe582}55%{filter:drop-shadow(0 0 4px #fff)}}
+.gcVisualStageGameday.runnerFocus .gcFieldReplayGameday{opacity:1}
+.gcVisualStageGameday.runnerFocus .gcBatterArtGameday,
+.gcVisualStageGameday.runnerFocus .gcPitcherArtGameday,
+.gcVisualStageGameday.runnerFocus .gcZoneRigGameday{opacity:0;transform:scale(.96)}
+
+.gcSpotlightFrameGameday{width:min(92vw,690px)}
+.gcSpotlightRibbonGameday{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:7px 11px;margin:0 16px -1px;position:relative;z-index:2;
+  border:1px solid rgba(255,255,255,.18);border-bottom:0;border-radius:12px 12px 0 0;
+  background:linear-gradient(90deg,#a31f27,#74151b);box-shadow:0 7px 18px rgba(0,0,0,.26)
+}
+.gcSpotlightRibbonGameday span,.gcSpotlightRibbonGameday b{font-size:8px;font-weight:1000;letter-spacing:.13em}
+.gcSpotlightRibbonGameday span{color:#fff}.gcSpotlightRibbonGameday b{color:#ffd8da}
+.gcSpotlightTeamGameday{display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#afc0cf;font-size:9px;font-weight:900;letter-spacing:.07em}
+.gcSpotlightTeamGameday .teamMark{width:28px;height:28px;min-width:28px;font-size:8px}
+.gcSpotlightCopyGameday small{display:block;margin-top:9px;color:#8fa6b8;font-size:9px;font-weight:850;letter-spacing:.05em}
+.gcSpotlightGameday.steal .gcSpotlightInnerGameday{border-color:#80d8ff}
+
+.gcReplayStatusGameday.playing:before{
+  content:"";display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;
+  background:#63d990;box-shadow:0 0 7px rgba(99,217,144,.75)
+}
+
+@media(max-width:680px){
+  .gcBroadcastBugGameday{left:8px;right:8px;top:7px;gap:5px;padding:5px 6px;grid-template-columns:auto auto 1fr}
+  .gcBroadcastBugGameday>span:not(.live){display:none}
+  .gcLowerThirdGameday{left:8px;bottom:58px;width:calc(100% - 16px)}
+  .gcSpotlightFrameGameday{width:min(94vw,620px)}
+  .gcSpotlightRibbonGameday{margin:0 10px -1px}
+}
+@media(max-width:430px){
+  .gcBroadcastBugGameday strong{font-size:8px}
+  .gcCrowdMeterGameday{display:none}
+  .gcLowerThirdGameday{bottom:56px}
+  .gcSpotlightFrameGameday{width:96vw}
+  .gcSpotlightRibbonGameday{margin:0 8px -1px;padding:6px 8px}
+  .gcSpotlightRibbonGameday span,.gcSpotlightRibbonGameday b{font-size:7px}
+}
+
+
+/* EBL GAMECAST RC136 — zero-player showcase */
+.gcShowcaseLaunch{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;margin:14px 0 10px;padding:16px;border:1px solid rgba(217,224,232,.26);border-left:4px solid var(--red);border-radius:14px;background:linear-gradient(135deg,rgba(16,40,68,.94),rgba(7,21,34,.96));box-shadow:0 12px 30px #0003}
+.gcShowcaseLaunch h3{margin:4px 0 5px;font-size:18px}
+.gcShowcaseLaunch p{margin:0;max-width:760px;line-height:1.45}
+.gcShowcaseBtn{min-width:190px;font-weight:950;letter-spacing:.025em;padding:11px 14px}
+.gcShowcaseModeGameday .gcDayEyebrowGameday{border-bottom-color:rgba(217,224,232,.34)}
+.gcShowcaseBadgeGameday{display:inline-flex;align-items:center;margin-left:6px;padding:2px 7px;border:1px solid rgba(217,224,232,.5);border-radius:999px;color:#fff;background:rgba(215,38,46,.9);font-size:9px;font-weight:1000;letter-spacing:.1em;vertical-align:middle}
+.gcShowcaseModeGameday .clickableName{pointer-events:none;cursor:default;text-decoration:none}
+.gcShowcaseModeGameday .gcDayShellGameday:before{content:'SHOWCASE • NO LEAGUE DATA IS CHANGED';display:block;padding:6px 10px;text-align:center;background:linear-gradient(90deg,#8f1318,#d7262e,#8f1318);color:#fff;font-size:9px;font-weight:1000;letter-spacing:.12em}
+@media(max-width:680px){
+  .gcShowcaseLaunch{grid-template-columns:1fr;padding:13px}
+  .gcShowcaseBtn{width:100%;min-width:0}
+}
