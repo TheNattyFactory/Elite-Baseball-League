@@ -11968,7 +11968,7 @@ class H(BaseHTTPRequestHandler):
                 app=c.execute("SELECT * FROM coach_applications WHERE user_id=? ORDER BY id DESC LIMIT 1",(u["id"],)).fetchone()
                 team=c.execute("SELECT id,name FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
                 approved=(u["role"] in ("COACH","COMMISSIONER")) or bool(app and app["status"]=="APPROVED")
-                available=[dict(x) for x in c.execute("SELECT id,name FROM franchises WHERE owner_user_id IS NULL ORDER BY name")] if approved and not team else []
+                available=[dict(x) for x in c.execute("SELECT id,name FROM franchises WHERE owner_user_id IS NULL ORDER BY name")] if (approved or COACH_APPLICATIONS_OPEN) and not team else []
                 return self.out({"application":dict(app) if app else None,"approved":approved,"assigned_team":dict(team) if team else None,"available_teams":available,"applications_open":COACH_APPLICATIONS_OPEN})
             finally:
                 c.close()
@@ -14418,7 +14418,7 @@ class H(BaseHTTPRequestHandler):
             u=self.auth()
             if not u:return
             if not COACH_APPLICATIONS_OPEN and u["role"]!="COMMISSIONER":
-                return self.out({"error":"COACH_APPLICATIONS_CLOSED_BETA","detail":"Human coaching is paused during the player-only accelerated beta."},403)
+                return self.out({"error":"COACH_APPLICATIONS_CLOSED","detail":"Coach applications are currently closed."},403)
             d=self.body();preferred=str(d.get("preferred_franchise_id") or "").strip() or None
             experience=str(d.get("experience") or "").strip()[:2000]
             reason=str(d.get("reason") or "").strip()[:3000]
@@ -14432,6 +14432,8 @@ class H(BaseHTTPRequestHandler):
                 pending=c.execute("SELECT id FROM coach_applications WHERE user_id=? AND status='PENDING' ORDER BY id DESC LIMIT 1",(u["id"],)).fetchone()
                 if pending:return self.out({"error":"APPLICATION_ALREADY_PENDING","application_id":pending["id"]},409)
                 cur=c.execute("INSERT INTO coach_applications(user_id,preferred_franchise_id,experience,reason,philosophy,rules_ack,status) VALUES(?,?,?,?,?,?,'PENDING')",(u["id"],preferred,experience,reason,philosophy,rules_ack))
+                for commish in c.execute("SELECT id FROM users WHERE role='COMMISSIONER'").fetchall():
+                    notify_user(c,commish["id"],"COACH","New coach application",f"{u['username']} submitted an EBL coaching application.",str(cur.lastrowid))
                 c.commit();return self.out({"ok":True,"application_id":cur.lastrowid,"status":"PENDING"})
             finally:
                 c.close()
@@ -14546,8 +14548,6 @@ class H(BaseHTTPRequestHandler):
                     return self.out({"error":"PLAYER_NOT_ON_TEAM"},400)
                 if pl["user_id"] is None:
                     return self.out({"error":"HUMAN_PLAYER_REQUIRED"},400)
-                if pl["user_id"]==u["id"]:
-                    return self.out({"error":"CANNOT_SIGN_OWN_PLAYER"},403)
                 if int(con["years_remaining"] or 0)!=1:
                     return self.out({"error":"CONTRACT_NOT_EXPIRING"},400)
                 accepted=c.execute("SELECT id FROM offers WHERE franchise_id=? AND player_id=? AND offer_type='RENEWAL' AND effective_season=? AND status='ACCEPTED' LIMIT 1",(f["id"],pid,season+1)).fetchone()
@@ -14606,7 +14606,6 @@ class H(BaseHTTPRequestHandler):
                 c.close();return self.out({"error":"ROOKIE_SALARY_FIXED","required_salary":SALARY_MIN},400)
             pl=c.execute("SELECT * FROM players WHERE id=?",(pid,)).fetchone()
             if not pl or pl["status"]!="FREE_AGENT":c.close();return self.out({"error":"PLAYER_NOT_FREE_AGENT"},400)
-            if pl["user_id"]==u["id"]:c.close();return self.out({"error":"CANNOT_SIGN_OWN_PLAYER"},403)
 
 
 
