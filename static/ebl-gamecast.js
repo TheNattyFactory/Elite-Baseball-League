@@ -935,3 +935,186 @@
   };
   window.EBL_GAMECAST_BUILD=BUILD;
 })();
+
+
+/* EBL GAMECAST RC136 — self-contained zero-player showcase */
+(function(){
+  'use strict';
+  const SHOWCASE_BUILD='RC136_ZERO_PLAYER_SHOWCASE';
+
+  function N(v,d=0){const n=Number(v);return Number.isFinite(n)?n:d}
+  function demoTeams(){
+    const teams=Array.isArray(LEAGUE?.teams)?LEAGUE.teams:[];
+    const away=teams[0]||{id:'EBL-SHOWCASE-A',name:'Showcase Visitors',display_name:'Showcase Visitors'};
+    const home=teams[1]||teams[0]||{id:'EBL-SHOWCASE-H',name:'Showcase Home',display_name:'Showcase Home'};
+    return {away,home};
+  }
+  function teamDisplay(t,fallback){return t?.display_name||t?.name||fallback}
+  function demoPlayer(id,team,name,pos,jersey,look={}){
+    const pitcher=pos==='P'||pos==='SP'||pos==='RP'||pos==='CL';
+    return {
+      player_id:id,id,team_id:team,franchise_id:team,name,primary_pos:pos,type:pitcher?'P':'H',
+      jersey_number:jersey,bats:look.bats||'R',throws:look.throws||'R',
+      face_id:look.face_id||1,hair_id:look.hair_id||1,facial_hair_id:look.facial_hair_id||1,
+      eye_color_id:look.eye_color_id||6,nose_id:look.nose_id||1,eye_shape_id:look.eye_shape_id||1,
+      mouth_id:look.mouth_id||1,ear_size_id:look.ear_size_id||2,hair_color_id:look.hair_color_id||3,
+      eye_black_id:look.eye_black_id||1,eyewear_id:look.eyewear_id||1,chain_id:look.chain_id||1,
+      sleeve_id:look.sleeve_id||1,body_build_id:look.body_build_id||1,skin_color_id:look.skin_color_id||1
+    };
+  }
+  function stat(p,vals){return Object.assign({},p,vals)}
+  function buildShowcaseGame(){
+    const {away,home}=demoTeams(),A=away.id,H=home.id;
+    const ap=[
+      demoPlayer(-1001,A,'Marcus Bennett','CF',7,{face_id:3,hair_id:5,skin_color_id:5,eye_black_id:2,bats:'L'}),
+      demoPlayer(-1002,A,'Nico Ramirez','1B',24,{face_id:7,hair_id:3,facial_hair_id:4,skin_color_id:4,body_build_id:4}),
+      demoPlayer(-1003,A,'Andre Sullivan','SS',2,{face_id:2,hair_id:8,skin_color_id:6,eye_black_id:3}),
+      demoPlayer(-1004,A,'Cole Navarro','RF',18,{face_id:8,hair_id:2,facial_hair_id:2,skin_color_id:2,sleeve_id:2}),
+      demoPlayer(-1005,A,'Dylan Hayes','LF',11,{face_id:5,hair_id:7,skin_color_id:3,bats:'L'}),
+      demoPlayer(-1101,A,'Victor Cruz','SP',35,{face_id:9,hair_id:6,facial_hair_id:3,skin_color_id:4}),
+      demoPlayer(-1102,A,'Rafael Cross','CL',54,{face_id:4,hair_id:4,facial_hair_id:5,skin_color_id:5})
+    ];
+    const hp=[
+      demoPlayer(-2001,H,'Eli Turner','2B',6,{face_id:1,hair_id:10,skin_color_id:2,bats:'L'}),
+      demoPlayer(-2002,H,'Caleb Price','1B',33,{face_id:7,hair_id:4,facial_hair_id:4,skin_color_id:6,body_build_id:5}),
+      demoPlayer(-2003,H,'Jordan Reed','LF',12,{face_id:6,hair_id:5,skin_color_id:3,eye_black_id:4}),
+      demoPlayer(-2004,H,'Mason Cole','SS',1,{face_id:2,hair_id:8,skin_color_id:4}),
+      demoPlayer(-2005,H,'Darius Lane','CF',27,{face_id:8,hair_id:3,facial_hair_id:2,skin_color_id:7,eye_black_id:2}),
+      demoPlayer(-2006,H,'Nolan Vega','RF',9,{face_id:3,hair_id:2,skin_color_id:5}),
+      demoPlayer(-2100,H,'Mateo Ortiz','SP',41,{face_id:4,hair_id:6,facial_hair_id:3,skin_color_id:5}),
+      demoPlayer(-2101,H,'Grant Miller','RP',46,{face_id:5,hair_id:1,facial_hair_id:5,skin_color_id:2})
+    ];
+    const byId=new Map([...ap,...hp].map(p=>[p.player_id,p]));
+    const nm=id=>byId.get(id)?.name||'Player';
+    const E=[];
+    const push=e=>E.push(e);
+
+    push({type:'GAME_START',inning:8,half:'TOP',score:[2,1],away_name:teamDisplay(away,'Visitors'),home_name:teamDisplay(home,'Home')});
+    push({type:'PA_START',inning:8,half:'TOP',score:[2,1],outs:0,batter_id:-1001,pitcher_id:-2101,batter:nm(-1001),pitcher:nm(-2101)});
+    push({type:'PITCH',inning:8,half:'TOP',score:[2,1],batter_id:-1001,pitcher_id:-2101,pitch_no:1,pitch_type:'Four-Seam',velocity:96.4,px:.49,pz:.59,call:'Called Strike',balls:0,strikes:1,outs:0});
+    push({type:'PITCH',inning:8,half:'TOP',score:[2,1],batter_id:-1001,pitcher_id:-2101,pitch_no:2,pitch_type:'Slider',velocity:86.7,px:.78,pz:.31,call:'Ball',balls:1,strikes:1,outs:0});
+    push({type:'PITCH',inning:8,half:'TOP',score:[2,1],batter_id:-1001,pitcher_id:-2101,pitch_no:3,pitch_type:'Sinker',velocity:94.3,px:.42,pz:.44,call:'In Play',balls:1,strikes:1,outs:0});
+    push({type:'BALL_IN_PLAY',inning:8,half:'TOP',score:[2,1],batter_id:-1001,pitcher_id:-2101,result:'1B',exit_velocity:101.8,launch_angle:9,spray_angle:31,contact_quality:'Hard contact',fielder_id:-2006,fielder_position:'RF',defensive_note:'HELD_TO_SINGLE'});
+    push({type:'OUTFIELD_HOLD',inning:8,half:'TOP',score:[2,1],fielder_id:-2006,position:'RF',fielder_position:'RF'});
+    push({type:'PA_END',inning:8,half:'TOP',score:[2,1],outs:0,batter_id:-1001,pitcher_id:-2101,result:'1B'});
+    push({type:'STEAL_ATTEMPT',inning:8,half:'TOP',score:[2,1],outs:0,runner_id:-1001,batter_id:-1001,pitcher_id:-2101,success:true});
+    push({type:'PA_START',inning:8,half:'TOP',score:[2,1],outs:0,batter_id:-1002,pitcher_id:-2101,batter:nm(-1002),pitcher:nm(-2101)});
+    push({type:'PITCH',inning:8,half:'TOP',score:[2,1],batter_id:-1002,pitcher_id:-2101,pitch_no:1,pitch_type:'Changeup',velocity:84.9,px:.25,pz:.28,call:'Ball',balls:1,strikes:0,outs:0});
+    push({type:'PITCH',inning:8,half:'TOP',score:[2,1],batter_id:-1002,pitcher_id:-2101,pitch_no:2,pitch_type:'Four-Seam',velocity:97.1,px:.52,pz:.61,call:'In Play',balls:1,strikes:0,outs:0});
+    push({type:'BALL_IN_PLAY',inning:8,half:'TOP',score:[2,1],batter_id:-1002,pitcher_id:-2101,result:'HR',exit_velocity:107.8,launch_angle:28,spray_angle:15,contact_quality:'Barreled'});
+    push({type:'RUN',inning:8,half:'TOP',score:[4,1],team:A,batter_id:-1002,runner_id:-1001,runs:2,note:'Two-run home run'});
+    push({type:'PA_END',inning:8,half:'TOP',score:[4,1],outs:0,batter_id:-1002,pitcher_id:-2101,result:'HR'});
+    push({type:'PA_START',inning:8,half:'TOP',score:[4,1],outs:0,batter_id:-1003,pitcher_id:-2101,batter:nm(-1003),pitcher:nm(-2101)});
+    push({type:'PITCH',inning:8,half:'TOP',score:[4,1],batter_id:-1003,pitcher_id:-2101,pitch_no:1,pitch_type:'Slider',velocity:88.2,px:.54,pz:.48,call:'Swinging Strike',balls:0,strikes:1,outs:0});
+    push({type:'PITCH',inning:8,half:'TOP',score:[4,1],batter_id:-1003,pitcher_id:-2101,pitch_no:2,pitch_type:'Curve',velocity:80.6,px:.39,pz:.35,call:'Swinging Strike',balls:0,strikes:2,outs:0});
+    push({type:'OUT',inning:8,half:'TOP',score:[4,1],batter_id:-1003,pitcher_id:-2101,out_type:'Strikeout',outs:1});
+    push({type:'PA_END',inning:8,half:'TOP',score:[4,1],outs:1,batter_id:-1003,pitcher_id:-2101,result:'K'});
+    push({type:'PA_START',inning:8,half:'TOP',score:[4,1],outs:1,batter_id:-1004,pitcher_id:-2101,batter:nm(-1004),pitcher:nm(-2101)});
+    push({type:'PITCH',inning:8,half:'TOP',score:[4,1],batter_id:-1004,pitcher_id:-2101,pitch_no:1,pitch_type:'Sinker',velocity:95.0,px:.57,pz:.42,call:'In Play',balls:0,strikes:0,outs:1});
+    push({type:'BALL_IN_PLAY',inning:8,half:'TOP',score:[4,1],batter_id:-1004,pitcher_id:-2101,result:'OUT',out_type:'Groundout',exit_velocity:94.4,launch_angle:-4,spray_angle:-11,contact_quality:'Ground ball',fielder_id:-2004,fielder_position:'SS'});
+    push({type:'OUT',inning:8,half:'TOP',score:[4,1],batter_id:-1004,pitcher_id:-2101,out_type:'Groundout',outs:2,fielder_id:-2004,fielder_position:'SS'});
+    push({type:'PA_END',inning:8,half:'TOP',score:[4,1],outs:2,batter_id:-1004,pitcher_id:-2101,result:'OUT'});
+    push({type:'PA_START',inning:8,half:'TOP',score:[4,1],outs:2,batter_id:-1005,pitcher_id:-2101,batter:nm(-1005),pitcher:nm(-2101)});
+    push({type:'PITCH',inning:8,half:'TOP',score:[4,1],batter_id:-1005,pitcher_id:-2101,pitch_no:1,pitch_type:'Four-Seam',velocity:96.8,px:.46,pz:.66,call:'In Play',balls:0,strikes:0,outs:2});
+    push({type:'BALL_IN_PLAY',inning:8,half:'TOP',score:[4,1],batter_id:-1005,pitcher_id:-2101,result:'OUT',out_type:'Flyout',exit_velocity:99.1,launch_angle:32,spray_angle:-3,contact_quality:'Deep fly',fielder_id:-2005,fielder_position:'CF'});
+    push({type:'GREAT_PLAY',inning:8,half:'TOP',score:[4,1],fielder_id:-2005,position:'CF',fielder_position:'CF',out_type:'Flyout',defensive_note:'Diving catch at the warning track',outs:2});
+    push({type:'OUT',inning:8,half:'TOP',score:[4,1],batter_id:-1005,pitcher_id:-2101,out_type:'Flyout',outs:3,fielder_id:-2005,fielder_position:'CF'});
+    push({type:'PA_END',inning:8,half:'TOP',score:[4,1],outs:3,batter_id:-1005,pitcher_id:-2101,result:'OUT'});
+    push({type:'INNING_END',inning:8,half:'TOP',score:[4,1],outs:3});
+
+    push({type:'PITCHING_CHANGE',inning:9,half:'BOT',score:[4,1],outs:0,team:A,pitcher_id:-1102,role:'CL'});
+    push({type:'PA_START',inning:9,half:'BOT',score:[4,1],outs:0,batter_id:-2001,pitcher_id:-1102,batter:nm(-2001),pitcher:nm(-1102)});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,1],batter_id:-2001,pitcher_id:-1102,pitch_no:1,pitch_type:'Four-Seam',velocity:98.2,px:.51,pz:.63,call:'Called Strike',balls:0,strikes:1,outs:0});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,1],batter_id:-2001,pitcher_id:-1102,pitch_no:2,pitch_type:'Slider',velocity:89.1,px:.43,pz:.41,call:'In Play',balls:0,strikes:1,outs:0});
+    push({type:'BALL_IN_PLAY',inning:9,half:'BOT',score:[4,1],batter_id:-2001,pitcher_id:-1102,result:'2B',exit_velocity:104.0,launch_angle:19,spray_angle:-12,contact_quality:'Lined to the gap',fielder_id:-1005,fielder_position:'LF'});
+    push({type:'PA_END',inning:9,half:'BOT',score:[4,1],outs:0,batter_id:-2001,pitcher_id:-1102,result:'2B'});
+    push({type:'PA_START',inning:9,half:'BOT',score:[4,1],outs:0,batter_id:-2002,pitcher_id:-1102,batter:nm(-2002),pitcher:nm(-1102)});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,1],batter_id:-2002,pitcher_id:-1102,pitch_no:1,pitch_type:'Slider',velocity:88.5,px:.72,pz:.25,call:'Ball',balls:1,strikes:0,outs:0});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,1],batter_id:-2002,pitcher_id:-1102,pitch_no:2,pitch_type:'Four-Seam',velocity:99.0,px:.50,pz:.57,call:'In Play',balls:1,strikes:0,outs:0});
+    push({type:'BALL_IN_PLAY',inning:9,half:'BOT',score:[4,1],batter_id:-2002,pitcher_id:-1102,result:'HR',exit_velocity:109.6,launch_angle:31,spray_angle:22,contact_quality:'Barreled'});
+    push({type:'RUN',inning:9,half:'BOT',score:[4,3],team:H,batter_id:-2002,runner_id:-2001,runs:2,note:'Two-run home run'});
+    push({type:'PA_END',inning:9,half:'BOT',score:[4,3],outs:0,batter_id:-2002,pitcher_id:-1102,result:'HR'});
+    push({type:'PA_START',inning:9,half:'BOT',score:[4,3],outs:0,batter_id:-2003,pitcher_id:-1102,batter:nm(-2003),pitcher:nm(-1102)});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,3],batter_id:-2003,pitcher_id:-1102,pitch_no:1,pitch_type:'Changeup',velocity:87.4,px:.37,pz:.43,call:'In Play',balls:0,strikes:0,outs:0});
+    push({type:'BALL_IN_PLAY',inning:9,half:'BOT',score:[4,3],batter_id:-2003,pitcher_id:-1102,result:'1B',exit_velocity:93.1,launch_angle:5,spray_angle:30,contact_quality:'Line drive',fielder_id:-1004,fielder_position:'RF',defensive_note:'HELD_TO_SINGLE'});
+    push({type:'OUTFIELD_HOLD',inning:9,half:'BOT',score:[4,3],fielder_id:-1004,position:'RF',fielder_position:'RF'});
+    push({type:'PA_END',inning:9,half:'BOT',score:[4,3],outs:0,batter_id:-2003,pitcher_id:-1102,result:'1B'});
+    push({type:'STEAL_ATTEMPT',inning:9,half:'BOT',score:[4,3],outs:0,runner_id:-2003,batter_id:-2003,pitcher_id:-1102,success:true});
+    push({type:'PA_START',inning:9,half:'BOT',score:[4,3],outs:0,batter_id:-2004,pitcher_id:-1102,batter:nm(-2004),pitcher:nm(-1102)});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,3],batter_id:-2004,pitcher_id:-1102,pitch_no:1,pitch_type:'Slider',velocity:90.1,px:.57,pz:.46,call:'Swinging Strike',balls:0,strikes:1,outs:0});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,3],batter_id:-2004,pitcher_id:-1102,pitch_no:2,pitch_type:'Four-Seam',velocity:99.4,px:.47,pz:.68,call:'Swinging Strike',balls:0,strikes:2,outs:0});
+    push({type:'OUT',inning:9,half:'BOT',score:[4,3],batter_id:-2004,pitcher_id:-1102,out_type:'Strikeout',outs:1});
+    push({type:'PA_END',inning:9,half:'BOT',score:[4,3],outs:1,batter_id:-2004,pitcher_id:-1102,result:'K'});
+    push({type:'PA_START',inning:9,half:'BOT',score:[4,3],outs:1,batter_id:-2005,pitcher_id:-1102,batter:nm(-2005),pitcher:nm(-1102)});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,3],batter_id:-2005,pitcher_id:-1102,pitch_no:1,pitch_type:'Slider',velocity:89.4,px:.82,pz:.30,call:'Ball',balls:1,strikes:0,outs:1});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,3],batter_id:-2005,pitcher_id:-1102,pitch_no:2,pitch_type:'Four-Seam',velocity:98.7,px:.41,pz:.54,call:'Foul',balls:1,strikes:1,outs:1});
+    push({type:'PITCH',inning:9,half:'BOT',score:[4,3],batter_id:-2005,pitcher_id:-1102,pitch_no:3,pitch_type:'Sinker',velocity:97.3,px:.53,pz:.49,call:'In Play',balls:1,strikes:1,outs:1});
+    push({type:'BALL_IN_PLAY',inning:9,half:'BOT',score:[4,3],batter_id:-2005,pitcher_id:-1102,result:'HR',exit_velocity:111.2,launch_angle:27,spray_angle:-3,contact_quality:'Perfect timing'});
+    push({type:'RUN',inning:9,half:'BOT',score:[4,5],team:H,batter_id:-2005,runner_id:-2003,runs:2,note:'Walk-off two-run home run'});
+    push({type:'PA_END',inning:9,half:'BOT',score:[4,5],outs:1,batter_id:-2005,pitcher_id:-1102,result:'HR'});
+    push({type:'GAME_END',inning:9,half:'BOT',score:[4,5],final_score:[4,5],outs:1});
+
+    const hitter_rows=[
+      stat(ap[0],{AB:4,R:1,H:1,'2B':0,HR:0,RBI:0,BB:0,SO:0,SB:1}),
+      stat(ap[1],{AB:4,R:1,H:2,'2B':0,HR:1,RBI:2,BB:0,SO:0,SB:0}),
+      stat(ap[2],{AB:4,R:0,H:1,'2B':0,HR:0,RBI:1,BB:0,SO:1,SB:0}),
+      stat(ap[3],{AB:4,R:1,H:1,'2B':1,HR:0,RBI:0,BB:0,SO:0,SB:0}),
+      stat(ap[4],{AB:4,R:1,H:2,'2B':0,HR:0,RBI:1,BB:0,SO:0,SB:0}),
+      stat(hp[0],{AB:4,R:1,H:2,'2B':1,HR:0,RBI:0,BB:0,SO:0,SB:0}),
+      stat(hp[1],{AB:4,R:1,H:1,'2B':0,HR:1,RBI:2,BB:0,SO:0,SB:0}),
+      stat(hp[2],{AB:4,R:1,H:2,'2B':0,HR:0,RBI:0,BB:0,SO:0,SB:1}),
+      stat(hp[3],{AB:4,R:0,H:1,'2B':0,HR:0,RBI:1,BB:0,SO:1,SB:0}),
+      stat(hp[4],{AB:4,R:2,H:2,'2B':0,HR:1,RBI:2,BB:0,SO:0,SB:0}),
+      stat(hp[5],{AB:3,R:0,H:0,'2B':0,HR:0,RBI:0,BB:1,SO:1,SB:0})
+    ];
+    const pitcher_rows=[
+      stat(ap[5],{OUTS:24,H:4,ER:1,BB:2,SO:7,W:0,L:0,SV:0}),
+      stat(ap[6],{OUTS:1,H:4,ER:4,BB:0,SO:1,W:0,L:1,SV:0}),
+      stat(hp[6],{OUTS:21,H:4,ER:2,BB:1,SO:6,W:0,L:0,SV:0}),
+      stat(hp[7],{OUTS:6,H:3,ER:2,BB:0,SO:2,W:1,L:0,SV:0})
+    ];
+    const fielding_rows=[
+      stat(hp[3],{position:'SS',PO:1,A:3,E:0}),
+      stat(hp[4],{position:'CF',PO:4,A:0,E:0}),
+      stat(hp[5],{position:'RF',PO:2,A:1,E:0}),
+      stat(ap[2],{position:'SS',PO:1,A:4,E:0}),
+      stat(ap[3],{position:'RF',PO:2,A:1,E:0}),
+      stat(ap[4],{position:'LF',PO:3,A:0,E:0})
+    ];
+    return {
+      __showcase:true,id:'EBL-SHOWCASE-RC136',season:N(LEAGUE?.season,1),league_day:0,status:'FINAL',
+      away_id:A,home_id:H,away_name:teamDisplay(away,'Showcase Visitors'),home_name:teamDisplay(home,'Showcase Home'),
+      away_runs:4,home_runs:5,
+      line_score:{away:{'1':1,'2':0,'3':1,'4':0,'5':0,'6':0,'7':0,'8':2,'9':0},home:{'1':0,'2':1,'3':0,'4':0,'5':0,'6':0,'7':0,'8':0,'9':4}},
+      totals:{away:{R:4,H:7,E:0},home:{R:5,H:8,E:0}},
+      box:{hitter_rows,pitcher_rows,fielding_rows},
+      events:E
+    };
+  }
+
+  window.launchGamecastShowcase=async function(){
+    if(!Array.isArray(LEAGUE?.teams)||LEAGUE.teams.length<2){
+      try{if(typeof loadLeague==='function')await loadLeague()}catch(_){}
+    }
+    const dlg=document.getElementById('gc');
+    if(!dlg)return;
+    window.__EBL_GG_BEFORE_SHOWCASE=GG;
+    GG=buildShowcaseGame();window.GG=GG;gi=0;clearInterval(timer);
+    dlg.classList.add('gcShowcaseModeGameday');
+    if(!dlg.dataset.showcaseRestore){
+      dlg.addEventListener('close',()=>{
+        dlg.classList.remove('gcShowcaseModeGameday');
+        if(GG?.__showcase){
+          GG=window.__EBL_GG_BEFORE_SHOWCASE||null;
+          window.GG=GG;
+        }
+      });
+      dlg.dataset.showcaseRestore='1';
+    }
+    renderGameShell();
+    const eyebrow=dlg.querySelector('.gcDayEyebrowGameday span');
+    if(eyebrow)eyebrow.innerHTML='EBL GAMEDAY <b class="gcShowcaseBadgeGameday">SHOWCASE</b>';
+    if(!dlg.open)dlg.showModal();
+  };
+  window.EBL_GAMECAST_SHOWCASE_BUILD=SHOWCASE_BUILD;
+})();

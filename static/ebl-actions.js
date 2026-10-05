@@ -49,6 +49,7 @@
     'gamecast-play':el=>gcPlayGameday(Number(el.dataset.speed||850)),
     'gamecast-seek-pa':el=>gcSeekPaGameday(Number(el.dataset.direction||1)),
     'gamecast-speed':el=>speed(Number(el.dataset.speed||300)),
+    'gamecast-showcase':()=>launchGamecastShowcase(),
     'open-profile-editor':()=>openProfileEditor(),
     'remove-profile-photo':()=>removeProfilePhoto(),
     'save-profile':()=>saveProfile(),
