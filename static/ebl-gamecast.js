@@ -1776,3 +1776,248 @@ window.EBL_GAMECAST_MOBILE_BUILD='RC143_MOBILE_BROADCAST_CLEANUP';
   };
   window.EBL_GAMECAST_BUILD=BUILD;
 })();
+
+
+/* EBL GAMECAST RC146 — information-first broadcast layout */
+(function(){
+  'use strict';
+  const BUILD='RC146_INFORMATION_FIRST_BROADCAST';
+  const N=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
+  const esc=v=>typeof escapeHtml==='function'?escapeHtml(String(v??'')):String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]||c));
+  const events=()=>Array.isArray(GG?.events)?GG.events:[];
+  const pById=id=>{try{return typeof gamecastPlayerById==='function'?gamecastPlayerById(id):null}catch(_){return null}};
+  const teamLabel=id=>{try{return teamName(id)||id||'Team'}catch(_){return id||'Team'}};
+  const priorRender=window.renderGamecast;
+  const priorStep=window.step;
+  const priorSeek=window.gcSeekEventGameday;
+  const priorSeekPa=window.gcSeekPaGameday;
+  const priorReplay=window.gcReplayGameday;
+
+  function blankHitter(row={}){
+    return {player_id:N(row.player_id??row.id),name:row.name||'Player',jersey_number:N(row.jersey_number,24),team_id:row.team_id||row.franchise_id||'',PA:0,AB:0,R:0,H:0,'1B':0,'2B':0,'3B':0,HR:0,RBI:0,BB:0,SO:0,SB:0,CS:0};
+  }
+  function liveBatting(){
+    const map=new Map();
+    for(const row of (GG?.box?.hitter_rows||[])) map.set(N(row.player_id??row.id),blankHitter(row));
+    for(const e of events().slice(0,Math.max(0,Math.min(events().length,N(gi))))){
+      if(!e)continue;
+      if(e.type==='PA_END'&&e.batter_id){
+        const id=N(e.batter_id),p=pById(id),s=map.get(id)||blankHitter({...p,player_id:id,team_id:p?.team_id||p?.franchise_id||e.team||''});
+        map.set(id,s);s.PA++;
+        const r=String(e.result||'').toUpperCase();
+        if(r==='BB'){s.BB++;}
+        else{s.AB++;if(['1B','2B','3B','HR'].includes(r)){s.H++;s[r]++;}if(['K','SO','STRIKEOUT'].includes(r))s.SO++;}
+      }
+      if(e.type==='RUN'){
+        if(e.runner_id){const id=N(e.runner_id),p=pById(id),s=map.get(id)||blankHitter({...p,player_id:id,team_id:p?.team_id||p?.franchise_id||e.team||''});map.set(id,s);s.R+=Math.max(1,N(e.runs,1));}
+        if(e.batter_id){const id=N(e.batter_id),p=pById(id),s=map.get(id)||blankHitter({...p,player_id:id,team_id:p?.team_id||p?.franchise_id||e.team||''});map.set(id,s);s.RBI+=Math.max(1,N(e.runs,1));}
+      }
+      if(e.type==='STEAL_ATTEMPT'&&e.runner_id){const id=N(e.runner_id),p=pById(id),s=map.get(id)||blankHitter({...p,player_id:id,team_id:p?.team_id||p?.franchise_id||e.team||''});map.set(id,s);if(e.success)s.SB++;else s.CS++;}
+    }
+    return [...map.values()];
+  }
+  function livePitcher(){
+    const pid=N(GC_STATE?.pitcher_id);if(!pid)return null;
+    const p=pById(pid)||{},s={player_id:pid,name:p.name||'Pitcher',jersey_number:N(p.jersey_number,24),OUTS:0,H:0,ER:0,BB:0,SO:0,P:0};
+    for(const e of events().slice(0,Math.max(0,Math.min(events().length,N(gi))))){
+      if(N(e?.pitcher_id)!==pid)continue;
+      if(e.type==='PITCH')s.P++;
+      if(e.type==='PA_END'){
+        const r=String(e.result||'').toUpperCase();if(['1B','2B','3B','HR'].includes(r))s.H++;if(r==='BB')s.BB++;if(['K','SO','STRIKEOUT'].includes(r))s.SO++;
+      }
+      if(e.type==='OUT')s.OUTS++;
+    }
+    return s;
+  }
+  function liveBoxRows(teamId){
+    const rows=liveBatting().filter(x=>String(x.team_id)===String(teamId));
+    return rows.map(s=>`<tr class="${N(s.player_id)===N(GC_STATE?.batter_id)?'active':''}"><td><span class="gcLiveBoxName146">#${N(s.jersey_number,24)} ${esc(s.name)}</span></td><td>${s.AB}</td><td>${s.R}</td><td>${s.H}</td><td>${s.RBI}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">No batting line yet.</td></tr>';
+  }
+  function renderLiveBox(){
+    const el=document.getElementById('gcLiveBox146');if(!el)return;
+    const a=GG?.away_id,h=GG?.home_id,p=livePitcher();
+    el.innerHTML=`<div class="gcInfoPanelHead146"><strong>LIVE BOX</strong><span>THROUGH ${esc(String(GC_STATE?.half||'TOP'))} ${N(GC_STATE?.inning,1)}</span></div>
+      <div class="gcLiveBoxTeam146"><div class="gcLiveBoxTeamHead146">${teamMark(a,true)}<b>${esc(teamLabel(a))}</b></div><div class="gcLiveBoxScroll146"><table><tr><th>BATTER</th><th>AB</th><th>R</th><th>H</th><th>RBI</th></tr>${liveBoxRows(a)}</table></div></div>
+      <div class="gcLiveBoxTeam146"><div class="gcLiveBoxTeamHead146">${teamMark(h,true)}<b>${esc(teamLabel(h))}</b></div><div class="gcLiveBoxScroll146"><table><tr><th>BATTER</th><th>AB</th><th>R</th><th>H</th><th>RBI</th></tr>${liveBoxRows(h)}</table></div></div>
+      ${p?`<div class="gcLivePitcher146"><span>ON THE MOUND</span><b>#${N(p.jersey_number,24)} ${esc(p.name)}</b><small>${Math.floor(p.OUTS/3)}.${p.OUTS%3} IP • ${p.P} P • ${p.SO} K • ${p.BB} BB</small></div>`:''}`;
+  }
+  function renderLiveLine(){
+    const el=document.getElementById('gcLiveLine146');if(!el)return;
+    const lim=Math.max(0,Math.min(events().length,N(gi))),a={},h={};
+    let maxInn=1;
+    for(const e of events().slice(0,lim)) if(e?.type==='RUN'&&e.inning){const inn=N(e.inning,1);maxInn=Math.max(maxInn,inn);const bucket=String(e.half||'TOP').toUpperCase()==='BOT'?h:a;bucket[inn]=(bucket[inn]||0)+Math.max(1,N(e.runs,1));}
+    const innings=Array.from({length:Math.max(9,maxInn)},(_,i)=>i+1);
+    const row=(id,bucket,score)=>`<tr><td>${teamMark(id,true)} <b>${esc(teamLabel(id))}</b></td>${innings.map(i=>`<td>${bucket[i]??0}</td>`).join('')}<td><b>${N(score)}</b></td></tr>`;
+    el.innerHTML=`<div class="gcLiveLineScroll146"><table><tr><th>TEAM</th>${innings.map(i=>`<th>${i}</th>`).join('')}<th>R</th></tr>${row(GG?.away_id,a,GC_STATE?.score?.[0])}${row(GG?.home_id,h,GC_STATE?.score?.[1])}</table></div>`;
+  }
+  function refreshInfo(){renderLiveBox();renderLiveLine();}
+  function wireTimeline(){
+    const range=document.getElementById('gcSimpleTimeline');if(!range)return;
+    range.addEventListener('input',()=>{clearInterval(timer);const lab=document.getElementById('gcSimpleTimelineLabel');if(lab)lab.textContent=`${range.value} / ${events().length}`});
+    range.addEventListener('change',()=>window.gcSeekEventGameday(N(range.value)));
+  }
+  function markup(){
+    return `<div class="gcInfoReplay146">
+      <div class="gcInfoPitchStrip146"><div class="gcInfoPanelHead146"><strong>PITCHES THIS AT-BAT</strong><span id="gcPitchCountGameday"></span></div><div id="gcSimplePitchList" class="gcSimplePitchList gcInfoPitchList146"><div class="gcSimpleEmpty">No pitches yet.</div></div></div>
+      <div class="gcInfoGrid146">
+        <aside class="gcInfoRail146">
+          <section class="gcInfoPanel146"><div class="gcInfoPanelHead146"><strong>WHAT HAPPENED</strong><span>PLAY-BY-PLAY</span></div><div id="gcSimpleFeed" class="gcSimpleFeed gcInfoFeed146"><div class="gcSimpleEmpty">Press Play to begin.</div></div></section>
+        </aside>
+        <main class="gcInfoCenter146">
+          <div id="gcSimpleMatchup" class="gcSimpleMatchup"><div class="gcAtBatEmpty145"><b>Waiting for next batter</b><span>Player card will appear here.</span></div></div>
+          <section class="gcInfoStage146">
+            <div class="gcInfoStageBackdrop146"><span>EBL GAMEDAY</span></div>
+            <div class="gcInfoZoneWrap146"><div class="gcSimpleLabel">PITCH LOCATION</div><div class="gcSimpleZone"><div class="gcSimpleZoneGrid"></div><div id="gcSimpleDots"></div></div></div>
+            <div id="gcSimpleCurrent" class="gcSimpleCurrent gcInfoCurrent146"><span class="gcSimpleKicker">GAMECAST</span><strong>Ready to replay</strong><small>Press Play to watch the game unfold.</small></div>
+            <div class="gcInfoResult146"><div class="gcSimpleLabel">PLAY RESULT</div><div class="gcInfoMiniDiamond146"><i></i><i></i><i></i><i></i></div><div id="gcSimpleFieldText" class="gcSimpleFieldText"><b>Waiting for contact</b><span>Result appears here.</span></div></div>
+          </section>
+          <div id="gcLiveLine146" class="gcLiveLine146"></div>
+          <div class="gcSimpleControls"><button class="gcMiniBtnGameday primary" data-ebl-action="gamecast-play" data-speed="900">▶ PLAY</button><button class="gcMiniBtnGameday" data-ebl-action="gamecast-pause">Ⅱ PAUSE</button><button class="gcMiniBtnGameday" data-ebl-action="gamecast-play" data-speed="320">FAST</button><button class="gcMiniBtnGameday" data-ebl-action="gamecast-instant">END</button><button class="gcMiniBtnGameday" data-ebl-action="gamecast-replay">↺ REPLAY</button></div>
+          <div class="gcSimpleTimelineWrap"><button class="gcTimelineBtnGameday" data-ebl-action="gamecast-seek-pa" data-direction="-1">‹ PA</button><input id="gcSimpleTimeline" type="range" min="0" max="${events().length}" value="0"><span id="gcSimpleTimelineLabel">0 / ${events().length}</span><button class="gcTimelineBtnGameday" data-ebl-action="gamecast-seek-pa" data-direction="1">PA ›</button></div>
+        </main>
+        <aside id="gcLiveBox146" class="gcInfoPanel146 gcInfoBox146"></aside>
+      </div>
+    </div>`;
+  }
+  window.renderGamecast=function(){
+    if(typeof priorRender==='function')priorRender.apply(this,arguments);
+    const host=document.getElementById('gameView');if(!host)return;
+    host.innerHTML=markup();wireTimeline();if(typeof gcUpdateScoreboard==='function')gcUpdateScoreboard();refreshInfo();
+  };
+  if(typeof priorStep==='function')window.step=function(){const r=priorStep.apply(this,arguments);refreshInfo();return r};
+  if(typeof priorSeek==='function')window.gcSeekEventGameday=function(v){const r=priorSeek.call(this,v);refreshInfo();return r};
+  if(typeof priorSeekPa==='function')window.gcSeekPaGameday=function(v){const r=priorSeekPa.call(this,v);setTimeout(refreshInfo,0);return r};
+  if(typeof priorReplay==='function')window.gcReplayGameday=function(){const r=priorReplay.apply(this,arguments);setTimeout(refreshInfo,0);return r};
+  window.EBL_GAMECAST_LAYOUT_BUILD=BUILD;
+})();
+
+
+/* EBL GAMECAST RC147 — broadcast board lock-in */
+(function(){
+  'use strict';
+  const BUILD='RC147_BROADCAST_BOARD_LOCKED';
+  const N=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
+  const esc=v=>typeof escapeHtml==='function'?escapeHtml(String(v??'')):String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]||c));
+  const evs=()=>Array.isArray(GG?.events)?GG.events:[];
+  const pById=id=>{try{return typeof gamecastPlayerById==='function'?gamecastPlayerById(id):null}catch(_){return null}};
+  const teamLabel=id=>{try{return teamName(id)||id||'Team'}catch(_){return id||'Team'}};
+  const priorRender=window.renderGamecast;
+  const priorStep=window.step;
+  const priorSeek=window.gcSeekEventGameday;
+  const priorSeekPa=window.gcSeekPaGameday;
+  const priorReplay=window.gcReplayGameday;
+
+  function pArt(p){
+    if(!p)return '';
+    try{if(typeof eblPlayerArt==='function')return eblPlayerArt(p,'sm','portrait')}catch(_){}
+    try{if(typeof playerPortraitMarkup==='function')return playerPortraitMarkup(p,'portrait')}catch(_){}
+    return '';
+  }
+  function offenseTeam(){return String(GC_STATE?.half||'TOP').toUpperCase()==='BOT'?GG?.home_id:GG?.away_id}
+  function defenseTeam(){return String(GC_STATE?.half||'TOP').toUpperCase()==='BOT'?GG?.away_id:GG?.home_id}
+  function nextBatters(){
+    const out=[];const seen=new Set();
+    for(let i=Math.max(0,N(typeof gi!=='undefined'?gi:0));i<evs().length&&out.length<2;i++){
+      const e=evs()[i];if(e?.type!=='PA_START'||!e.batter_id)continue;
+      const id=N(e.batter_id);if(seen.has(id)||id===N(GC_STATE?.batter_id))continue;
+      seen.add(id);out.push(pById(id)||{player_id:id,name:'Next hitter',jersey_number:24});
+    }
+    return out;
+  }
+  function liveBatters(){
+    const map=new Map();
+    for(const row of (GG?.box?.hitter_rows||[])){
+      const id=N(row.player_id??row.id);map.set(id,{player_id:id,name:row.name||'Player',jersey_number:N(row.jersey_number,24),team_id:row.team_id||row.franchise_id||'',AB:0,R:0,H:0,RBI:0,BB:0,SO:0});
+    }
+    const lim=Math.max(0,Math.min(evs().length,N(typeof gi!=='undefined'?gi:0)));
+    for(let i=0;i<lim;i++){
+      const e=evs()[i];if(!e)continue;
+      if(e.type==='PA_END'&&e.batter_id){
+        const id=N(e.batter_id),p=pById(id)||{},s=map.get(id)||{player_id:id,name:p.name||'Player',jersey_number:N(p.jersey_number,24),team_id:p.team_id||p.franchise_id||e.team||'',AB:0,R:0,H:0,RBI:0,BB:0,SO:0};map.set(id,s);
+        const r=String(e.result||'').toUpperCase();
+        if(r==='BB')s.BB++;else{s.AB++;if(['1B','2B','3B','HR'].includes(r))s.H++;if(['K','SO','STRIKEOUT'].includes(r))s.SO++;}
+      }
+      if(e.type==='RUN'){
+        if(e.runner_id){const id=N(e.runner_id),p=pById(id)||{},s=map.get(id)||{player_id:id,name:p.name||'Player',jersey_number:N(p.jersey_number,24),team_id:p.team_id||p.franchise_id||e.team||'',AB:0,R:0,H:0,RBI:0,BB:0,SO:0};map.set(id,s);s.R+=Math.max(1,N(e.runs,1));}
+        if(e.batter_id){const id=N(e.batter_id),p=pById(id)||{},s=map.get(id)||{player_id:id,name:p.name||'Player',jersey_number:N(p.jersey_number,24),team_id:p.team_id||p.franchise_id||e.team||'',AB:0,R:0,H:0,RBI:0,BB:0,SO:0};map.set(id,s);s.RBI+=Math.max(1,N(e.runs,1));}
+      }
+    }
+    return [...map.values()];
+  }
+  function livePitcher(pid=N(GC_STATE?.pitcher_id)){
+    if(!pid)return null;const p=pById(pid)||{},s={player_id:pid,name:p.name||'Pitcher',jersey_number:N(p.jersey_number,24),OUTS:0,H:0,BB:0,SO:0,P:0};
+    const lim=Math.max(0,Math.min(evs().length,N(typeof gi!=='undefined'?gi:0)));
+    for(let i=0;i<lim;i++){
+      const e=evs()[i];if(N(e?.pitcher_id)!==N(pid))continue;
+      if(e.type==='PITCH')s.P++;
+      if(e.type==='PA_END'){const r=String(e.result||'').toUpperCase();if(['1B','2B','3B','HR'].includes(r))s.H++;if(r==='BB')s.BB++;if(['K','SO','STRIKEOUT'].includes(r))s.SO++;}
+      if(e.type==='OUT')s.OUTS++;
+    }
+    return s;
+  }
+  function teamRows(teamId){
+    const rows=liveBatters().filter(x=>String(x.team_id)===String(teamId));
+    return rows.map(s=>`<tr class="${N(s.player_id)===N(GC_STATE?.batter_id)?'active':''}"><td><span class="gcBoxName147">#${N(s.jersey_number,24)} ${esc(s.name)}</span></td><td>${s.AB}</td><td>${s.R}</td><td>${s.H}</td><td>${s.RBI}</td><td>${s.BB}</td><td>${s.SO}</td></tr>`).join('')||'<tr><td colspan="7" class="muted">No batting line yet.</td></tr>';
+  }
+  function liveTotals(){
+    const lim=Math.max(0,Math.min(evs().length,N(typeof gi!=='undefined'?gi:0))),out={away:{R:0,H:0,E:0,innings:{}},home:{R:0,H:0,E:0,innings:{}}};
+    for(let i=0;i<lim;i++){
+      const e=evs()[i];if(!e)continue;const top=String(e.half||'TOP').toUpperCase()!=='BOT';const bat=top?out.away:out.home;
+      if(e.type==='RUN'){const n=Math.max(1,N(e.runs,1));bat.R+=n;if(e.inning)bat.innings[N(e.inning,1)]=(bat.innings[N(e.inning,1)]||0)+n;}
+      if(e.type==='PA_END'&&['1B','2B','3B','HR'].includes(String(e.result||'').toUpperCase()))bat.H++;
+      if(e.type==='FIELDING_ERROR'){
+        const def=top?out.home:out.away;def.E++;
+      }
+    }
+    return out;
+  }
+  function ensureUI(){
+    const replay=document.querySelector('.gcInfoReplay146');if(!replay)return;
+    replay.classList.add('gcBroadcastBoard147');
+    const pitchStrip=replay.querySelector('.gcInfoPitchStrip146');
+    if(pitchStrip&&!pitchStrip.querySelector('.gcPitchLegend147')){
+      const legend=document.createElement('div');legend.className='gcPitchLegend147';legend.innerHTML='<span><i class="ball"></i>Ball</span><span><i class="strike"></i>Strike</span><span><i class="foul"></i>Foul</span><span><i class="play"></i>In Play</span>';pitchStrip.appendChild(legend);
+    }
+    const match=document.getElementById('gcSimpleMatchup');
+    if(match&&!document.getElementById('gcDueUp147')){
+      const due=document.createElement('div');due.id='gcDueUp147';due.className='gcDueUp147';match.insertAdjacentElement('afterend',due);
+    }
+    const stage=document.querySelector('.gcInfoStage146');
+    if(stage&&!document.getElementById('gcPitcherCard147')){
+      const card=document.createElement('div');card.id='gcPitcherCard147';card.className='gcPitcherCard147';stage.appendChild(card);
+    }
+    const box=document.getElementById('gcLiveBox146');if(box)box.classList.add('gcLiveBox147');
+    const line=document.getElementById('gcLiveLine146');if(line)line.classList.add('gcLiveLine147');
+  }
+  function renderDueUp(){
+    const el=document.getElementById('gcDueUp147');if(!el)return;const q=nextBatters();
+    const cell=(p,label)=>p?`<div><span>${label}</span><b>#${N(p.jersey_number,24)} ${esc(p.name||'Player')}</b></div>`:`<div><span>${label}</span><b>—</b></div>`;
+    el.innerHTML=cell(q[0],'ON DECK')+cell(q[1],'IN THE HOLE');
+  }
+  function renderPitcherCard(){
+    const el=document.getElementById('gcPitcherCard147');if(!el)return;const pid=N(GC_STATE?.pitcher_id),p=pById(pid),s=livePitcher(pid);
+    if(!(p&&s)){el.innerHTML='<span>ON THE MOUND</span><b>Waiting for pitcher</b>';return}
+    el.innerHTML=`<div class="gcPitcherPortrait147">${pArt(p)}</div><div><span>ON THE MOUND</span><b>#${N(p.jersey_number,24)} ${esc(p.name||'Pitcher')}</b><small>${Math.floor(s.OUTS/3)}.${s.OUTS%3} IP • ${s.P} P • ${s.SO} K • ${s.BB} BB</small></div>`;
+  }
+  function renderBox(){
+    const el=document.getElementById('gcLiveBox146');if(!el)return;const a=GG?.away_id,h=GG?.home_id,p=livePitcher();
+    el.innerHTML=`<div class="gcInfoPanelHead146"><strong>LIVE BOX</strong><span>THROUGH ${esc(String(GC_STATE?.half||'TOP'))} ${N(GC_STATE?.inning,1)}</span></div>
+      <div class="gcLiveBoxTeam147 ${String(offenseTeam())===String(a)?'batting':''}"><div class="gcLiveBoxTeamHead146">${teamMark(a,true)}<b>${esc(teamLabel(a))}</b>${String(offenseTeam())===String(a)?'<span>AT BAT</span>':''}</div><div class="gcLiveBoxScroll147"><table><tr><th>BATTER</th><th>AB</th><th>R</th><th>H</th><th>RBI</th><th>BB</th><th>SO</th></tr>${teamRows(a)}</table></div></div>
+      <div class="gcLiveBoxTeam147 ${String(offenseTeam())===String(h)?'batting':''}"><div class="gcLiveBoxTeamHead146">${teamMark(h,true)}<b>${esc(teamLabel(h))}</b>${String(offenseTeam())===String(h)?'<span>AT BAT</span>':''}</div><div class="gcLiveBoxScroll147"><table><tr><th>BATTER</th><th>AB</th><th>R</th><th>H</th><th>RBI</th><th>BB</th><th>SO</th></tr>${teamRows(h)}</table></div></div>
+      ${p?`<div class="gcLivePitcher147"><span>ON THE MOUND</span><b>#${N(p.jersey_number,24)} ${esc(p.name)}</b><small>${Math.floor(p.OUTS/3)}.${p.OUTS%3} IP • ${p.P} P • ${p.H} H • ${p.SO} K • ${p.BB} BB</small></div>`:''}`;
+  }
+  function renderLine(){
+    const el=document.getElementById('gcLiveLine146');if(!el)return;const t=liveTotals(),maxInn=Math.max(9,N(GC_STATE?.inning,1));const inns=Array.from({length:maxInn},(_,i)=>i+1);
+    const row=(id,b)=>`<tr><td>${teamMark(id,true)} <b>${esc(teamLabel(id))}</b></td>${inns.map(i=>`<td>${b.innings[i]??0}</td>`).join('')}<td><b>${b.R}</b></td><td>${b.H}</td><td>${b.E}</td></tr>`;
+    el.innerHTML=`<div class="gcLiveLineScroll146"><table><tr><th>TEAM</th>${inns.map(i=>`<th>${i}</th>`).join('')}<th>R</th><th>H</th><th>E</th></tr>${row(GG?.away_id,t.away)}${row(GG?.home_id,t.home)}</table></div>`;
+  }
+  function refresh(){ensureUI();renderDueUp();renderPitcherCard();renderBox();renderLine();}
+
+  window.renderGamecast=function(){const r=typeof priorRender==='function'?priorRender.apply(this,arguments):undefined;setTimeout(refresh,0);return r};
+  if(typeof priorStep==='function')window.step=function(){const r=priorStep.apply(this,arguments);refresh();return r};
+  if(typeof priorSeek==='function')window.gcSeekEventGameday=function(v){const r=priorSeek.call(this,v);setTimeout(refresh,0);return r};
+  if(typeof priorSeekPa==='function')window.gcSeekPaGameday=function(v){const r=priorSeekPa.call(this,v);setTimeout(refresh,0);return r};
+  if(typeof priorReplay==='function')window.gcReplayGameday=function(){const r=priorReplay.apply(this,arguments);setTimeout(refresh,0);return r};
+  window.EBL_GAMECAST_LAYOUT_BUILD=BUILD;
+})();
+
