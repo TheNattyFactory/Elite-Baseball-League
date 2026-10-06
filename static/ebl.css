@@ -1848,3 +1848,120 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
    Sleeve patch images are intentionally suppressed on this small surface to avoid
    browser broken-image placeholder boxes while cap/jersey branding stays intact. */
 .profilePlayerPortrait [data-ebl-jersey-patches]{display:none!important}
+
+/* EBL GAMECAST RC140 — fielder routes, bang-bang races, celebration finish */
+.gcRC140Layer{position:absolute;inset:0;z-index:22;pointer-events:none;overflow:hidden;border-radius:inherit}
+.gcRC140Metric{position:absolute;right:12px;bottom:64px;min-width:150px;max-width:245px;padding:7px 10px;border:1px solid rgba(194,215,232,.24);border-radius:10px;background:linear-gradient(135deg,rgba(3,15,26,.96),rgba(10,37,60,.92));box-shadow:0 10px 28px #0008;opacity:0;transform:translateY(8px);transition:.18s;display:grid;grid-template-columns:auto auto;column-gap:8px;align-items:end}
+.gcRC140Metric.show{opacity:1;transform:translateY(0)}
+.gcRC140Metric span{font-size:8px;font-weight:1000;letter-spacing:.1em;color:#a9bfd1;grid-column:1/-1}
+.gcRC140Metric b{font-size:23px;line-height:1;color:#fff;font-weight:1000;letter-spacing:-.04em}
+.gcRC140Metric small{font-size:8px;line-height:1.25;color:#c7d5df;align-self:center}
+.gcRC140Metric.contact{border-color:rgba(217,175,55,.38)}
+.gcRC140Metric.contact span{color:#f0cf62}
+.gcRC140Callout{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%) scale(.88);padding:8px 13px;border-radius:999px;background:rgba(3,16,28,.92);border:1px solid rgba(255,255,255,.24);color:#fff;font-size:12px;font-weight:1000;letter-spacing:.08em;opacity:0;transition:.16s;white-space:nowrap;text-shadow:0 2px 8px #000}
+.gcRC140Callout.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.gcRC140Callout.safe{background:#0f6e44}.gcRC140Callout.out{background:#9c1f28}.gcRC140Callout.homer{background:#8b6510;border-color:#f2d36f}.gcRC140Callout.defense{background:#075a78}.gcRC140Callout.error{background:#8f3f18}
+.gcRC140Finish{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:radial-gradient(circle at 50% 46%,rgba(22,67,102,.45),rgba(0,0,0,.82));opacity:0;transform:scale(1.04);transition:.22s;z-index:40}
+.gcRC140Finish.show{opacity:1;transform:scale(1)}
+.gcRC140Finish span{font-size:11px;font-weight:1000;letter-spacing:.22em;color:#f0cf62}
+.gcRC140Finish strong{display:block;margin-top:4px;font-size:clamp(30px,7vw,58px);line-height:.9;color:#fff;font-weight:1000;letter-spacing:-.045em;text-shadow:0 6px 24px #000}
+.gcRC140Finish b{font-size:22px;margin-top:10px;color:#fff}.gcRC140Finish small{font-size:10px;margin-top:7px;color:#b9cbd8;font-weight:900;letter-spacing:.08em}
+.gcRC140Finish.walkoff{background:radial-gradient(circle at 50% 46%,rgba(139,101,16,.5),rgba(0,0,0,.84))}
+.gcRC140Finish.walkoff span{font-size:13px;color:#ffe37d}.gcRC140Finish.walkoff strong{animation:gcWalkoffPulse140 .65s ease-in-out 3}
+@keyframes gcWalkoffPulse140{0%,100%{transform:scale(1)}50%{transform:scale(1.045);text-shadow:0 0 24px rgba(255,226,121,.5),0 7px 24px #000}}
+.gcRC140Particles{position:absolute;inset:0;overflow:hidden;opacity:0;z-index:35}
+.gcRC140Particles.burst{opacity:1}
+.gcRC140Particles i{position:absolute;left:var(--x);top:-8%;width:7px;height:15px;border-radius:2px;background:#d4af37;transform:rotate(var(--r));animation:gcParticleFall140 var(--d) ease-in forwards}
+.gcRC140Particles i:nth-child(3n){background:#fff}.gcRC140Particles i:nth-child(3n+1){background:#d7262e}.gcRC140Particles.walkoff i{height:18px;box-shadow:0 0 6px #fff8}
+@keyframes gcParticleFall140{0%{transform:translateY(-10px) rotate(var(--r));opacity:0}10%{opacity:1}100%{transform:translateY(430px) translateX(28px) rotate(540deg);opacity:.15}}
+.gcVisualStageGameday.gcRC140Homer{animation:gcHomerStage140 .42s ease-in-out 4}
+@keyframes gcHomerStage140{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3) saturate(1.18)}}
+.gcFielderRouteRC140{fill:none;stroke:#8fe4ff;stroke-width:3;stroke-linecap:round;stroke-dasharray:6 6;opacity:0;filter:drop-shadow(0 0 4px rgba(143,228,255,.7));transition:.12s}
+.gcFielderRouteRC140.show{opacity:.78}
+.gcFielderMotionRC140,.gcRaceRunnerRC140,.gcRaceTagRC140{opacity:0;pointer-events:none}
+.gcFielderMotionRC140.show,.gcRaceRunnerRC140.show,.gcRaceTagRC140.show{opacity:1}
+.gcFielderMotionRC140>circle:first-child{fill:#0c2941;stroke:#9fe8ff;stroke-width:4;filter:drop-shadow(0 0 7px rgba(99,196,235,.8))}
+.gcFielderMotionRC140 .trail{fill:none;stroke:#8fe4ff;stroke-width:3;opacity:.32;animation:gcRoutePulse140 .38s ease-in-out infinite alternate}
+.gcFielderMotionRC140 text{fill:#fff;font-size:10px;font-weight:1000}
+.gcFielderMotionRC140.dive{transform-origin:center}.gcFielderMotionRC140.dive>circle:first-child{rx:22;fill:#11486d}
+.gcRaceRunnerRC140>circle:first-child{fill:#d4af37;stroke:#fff3b5;stroke-width:3;filter:drop-shadow(0 0 6px rgba(212,175,55,.85))}
+.gcRaceRunnerRC140 .trail{fill:none;stroke:#ffe582;stroke-width:3;opacity:.35;animation:gcRoutePulse140 .32s ease-in-out infinite alternate}
+.gcRaceRunnerRC140 text{fill:#071522;font-size:10px;font-weight:1000}
+.gcRaceTagRC140 rect{fill:#0e2134;stroke:#fff;stroke-width:2}.gcRaceTagRC140 text{fill:#fff;font-size:10px;font-weight:1000;letter-spacing:.06em}
+.gcRaceTagRC140.safe rect{fill:#0f6e44;stroke:#8ff0bd}.gcRaceTagRC140.out rect{fill:#9c1f28;stroke:#ffb1b7}
+.gcFielderGameday.rc140MovingOrigin{opacity:.18}
+@keyframes gcRoutePulse140{from{opacity:.16;stroke-width:2}to{opacity:.7;stroke-width:5}}
+@media(max-width:680px){.gcRC140Metric{right:8px;bottom:58px;min-width:132px;max-width:205px;padding:6px 8px}.gcRC140Metric b{font-size:19px}.gcRC140Callout{top:50%;font-size:10px;padding:7px 10px}.gcRC140Finish strong{font-size:34px}.gcRC140Finish b{font-size:18px}}
+@media(max-width:430px){.gcRC140Metric{left:8px;right:8px;bottom:57px;max-width:none;grid-template-columns:auto 1fr}.gcRC140Metric b{font-size:17px}.gcRC140Metric small{text-align:right}.gcRC140Finish strong{font-size:29px}.gcRC140Finish span{font-size:9px}}
+.gcRelayPathRC140{fill:none;stroke:#fff4b5;stroke-width:4;stroke-linecap:round;stroke-dasharray:8 5;opacity:0;filter:drop-shadow(0 0 5px rgba(255,229,130,.75))}
+.gcRelayPathRC140.show{opacity:.9}
+.gcRelayBallRC140{fill:#fff;stroke:#071522;stroke-width:2;opacity:0;filter:drop-shadow(0 0 6px #fff)}
+.gcRelayBallRC140.show{opacity:1}
+.gcCutoffRC140{opacity:0}.gcCutoffRC140.show{opacity:1}
+.gcCutoffRC140 circle{fill:#0b2338;stroke:#ffe582;stroke-width:3;filter:drop-shadow(0 0 5px rgba(255,229,130,.65))}
+.gcCutoffRC140 text{fill:#fff;font-size:7px;font-weight:1000;letter-spacing:.04em}
+
+/* EBL GAMECAST RC141 — broadcast director, key moments, pitch trails, game flow */
+.gcCameraBug141{position:absolute;right:10px;top:42px;z-index:24;display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:999px;background:rgba(3,15,26,.72);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(4px);font-size:8px;font-weight:950;letter-spacing:.09em;pointer-events:none;opacity:.72}
+.gcCameraBug141 span{color:#8298aa}.gcCameraBug141 b{color:#fff}
+.gcVisualStageGameday.gcCamPitch141 .gcZoneRigGameday{transform:translateZ(0) scale(1.015)}
+.gcVisualStageGameday.gcCamField141 .gcFieldReplayGameday{animation:gcFieldCamera141 .5s cubic-bezier(.22,.7,.28,1) both}
+.gcVisualStageGameday.gcCamBases141 .gcFieldReplayGameday{animation:gcBaseCamera141 .55s cubic-bezier(.22,.7,.28,1) both}
+.gcVisualStageGameday.gcCamMoment141{animation:gcMomentCamera141 .48s ease both}
+@keyframes gcFieldCamera141{0%{transform:scale(1.055);filter:brightness(.92)}100%{transform:scale(1);filter:brightness(1)}}
+@keyframes gcBaseCamera141{0%{transform:scale(1.08) translateY(5px)}100%{transform:scale(1) translateY(0)}}
+@keyframes gcMomentCamera141{0%{filter:brightness(1)}45%{filter:brightness(1.18) saturate(1.08)}100%{filter:brightness(1)}}
+.gcPitchTrail141{position:absolute;inset:-12% 0 0;z-index:2;width:100%;height:112%;overflow:visible;pointer-events:none}
+.gcPitchTrailPath141{fill:none;stroke:#eef8ff;stroke-width:1.85;stroke-linecap:round;opacity:.86;filter:drop-shadow(0 0 3px rgba(150,220,255,.72));transition:stroke-dashoffset .52s cubic-bezier(.2,.7,.2,1),opacity .25s}
+.gcPitchTrailPath141.old{opacity:.16;stroke-width:1.1}
+.gcMomentStrip141{margin-top:8px;padding:8px 9px 9px;border:1px solid rgba(113,145,173,.18);border-radius:12px;background:rgba(3,14,25,.52)}
+.gcMomentHead141{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.gcMomentHead141 strong{font-size:9px;letter-spacing:.1em;color:#9fb4c5}.gcMomentHead141>div{display:flex;gap:4px}
+.gcMomentNav141{width:26px;height:24px;padding:0;border:1px solid #35526b;border-radius:7px;background:#0b2238;color:#fff;font-weight:950;cursor:pointer}
+.gcMomentNav141:hover{border-color:#d9e0e8}
+.gcMomentRail141{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.gcMomentChip141{flex:0 0 auto;display:grid;gap:1px;min-width:86px;padding:6px 8px;text-align:left;border:1px solid #29465f;border-radius:9px;background:#0a1d31;color:#fff;cursor:pointer;transition:.16s}
+.gcMomentChip141:hover,.gcMomentChip141.active{transform:translateY(-1px);border-color:#d9e0e8;box-shadow:0 5px 15px #0005}
+.gcMomentChip141 span{font-size:9px;font-weight:1000;letter-spacing:.035em}.gcMomentChip141 small{font-size:7.5px;color:#94a9ba;white-space:nowrap}
+.gcMomentChip141.hr,.gcMomentChip141.run{border-left:3px solid #d4af37}.gcMomentChip141.defense{border-left:3px solid #69b7df}.gcMomentChip141.error{border-left:3px solid #dc7047}.gcMomentChip141.steal{border-left:3px solid #56ca91}.gcMomentChip141.pitching{border-left:3px solid #a593e0}.gcMomentChip141.strikeout{border-left:3px solid #e56b75}
+.gcMomentEmpty141{font-size:9px;color:#8296a8;padding:4px 2px}
+.gcPitchMix141{margin-top:9px;padding:9px 10px;border:1px solid rgba(113,145,173,.2);border-radius:12px;background:rgba(4,17,29,.52)}
+.gcPitchMixName141{display:flex;justify-content:space-between;gap:8px;margin:4px 0 7px;font-size:10px;font-weight:900}.gcPitchMixName141 span{color:#91a5b7;font-size:9px}
+.gcPitchMixRow141{display:grid;grid-template-columns:24px minmax(48px,1fr) minmax(56px,.9fr) auto;gap:6px;align-items:center;padding:4px 0;border-top:1px solid rgba(113,145,173,.1)}
+.gcPitchMixRow141 b{font-size:9px;color:#fff}.gcPitchMixRow141 span{font-size:8px;color:#a6b7c5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcPitchMixRow141 i{height:5px;border-radius:99px;background:#10283f;overflow:hidden;position:relative}.gcPitchMixRow141 i:after{content:"";position:absolute;inset:0 auto 0 0;width:var(--w);border-radius:99px;background:linear-gradient(90deg,#5d8eb8,#d9e0e8)}
+.gcPitchMixRow141 small{font-size:7.5px;color:#7f95a7;white-space:nowrap}
+.gcSummary141{overflow:hidden}.gcFlow141{margin-top:8px;padding:10px;border:1px solid rgba(113,145,173,.15);border-radius:12px;background:#071827}
+.gcFlowLegend141{display:flex;gap:14px;margin-bottom:6px;font-size:9px;font-weight:900}.gcFlowLegend141 span:before{content:"";display:inline-block;width:15px;height:3px;margin-right:5px;vertical-align:middle;border-radius:99px}.gcFlowLegend141 .away:before{background:#d9e0e8}.gcFlowLegend141 .home:before{background:#d7262e}
+.gcFlow141 svg{display:block;width:100%;height:180px;overflow:visible}.gcFlow141 svg .grid line{stroke:#294257;stroke-width:1;vector-effect:non-scaling-stroke}.gcFlow141 svg path{fill:none;stroke-width:4;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}.gcFlow141 svg path.away{stroke:#d9e0e8}.gcFlow141 svg path.home{stroke:#d7262e}.gcFlow141 .awayMarks circle{fill:#d9e0e8}.gcFlow141 .homeMarks circle{fill:#d7262e}
+.gcFlowLabels141{display:flex;gap:6px;overflow:auto;margin-top:4px}.gcFlowLabels141 span{flex:0 0 auto;min-width:72px;padding:5px 7px;border-radius:8px;background:#0b2136;color:#8fa5b6;font-size:7.5px}.gcFlowLabels141 b{display:block;margin-top:2px;color:#fff;font-size:10px}
+.gcSummarySplit141{display:grid;grid-template-columns:.8fr 1.2fr;gap:12px;margin-top:12px}.gcSummarySplit141>div{padding:10px;border:1px solid rgba(113,145,173,.15);border-radius:11px;background:rgba(4,17,29,.48)}
+.gcSummaryLabel141{display:block;margin-bottom:6px;color:#8ea4b6;font-size:8px;font-weight:1000;letter-spacing:.11em}.gcSummarySplit141 b,.gcSummarySplit141 small{display:block}.gcSummarySplit141 small{margin-top:4px;color:#98adbd;font-size:9px}
+.gcSummaryMoments141{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.gcSummaryMoments141 button{padding:7px 8px;text-align:left;border:1px solid #29465f;border-radius:8px;background:#0a2035;color:#fff;cursor:pointer}.gcSummaryMoments141 button:hover{border-color:#d9e0e8}.gcSummaryMoments141 button b{font-size:8.5px}.gcSummaryMoments141 button small{font-size:7px;margin-top:2px}
+@media(max-width:680px){.gcCameraBug141{top:38px;right:7px}.gcMomentChip141{min-width:78px;padding:6px 7px}.gcPitchMixRow141{grid-template-columns:22px minmax(42px,1fr) 52px auto}.gcFlow141 svg{height:150px}.gcSummarySplit141{grid-template-columns:1fr}.gcSummaryMoments141{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){.gcCameraBug141{display:none}.gcPitchMixRow141{grid-template-columns:22px 1fr auto}.gcPitchMixRow141 i{display:none}.gcSummaryMoments141{grid-template-columns:1fr}.gcFlow141 svg{height:130px}}
+
+/* EBL GAMECAST RC142 — defensive playbook & batted-ball identity */
+.gcRC142Active #gcTrajGameday,.gcRC142Active #gcFieldBallGameday{opacity:0!important}
+.gcFlightPath142{fill:none;stroke:#f7f9fc;stroke-width:3;stroke-linecap:round;stroke-dasharray:9 7;opacity:0;filter:drop-shadow(0 0 4px #fff6);transition:opacity .15s}
+.gcFlightPath142.show{opacity:.92;animation:gcTrail142 .7s linear infinite}.gcFlightPath142.grounder{stroke:#f0d1a2;stroke-dasharray:5 5}.gcFlightPath142.liner{stroke:#93ddff;stroke-dasharray:12 5}.gcFlightPath142.fly{stroke:#fff}.gcFlightPath142.homer{stroke:#ffd45f;stroke-width:4;filter:drop-shadow(0 0 7px #d4af37)}
+.gcFlightBall142{fill:#fff;stroke:#d7262e;stroke-width:1.2;opacity:0;filter:url(#gcGlow142)}.gcFlightBall142.show{opacity:1}.gcFlightBall142.homer{fill:#fff4b2;stroke:#d4af37}
+@keyframes gcTrail142{to{stroke-dashoffset:-32}}
+.gcCatchTarget142{opacity:0;pointer-events:none}.gcCatchTarget142 circle:first-child{fill:none;stroke:#68d9ff;stroke-width:3}.gcCatchTarget142 circle:nth-child(2){fill:#0b2034;stroke:#fff;stroke-width:2}.gcCatchTarget142 text{fill:#fff;font-size:8px;font-weight:1000;letter-spacing:.03em}.gcCatchTarget142.show{opacity:1;animation:gcCatchPop142 1.05s ease both}.gcCatchTarget142.great circle:first-child{stroke:#d4af37;stroke-width:5}.gcCatchTarget142.great text{fill:#ffe783}
+@keyframes gcCatchPop142{0%{opacity:0;transform:scale(.55)}22%{opacity:1}60%{opacity:1}100%{opacity:0;transform:scale(1.45)}}
+.gcMissFielder142,.gcCollisionFielder142{opacity:0}.gcMissFielder142 circle,.gcCollisionFielder142 circle{fill:#102b48;stroke:#fff;stroke-width:2}.gcMissFielder142 text,.gcCollisionFielder142 text{fill:#fff;font-size:9px;font-weight:1000}.gcMissFielder142.show,.gcCollisionFielder142.show{opacity:1}.gcMissFielder142.miss circle{stroke:#efc35d}.gcMissFielder142.error circle{stroke:#ef6a70;animation:gcBobble142 .18s linear 4}.gcMissFielder142.collision circle,.gcCollisionFielder142.collision circle{stroke:#ef6a70;filter:drop-shadow(0 0 7px #ef6a70aa)}
+@keyframes gcBobble142{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+.gcErrorThrowPath142{fill:none;stroke:#ef6a70;stroke-width:3;stroke-dasharray:6 5;opacity:0}.gcErrorThrowPath142.show{opacity:1}.gcErrorThrowBall142{fill:#fff;stroke:#ef6a70;stroke-width:2;opacity:0}.gcErrorThrowBall142.show{opacity:1}
+.gcPlayRead142{position:absolute;right:10px;top:43px;z-index:9;width:min(230px,45%);padding:8px 10px;border:1px solid rgba(255,255,255,.18);border-radius:11px;background:rgba(3,14,25,.84);box-shadow:0 8px 22px #0007;pointer-events:none}.gcPlayRead142 span,.gcPlayRead142 b,.gcPlayRead142 small{display:block}.gcPlayRead142 span{font-size:8px;font-weight:950;letter-spacing:.12em;color:#86d8ff}.gcPlayRead142 b{font-size:12px;margin-top:2px}.gcPlayRead142 small{font-size:9px;color:#b9c8d5;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcDefenseRead142{margin-top:9px;padding:9px 10px;border:1px solid rgba(113,145,173,.2);border-radius:12px;background:rgba(4,17,29,.58)}.gcDefenseRead142>b,.gcDefenseRead142>small{display:block}.gcDefenseRead142>small{margin-top:3px;color:#92a8ba;font-size:9px}.gcDefenseMain142{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px;align-items:center}.gcDefenseMain142>strong{display:grid;place-items:center;min-width:48px;min-height:38px;padding:5px 8px;border-radius:9px;background:#d9e0e8;color:#071522;font-size:12px;font-weight:1000}.gcDefenseMain142 b,.gcDefenseMain142 small{display:block}.gcDefenseMain142 small{font-size:9px;color:#9fb2c3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gcDefenseSummary142 h3{margin-bottom:10px}.gcDefenseHighlights142{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}.gcDefenseHighlights142 button{display:grid;gap:2px;text-align:left;border:1px solid rgba(113,145,173,.22);border-radius:11px;background:#081b2e;color:#fff;padding:9px 10px;cursor:pointer}.gcDefenseHighlights142 button:hover{border-color:#d4af37;transform:translateY(-1px)}.gcDefenseHighlights142 span{font-size:8px;letter-spacing:.09em;color:#92a8ba;font-weight:900}.gcDefenseHighlights142 b{font-size:11px}.gcDefenseHighlights142 small{font-size:9px;color:#b5c3cf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:680px){.gcPlayRead142{right:7px;top:38px;width:min(210px,58%);padding:7px 8px}.gcPlayRead142 b{font-size:10px}.gcPlayRead142 small{font-size:8px}.gcDefenseHighlights142{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){.gcPlayRead142{top:auto;bottom:54px;left:7px;right:7px;width:auto}.gcDefenseHighlights142{grid-template-columns:1fr}}
+.gcVisualStageGameday.gcPlayGrounder142 .gcFieldReplayGameday{animation:gcGroundCam142 .62s cubic-bezier(.2,.74,.22,1) both}
+.gcVisualStageGameday.gcPlayLiner142 .gcFieldReplayGameday{animation:gcLineCam142 .48s cubic-bezier(.2,.74,.22,1) both}
+.gcVisualStageGameday.gcPlayFly142 .gcFieldReplayGameday{animation:gcFlyCam142 .82s cubic-bezier(.2,.74,.22,1) both}
+.gcVisualStageGameday.gcPlayHomer142 .gcFieldReplayGameday{animation:gcHomerCam142 1.15s cubic-bezier(.2,.74,.22,1) both}
+@keyframes gcGroundCam142{0%{transform:scale(1.12) translateY(10px);filter:brightness(.9)}100%{transform:scale(1) translateY(0);filter:brightness(1)}}
+@keyframes gcLineCam142{0%{transform:scale(1.065);filter:contrast(1.07)}100%{transform:scale(1);filter:contrast(1)}}
+@keyframes gcFlyCam142{0%{transform:scale(.95) translateY(-7px);filter:brightness(1.05)}100%{transform:scale(1) translateY(0);filter:brightness(1)}}
+@keyframes gcHomerCam142{0%{transform:scale(.93) translateY(-10px);filter:brightness(1.08) saturate(1.08)}62%{transform:scale(.97) translateY(-4px);filter:brightness(1.12) saturate(1.12)}100%{transform:scale(1) translateY(0);filter:brightness(1)}}
