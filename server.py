@@ -37,6 +37,30 @@ from ebl_roster import (
     roster_offer_slot, human_roster_count, roster_capacity_state,
 )
 from ebl_db import conn
+from ebl_league import (
+    MIN_ACTIVE_TEAMS,
+    _season_number, _division_labels, ensure_season_membership, active_franchise_ids,
+    set_season_membership, season_division,
+    _team_regular_games_before, _team_postseason_games_before,
+    generate_season_schedule, ensure_current_full_league_schedule_format,
+    division_for, team_name, playoff_teams,
+    playoff_series_games, playoff_series_winner, schedule_series_game,
+    playoff_series_summary, playoff_bracket,
+)
+from ebl_season import SeasonAdvanceError, advance_to_next_season
+from ebl_matchups import cpu_handedness, effective_rating, platoon_adjustments
+from ebl_stadiums import (
+    effective_season_for_edit, park_adjustment, profile_catalog, set_stadium_configuration,
+    stadium_edit_open, stadium_state,
+)
+from ebl_repertoire import (
+    apply_pitch_nudges, best_fit_repertoire, ensure_pitcher_repertoires, learn_pitch,
+    pitch_context, repertoire_state, set_starting_repertoire, validate_repertoire,
+)
+from ebl_chemistry import (
+    battery_bonus, finalize_relationship_season, infield_receive_bonus,
+    player_relationships as chemistry_relationships, record_game_usage,
+)
 
 # Domain modules keep stable rules out of the HTTP entry point.
 
@@ -139,6 +163,28 @@ def cpu_build(attr_names, role, rng):
         pick=rng.choices(keys,weights=[weights[a] for a in keys],k=1)[0]
         vals[pick]+=1
     return vals
+
+
+def normalize_active_cpu_handedness(c):
+    """Keep Genesis CPU filler from creating a league-wide right-handed bias."""
+    rows=c.execute(
+        """SELECT rs.franchise_id,rs.slot_no,p.id,p.type
+             FROM roster_slots rs
+             JOIN players p ON p.id=rs.player_id
+            WHERE p.user_id IS NULL AND p.active=1
+            ORDER BY rs.franchise_id,rs.slot_no"""
+    ).fetchall()
+    changed=0
+    for row in rows:
+        slot_no=int(row["slot_no"] or 1)
+        local_index=(slot_no-1) if row["type"]=="H" else max(0,slot_no-10)
+        hands=cpu_handedness(row["franchise_id"],local_index,row["type"])
+        cur=c.execute("SELECT bats,throws FROM players WHERE id=?",(int(row["id"]),)).fetchone()
+        if cur and (cur["bats"]!=hands["bats"] or cur["throws"]!=hands["throws"]):
+            c.execute("UPDATE players SET bats=?,throws=? WHERE id=?",
+                      (hands["bats"],hands["throws"],int(row["id"])))
+            changed+=1
+    return changed
 
 
 
@@ -574,6 +620,50 @@ def init_db():
 
 
 
+
+    CREATE TABLE IF NOT EXISTS franchise_stadiums(
+      franchise_id TEXT PRIMARY KEY,
+      stadium_name TEXT NOT NULL DEFAULT '',
+      park_profile TEXT NOT NULL DEFAULT 'NEUTRAL',
+      effective_season INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS pitcher_repertoires(
+      player_id INTEGER PRIMARY KEY,
+      pitches_json TEXT NOT NULL DEFAULT '[]',
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS relationship_season_usage(
+      season INTEGER NOT NULL,
+      pair_type TEXT NOT NULL,
+      player_a_id INTEGER NOT NULL,
+      player_b_id INTEGER NOT NULL,
+      games INTEGER NOT NULL DEFAULT 0,
+      starts INTEGER NOT NULL DEFAULT 0,
+      outs INTEGER NOT NULL DEFAULT 0,
+      qualified INTEGER NOT NULL DEFAULT 0,
+      consecutive_after INTEGER NOT NULL DEFAULT 0,
+      bonus_after REAL NOT NULL DEFAULT 0,
+      PRIMARY KEY(season,pair_type,player_a_id,player_b_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS player_relationships(
+      pair_type TEXT NOT NULL,
+      player_a_id INTEGER NOT NULL,
+      player_b_id INTEGER NOT NULL,
+      consecutive_seasons INTEGER NOT NULL DEFAULT 0,
+      total_qualified_seasons INTEGER NOT NULL DEFAULT 0,
+      last_qualified_season INTEGER,
+      bonus REAL NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY(pair_type,player_a_id,player_b_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_relationship_usage_a ON relationship_season_usage(player_a_id,season,pair_type);
+    CREATE INDEX IF NOT EXISTS idx_relationship_usage_b ON relationship_season_usage(player_b_id,season,pair_type);
+    CREATE INDEX IF NOT EXISTS idx_player_relationships_a ON player_relationships(player_a_id,pair_type);
+    CREATE INDEX IF NOT EXISTS idx_player_relationships_b ON player_relationships(player_b_id,pair_type);
 
     CREATE TABLE IF NOT EXISTS franchise_identity_history(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1847,15 +1937,17 @@ def init_db():
             positions=["C","1B","2B","3B","SS","LF","CF","RF","DH"]
             for idx,pos in enumerate(positions,1):
                 attrs=cpu_build(HITTER_ATTRS,pos,R)
+                hands=cpu_handedness(fid,idx-1,"H")
                 cur=c.execute("""INSERT INTO players(user_id,franchise_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active)
                                  VALUES(NULL,?,?,?,?,?,?,?,0,?,?,'SIGNED',1)""",
-                              (fid,f"{FIRST_NAMES[((ti-1)*25+idx-1)%len(FIRST_NAMES)]} {LAST_NAMES[((ti-1)*25+idx*3)%len(LAST_NAMES)]}","H",pos,position_group_for_pos(pos),"R","R",json.dumps(attrs),json.dumps(hseason)))
+                              (fid,f"{FIRST_NAMES[((ti-1)*25+idx-1)%len(FIRST_NAMES)]} {LAST_NAMES[((ti-1)*25+idx*3)%len(LAST_NAMES)]}","H",pos,position_group_for_pos(pos),hands["bats"],hands["throws"],json.dumps(attrs),json.dumps(hseason)))
                 hids.append(cur.lastrowid)
             for idx,role in enumerate(["SP","SP","SP","SP","MR","SU","CL"],1):
                 attrs=cpu_build(PITCHER_ATTRS,role,R)
+                hands=cpu_handedness(fid,idx-1,"P")
                 cur=c.execute("""INSERT INTO players(user_id,franchise_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active)
                                  VALUES(NULL,?,?,?,?,?,?,?,0,?,?,'SIGNED',1)""",
-                              (fid,f"{FIRST_NAMES[((ti-1)*25+13+idx-1)%len(FIRST_NAMES)]} {LAST_NAMES[((ti-1)*25+39+idx*5)%len(LAST_NAMES)]}","P",role,position_group_for_pos(role),"R","R",json.dumps(attrs),json.dumps(pseason)))
+                              (fid,f"{FIRST_NAMES[((ti-1)*25+13+idx-1)%len(FIRST_NAMES)]} {LAST_NAMES[((ti-1)*25+39+idx*5)%len(LAST_NAMES)]}","P",role,position_group_for_pos(role),hands["bats"],hands["throws"],json.dumps(attrs),json.dumps(pseason)))
                 pids.append(cur.lastrowid)
             c.execute("UPDATE lineups SET batting_order_json=?,rotation_json=? WHERE franchise_id=?",(json.dumps(auto_batting_order(c,hids[:9])),json.dumps(pids[:4]),fid))
 
@@ -1950,6 +2042,18 @@ def init_db():
 
 
 
+    # Every franchise owns one configurable home park. The default is neutral;
+    # park factors never scale with stadium_level and never mutate player ratings.
+    c.execute("""INSERT OR IGNORE INTO franchise_stadiums(franchise_id)
+                 SELECT id FROM franchises""")
+
+    # Repertoire is durable pitcher identity. Existing pitchers are backfilled from
+    # their current build so a movement/break specialist is not handed an arbitrary
+    # velocity-heavy arsenal during migration.
+    repertoire_backfill=ensure_pitcher_repertoires(c)
+    if repertoire_backfill:
+        print(f"Pitch repertoires backfilled: pitchers={repertoire_backfill}",flush=True)
+
     # Give the earliest verified player accounts their Genesis Supporter promo rank.
     # This is entitlement-only: it does not grant XP, ratings, salary, roster priority,
     # or the permanent paid Founding Supporter marker.
@@ -1957,6 +2061,18 @@ def init_db():
 
     # Normalize existing leagues to the current active-roster shape on startup.
     enforce_active_rosters(c)
+    cpu_hands_changed=normalize_active_cpu_handedness(c)
+    if cpu_hands_changed:
+        print(f"CPU handedness normalized: players={cpu_hands_changed}",flush=True)
+
+    # Owner-approved schedule migration. An already-generated full Genesis schedule
+    # upgrades automatically only while it is still truly unplayed (Day 0, zero finals).
+    # Once history exists, the schedule is immutable and the new format begins with
+    # the next generated season/reset instead.
+    schedule_upgrade=ensure_current_full_league_schedule_format(c,current_season)
+    if schedule_upgrade.get("changed"):
+        print(f"Schedule format upgraded: season={current_season} format=two_league_36_30_15_v1 games={schedule_upgrade.get('games_created',0)}",flush=True)
+
     c.commit();c.close()
 
 
@@ -2853,7 +2969,6 @@ def process_season_awards(c,season):
 
 
 
-MIN_ACTIVE_TEAMS=8
 
 
 
@@ -2862,9 +2977,6 @@ MIN_ACTIVE_TEAMS=8
 
 
 
-def _season_number(c):
-    row=c.execute("SELECT v FROM league_state WHERE k='season'").fetchone()
-    return int(row["v"]) if row else 1
 
 
 
@@ -2873,14 +2985,6 @@ def _season_number(c):
 
 
 
-def _division_labels(team_count):
-    if team_count<=10:
-        return ["Heritage","Pioneer"]
-    if team_count<=16:
-        return ["Heritage","Liberty","Frontier","Pioneer"]
-    if team_count<=24:
-        return ["Heritage","Liberty","Union","Frontier"]
-    return list(DIVISIONS)
 
 
 
@@ -2889,13 +2993,6 @@ def _division_labels(team_count):
 
 
 
-def ensure_season_membership(c,season):
-    existing=c.execute(
-        "SELECT COUNT(*) n FROM franchise_seasons WHERE season=?",
-        (season,)
-    ).fetchone()["n"]
-    if existing:
-        return
 
 
 
@@ -2904,36 +3001,6 @@ def ensure_season_membership(c,season):
 
 
 
-    # Preserve an already-built season by activating every franchise that
-    # actually appears on that season's schedule. Fresh seasons start with
-    # the Original Eight.
-    participants=[
-        r["franchise_id"] for r in c.execute(
-            """SELECT franchise_id FROM (
-                   SELECT away_id franchise_id FROM games WHERE season=?
-                   UNION
-                   SELECT home_id franchise_id FROM games WHERE season=?
-               ) ORDER BY franchise_id""",
-            (season,season)
-        ).fetchall()
-    ]
-    if not participants:
-        # Fresh/rebuilt seasons honor the Commissioner-selected league size.
-        # Fall back to the Original Eight only when no preference has been saved.
-        pref=c.execute("SELECT v FROM league_config WHERE k='active_team_count'").fetchone()
-        try:
-            desired=int(pref["v"]) if pref else MIN_ACTIVE_TEAMS
-        except (TypeError,ValueError):
-            desired=MIN_ACTIVE_TEAMS
-        total=c.execute("SELECT COUNT(*) n FROM franchises").fetchone()["n"]
-        desired=max(MIN_ACTIVE_TEAMS,min(desired,total))
-        if desired%2: desired-=1
-        participants=[
-            r["id"] for r in c.execute(
-                "SELECT id FROM franchises ORDER BY id LIMIT ?",
-                (desired,)
-            ).fetchall()
-        ]
 
 
 
@@ -2942,34 +3009,6 @@ def ensure_season_membership(c,season):
 
 
 
-    all_ids=[r["id"] for r in c.execute("SELECT id FROM franchises ORDER BY id").fetchall()]
-    active_set=set(participants)
-    labels=_division_labels(len(participants))
-    per_div=max(1,math.ceil(len(participants)/len(labels)))
-    active_index=0
-    for fid in all_ids:
-        if fid in active_set:
-            div=labels[min(len(labels)-1,active_index//per_div)]
-            c.execute(
-                """INSERT OR IGNORE INTO franchise_seasons(
-                       season,franchise_id,status,division,conference,expansion_team
-                   ) VALUES(?,?, 'ACTIVE', ?, NULL, 0)""",
-                (season,fid,div)
-            )
-            c.execute(
-                """UPDATE franchises
-                   SET established_season=COALESCE(established_season,?)
-                   WHERE id=?""",
-                (season,fid)
-            )
-            active_index+=1
-        else:
-            c.execute(
-                """INSERT OR IGNORE INTO franchise_seasons(
-                       season,franchise_id,status,division,conference,expansion_team
-                   ) VALUES(?,?, 'DORMANT', NULL, NULL, 0)""",
-                (season,fid)
-            )
 
 
 
@@ -2978,103 +3017,6 @@ def ensure_season_membership(c,season):
 
 
 
-def active_franchise_ids(c,season=None):
-    season=_season_number(c) if season is None else int(season)
-    ensure_season_membership(c,season)
-    return [
-        r["franchise_id"] for r in c.execute(
-            """SELECT franchise_id
-               FROM franchise_seasons
-               WHERE season=? AND status='ACTIVE'
-               ORDER BY franchise_id""",
-            (season,)
-        ).fetchall()
-    ]
-
-
-
-
-
-
-
-
-def set_season_membership(c,season,active_ids):
-    active_ids=list(dict.fromkeys(str(x) for x in active_ids))
-    if len(active_ids)<MIN_ACTIVE_TEAMS:
-        raise ValueError("MINIMUM_8_TEAMS")
-    if len(active_ids)%2:
-        raise ValueError("EVEN_TEAM_COUNT_REQUIRED")
-
-
-
-
-
-
-
-
-    valid={r["id"] for r in c.execute("SELECT id FROM franchises").fetchall()}
-    if any(fid not in valid for fid in active_ids):
-        raise ValueError("UNKNOWN_FRANCHISE")
-
-
-
-
-
-
-
-
-    previous_active=set(active_franchise_ids(c,season-1)) if season>1 else set()
-    labels=_division_labels(len(active_ids))
-    per_div=max(1,math.ceil(len(active_ids)/len(labels)))
-    active_order={fid:i for i,fid in enumerate(active_ids)}
-
-
-
-
-
-
-
-
-    c.execute("DELETE FROM franchise_seasons WHERE season=?",(season,))
-    for fid in sorted(valid):
-        if fid in active_order:
-            idx=active_order[fid]
-            div=labels[min(len(labels)-1,idx//per_div)]
-            expansion=1 if season>1 and fid not in previous_active else 0
-            c.execute(
-                """INSERT INTO franchise_seasons(
-                       season,franchise_id,status,division,conference,expansion_team
-                   ) VALUES(?,?, 'ACTIVE', ?, NULL, ?)""",
-                (season,fid,div,expansion)
-            )
-            c.execute(
-                """UPDATE franchises
-                   SET established_season=COALESCE(established_season,?)
-                   WHERE id=?""",
-                (season,fid)
-            )
-        else:
-            c.execute(
-                """INSERT INTO franchise_seasons(
-                       season,franchise_id,status,division,conference,expansion_team
-                   ) VALUES(?,?, 'DORMANT', NULL, NULL, 0)""",
-                (season,fid)
-            )
-
-
-
-
-
-
-
-
-def season_division(c,season,fid):
-    ensure_season_membership(c,season)
-    row=c.execute(
-        "SELECT division FROM franchise_seasons WHERE season=? AND franchise_id=?",
-        (season,fid)
-    ).fetchone()
-    return row["division"] if row and row["division"] else division_for(fid)
 
 
 
@@ -3273,9 +3215,11 @@ def enforce_active_rosters(c,season=None):
             ptype="P" if t in ("SP","RP") else "H"
             role=t if t!="UTIL" else "UTIL"
             attrs=cpu_build(PITCHER_ATTRS if ptype=="P" else HITTER_ATTRS,role,R)
+            local_hand_index=(i-9) if ptype=="P" else i
+            hands=cpu_handedness(fid,local_hand_index,ptype)
             cur=c.execute("""INSERT INTO players(user_id,franchise_id,name,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,age)
                              VALUES(NULL,?,?,?,?,?,?,?,0,?,?,'SIGNED',1,18)""",
-                          (fid,f"{FIRST_NAMES[(i+int(fid[-2:])*7)%len(FIRST_NAMES)]} {LAST_NAMES[(i*5+int(fid[-2:])*11)%len(LAST_NAMES)]}",ptype,role,position_group_for_pos(role),"R","R",json.dumps(attrs),json.dumps(pseason if ptype=="P" else hseason)))
+                          (fid,f"{FIRST_NAMES[(i+int(fid[-2:])*7)%len(FIRST_NAMES)]} {LAST_NAMES[(i*5+int(fid[-2:])*11)%len(LAST_NAMES)]}",ptype,role,position_group_for_pos(role),hands["bats"],hands["throws"],json.dumps(attrs),json.dumps(pseason if ptype=="P" else hseason)))
             slots[i]=dict(c.execute("SELECT * FROM players WHERE id=?",(cur.lastrowid,)).fetchone())
         used={int(x["id"]) for x in slots if x}
         for pl in cpus:
@@ -3375,19 +3319,6 @@ def gps_xp(g): return round(max(.25,min(.75,.25+.5*g/100)),3)
 
 
 
-def _circle_series_rounds(team_count,series_count=REGULAR_SEASON_SERIES):
-    """Return perfect-match series rounds for any supported even league size."""
-    arr=list(range(team_count));base=[]
-    for _ in range(team_count-1):
-        base.append([(arr[i],arr[-1-i]) for i in range(team_count//2)])
-        arr=[arr[0]]+[arr[-1]]+arr[1:-1]
-    out=[]
-    for idx in range(series_count):
-        pairs=list(base[idx%len(base)])
-        if (idx//len(base))%2:
-            pairs=[(b,a) for a,b in pairs]
-        out.append(pairs)
-    return out
 
 
 
@@ -3404,37 +3335,6 @@ def _circle_series_rounds(team_count,series_count=REGULAR_SEASON_SERIES):
 
 
 
-def _perfect_matching_from_multiset(edge_counts,team_count,rng,node_limit=120000):
-    """Small deterministic backtracker used to decompose the 30-team series map."""
-    unmatched=set(range(team_count));nodes=[0]
-    def rec():
-        nodes[0]+=1
-        if nodes[0]>node_limit:return None
-        if not unmatched:return []
-        best_v=None;best_candidates=None
-        for v in tuple(unmatched):
-            cand=[u for u in unmatched if u!=v and edge_counts.get(tuple(sorted((u,v))),0)>0]
-            if not cand:return None
-            if best_candidates is None or len(cand)<len(best_candidates):
-                best_v=v;best_candidates=cand
-                if len(cand)==1:break
-        v=best_v;options=[]
-        for u in best_candidates:
-            edge=tuple(sorted((u,v)))
-            neighbor_count=sum(1 for w in unmatched if w not in (u,v) and edge_counts.get(tuple(sorted((u,w))),0)>0)
-            options.append((edge_counts[edge],-neighbor_count,rng.random(),u))
-        options.sort(reverse=True)
-        unmatched.remove(v)
-        for _copies,_constraint,_jitter,u in options:
-            unmatched.remove(u)
-            rest=rec()
-            if rest is not None:
-                unmatched.add(u);unmatched.add(v)
-                return [(v,u)]+rest
-            unmatched.add(u)
-        unmatched.add(v)
-        return None
-    return rec()
 
 
 
@@ -3451,8 +3351,6 @@ def _perfect_matching_from_multiset(edge_counts,team_count,rng,node_limit=120000
 
 
 
-def _division_heavy_series_rounds_30(season):
-    """27 series/team: 16 division series + 11 non-division series.
 
 
 
@@ -3461,28 +3359,6 @@ def _division_heavy_series_rounds_30(season):
 
 
 
-    Every division rival is faced four times (48 division games). Each club then
-    gets eleven cross-division series (33 games), for exactly 81 games total.
-    """
-    from collections import Counter
-    import itertools
-    target=Counter()
-    # Six five-team divisions. Every intra-division pairing occurs four times.
-    for div in range(6):
-        teams=list(range(div*5,div*5+5))
-        for a,b in itertools.combinations(teams,2):
-            target[(a,b)]+=4
-    # Two cross-division series against every other division (10 series/team).
-    for da,db in itertools.combinations(range(6),2):
-        for shift in (0,1):
-            for i in range(5):
-                a=da*5+i;b=db*5+((i+shift)%5)
-                target[tuple(sorted((a,b)))]+=1
-    # One extra cross-division series/team completes the 11-series non-division slate.
-    for da,db in ((0,1),(2,3),(4,5)):
-        for i in range(5):
-            a=da*5+i;b=db*5+((i+2)%5)
-            target[tuple(sorted((a,b)))]+=1
 
 
 
@@ -3491,19 +3367,6 @@ def _division_heavy_series_rounds_30(season):
 
 
 
-    for attempt in range(40):
-        rng=random.Random(7500831+int(season)*997+attempt*104729)
-        remaining=target.copy();rounds=[];failed=False
-        for _ in range(REGULAR_SEASON_SERIES):
-            match=_perfect_matching_from_multiset(remaining,30,rng)
-            if not match:
-                failed=True;break
-            match=[tuple(sorted(x)) for x in match]
-            rounds.append(match)
-            for edge in match:remaining[edge]-=1
-        if not failed and not any(remaining.values()):
-            return rounds
-    raise RuntimeError("SERIES_SCHEDULE_DECOMPOSITION_FAILED")
 
 
 
@@ -3520,34 +3383,6 @@ def _division_heavy_series_rounds_30(season):
 
 
 
-def _order_series_rounds_no_repeat(rounds,team_count):
-    """Reorder series blocks so no club faces the same opponent in back-to-back series."""
-    if len(rounds)<2:return rounds
-    maps=[]
-    for pairs in rounds:
-        opp={}
-        for a,b in pairs:opp[int(a)]=int(b);opp[int(b)]=int(a)
-        maps.append(opp)
-    n=len(rounds)
-    compatible=[[False]*n for _ in range(n)]
-    for i in range(n):
-        for j in range(n):
-            if i==j:continue
-            compatible[i][j]=all(maps[i].get(t)!=maps[j].get(t) for t in range(team_count))
-    degree=[sum(1 for x in compatible[i] if x) for i in range(n)]
-    for start in sorted(range(n),key=lambda i:degree[i]):
-        path=[start];used={start}
-        def rec(v):
-            if len(path)==n:return True
-            candidates=[u for u in range(n) if u not in used and compatible[v][u]]
-            candidates.sort(key=lambda u:sum(1 for w in range(n) if w not in used and w!=u and compatible[u][w]))
-            for u in candidates:
-                used.add(u);path.append(u)
-                if rec(u):return True
-                path.pop();used.remove(u)
-            return False
-        if rec(start):return [rounds[i] for i in path]
-    raise RuntimeError("SERIES_ROUND_ORDER_FAILED")
 
 
 
@@ -3564,8 +3399,6 @@ def _order_series_rounds_no_repeat(rounds,team_count):
 
 
 
-def _balanced_home_series(rounds,team_count):
-    """Orient series for both pair-level and season-level home/away balance.
 
 
 
@@ -3574,17 +3407,6 @@ def _balanced_home_series(rounds,team_count):
 
 
 
-    Repeated opponents split their series evenly between parks whenever possible.
-    The one leftover occurrence from every odd-multiplicity pairing forms an odd-degree
-    residual graph; a dummy Euler edge per club then guarantees 13/14 total home series.
-    """
-    edges=[];round_edge_ids=[];groups={}
-    for round_pairs in rounds:
-        ids=[]
-        for a,b in round_pairs:
-            a=int(a);b=int(b);eid=len(edges);ids.append(eid);edges.append((a,b))
-            groups.setdefault(tuple(sorted((a,b))),[]).append(eid)
-        round_edge_ids.append(ids)
 
 
 
@@ -3593,15 +3415,6 @@ def _balanced_home_series(rounds,team_count):
 
 
 
-    orientation={};residual=[]
-    for pair,ids in groups.items():
-        a,b=pair
-        ordered=list(ids)
-        while len(ordered)>=2:
-            e1=ordered.pop(0);e2=ordered.pop(0)
-            orientation[e1]=(a,b)   # b hosts one
-            orientation[e2]=(b,a)   # a hosts one
-        if ordered:residual.append(ordered[0])
 
 
 
@@ -3610,27 +3423,6 @@ def _balanced_home_series(rounds,team_count):
 
 
 
-    # Every club has odd residual degree because its full slate is 27 series and
-    # all already-balanced pair groups removed an even number of edges.
-    dummy=team_count
-    temp_edges=[(edges[eid][0],edges[eid][1],eid) for eid in residual]
-    temp_edges.extend((dummy,team,None) for team in range(team_count))
-    adjacency=[[] for _ in range(team_count+1)]
-    for tid,(a,b,orig) in enumerate(temp_edges):
-        adjacency[a].append((tid,b));adjacency[b].append((tid,a))
-    used=[False]*len(temp_edges);stack=[dummy]
-    while stack:
-        v=stack[-1]
-        while adjacency[v] and used[adjacency[v][-1][0]]:adjacency[v].pop()
-        if not adjacency[v]:stack.pop();continue
-        tid,u=adjacency[v].pop()
-        if used[tid]:continue
-        used[tid]=True
-        orig=temp_edges[tid][2]
-        if orig is not None:orientation[orig]=(v,u)
-        stack.append(u)
-    if not all(used) or len(orientation)!=len(edges):
-        raise RuntimeError("SERIES_HOME_ORIENTATION_FAILED")
 
 
 
@@ -3639,10 +3431,6 @@ def _balanced_home_series(rounds,team_count):
 
 
 
-    oriented=[]
-    for ids in round_edge_ids:
-        oriented.append([orientation[eid] for eid in ids])
-    return oriented
 
 
 
@@ -3659,13 +3447,6 @@ def _balanced_home_series(rounds,team_count):
 
 
 
-def _team_regular_games_before(c,season,fid,league_day):
-    return int(c.execute(
-        """SELECT COUNT(*) n FROM games
-           WHERE season=? AND status='FINAL' AND league_day<? AND league_day<=?
-             AND (away_id=? OR home_id=?)""",
-        (int(season),int(league_day),REGULAR_SEASON_CALENDAR_DAYS,str(fid),str(fid))
-    ).fetchone()["n"] or 0)
 
 
 
@@ -3682,13 +3463,6 @@ def _team_regular_games_before(c,season,fid,league_day):
 
 
 
-def _team_postseason_games_before(c,season,fid,league_day):
-    return int(c.execute(
-        """SELECT COUNT(*) n FROM games
-           WHERE season=? AND status='FINAL' AND league_day>? AND league_day<?
-             AND (away_id=? OR home_id=?)""",
-        (int(season),REGULAR_SEASON_CALENDAR_DAYS,int(league_day),str(fid),str(fid))
-    ).fetchone()["n"] or 0)
 
 
 
@@ -3705,10 +3479,6 @@ def _team_postseason_games_before(c,season,fid,league_day):
 
 
 
-def generate_season_schedule(c,season):
-    fids=active_franchise_ids(c,season);n=len(fids)
-    if n<MIN_ACTIVE_TEAMS:raise ValueError("MINIMUM_8_TEAMS")
-    if n%2:raise ValueError("EVEN_TEAM_COUNT_REQUIRED")
 
 
 
@@ -3717,12 +3487,6 @@ def generate_season_schedule(c,season):
 
 
 
-    # Full EBL uses a division-heavy 48/33 split. Smaller test leagues retain a
-    # balanced circle-method opponent rotation but use the exact same 27-series,
-    # 95-calendar-day rhythm.
-    rounds=_division_heavy_series_rounds_30(season) if n==30 else _circle_series_rounds(n)
-    rounds=_order_series_rounds_no_repeat(rounds,n)
-    rounds=_balanced_home_series(rounds,n)
 
 
 
@@ -3731,29 +3495,6 @@ def generate_season_schedule(c,season):
 
 
 
-    gid=1;calendar_day=1
-    team_games={fid:0 for fid in fids}
-    for series_no,round_pairs in enumerate(rounds,1):
-        rest_round=series_no in REGULAR_SEASON_REST_SERIES
-        duration=4 if rest_round else 3
-        for pair_index,(away_i,home_i) in enumerate(round_pairs):
-            away=fids[away_i];home=fids[home_i]
-            # On a rest round half the series rest first and half rest last. The
-            # middle two dates still carry a full league slate, while the outside
-            # dates create real team-specific recovery days instead of league-wide pauses.
-            if rest_round and (pair_index+series_no+int(season))%2:
-                game_days=(calendar_day+1,calendar_day+2,calendar_day+3)
-            else:
-                game_days=(calendar_day,calendar_day+1,calendar_day+2)
-            for game_day in game_days:
-                game_id=f"S{season:02d}-G{gid:04d}"
-                c.execute(
-                    """INSERT INTO games(id,season,league_day,away_id,home_id,status)
-                       VALUES(?,?,?,?,?,'SCHEDULED')""",
-                    (game_id,int(season),int(game_day),away,home)
-                )
-                gid+=1;team_games[away]+=1;team_games[home]+=1
-        calendar_day+=duration
 
 
 
@@ -3762,10 +3503,6 @@ def generate_season_schedule(c,season):
 
 
 
-    if calendar_day-1!=REGULAR_SEASON_CALENDAR_DAYS:
-        raise RuntimeError(f"REGULAR_CALENDAR_LENGTH_MISMATCH:{calendar_day-1}")
-    bad={fid:g for fid,g in team_games.items() if g!=REGULAR_SEASON_GAMES}
-    if bad:raise RuntimeError(f"REGULAR_TEAM_GAME_COUNT_MISMATCH:{bad}")
 
 
 
@@ -3774,11 +3511,6 @@ def generate_season_schedule(c,season):
 
 
 
-def division_for(fid):
-    try:
-        n=int(fid.split("F")[-1])
-    except:return "Unknown"
-    return DIVISIONS[min(5,(n-1)//5)]
 
 
 
@@ -3803,9 +3535,6 @@ def division_for(fid):
 
 
 
-def team_name(c,fid):
-    r=c.execute("SELECT name FROM franchises WHERE id=?",(fid,)).fetchone()
-    return r["name"] if r else fid
 
 
 
@@ -3814,21 +3543,6 @@ def team_name(c,fid):
 
 
 
-def playoff_teams(c):
-    season=_season_number(c)
-    active=active_franchise_ids(c,season)
-    if len(active)<8:
-        return []
-    q=",".join("?" for _ in active)
-    teams=[dict(x) for x in c.execute(
-        f"""SELECT id,name,wins,losses,runs_for,runs_against
-            FROM franchises
-            WHERE id IN ({q})""",
-        active
-    )]
-    for t in teams:
-        t["division"]=season_division(c,season,t["id"])
-        t["diff"]=t["runs_for"]-t["runs_against"]
 
 
 
@@ -3837,217 +3551,6 @@ def playoff_teams(c):
 
 
 
-    # Existing postseason format is an eight-team bracket. For an eight-team
-    # league everyone reaches the postseason; at larger sizes the best eight
-    # records qualify. Seeding still determines every matchup/home-field edge.
-    teams.sort(
-        key=lambda t:(t["wins"],t["diff"],t["runs_for"]),
-        reverse=True
-    )
-    return teams[:8]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def playoff_series_games(c,season,code):
-    return [dict(x) for x in c.execute(
-        "SELECT * FROM games WHERE season=? AND id LIKE ? ORDER BY league_day,id",
-        (season,f"S{season:02d}-{code}-G%")
-    )]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def playoff_series_winner(c,season,code,wins_needed):
-    games=playoff_series_games(c,season,code)
-    wins={}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    for g in games:
-        if g["status"]!="FINAL":
-            continue
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        winner=g["away_id"] if g["away_runs"]>g["home_runs"] else g["home_id"]
-        wins[winner]=wins.get(winner,0)+1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        if wins[winner]>=wins_needed:
-            return winner
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    return None
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def schedule_series_game(c,season,code,game_no,day,team_a,team_b):
-    # team_a owns home-field advantage
-    if game_no in (1,2,5,7):
-        away,home=team_b,team_a
-    else:
-        away,home=team_a,team_b
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    gid=f"S{season:02d}-{code}-G{game_no}"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    c.execute(
-        "INSERT OR IGNORE INTO games(id,season,league_day,away_id,home_id,status) VALUES(?,?,?,?,?,'SCHEDULED')",
-        (gid,season,day,away,home)
-    )
     
 def _career_rates(stats,player_type):
     st=dict(stats or {})
@@ -4265,6 +3768,8 @@ def player_obj(c,pid):
     renewal_waiting=next((x for x in d["offers"] if str(x.get("offer_type") or "").upper()=="RENEWAL"),None)
     d["action_required"]={"type":"RENEWAL","offer_id":renewal_waiting["id"],"title":"Contract decision waiting"} if renewal_waiting else None
     d["ledger"]=[dict(x) for x in c.execute("SELECT event_type,xp,detail_json FROM xp_ledger WHERE player_id=? ORDER BY id DESC LIMIT 25",(pid,))]
+    d["repertoire"]=repertoire_state(c,pid,d.get("attributes")) if d.get("type")=="P" else None
+    d["relationships"]=chemistry_relationships(c,pid)
     d["career"]=career_summary(c,pid,d.get("season"),bool(d.get("active")))
     d["career_seasons"]=d["career"]["seasons_completed"] if d.get("career") else 0
     d["championships"]=d["career"]["championship_count"] if d.get("career") else 0
@@ -5061,6 +4566,7 @@ def reset_cpu_rookie_attributes(c):
             "UPDATE players SET attributes_json=?,xp_wallet=0,age=18 WHERE id=?",
             (json.dumps(attrs),int(row["id"]))
         )
+    normalize_active_cpu_handedness(c)
     return len(rows)
 
 
@@ -5786,34 +5292,6 @@ def fielding_catch_error_probability(attrs,out_kind):
 
 
 
-def playoff_series_summary(c,season,code,wins_needed):
-    games=playoff_series_games(c,season,code)
-    wins={}
-    teams=[]
-    for g in games:
-        for fid in (g["away_id"],g["home_id"]):
-            if fid not in teams:
-                teams.append(fid)
-        if g["status"]=="FINAL":
-            w=g["away_id"] if g["away_runs"]>g["home_runs"] else g["home_id"]
-            wins[w]=wins.get(w,0)+1
-    names={}
-    if teams:
-        q=",".join("?" for _ in teams)
-        names={r["id"]:r["name"] for r in c.execute(f"SELECT id,name FROM franchises WHERE id IN ({q})",teams)}
-    winner=None
-    for fid,n in wins.items():
-        if n>=wins_needed:
-            winner=fid
-            break
-    return {
-        "code":code,
-        "wins_needed":wins_needed,
-        "teams":[{"id":fid,"name":names.get(fid,fid),"wins":wins.get(fid,0)} for fid in teams],
-        "winner_id":winner,
-        "winner_name":names.get(winner) if winner else None,
-        "games":[{k:g.get(k) for k in ("id","league_day","away_id","home_id","away_runs","home_runs","status")} for g in games]
-    }
 
 
 
@@ -5830,16 +5308,6 @@ def playoff_series_summary(c,season,code,wins_needed):
 
 
 
-def playoff_bracket(c,season):
-    state={r["k"]:r["v"] for r in c.execute(
-        "SELECT k,v FROM league_state WHERE k IN ('phase','playoff_round','champion')"
-    )}
-    rounds=[
-        {"name":"Quarterfinals","series":[playoff_series_summary(c,season,x,2) for x in ("QF1","QF2","QF3","QF4")]},
-        {"name":"Semifinals","series":[playoff_series_summary(c,season,x,3) for x in ("SF1","SF2")]},
-        {"name":"EBL Championship","series":[playoff_series_summary(c,season,"CH",4)]}
-    ]
-    return {"season":season,"phase":state.get("phase","REGULAR"),"round":state.get("playoff_round",""),"champion":state.get("champion",""),"rounds":rounds}
 
 
 
@@ -6939,6 +6407,7 @@ def rivalry_xp_multiplier(c,a,b):
 def simulate_game(c,g):
     away,home=g["away_id"],g["home_id"]
     team_names={r["id"]:r["name"] for r in c.execute("SELECT id,name FROM franchises")}
+    park=stadium_state(c,home,team_names.get(home))
     lrows={fid:c.execute("SELECT * FROM lineups WHERE franchise_id=?",(fid,)).fetchone() for fid in [away,home]}
     lineups={fid:json.loads(lrows[fid]["batting_order_json"]) for fid in [away,home]}
         # Keep batting orders synced with active rosters.
@@ -7279,7 +6748,10 @@ def simulate_game(c,g):
 
 
 
-    score={away:0,home:0};events=[];box={"hitters":{},"pitchers":{},"fielding":{},"xp":[],"strategy_events":[]}
+    score={away:0,home:0};events=[];box={"hitters":{},"pitchers":{},"fielding":{},"xp":[],"strategy_events":[],"stadium":park}
+    events.append({"type":"STADIUM_CONTEXT","franchise_id":home,"stadium_name":park["stadium_name"],
+                   "park_profile":park["park_profile"],"profile_name":park["profile_name"],
+                   "hitter":park["hitter"],"pitcher":park["pitcher"]})
     defense_players={}
     for dfid in [away,home]:
         defense_players[dfid]={}
@@ -7327,6 +6799,29 @@ def simulate_game(c,g):
             "ACC":float(ca.get("ACC",0) or 0),
             "REAC":float(ca.get("REAC",0) or 0),
         }
+
+    repertoire_cache={}
+    battery_cache={}
+    infield_chemistry_cache={}
+
+    def game_battery_charge(team_id,pitcher_id):
+        catcher_id=catcher_skill.get(team_id,{}).get("player_id")
+        key=(int(pitcher_id),int(catcher_id or 0))
+        if key not in battery_cache:
+            battery_cache[key]=battery_bonus(c,key[0],key[1] or None)
+        return float(battery_cache[key] or 0.0)
+
+    def game_repertoire(pitcher_obj):
+        pid=int(pitcher_obj["id"])
+        if pid not in repertoire_cache:
+            repertoire_cache[pid]=repertoire_state(c,pid,pitcher_obj.get("attributes",{}))["pitches"]
+        return repertoire_cache[pid]
+
+    def game_infield_bonus(thrower_id,first_id):
+        key=(int(thrower_id or 0),int(first_id or 0))
+        if key not in infield_chemistry_cache:
+            infield_chemistry_cache[key]=infield_receive_bonus(c,key[0],key[1] or None) if key[0] else 0.0
+        return float(infield_chemistry_cache[key] or 0.0)
 
 
 
@@ -7600,8 +7095,16 @@ def simulate_game(c,g):
                     events.append({"type":"PA_END","inning":inning,"half":half,"batter_id":batter["id"],"pitcher_id":pitcher["id"],"result":"SAC" if success else "BUNT_OUT","outs":outs,"score":[score[away],score[home]]})
                     continue
                 batline["PA"]+=1
+                # Handedness is a small contextual nudge, never a permanent rating change.
+                # Traditional hitters gain the favorable opposite-hand edge and take the
+                # inverse in same-hand matchups. Switch hitters stay neutral in both cases.
+                platoon=platoon_adjustments(batter.get("bats","R"),pitcher.get("throws","R"))
+                catcher_id=catcher_skill.get(opp,{}).get("player_id")
+                battery_charge=game_battery_charge(opp,pitcher["id"])
                 events.append({"type":"PA_START","inning":inning,"half":half,"batter_id":batter["id"],"batter":batter["name"],
-                               "pitcher_id":pitcher["id"],"pitcher":pitcher["name"],"outs":outs,"score":[score[away],score[home]]})
+                               "pitcher_id":pitcher["id"],"pitcher":pitcher["name"],"outs":outs,"score":[score[away],score[home]],
+                               "platoon":platoon["kind"],"bats":platoon["batter_bats"],"throws":platoon["pitcher_throws"],
+                               "catcher_id":catcher_id,"battery_charge":round(battery_charge,2)})
                 balls=strikes=0;pitch_no=0;prev_pitch_type=None
                 while True:
                     pitch_no+=1
@@ -7615,11 +7118,13 @@ def simulate_game(c,g):
 
 
 
-                    con=float(bat_attrs.get("CON",0) or 0)
-                    powr=float(bat_attrs.get("POW",0) or 0)
-                    vis=float(bat_attrs.get("VIS",0) or 0)
-                    disc=float(bat_attrs.get("DISC",0) or 0)
-                    tim=float(bat_attrs.get("TIM",0) or 0)
+                    # Stadium context applies equally to both clubs. Handedness and park
+                    # effects stack as small temporary deltas on the canonical player build.
+                    con=effective_rating(bat_attrs.get("CON",0),park_adjustment(park,"H","CON"))
+                    powr=effective_rating(bat_attrs.get("POW",0),park_adjustment(park,"H","POW"))
+                    vis=effective_rating(bat_attrs.get("VIS",0),platoon["hitter"]["VIS"]+park_adjustment(park,"H","VIS"))
+                    disc=effective_rating(bat_attrs.get("DISC",0),platoon["hitter"]["DISC"]+park_adjustment(park,"H","DISC"))
+                    tim=effective_rating(bat_attrs.get("TIM",0),park_adjustment(park,"H","TIM"))
 
 
 
@@ -7628,13 +7133,15 @@ def simulate_game(c,g):
 
 
 
-                    ctrl_raw=float(pit_attrs.get("CTRL",0) or 0)
-                    cmd_raw=float(pit_attrs.get("CMD",0) or 0)
-                    vel_raw=float(pit_attrs.get("VEL",0) or 0)
-                    brk_raw=float(pit_attrs.get("BRK",0) or 0)
-                    mov_raw=float(pit_attrs.get("MOV",0) or 0)
-                    dec_raw=float(pit_attrs.get("DEC",0) or 0)
-                    seq_raw=float(pit_attrs.get("SEQ",0) or 0)
+                    # Established pitcher/catcher familiarity helps execution, not raw
+                    # athleticism: no VEL/STA/PCLT bonus and no permanent rating mutation.
+                    ctrl_raw=effective_rating(pit_attrs.get("CTRL",0),park_adjustment(park,"P","CTRL")+battery_charge)
+                    cmd_raw=effective_rating(pit_attrs.get("CMD",0),park_adjustment(park,"P","CMD")+battery_charge)
+                    vel_raw=effective_rating(pit_attrs.get("VEL",0),park_adjustment(park,"P","VEL"))
+                    brk_raw=effective_rating(pit_attrs.get("BRK",0),park_adjustment(park,"P","BRK")+battery_charge)
+                    mov_raw=effective_rating(pit_attrs.get("MOV",0),platoon["pitcher"]["MOV"]+park_adjustment(park,"P","MOV")+battery_charge)
+                    dec_raw=effective_rating(pit_attrs.get("DEC",0),park_adjustment(park,"P","DEC")+battery_charge)
+                    seq_raw=effective_rating(pit_attrs.get("SEQ",0),platoon["pitcher"]["SEQ"]+park_adjustment(park,"P","SEQ")+battery_charge)
                     sta=float(pit_attrs.get("STA",0) or 0)
                     pclt=float(pit_attrs.get("PCLT",0) or 0)
                     sta_eff=effective_stamina(sta)
@@ -7691,19 +7198,17 @@ def simulate_game(c,g):
 
 
 
-                    # Physical pitch properties come from actual skills. Sequencing makes
-                    # advanced pitchers less likely to repeat the same look back-to-back.
-                    pitch_types=["Four-Seam","Slider","Changeup","Sinker","Curve"]
+                    # Repertoire limits the actual pitches this pitcher can throw. Existing
+                    # pitcher attributes still do the work; there is no hidden per-pitch rating tree.
+                    pitch_types=game_repertoire(pitcher)
                     ptype=R.choice(pitch_types)
-                    if pitch_no>1 and prev_pitch_type and ptype==prev_pitch_type and R.random()<min(.82,seq*.008):
+                    if pitch_no>1 and prev_pitch_type and ptype==prev_pitch_type and len(pitch_types)>1 and R.random()<min(.82,seq*.008):
                         ptype=R.choice([x for x in pitch_types if x!=prev_pitch_type])
-                    pitch_speed_base={
-                        "Four-Seam":90.0,
-                        "Sinker":88.5,
-                        "Slider":84.5,
-                        "Changeup":82.5,
-                        "Curve":79.5,
-                    }[ptype]
+                    pctx=pitch_context(ptype)
+                    pitch_skills=apply_pitch_nudges({"CTRL":ctrl,"CMD":cmd,"VEL":vel_attr,"BRK":brk,"MOV":mov,"DEC":dec,"SEQ":seq},ptype)
+                    ctrl=pitch_skills["CTRL"];cmd=pitch_skills["CMD"];vel_attr=pitch_skills["VEL"]
+                    brk=pitch_skills["BRK"];mov=pitch_skills["MOV"];dec=pitch_skills["DEC"];seq=pitch_skills["SEQ"]
+                    pitch_speed_base=pctx["speed_base"]
                     vel=round(max(72.0,min(103.0,R.gauss(pitch_speed_base+vel_attr*.18,1.35))),1)
 
 
@@ -7785,7 +7290,7 @@ def simulate_game(c,g):
 
                     events.append({
                         "type":"PITCH","inning":inning,"half":half,
-                        "pitch_no":pitch_no,"pitch_type":ptype,"velocity":vel,
+                        "pitch_no":pitch_no,"pitch_type":pctx["label"],"pitch_key":ptype,"velocity":vel,
                         "px":px,"pz":pz,"call":call,
                         "balls":min(balls,4),"strikes":min(strikes,3),
                         "batter_id":batter["id"],"pitcher_id":pitcher["id"]
@@ -7931,6 +7436,13 @@ def simulate_game(c,g):
                             first_attrs=(first_obj or {}).get("attributes",{})
                             first_fld=float(first_attrs.get("FLD",0) or 0)
                             first_reac=float(first_attrs.get("REAC",0) or 0)
+                            # Long-term infield/1B familiarity is intentionally tiny and
+                            # mostly invisible. It only helps the thrower's ACC and the
+                            # first baseman's receiving FLD on throws across the diamond.
+                            if fpos in {"SS","2B","3B"} and first_base_id:
+                                infield_bonus=game_infield_bonus(fielder_id,first_base_id)
+                                acc+=infield_bonus
+                                first_fld+=infield_bonus
 
 
 
@@ -9079,6 +8591,10 @@ def simulate_game(c,g):
 
 
 
+
+    # Shared-game usage is persisted before the game becomes FINAL so offseason
+    # rollover can award chemistry only to pairs that actually played together.
+    record_game_usage(c,int(g["season"]),defense_players,box)
 
     # Every game, including playoffs, becomes FINAL.
     c.execute(
@@ -11470,6 +10986,7 @@ class H(BaseHTTPRequestHandler):
             result={
                 "team":dict(team),
                 "branding":dict(brand) if brand else None,"identity_history":identity_history,
+                "stadium":stadium_state(c,fid,team["name"]),
                 "division":season_division(c,current_season,fid),
                 "roster":roster,
                 "history":history,
@@ -13550,6 +13067,9 @@ class H(BaseHTTPRequestHandler):
             team["development_bonus_effective"]=float(team.get("development_bonus") or 0) if season>1 else 0.0
             sponsorships=active_team_sponsorships(c,f["id"],season)
             development_coaches=active_team_development_coaches(c,f["id"],season)
+            stadium=stadium_state(c,f["id"],team.get("name"))
+            stadium["edit_open"]=stadium_edit_open(phase,day)
+            stadium["profiles"]=profile_catalog()
             branding=dict(brand) if brand else None
             if branding is not None:
                 used_season=branding.get("inseason_edit_season")
@@ -13565,6 +13085,7 @@ class H(BaseHTTPRequestHandler):
                                          "bench":json.loads(strat["bench_json"]) if strat else {},
                                          "substitutions":json.loads(strat["substitutions_json"]) if strat else {}},
                              "offers":offers,"contracts":contracts,"sponsorships":sponsorships,
+                             "stadium":stadium,
                              "development_coaches":development_coaches,
                              "development_coach_options":[{"coach_type":k,**v} for k,v in DEVELOPMENT_COACH_TYPES.items()],
                              "development_coach_rules":{"first_free":True,"maximum":DEVELOPMENT_COACH_MAX,"base_cost":DEVELOPMENT_COACH_BASE_COST,
@@ -14138,6 +13659,13 @@ class H(BaseHTTPRequestHandler):
                                                   "supporter":ent["supporter"],
                                                   "upgrade_available":not ent["supporter"]},400)
                 ptype="P" if group=="PITCHER" else "H";valid=PITCHER_ATTRS if ptype=="P" else HITTER_ATTRS
+                starting_pitches=None
+                if ptype=="P":
+                    requested_pitches=d.get("pitches")
+                    try:
+                        starting_pitches=validate_repertoire(requested_pitches,exact_start=True) if requested_pitches else best_fit_repertoire(attrs,3)
+                    except ValueError as exc:
+                        c.rollback();return self.out({"error":str(exc)},400)
                 valid_pos={"INF":{"C","1B","2B","3B","SS"},"OF":{"LF","CF","RF"},"PITCHER":{"SP","RP"}}
                 def _valid_identity_name(part):
                     return bool(part) and all(ch.isalpha() or ch in "'’.- " for ch in part)
@@ -14165,7 +13693,9 @@ class H(BaseHTTPRequestHandler):
                     c.rollback();return self.out({"error":"INVALID_APPEARANCE"},400)
                 cur=c.execute("""INSERT INTO players(user_id,name,first_name,last_name,hometown,hometown_city,hometown_region,type,primary_pos,position_group,bats,throws,xp_wallet,attributes_json,season_json,status,active,face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number)
                                  VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0,?, ?,'FREE_AGENT',1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(u["id"],name,first_name,last_name,hometown,hometown_city,hometown_region,ptype,pos,group,bats,throws,json.dumps(attrs),json.dumps(season),face_id,skin_color_id,hair_id,facial_hair_id,eye_color_id,nose_id,eye_shape_id,mouth_id,ear_size_id,hair_color_id,eye_black_id,eyewear_id,chain_id,sleeve_id,body_build_id,jersey_number))
-                c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid})))
+                if ptype=="P":
+                    set_starting_repertoire(c,cur.lastrowid,starting_pitches)
+                c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",("PLAYER_CREATED",u["id"],json.dumps({"player_id":cur.lastrowid,"pitches":starting_pitches if ptype=="P" else None})))
                 c.commit()
                 return self.out({"player":player_obj(c,cur.lastrowid)})
             except sqlite3.OperationalError as e:
@@ -14321,6 +13851,26 @@ class H(BaseHTTPRequestHandler):
             if pl["xp_wallet"]<cc:c.rollback();c.close();return self.out({"error":"INSUFFICIENT_XP","cost":cc,"seasons_completed":seasons_completed,"career_surcharge":surcharge},400)
             old=pl["attributes"][attr];pl["attributes"][attr]+=1;pl["xp_wallet"]=round(pl["xp_wallet"]-cc,3);save_player(c,pl,persist_attributes=True)
             c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",(pl["id"],"ATTRIBUTE_UPGRADE",-cc,json.dumps({"attribute":attr,"from":old,"to":old+1,"seasons_completed":seasons_completed,"career_surcharge":surcharge,"cost":cc})));c.commit();c.close();return self.out({"ok":True})
+        if p=="/api/player/learn-pitch":
+            u=self.auth(["PLAYER","COMMISSIONER"])
+            if not u:return
+            d=self.body();c=conn();c.execute("BEGIN IMMEDIATE")
+            r=owned_active_player(c,u["id"],request_player_id(self,d))
+            if not r:c.rollback();c.close();return self.out({"error":"PLAYER_NOT_FOUND"},404)
+            if r["type"]!="P":c.rollback();c.close();return self.out({"error":"PITCHER_ONLY"},400)
+            pl=player_obj(c,r["id"])
+            try:
+                learned=learn_pitch(c,pl["id"],d.get("pitch"),pl["xp_wallet"])
+            except ValueError as exc:
+                err=str(exc);payload={"error":err}
+                if err=="INSUFFICIENT_XP":payload["cost"]=pl.get("repertoire",{}).get("next_pitch_cost")
+                c.rollback();c.close();return self.out(payload,400)
+            c.execute("UPDATE players SET xp_wallet=? WHERE id=?",(learned["xp_after"],pl["id"]))
+            c.execute("INSERT INTO xp_ledger(player_id,event_type,xp,detail_json) VALUES(?,?,?,?)",
+                      (pl["id"],"PITCH_LEARNED",-learned["cost"],json.dumps({"pitch":d.get("pitch"),"cost":learned["cost"],"repertoire":learned["pitches"]})))
+            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                      ("PITCH_LEARNED",u["id"],json.dumps({"player_id":pl["id"],"pitch":d.get("pitch"),"cost":learned["cost"]})))
+            c.commit();c.close();return self.out({"ok":True,"pitches":learned["pitches"],"cost":learned["cost"],"xp_wallet":learned["xp_after"]})
         if p=="/api/player/request-cpu-market":
             u=self.auth(["PLAYER","COMMISSIONER"])
             if not u:return
@@ -14548,6 +14098,8 @@ class H(BaseHTTPRequestHandler):
                     return self.out({"error":"PLAYER_NOT_ON_TEAM"},400)
                 if pl["user_id"] is None:
                     return self.out({"error":"HUMAN_PLAYER_REQUIRED"},400)
+                if pl["user_id"]==u["id"]:
+                    return self.out({"error":"CANNOT_SIGN_OWN_PLAYER"},403)
                 if int(con["years_remaining"] or 0)!=1:
                     return self.out({"error":"CONTRACT_NOT_EXPIRING"},400)
                 accepted=c.execute("SELECT id FROM offers WHERE franchise_id=? AND player_id=? AND offer_type='RENEWAL' AND effective_season=? AND status='ACCEPTED' LIMIT 1",(f["id"],pid,season+1)).fetchone()
@@ -14606,6 +14158,7 @@ class H(BaseHTTPRequestHandler):
                 c.close();return self.out({"error":"ROOKIE_SALARY_FIXED","required_salary":SALARY_MIN},400)
             pl=c.execute("SELECT * FROM players WHERE id=?",(pid,)).fetchone()
             if not pl or pl["status"]!="FREE_AGENT":c.close();return self.out({"error":"PLAYER_NOT_FREE_AGENT"},400)
+            if pl["user_id"]==u["id"]:c.close();return self.out({"error":"CANNOT_SIGN_OWN_PLAYER"},403)
 
 
 
@@ -15147,6 +14700,26 @@ class H(BaseHTTPRequestHandler):
 
 
 
+
+        if p=="/api/coach/stadium":
+            u=self.auth(["COACH","COMMISSIONER"])
+            if not u:return
+            d=self.body();c=conn();f=c.execute("SELECT id,name FROM franchises WHERE owner_user_id=?",(u["id"],)).fetchone()
+            if not f:c.close();return self.out({"error":"NO_FRANCHISE"},404)
+            state={r["k"]:r["v"] for r in c.execute("SELECT k,v FROM league_state WHERE k IN ('season','phase','league_day')")}
+            season=int(state.get("season",1));phase=str(state.get("phase","REGULAR")).upper();day=int(state.get("league_day",0) or 0)
+            if not stadium_edit_open(phase,day):
+                current=stadium_state(c,f["id"],f["name"]);c.close()
+                return self.out({"error":"STADIUM_LOCKED_IN_SEASON","stadium":current,"season":season,"league_day":day,"phase":phase},400)
+            try:
+                effective_season=effective_season_for_edit(season,phase)
+                key=set_stadium_configuration(c,f["id"],d.get("park_profile","NEUTRAL"),d.get("stadium_name",""),effective_season)
+            except ValueError as exc:
+                c.rollback();c.close();return self.out({"error":str(exc),"profiles":profile_catalog()},400)
+            stadium=stadium_state(c,f["id"],f["name"]);stadium["edit_open"]=True;stadium["profiles"]=profile_catalog()
+            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
+                      ("STADIUM_CONFIGURED",u["id"],json.dumps({"franchise_id":f["id"],"stadium_name":stadium["stadium_name"],"park_profile":key,"effective_season":effective_season})))
+            c.commit();c.close();return self.out({"ok":True,"stadium":stadium})
 
         if p=="/api/coach/set-strategy":
             u=self.auth(["COACH","COMMISSIONER"])
@@ -17374,6 +16947,8 @@ class H(BaseHTTPRequestHandler):
                 c.execute("DELETE FROM all_star_games")
                 c.execute("DELETE FROM rivalries")
                 c.execute("DELETE FROM league_records")
+                c.execute("DELETE FROM relationship_season_usage")
+                c.execute("DELETE FROM player_relationships")
                 c.execute("DELETE FROM news")
                 c.execute("DELETE FROM xp_ledger")
                 c.execute("DELETE FROM chat_messages")
@@ -17510,375 +17085,29 @@ class H(BaseHTTPRequestHandler):
             if not u:
                 return
 
-
-
-
-
-
-
-
             c=conn()
             try:
-                season_row=c.execute("SELECT v FROM league_state WHERE k='season'").fetchone()
-                phase_row=c.execute("SELECT v FROM league_state WHERE k='phase'").fetchone()
-                champion_row=c.execute("SELECT v FROM league_state WHERE k='champion'").fetchone()
-                current_season=int(season_row["v"]) if season_row else 1
-                phase=phase_row["v"] if phase_row else "REGULAR"
-                champion=champion_row["v"] if champion_row else ""
-                if phase!="OFFSEASON":
-                    return self.out({"error":"SEASON_NOT_COMPLETE","phase":phase},400)
-
-
-
-
-
-
-
-
-                next_season=current_season+1
-                summary={"contracts_expired":0,"contracts_advanced":0,"renewals_activated":0,"retired":0,"retired_names":[],"free_agents":[],"offers_expired":0,"return_offers":0,"rosters_rebuilt":False}
-                return_offer_candidates=[]
-
-
-
-
-
-
-
-
-                # Active players are archived here. Voluntary offseason retirees
-                # are archived by /api/player/retire at retirement time.
-                players=c.execute("SELECT id,user_id,franchise_id,name,type,season_json,age,active FROM players WHERE active=1").fetchall()
-                for pl in players:
-                    c.execute("""INSERT OR IGNORE INTO season_history(season,player_id,franchise_id,player_type,stats_json)
-                                 VALUES(?,?,?,?,?)""",
-                              (current_season,pl["id"],pl["franchise_id"],pl["type"],pl["season_json"] or "{}"))
-
-
-
-
-
-
-
-
-                if champion:
-                    c.execute("INSERT OR REPLACE INTO season_champions(season,franchise_id) VALUES(?,?)",(current_season,champion))
-
-
-
-
-
-
-
-
-                current_active=active_franchise_ids(c,current_season)
-                q_active=",".join("?" for _ in current_active)
-                for fr in c.execute(
-                    f"SELECT id,wins,losses,runs_for,runs_against FROM franchises WHERE id IN ({q_active})",
-                    current_active
-                ).fetchall():
-                    finish="CHAMPION" if champion and fr["id"]==champion else None
-                    c.execute("""INSERT OR REPLACE INTO franchise_season_history(
-                                   season,franchise_id,wins,losses,runs_for,runs_against,playoff_finish,champion
-                               ) VALUES(?,?,?,?,?,?,?,?)""",
-                              (current_season,fr["id"],fr["wins"],fr["losses"],fr["runs_for"],fr["runs_against"],finish,1 if finish else 0))
-
-
-
-
-
-
-
-
-                expiring_offers=c.execute("SELECT COUNT(*) n FROM offers WHERE status IN ('OPEN','HELD')").fetchone()["n"]
-                if expiring_offers:
-                    c.execute("UPDATE offers SET status='EXPIRED_OFFSEASON' WHERE status IN ('OPEN','HELD')")
-                summary["offers_expired"]=expiring_offers
-
-
-
-
-
-
-
-
-                contracts=c.execute("SELECT * FROM contracts ORDER BY id").fetchall()
-                for con in contracts:
-                    remaining=int(con["years_remaining"] or 0)-1
-                    pid=con["player_id"]
-                    if veteran_retirement_due(c,pid):
-                        continue
-                    if remaining<=0:
-                        pl=c.execute("SELECT user_id,name FROM players WHERE id=?",(pid,)).fetchone()
-                        seen=c.execute("""SELECT 1 FROM contract_history WHERE player_id=? AND franchise_id=? AND ABS(salary-?)<0.0001 AND signed_at=? LIMIT 1""",(pid,con["franchise_id"],con["salary"],con["signed_at"])).fetchone()
-                        if not seen:
-                            c.execute("""INSERT INTO contract_history(player_id,franchise_id,bonus,salary,years,signed_at,ended_at) VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)""",(pid,con["franchise_id"],con["bonus"],con["salary"],max(1,int(con["years_total"] or con["years_remaining"] or 1)),con["signed_at"]))
-                        renewal=c.execute(
-                            """SELECT * FROM offers WHERE player_id=? AND franchise_id=? AND offer_type='RENEWAL'
-                               AND status='ACCEPTED' AND effective_season=? ORDER BY id DESC LIMIT 1""",
-                            (pid,con["franchise_id"],next_season)
-                        ).fetchone()
-                        if renewal:
-                            c.execute(
-                                """UPDATE contracts SET bonus=0,salary=?,years_remaining=?,years_total=?,starting_salary=?,signed_at=CURRENT_TIMESTAMP
-                                   WHERE player_id=?""",
-                                (renewal["salary"],renewal["years"],renewal["years"],renewal["salary"],pid)
-                            )
-                            c.execute("UPDATE offers SET status='ACTIVATED_RENEWAL' WHERE id=?",(renewal["id"],))
-                            summary["renewals_activated"]+=1
-                            if pl and pl["user_id"]:
-                                notify_user(c,pl["user_id"],"CONTRACT","Renewal begins",f"{pl['name']} remains with {team_name(c,con['franchise_id'])} at {float(renewal['salary']):.2f} XP/game for {int(renewal['years'])} season(s).",str(pid))
-                            c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                                      ("RENEWAL_ACTIVATED",pl["user_id"] if pl else None,json.dumps({"player_id":pid,"franchise_id":con["franchise_id"],"salary":renewal["salary"],"years":renewal["years"],"season":next_season})))
-                        else:
-                            c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
-                            c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE player_id=?",(pid,))
-                            c.execute("UPDATE players SET franchise_id=NULL,status='FREE_AGENT' WHERE id=? AND active=1",(pid,))
-                            summary["contracts_expired"]+=1
-                            if pl:
-                                summary["free_agents"].append(pl["name"])
-                                if pl["user_id"]:
-                                    return_offer_candidates.append({
-                                        "player_id":pid,
-                                        "user_id":pl["user_id"],
-                                        "player_name":pl["name"],
-                                        "franchise_id":con["franchise_id"],
-                                        "previous_salary":float(con["salary"] or SALARY_MIN)
-                                    })
-                                    notify_user(c,pl["user_id"],"CONTRACT","Contract expired",f"{pl['name']} is now an EBL free agent. Your former club will send a return offer for the new season.",str(pid))
-                    else:
-                        next_salary=round(float(con["salary"] or SALARY_MIN)+CONTRACT_ESCALATION,2)
-                        c.execute("UPDATE contracts SET years_remaining=?,salary=? WHERE player_id=?",(remaining,next_salary,pid))
-                        summary["contracts_advanced"]+=1
-
-
-
-
-
-
-
-
-                c.execute("UPDATE players SET age=age+1 WHERE active=1")
-                c.execute("UPDATE team_sponsorships SET status='EXPIRED' WHERE status='ACTIVE' AND end_season<?",(next_season,))
-
-
-
-
-
-
-
-
-                cap_rows=c.execute("""SELECT p.id,p.user_id,p.name,p.franchise_id,p.age,p.career_extension_through,COUNT(sh.season) seasons_played
-                                      FROM players p JOIN season_history sh ON sh.player_id=p.id
-                                      WHERE p.active=1 GROUP BY p.id HAVING COUNT(sh.season)>=12""").fetchall()
-                for pl in cap_rows:
-                    pid=pl["id"]
-                    seasons_played=int(pl["seasons_played"] or 0)
-                    if not veteran_retirement_due(c,pid):
-                        continue
-                    # Preserve the final active contract in permanent history before
-                    # retirement removes it from the live roster tables.
-                    retiring_contract=c.execute("SELECT * FROM contracts WHERE player_id=?",(pid,)).fetchone()
-                    if retiring_contract:
-                        seen=c.execute("""SELECT 1 FROM contract_history WHERE player_id=? AND franchise_id=? AND ABS(salary-?)<0.0001 AND signed_at=? LIMIT 1""",
-                                       (pid,retiring_contract["franchise_id"],retiring_contract["salary"],retiring_contract["signed_at"])).fetchone()
-                        if not seen:
-                            c.execute("""INSERT INTO contract_history(player_id,franchise_id,bonus,salary,years,signed_at,ended_at)
-                                         VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP)""",
-                                      (pid,retiring_contract["franchise_id"],retiring_contract["bonus"],retiring_contract["salary"],max(1,int(retiring_contract["years_total"] or retiring_contract["years_remaining"] or 1)),retiring_contract["signed_at"]))
-                    c.execute("DELETE FROM contracts WHERE player_id=?",(pid,))
-                    c.execute("UPDATE offers SET status='CANCELLED_RETIRED' WHERE player_id=? AND status IN ('OPEN','HELD','ACCEPTED')",(pid,))
-                    c.execute("UPDATE roster_slots SET player_id=NULL,occupant_type='OPEN' WHERE player_id=?",(pid,))
-                    c.execute("UPDATE players SET active=0,status='RETIRED',franchise_id=NULL WHERE id=?",(pid,))
-                    summary["retired"]+=1
-                    if pl["user_id"]:
-                        summary["retired_names"].append(pl["name"])
-                    reason="12_SEASON_CPU_CAP" if pl["user_id"] is None else "VETERAN_EXTENSION_NOT_PURCHASED"
-                    c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                              ("PLAYER_RETIRED",pl["user_id"],json.dumps({"player_id":pid,"player_name":pl["name"],"franchise_id":pl["franchise_id"],"reason":reason,"seasons_played":seasons_played})))
-                    if pl["user_id"]:
-                        next_cost=veteran_extension_cost(seasons_played)
-                        notify_user(c,pl["user_id"],"CAREER","Veteran career complete",f"{pl['name']} completed {seasons_played} EBL seasons. The {next_cost:g} XP extension for career Season {seasons_played+1} was not purchased before rollover.",str(pid))
-
-
-
-
-
-
-
-
-                economy_awards=apply_finish_economy(c,current_season,current_active)
-                summary["franchise_economy"]=economy_awards
-                for frrow in c.execute("SELECT * FROM franchises").fetchall():
-                    fr=dict(frrow);budget=float(fr.get("xp_budget",TEAM_BUDGET) or TEAM_BUDGET);spent=float(fr.get("xp_spent",0) or 0)
-                    unused=max(0.0,budget-spent)
-                    reserve=float(fr.get("xp_reserve",0) or 0)+unused
-                    fr["xp_reserve"]=reserve
-                    # reserve is spendable next season, not merely tracked.
-                    # annual_team_budget includes the 480 base, permanent standings growth, and revenue upgrades.
-                    next_budget=round(annual_team_budget(fr)+reserve,3)
-                    c.execute("""UPDATE franchises SET wins=0,losses=0,runs_for=0,runs_against=0,
-                               xp_reserve=0,xp_spent=0,xp_budget=? WHERE id=?""",(next_budget,fr["id"]))
-
-
-
-
-
-
-
-
-                if not c.execute("SELECT 1 FROM franchise_seasons WHERE season=? LIMIT 1",(next_season,)).fetchone():
-                    set_season_membership(c,next_season,current_active)
-
-
-
-
-
-
-
-
-                # Every human player whose deal expires gets a visible return offer from
-                # the club they just played for. They can accept it, hold it, reject it,
-                # or shop the wider market.
-                for cand in return_offer_candidates:
-                    if cand["franchise_id"] not in current_active:
-                        continue
-                    active=c.execute("SELECT active,status FROM players WHERE id=?",(cand["player_id"],)).fetchone()
-                    if not active or not active["active"] or active["status"]!="FREE_AGENT":
-                        continue
-                    if c.execute("SELECT 1 FROM offers WHERE player_id=? AND franchise_id=? AND status IN ('OPEN','HELD')",(cand["player_id"],cand["franchise_id"])).fetchone():
-                        continue
-                    fr=c.execute("SELECT name,xp_budget,xp_spent FROM franchises WHERE id=?",(cand["franchise_id"],)).fetchone()
-                    salary=minimum_offer_salary(c,cand["player_id"],cand["franchise_id"])
-
-
-
-
-
-
-
-
-                    # return offers spend from the same shared signing pool
-                    # and can never undercut the player's career salary floor.
-                    # The 16 league-minimum salaries are protected first; bonuses and
-                    # salary premiums for signed contracts + OPEN/HELD offers all consume
-                    # the remaining discretionary pool.
-                    pool=signing_pool_state(c,cand["franchise_id"])
-                    salary_premium=max(0.0,salary-SALARY_MIN)*REGULAR_SEASON_GAMES
-                    available_bonus=max(0.0,pool["available"]-salary_premium)
-                    bonus=round(min(5.0,available_bonus),1)
-
-
-
-
-
-
-
-
-                    # If the mandatory returning-player raise itself cannot fit, do not
-                    # create an impossible offer that could later overspend the club.
-                    offer_cost=round(bonus+salary_premium,3)
-                    if offer_cost>pool["available"]+1e-9:
-                        continue
-
-
-
-
-
-
-
-
-                    cur=c.execute("INSERT INTO offers(franchise_id,player_id,bonus,salary,years,status) VALUES(?,?,?,?,2,'OPEN')",(cand["franchise_id"],cand["player_id"],bonus,salary))
-                    summary["return_offers"]+=1
-                    if cand["user_id"]:
-                        notify_user(c,cand["user_id"],"CONTRACT",f"Return offer from {fr['name'] if fr else cand['franchise_id']}",f"{bonus:g} XP bonus • {salary:g} XP/game • 2 years",str(cur.lastrowid))
-
-
-
-
-
-
-
-
-                enforce_active_rosters(c,next_season)
-                summary["rosters_rebuilt"]=True
-
-
-
-
-
-
-
-
-                # Opening Day starts with every pitcher fully recovered.
-                reset_pitcher_fatigue(c,"NEW_SEASON",season=next_season,league_day=0,announce=False)
-
-
-
-
-
-
-
-
-                active_players=c.execute("SELECT id,type FROM players WHERE active=1").fetchall()
-                for pl in active_players:
-                    if pl["type"]=="H":
-                        new_stats={"G":0,"PA":0,"AB":0,"H":0,"1B":0,"2B":0,"3B":0,"HR":0,"BB":0,"SO":0,"R":0,"RBI":0,"SB":0,"CS":0}
-                    else:
-                        new_stats={"G":0,"GS":0,"OUTS":0,"H":0,"ER":0,"BB":0,"SO":0,"W":0,"L":0,"SV":0}
-                    c.execute("UPDATE players SET season_json=? WHERE id=?",(json.dumps(new_stats),pl["id"]))
-
-
-
-
-
-
-
-
-                if c.execute("SELECT 1 FROM games WHERE season=? LIMIT 1",(next_season,)).fetchone():
-                    return self.out({"error":"NEXT_SEASON_ALREADY_EXISTS","season":next_season},409)
-                generate_season_schedule(c,next_season)
-
-
-
-
-
-
-
-
-                for key,value in (("season",str(next_season)),("league_day","0"),("phase","REGULAR"),("playoff_round",""),("champion",""),("pitcher_workload_season",str(next_season))):
-                    c.execute("INSERT INTO league_state(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",(key,value))
-                c.execute("INSERT INTO league_config(k,v) VALUES('season_number',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v",(str(next_season),))
-                post_news(c,"LEAGUE",f"Season {next_season} is open",f"A new EBL season begins. Rosters, contracts, standings, and statistics have rolled forward for Season {next_season}.",0,None,None,None,4,season=next_season)
-                c.execute("INSERT INTO transactions(event_type,actor_user_id,payload_json) VALUES(?,?,?)",
-                          ("SEASON_ADVANCED",u["id"],json.dumps({"from":current_season,"to":next_season,**summary})))
-
-
-
-
-
-
-
-
+                try:
+                    result=advance_to_next_season(
+                        c,u["id"],
+                        veteran_retirement_due=veteran_retirement_due,
+                        veteran_extension_cost=veteran_extension_cost,
+                        apply_finish_economy=apply_finish_economy,
+                        annual_team_budget=annual_team_budget,
+                        minimum_offer_salary=minimum_offer_salary,
+                        signing_pool_state=signing_pool_state,
+                        enforce_active_rosters=enforce_active_rosters,
+                        reset_pitcher_fatigue=reset_pitcher_fatigue,
+                        notify_user=notify_user,
+                        post_news=post_news,
+                        finalize_relationships=finalize_relationship_season,
+                    )
+                except SeasonAdvanceError as e:
+                    return self.out(e.payload,e.status)
                 c.commit()
-                return self.out({"ok":True,"previous_season":current_season,"season":next_season,"day":0,"phase":"REGULAR",
-                                 "games_created":c.execute("SELECT COUNT(*) n FROM games WHERE season=?",(next_season,)).fetchone()["n"],
-                                 "offseason":summary})
+                return self.out(result)
             finally:
                 c.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
