@@ -12863,6 +12863,22 @@ class H(BaseHTTPRequestHandler):
             return self.out({
                 "game":game
             })  
+        if p=="/api/player/repertoire":
+            u=self.auth()
+            if not u:return
+            c=conn()
+            r=owned_active_player(c,u["id"],request_player_id(self))
+            if not r:
+                c.close();return self.out({"error":"PLAYER_NOT_FOUND"},404)
+            if r["type"]!="P":
+                c.close();return self.out({"error":"PITCHER_ONLY"},400)
+            try:
+                attrs=json.loads(r["attributes_json"] or "{}")
+            except Exception:
+                attrs={}
+            rep=repertoire_state(c,r["id"],attrs)
+            c.commit();c.close()
+            return self.out({"repertoire":rep})
         if p=="/api/my-player":
             u=self.auth()
             if not u:return
