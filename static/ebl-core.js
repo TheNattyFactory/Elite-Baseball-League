@@ -237,7 +237,7 @@ async function refresh(){
   }catch(e){}
  }
  accountTag.innerHTML=`<span class="notifWrap"><button class="btn notifBell" data-ebl-action="toggle-notifications" aria-label="Notifications">🔔<span id="notifCount" class="notifCount hidden">0</span></button></span> <button id="pmShortcut" class="btn pmShortcut" data-ebl-action="open-messages" aria-label="Private messages">💬 Messages <span id="pmCount" class="pmCount hidden">0</span></button> ${ME.username}${ME.beta_member?'<span class="betaTesterBadge">BETA TESTER</span>':''}${ME.founding_supporter?'<span class="foundingSupporterBadge">FOUNDING SUPPORTER</span>':''}${ME.supporter?'<span class="supporterBadge">SUPPORTER</span>':''} • ${ME.role} &nbsp; <button class="btn" data-ebl-action="logout">Logout</button><div id="notifBackdrop" class="notifBackdrop hidden" data-ebl-action="close-notifications"></div><div id="notifPanel" class="notifPanel hidden"></div>`;
- loginCard.classList.add('hidden');dashboard.classList.remove('hidden');adminNav.classList.toggle('hidden',ME.role!=='COMMISSIONER');coachNav.classList.toggle('hidden',!['COACH','COMMISSIONER'].includes(ME.role));
+ loginCard.classList.add('hidden');dashboard.classList.remove('hidden');adminNav.classList.toggle('hidden',ME.role!=='COMMISSIONER');coachNav.classList.remove('hidden');
  const initialLoads=await Promise.allSettled([loadLeague(),loadSchedule(),loadAnalytics(),loadAwards(),loadPlayer(),loadNews(),loadReadiness(),loadCommunity(),loadDMContacts(),loadDMUnread(),loadPlayoffs()]);
  initialLoads.forEach((r,i)=>{if(r.status==='rejected')console.warn('EBL dashboard loader failed',i,r.reason)});
  // Never let an unrelated page failure block Franchise Operations.
@@ -999,6 +999,15 @@ async function loadPlayer(playerId=null){try{
  if(PLAYER?.offers?.length && !LEAGUE){
    try{LEAGUE=await api('/api/league');renderStandings()}catch(e){console.warn('Could not resolve contract-offer team names',e)}
  }
+ // Pitchers created before the repertoire rollout (or served once from an older
+ // /api/my-player shape) should never lose the Pitch Arsenal UI. Hydrate the
+ // canonical repertoire directly as a compatibility fallback.
+ if(PLAYER?.type==='P'&&!PLAYER.repertoire){
+   try{
+     const r=await api('/api/player/repertoire?player_id='+encodeURIComponent(PLAYER.id));
+     if(r?.repertoire)PLAYER.repertoire=r.repertoire;
+   }catch(e){console.warn('Could not hydrate pitcher repertoire',e)}
+ }
  renderPlayer();
 }catch{PLAYER=null;ACTIVE_PLAYERS=[];CAREERS=[]}}
 async function selectPlayer(pid){localStorage.setItem('ebl_selected_player',String(pid));await loadPlayer(pid);await Promise.all([loadSchedule(),loadLeague()]);renderHome();await Promise.all([loadChat('EBL'),loadChat('TEAM')]);}
@@ -1395,6 +1404,7 @@ function renderPlayer(){
 
                 </div>
 
+                ${batteryRelationshipHtml(p)}
 
             </div>
 
@@ -1503,6 +1513,7 @@ function renderPlayer(){
                     ${attrHtml}
                 </div>
 
+                ${p.type==='P'?pitcherArsenalHtml(p):''}
 
             </div>
 
@@ -1614,7 +1625,7 @@ function refreshChangePositions(){
 async function changePlayerPosition(){return onceAction('changePosition',async()=>{
  try{const group=changeGroup.value,position=changePos.value;await api('/api/player/change-position',{method:'POST',body:JSON.stringify({player_id:PLAYER?.id,position_group:group,position})});await loadPlayer(PLAYER?.id);renderHome();}catch(e){eblAlert(e.error||'Could not change position')}})}
                 
-let CREATOR={first_name:'',last_name:'',name:'',hometown_city:'',hometown_region:'',hometown:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,skin_color_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,hair_color_id:3,nose_id:1,eye_shape_id:1,mouth_id:1,ear_size_id:2,eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1,body_build_id:1,pool:50,attributes:{}};
+let CREATOR={first_name:'',last_name:'',name:'',hometown_city:'',hometown_region:'',hometown:'',position_group:'INF',position:'SS',bats:'R',throws:'R',jersey_number:24,face_id:1,skin_color_id:1,hair_id:1,facial_hair_id:1,eye_color_id:6,hair_color_id:3,nose_id:1,eye_shape_id:1,mouth_id:1,ear_size_id:2,eye_black_id:1,eyewear_id:1,chain_id:1,sleeve_id:1,body_build_id:1,pool:50,attributes:{},pitches:['FOUR_SEAM','SLIDER','CHANGEUP']};
 let POSITION_DEMAND=[];
 const SKIN_TONES=[{name:'Fair',color:'#f2c59d'},{name:'Light',color:'#e7b58d'},{name:'Warm',color:'#dca47b'},{name:'Tan',color:'#c98c68'},{name:'Medium',color:'#bd7c57'},{name:'Deep',color:'#8d573e'},{name:'Rich',color:'#754733'},{name:'Dark',color:'#633c2e'}];
 const FACE_PRESETS=[
@@ -1664,6 +1675,55 @@ const EYEWEAR_NAMES=['None','Sport Goggles','Thin Frames','Round Frames','Wrapar
 const CHAIN_NAMES=['None','Gold Chain','Two Gold Chains','Silver Chain','Two Silver Chains','Large Gold Chain','Large Silver Chain'];
 const BODY_BUILD_NAMES=['Normal','Heavy','Muscular'];
 const SLEEVE_NAMES=['None','Left Arm','Right Arm','Both Arms'];
+
+const EBL_PITCH_CATALOG=[
+ {key:'FOUR_SEAM',label:'Four-Seam',emphasis:['VEL','CMD'],description:'Primary velocity pitch. Velocity leads; command helps it live at the edges.'},
+ {key:'SINKER',label:'Sinker',emphasis:['MOV','VEL'],description:'Late movement and useful velocity; naturally fits weak-contact pitchers.'},
+ {key:'CUTTER',label:'Cutter',emphasis:['MOV','VEL','BRK'],description:'A firm movement pitch that blends velocity with shorter break.'},
+ {key:'SLIDER',label:'Slider',emphasis:['BRK','MOV'],description:'Breaking-ball weapon that leans on break with movement behind it.'},
+ {key:'CURVEBALL',label:'Curveball',emphasis:['BRK','CTRL'],description:'Large shape that rewards break and enough control to land it.'},
+ {key:'CHANGEUP',label:'Changeup',emphasis:['MOV','SEQ','DEC'],description:'Speed separation and movement; sequencing and deception help it play up.'},
+ {key:'SPLITTER',label:'Splitter',emphasis:['MOV','BRK'],description:'Late drop that leans on movement and break rather than raw velocity.'}
+];
+const EBL_PITCH_WEIGHTS={
+ FOUR_SEAM:{VEL:.70,CMD:.30},SINKER:{MOV:.60,VEL:.25,CMD:.15},CUTTER:{MOV:.45,VEL:.35,BRK:.20},
+ SLIDER:{BRK:.60,MOV:.25,DEC:.15},CURVEBALL:{BRK:.65,CTRL:.20,DEC:.15},CHANGEUP:{MOV:.45,SEQ:.30,DEC:.25},
+ SPLITTER:{MOV:.45,BRK:.40,CMD:.15}
+};
+function pitchCatalogRow(key){return EBL_PITCH_CATALOG.find(x=>x.key===key)}
+function pitchFitScore(key,attrs){const w=EBL_PITCH_WEIGHTS[key]||{};return Object.entries(w).reduce((n,[a,v])=>n+Number(attrs?.[a]||0)*v,0)}
+function pitchFitLabel(key,attrs){
+ const scores=EBL_PITCH_CATALOG.map(x=>pitchFitScore(x.key,attrs));const top=Math.max(...scores,0),score=pitchFitScore(key,attrs);
+ if(top<=0)return 'Build fit updates as you spend your 50 XP.';
+ if(score>=top*.82)return 'Great fit for your current build.';
+ if(score>=top*.58)return 'Good fit for your current build.';
+ return 'Usable — this pitch leans on skills outside your current emphasis.';
+}
+function creatorPitchSelectorHtml(){
+ const selected=new Set(CREATOR.pitches||[]);
+ return `<div class="card eblSpaceTopMd"><span class="newsMeta">PITCH REPERTOIRE</span><h3 style="margin:3px 0">Choose exactly 3 pitches</h3><p class="muted">Your pitches do not have separate ratings. They use the pitching attributes above. The labels below only explain which skills each pitch naturally leans on.</p><div class="grid">${EBL_PITCH_CATALOG.map(x=>`<button type="button" class="taskCard eblClickable ${selected.has(x.key)?'selected':''}" data-ebl-action="creator-pitch-toggle" data-pitch="${x.key}" aria-pressed="${selected.has(x.key)?'true':'false'}"><b>${selected.has(x.key)?'✓ ':''}${x.label}</b><div class="muted">Leans on: ${x.emphasis.join(' • ')}</div><small>${x.description}</small><div class="${pitchFitLabel(x.key,CREATOR.attributes).startsWith('Great')?'green':'muted'}">${pitchFitLabel(x.key,CREATOR.attributes)}</div></button>`).join('')}</div><div class="muted eblSpaceTopXs"><b>${selected.size}/3 selected.</b> There are no bad legal combinations; repertoire gives your pitcher identity, not a hidden pass/fail build check.</div></div>`;
+}
+function toggleCreatorPitch(key){
+ const valid=EBL_PITCH_CATALOG.some(x=>x.key===key);if(!valid)return;
+ const picks=[...(CREATOR.pitches||[])];const i=picks.indexOf(key);
+ if(i>=0)picks.splice(i,1);else if(picks.length<3)picks.push(key);else return eblAlert('Choose exactly 3 pitches. Remove one before adding another.');
+ CREATOR.pitches=picks;creatorAttributes();
+}
+function pitcherArsenalHtml(p){
+ if(p?.type!=='P')return '';
+ if(!p.repertoire)return `<div class="card eblSpaceTopMd"><span class="newsMeta">PITCH ARSENAL</span><h3 style="margin:3px 0">Repertoire unavailable</h3><p class="muted">Your pitcher should always have a 3–5 pitch repertoire. Refresh this player after the server update; the league will restore a starting arsenal automatically without charging XP.</p></div>`;
+ const rep=p.repertoire||{},owned=new Set(rep.pitches||[]),catalog=rep.catalog?.length?rep.catalog:EBL_PITCH_CATALOG;
+ const current=`<div class="legacyStrip">${[...owned].map(k=>{const row=catalog.find(x=>x.key===k)||pitchCatalogRow(k)||{label:k};return `<span class="legacyBadge">⚾ ${escapeHtml(row.label||k)}</span>`}).join('')}</div>`;
+ const learn=rep.can_learn?catalog.filter(x=>!owned.has(x.key)).map(x=>`<div class="taskCard"><b>${escapeHtml(x.label)}</b><div class="muted">Leans on: ${(x.emphasis||[]).join(' • ')}</div><small>${escapeHtml(x.description||'')}</small><div class="muted eblSpaceTopTiny">${pitchFitLabel(x.key,p.attributes||{})}</div><button class="btn eblSpaceTopXs" data-ebl-action="learn-pitch" data-pitch="${x.key}">LEARN • ${Number(rep.next_pitch_cost||0).toFixed(0)} XP</button></div>`).join(''):'';
+ return `<div class="card eblSpaceTopMd"><span class="newsMeta">PITCH ARSENAL</span><h3 style="margin:3px 0">${rep.pitch_count||owned.size}/${rep.max_pitches||5} pitches</h3><p class="muted">Pitches use your existing CTRL/CMD/VEL/BRK/MOV/DEC/SEQ ratings. Learning another pitch gives you another look; it does not create a second rating tree or an automatic effectiveness bonus.</p>${current}${rep.can_learn?`<h4 class="eblSpaceTopMd">Add another pitch</h4><div class="grid">${learn}</div>`:'<p class="green eblSpaceTopSm"><b>Full five-pitch repertoire.</b></p>'}</div>`;
+}
+function batteryRelationshipHtml(p){
+ const rows=p?.relationships?.batteries||[];if(!rows.length)return '';
+ return `<div class="card eblSpaceTopMd"><span class="newsMeta">BATTERY HISTORY</span><h3 style="margin:3px 0">Pitcher–Catcher Familiarity</h3><p class="muted">Battery Charge is earned by qualifying seasons together. It improves execution craft only while that exact pitcher and catcher work together; it never changes permanent ratings or velocity.</p><div class="tablewrap"><table><tr><th>Battery</th><th>Qualified seasons</th><th>Current streak</th><th>Charge</th></tr>${rows.map(r=>`<tr><td>${escapeHtml(r.pitcher_name||'Pitcher')} / ${escapeHtml(r.catcher_name||'Catcher')}</td><td>${Number(r.total_qualified_seasons||0)}</td><td>${Number(r.consecutive_seasons||0)}</td><td>+${Number(r.bonus||0).toFixed(2)}</td></tr>`).join('')}</table></div></div>`;
+}
+async function learnPitch(key){return onceAction(`learnPitch:${key}`,async()=>{
+ try{const j=await api('/api/player/learn-pitch',{method:'POST',body:JSON.stringify({player_id:PLAYER?.id,pitch:key})});await loadPlayer(PLAYER?.id);renderPlayer();renderHome();showCareerToast(`PITCH LEARNED • ${pitchCatalogRow(key)?.label||key} • -${Number(j.cost||0).toFixed(0)} XP`);}catch(e){showCareerToast(e.error==='INSUFFICIENT_XP'?`NEED ${Number(e.cost||0).toFixed(0)} XP TO LEARN THIS PITCH`:(e.error||'Could not learn pitch'));}
+})}
 
 function eblHairColor(model){const id=Math.max(1,Math.min(HAIR_COLORS.length,Number(model?.hair_color_id)||3));return (HAIR_COLORS[id-1]||HAIR_COLORS[2]).color}
 function setCreatorStep(n){
@@ -1722,6 +1782,7 @@ function creatorGroupChanged(){
  CREATOR.position_group=cgroup.value;
  const positions=creatorPositionsForGroup(CREATOR.position_group);
  CREATOR.position=positions[0];
+ if(CREATOR.position_group==='PITCHER' && (!Array.isArray(CREATOR.pitches)||CREATOR.pitches.length!==3))CREATOR.pitches=['FOUR_SEAM','SLIDER','CHANGEUP'];
  cpos.innerHTML=creatorPositionOptions();
  const note=document.getElementById('catcherCreatorNote');
  if(note)note.innerHTML=CREATOR.position_group==='INF'?`<b>Catcher specialization:</b> Any position player can catch in an emergency or by coach choice. Choose C if you want to develop CALL and build specifically for the position. CALL only affects games while you are catching.`:'';
@@ -2068,6 +2129,7 @@ function creatorAttributes(){
             </div>
         `).join('')}
 
+        ${pitcher?creatorPitchSelectorHtml():''}
 
         <div class="eblSpaceTopMd">
             <button class="btn" data-ebl-action="creator-step" data-step="2">BACK</button>
@@ -2128,10 +2190,10 @@ function builderTab(id,b){
     if(pane)pane.classList.add('active');
     b.classList.add('active');
 }
-function attributeReview(){if(CREATOR.pool!==0)return eblAlert('Spend all 50 XP first.');setCreatorStep(4)}
+function attributeReview(){if(CREATOR.pool!==0)return eblAlert('Spend all 50 XP first.');if(CREATOR.position_group==='PITCHER'&&(!Array.isArray(CREATOR.pitches)||CREATOR.pitches.length!==3))return eblAlert('Choose exactly 3 starting pitches.');setCreatorStep(4)}
 function creatorReview(){
  creatorStage.innerHTML=`<div class="two"><div class="card"><div class="identity"><div class="avatar">${initials(CREATOR.name)}</div><div><h2>${escapeHtml(CREATOR.name)}</h2><div class="muted">${CREATOR.position_group} • Preferred ${CREATOR.position} • Bats ${CREATOR.bats} • Throws ${CREATOR.throws}</div><div class="muted">From ${escapeHtml(CREATOR.hometown||'')}</div></div></div>
- <h3 class="eblSpaceTopMd">50-XP Build</h3><p class="muted">Review your starting strengths carefully. You can go back and rebalance before creating the player.</p>${Object.entries(CREATOR.attributes).map(([k,v])=>`<div class="attr"><b>${k}</b><span>${v}</span><span></span></div>`).join('')}</div>
+ <h3 class="eblSpaceTopMd">50-XP Build</h3><p class="muted">Review your starting strengths carefully. You can go back and rebalance before creating the player.</p>${Object.entries(CREATOR.attributes).map(([k,v])=>`<div class="attr"><b>${k}</b><span>${v}</span><span></span></div>`).join('')}${CREATOR.position_group==='PITCHER'?`<h3 class="eblSpaceTopMd">Starting Repertoire</h3><div class="legacyStrip">${(CREATOR.pitches||[]).map(k=>`<span class="legacyBadge">⚾ ${pitchCatalogRow(k)?.label||k}</span>`).join('')}</div><p class="muted">Three pitches are included at creation. A fourth costs 5 XP later; a fifth costs 8 XP.</p>`:''}</div>
  <div class="card"><h3>Appearance</h3><div class="avatarPreview">${avatarMarkup()}</div><p class="muted">Face ${CREATOR.face_id} • ${HAIR_NAMES[CREATOR.hair_id-1]} • ${FACIAL_HAIR_NAMES[CREATOR.facial_hair_id-1]} • ${(HAIR_COLORS[(CREATOR.hair_color_id||3)-1]||HAIR_COLORS[2]).name} hair • ${(EYE_COLORS[(CREATOR.eye_color_id||6)-1]||EYE_COLORS[5]).name} eyes</p></div></div>
  <button class="btn" data-ebl-action="creator-step" data-step="3">BACK</button> <button class="btn" data-ebl-action="creator-finish">CREATE EBL PLAYER</button>`;
 }
@@ -2140,7 +2202,8 @@ async function finishCreator(){return onceAction('finishCreator',async()=>{
    if(!String(CREATOR.first_name||'').trim()||!String(CREATOR.last_name||'').trim())return eblAlert('First and last name are required. Go back to Basic Info.');
    if(!String(CREATOR.hometown_city||'').trim()||!String(CREATOR.hometown_region||'').trim())return eblAlert('City and state/country are required. Go back to Basic Info.');
    if(CREATOR.position!=='C' && CREATOR.attributes?.CALL){return eblAlert('CALL is a catcher-only rating. Set CALL back to 0 or choose C as your preferred position.');}
-   let payload={first_name:CREATOR.first_name,last_name:CREATOR.last_name,name:CREATOR.name,hometown_city:CREATOR.hometown_city,hometown_region:CREATOR.hometown_region,hometown:CREATOR.hometown||'',position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,skin_color_id:CREATOR.skin_color_id||1,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,nose_id:CREATOR.nose_id||1,eye_shape_id:CREATOR.eye_shape_id||1,mouth_id:CREATOR.mouth_id||1,ear_size_id:CREATOR.ear_size_id||2,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,body_build_id:CREATOR.body_build_id||1,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes};
+   if(CREATOR.position_group==='PITCHER'&&(!Array.isArray(CREATOR.pitches)||CREATOR.pitches.length!==3))return eblAlert('Choose exactly 3 starting pitches.');
+   let payload={first_name:CREATOR.first_name,last_name:CREATOR.last_name,name:CREATOR.name,hometown_city:CREATOR.hometown_city,hometown_region:CREATOR.hometown_region,hometown:CREATOR.hometown||'',position_group:CREATOR.position_group,position:CREATOR.position,bats:CREATOR.bats,throws:CREATOR.throws,face_id:CREATOR.face_id,skin_color_id:CREATOR.skin_color_id||1,hair_id:CREATOR.hair_id,facial_hair_id:CREATOR.facial_hair_id,eye_color_id:CREATOR.eye_color_id,hair_color_id:CREATOR.hair_color_id,nose_id:CREATOR.nose_id||1,eye_shape_id:CREATOR.eye_shape_id||1,mouth_id:CREATOR.mouth_id||1,ear_size_id:CREATOR.ear_size_id||2,eye_black_id:CREATOR.eye_black_id,eyewear_id:CREATOR.eyewear_id,chain_id:CREATOR.chain_id,sleeve_id:CREATOR.sleeve_id,body_build_id:CREATOR.body_build_id||1,jersey_number:CREATOR.jersey_number,attributes:CREATOR.attributes,pitches:CREATOR.position_group==='PITCHER'?CREATOR.pitches:undefined};
    let created=await api('/api/player/create',{method:'POST',body:JSON.stringify(payload)});
    PLAYER_HQ_TAB='playerOverview';
    const newId=created?.player?.id||null;
@@ -3099,7 +3162,6 @@ async function saveBranding(){
 }
 async function loadCoachPortal(){
   if(!ME)return;
-  if(ME.role==='PLAYER'){coachHub.innerHTML='<div class="card" style="border-left:4px solid var(--gold)"><span class="betaSiteBadge">PLAYER-ONLY BETA</span><h2>Human coaching opens later</h2><p class="muted">During Genesis, CPU clubs run the league so players can focus on careers, progression, contracts, fatigue, statistics, playoffs, and season rollover while the coaching system is prepared for a later phase.</p></div>';return;}
   if(ME.role==='COMMISSIONER')return loadCoachHub();
   coachHub.innerHTML='<p class="muted">Loading coaching status...</p>';
   try{
@@ -3112,13 +3174,16 @@ async function loadCoachPortal(){
     if(j.approved||a?.status==='APPROVED'){
       coachHub.innerHTML=`<div class="card" style="border-left:4px solid var(--red)"><h2>Approved EBL Coach</h2><p>Your coaching application has been approved.</p><p class="muted">You are waiting for a franchise assignment. Once the Commissioner assigns a club, the full Franchise Operations HUD unlocks here.</p></div>`;return;
     }
-    renderCoachApplication(a);
+    if(j.applications_open===false){
+      coachHub.innerHTML='<div class="card" style="border-left:4px solid var(--gold)"><span class="newsMeta">COACHING CAREER</span><h2>Coach Applications Closed</h2><p class="muted">The Commissioner is not accepting new coaching applications right now. Your player career is unaffected.</p></div>';return;
+    }
+    renderCoachApplication(a,j.available_teams||[]);
   }catch(e){
     coachHub.innerHTML=`<div class="card"><h2>Coach Applications Temporarily Unavailable</h2><p class="muted">${escapeHtml(e?.error||e?.message||'Could not load coaching status.')}</p></div>`;
   }
 }
-function renderCoachApplication(previous){
-  const teams=(LEAGUE?.teams||[]);
+function renderCoachApplication(previous,availableTeams=null){
+  const teams=Array.isArray(availableTeams)?availableTeams:(LEAGUE?.teams||[]);
   const opts=teams.map(t=>`<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
   coachHub.innerHTML=`<div class="coachDash"><div class="card" style="border-top:3px solid var(--red)"><span class="newsMeta">COACHING CAREER</span><h2>Apply to Be an EBL Coach</h2><p class="muted">Build a franchise, manage players and contracts, set your lineup and pitching staff, and write your own EBL coaching legacy.</p></div><div class="card"><div class="grid"><label>Preferred Franchise<select id="coachApplyTeam"><option value="">Any available franchise</option>${opts}</select></label><label>Baseball / Sim Experience <span class="muted">(optional)</span><input id="coachApplyExperience" maxlength="300" placeholder="Tell us a little about your experience"></label></div><label>Why do you want to coach in the EBL?<textarea id="coachApplyWhy" maxlength="800" rows="4" placeholder="What makes coaching fun for you, and what would you bring to a franchise?"></textarea></label><label>Management Philosophy<textarea id="coachApplyPhilosophy" maxlength="800" rows="4" placeholder="How would you build and manage your club?"></textarea></label><label style="display:flex;gap:8px;align-items:flex-start;margin:12px 0"><input id="coachApplyRules" type="checkbox" style="width:auto;margin-top:3px"><span>I understand that coaches manage one franchise, must follow EBL league rules, and cannot sign their own created player.</span></label><button class="btn" data-ebl-action="submit-coach-application">Submit Coaching Application</button><div id="coachApplyMsg" class="muted eblSpaceTopXs"></div></div></div>`;
 }
@@ -3154,6 +3219,7 @@ async function loadCoachHub(){
   const renewalPending=expiring.filter(c=>['OPEN','HELD'].includes(String(c.renewal?.status||'')));
   const renewalAccepted=expiring.filter(c=>String(c.renewal?.status||'')==='ACCEPTED');
   const devCoaches=j.development_coaches||[],devRules=j.development_coach_rules||{first_free:true,maximum:3,hiring_close_day:49};
+  const stadium=j.stadium||{stadium_name:(j.team?.name||'EBL')+' Ballpark',park_profile:'NEUTRAL',profile_name:'Neutral Park',hitter:{},pitcher:{},edit_open:false,profiles:[]};
   const devHiringOpen=String(j.phase||'REGULAR').toUpperCase()==='REGULAR'&&Number(j.league_day||0)<Number(devRules.hiring_close_day||49);
   const coachActions=[];
   if(devHiringOpen&&devCoaches.length===0)coachActions.push(`<div class="taskCard eblClickable" data-ebl-action="open-coach-upgrades"><b>🎯 Choose your free development coach</b><div class="red">Every club gets one specialist free each season. Pick the direction you want this roster to grow.</div></div>`);
@@ -3279,6 +3345,13 @@ async function loadCoachHub(){
     <h2>Franchise Treasury & Revenue</h2>
     <p class="muted">Every club begins from the 480 XP league base. Each completed season permanently grows annual funding by <b>+5 XP for the top third, +4 for the middle third, or +3 for the bottom third</b>. Final placement also pays <b>1–30 spendable XP</b>, while rebuilding clubs earn up to a <b>+5% game-XP development boost</b>. Unused treasury rolls over without a cap.</p>
     <div class="grid"><div class="statBox"><span class="label">CURRENT TREASURY</span><b>${Number(j.team.xp_budget||0).toFixed(1)}</b></div><div class="statBox"><span class="label">RECURRING FUNDING</span><b>${Number(j.team.next_season_base_budget||480).toFixed(1)}</b></div><div class="statBox"><span class="label">PERMANENT STANDINGS GROWTH</span><b>+${Number(j.team.permanent_pool_growth||0).toFixed(1)}</b></div><div class="statBox"><span class="label">REVENUE GROWTH</span><b>+${Number(j.team.revenue_upgrade_bonus||0).toFixed(1)}/YR</b></div><div class="statBox"><span class="label">LAST FINISH REWARD</span><b>+${Number(j.team.finish_reward||0).toFixed(1)}</b></div><div class="statBox"><span class="label">LAST POOL GROWTH</span><b>+${Number(j.team.last_pool_growth||0).toFixed(1)}</b></div><div class="statBox"><span class="label">PLAYER DEVELOPMENT</span><b>${rebuildBonusText}</b></div></div>
+    ${(()=>{
+      const fmt=mods=>Object.entries(mods||{}).map(([k,v])=>`${v>0?'+':''}${Number(v)} ${k}`).join(' • ')||'No rating modifier';
+      const profiles=(stadium.profiles||[]);
+      const opts=profiles.map(x=>`<option value="${escapeHtml(x.key)}" ${x.key===stadium.park_profile?'selected':''}>${escapeHtml(x.name)} — ${escapeHtml(fmt({...x.hitter,...x.pitcher}))}</option>`).join('');
+      const locked=!stadium.edit_open;
+      return `<div class="card eblSpaceTopM"><span class="newsMeta">HOME BALLPARK</span><h2>${escapeHtml(stadium.stadium_name||((j.team?.name||'EBL')+' Ballpark'))}</h2><p class="muted"><b>${escapeHtml(stadium.profile_name||'Neutral Park')}</b> • ${escapeHtml(stadium.description||'No gameplay modifier.')}</p><div class="grid"><label>Stadium Name<input id="coachStadiumName" maxlength="60" value="${escapeHtml(stadium.custom_name||stadium.stadium_name||'')}" ${locked?'disabled':''}></label><label>Park Profile<select id="coachParkProfile" ${locked?'disabled':''}>${opts}</select></label></div><div class="muted eblSpaceTopXs"><b>Current game effect:</b> Hitters ${escapeHtml(fmt(stadium.hitter))} • Pitchers ${escapeHtml(fmt(stadium.pitcher))}. The same park effect applies to both clubs; your edge comes from building a roster that fits the park.</div><div class="muted eblSpaceTopTiny">Park factors never change permanent player ratings and are not amplified by Stadium Level.</div><button class="btn eblSpaceTopSm" ${locked?'disabled':''} data-ebl-action="save-coach-stadium">${locked?'LOCKED UNTIL OFFSEASON':'Save Stadium'}</button></div>`;
+    })()}
     <div class="card eblSpaceTopM"><b>Optional Revenue Investments</b><p class="muted" style="margin:6px 0 0">Each revenue category has <b>5 permanent levels</b>. Upgrade costs rise <b>50 → 65 → 80 → 100 → 125 XP</b>, while that category's annual funding grows to <b>+5 → +10 → +20 → +40 → +80 XP/year</b>. Build them when your treasury can support it; they are long-term wealth investments, not roster requirements.</p></div>
     ${(()=>{const costs=(j.team.revenue_upgrade_costs||[50,65,80,100,125]).map(Number),bonuses=[0,...(j.team.revenue_upgrade_bonuses||[5,10,20,40,80]).map(Number)],max=Number(j.team.revenue_branch_max||5),branches=[
       ['seating','Stadium Seating','Expand capacity, premium seating and game-day attendance.'],
@@ -3333,6 +3406,12 @@ async function loadCoachHub(){
 async function reloadCoachPaneKeepPosition(id){const y=window.scrollY;await loadCoachHub();coachPane(id,null);requestAnimationFrame(()=>window.scrollTo({top:y,behavior:'auto'}))}
 async function buyFranchiseUpgrade(kind){try{const j=await api('/api/coach/franchise-upgrade',{method:'POST',body:JSON.stringify({kind})});eblToast(`${kind} upgraded to Level ${j.level}. This branch now adds +${Number(j.branch_annual_bonus||0).toFixed(0)} XP/year (${Number(j.annual_gain||0).toFixed(0)} more than before).`,'success',4800);await reloadCoachPaneKeepPosition('cUpgrades')}catch(e){eblAlert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:e.error==='MAX_LEVEL'?'That revenue branch is already Level 5.':(e.error||'Upgrade failed'))}}
 async function buyFacilityUpgrade(kind){try{const j=await api('/api/coach/facility-upgrade',{method:'POST',body:JSON.stringify({kind})});eblToast(`${kind} facility upgraded to Level ${j.level}.`,'success');await reloadCoachPaneKeepPosition('cUpgrades')}catch(e){eblAlert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Facility upgrade failed'))}}
+async function saveCoachStadium(){
+ const stadium_name=document.getElementById('coachStadiumName')?.value.trim()||'';
+ const park_profile=document.getElementById('coachParkProfile')?.value||'NEUTRAL';
+ try{const j=await api('/api/coach/stadium',{method:'POST',body:JSON.stringify({stadium_name,park_profile})});eblToast(`${j.stadium?.stadium_name||'Home stadium'} set to ${j.stadium?.profile_name||'Neutral Park'}.`,'success',4200);await reloadCoachPaneKeepPosition('cUpgrades')}
+ catch(e){eblAlert(e.error==='STADIUM_LOCKED_IN_SEASON'?'Stadium identity and park factors lock once the season begins. Change them in the offseason.':e.error==='INVALID_STADIUM_NAME'?'Stadium names must be 60 characters or fewer.':(e.error||'Could not update stadium.'))}
+}
 async function buyTeamSponsor(attribute){try{const j=await api('/api/coach/sponsor',{method:'POST',body:JSON.stringify({attribute})});eblToast(`Sponsor signed: +1 ${attribute} for Seasons ${j.start_season}–${j.end_season}.`,'success',4400);await reloadCoachPaneKeepPosition('cUpgrades')}catch(e){eblAlert(e.error==='INSUFFICIENT_RESERVE'?`Need ${e.cost} treasury XP.`:(e.error||'Sponsorship failed'))}}
 async function hireDevelopmentCoach(coach_type='SPEED',intensity=1){try{const j=await api('/api/coach/development-coach',{method:'POST',body:JSON.stringify({coach_type,intensity:Number(intensity||1)})});const schedule=(j.checkpoints||[]).map(d=>Number(d)===0?'Opening':'Day '+Number(d)).join(', ');eblToast(`${j.name||'Development coach'} added • ${j.free?'FREE':Number(j.cost||0).toFixed(0)+' XP'} • ${j.intensity_name||'Standard'} intensity. +1 ${j.attribute||j.coach?.attribute||''} applied now; schedule: ${schedule}.`,'success',5200);await reloadCoachPaneKeepPosition('cUpgrades')}catch(e){if(e.error==='INSUFFICIENT_RESERVE')eblAlert(`Need ${e.cost} treasury XP.`);else if(e.error==='DEVELOPMENT_COACH_LIMIT')eblAlert(`Development staff is capped at ${e.maximum||3} coaches per season.`);else if(e.error==='DEVELOPMENT_COACH_DUPLICATE_SPECIALTY')eblAlert('That specialist is already on your staff this season. Choose a different development focus.');else eblAlert(e.detail||e.error||'Could not hire development coach.')}}
 async function sendRenewalOffer(pid){
@@ -4663,6 +4742,7 @@ function gcPlayerText(pid,pos=''){
 function describe(e){
  switch(e.type){
   case'GAME_START':return`${e.away_name} at ${e.home_name}`;
+  case'STADIUM_CONTEXT':{const h=Object.entries(e.hitter||{}).map(([k,v])=>`${Number(v)>0?'+':''}${Number(v)} ${k}`),p=Object.entries(e.pitcher||{}).map(([k,v])=>`${Number(v)>0?'+':''}${Number(v)} ${k}`),fx=[...h,...p].join(' • ')||'Neutral';return`${e.stadium_name||'Home Ballpark'} — ${e.profile_name||'Neutral Park'} (${fx})`;}
   case'PA_START':{const b=gamecastPlayerById(e.batter_id),p=gamecastPlayerById(e.pitcher_id);return`${e.half} ${e.inning}: #${b?.jersey_number??'—'} ${e.batter} vs #${p?.jersey_number??'—'} ${e.pitcher}`;}
   case'PITCH':return`${e.pitch_type} ${e.velocity} MPH — ${e.call}`;
   case'BALL_IN_PLAY':{

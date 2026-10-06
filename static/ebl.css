@@ -1843,3 +1843,8 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
   .gcShowcaseLaunch{grid-template-columns:1fr;padding:13px}
   .gcShowcaseBtn{width:100%;min-width:0}
 }
+
+/* RC139 — compact member-profile portraits use clean identity art.
+   Sleeve patch images are intentionally suppressed on this small surface to avoid
+   browser broken-image placeholder boxes while cap/jersey branding stays intact. */
+.profilePlayerPortrait [data-ebl-jersey-patches]{display:none!important}

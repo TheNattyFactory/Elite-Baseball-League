@@ -46,7 +46,7 @@
  }
  function decoratedPlayerCard(p,u){
    const featured=Number(p.id)===Number(u.featured_player_id),team=p.franchise_id?`${teamMark(p.franchise_id,true)} ${esc(p.team_name||p.franchise_id)}`:'Free Agent';
-   const avatar=typeof window.eblPlayerArt==='function'?window.eblPlayerArt(p,'md','portrait'):(typeof eblAvatarHtml==='function'?eblAvatarHtml(p,'card'):'');
+   const avatar=typeof window.eblPlayerArt==='function'?window.eblPlayerArt(p,'sm','portrait'):(typeof eblAvatarHtml==='function'?eblAvatarHtml(p,'sm'):'');
    const frame=['CLASSIC','GOLD','NIGHT','RETRO','CHAMPIONSHIP'].includes(String(u?.profile_card_frame||'').toUpperCase())?String(u.profile_card_frame).toUpperCase():'CLASSIC';
    return `<div class="profilePlayerCompact frame-${frame}${featured?' featuredProfilePlayer':''}"><div class="profilePlayerPortrait">${avatar}</div><div><div class="profilePlayerHead"><div><div class="profilePlayerName">${esc(p.name||'Player')} <span class="gold">${esc(p.primary_pos||'')}</span>${featured?'<span class="profileFeaturedFlag">FEATURED</span>':''}</div><div class="profilePlayerMeta">${team} • #${Number(p.jersey_number??0)} • ${p.active?'Active':'Career complete'}${p.career?.seasons_completed?` • ${Number(p.career.seasons_completed)} season${Number(p.career.seasons_completed)===1?'':'s'}`:''}</div></div></div><div class="profileCareerLabel">CAREER STATISTICS</div>${compactCareerStats(p)}</div></div>`
  }
