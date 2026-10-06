@@ -1644,3 +1644,7 @@
   if(typeof priorSummary==='function')window.renderGameSummaryGameday=function(){const r=priorSummary.apply(this,arguments);appendSummary();return r};
   window.EBL_GAMECAST_BUILD=BUILD;
 })();
+
+
+/* EBL GAMECAST RC143 — mobile broadcast cleanup marker */
+window.EBL_GAMECAST_MOBILE_BUILD='RC143_MOBILE_BROADCAST_CLEANUP';

@@ -1,6 +1,6 @@
 /* Elite Baseball League — PWA service worker
    Static shell only. API/game/account traffic is intentionally never cached. */
-const CACHE_NAME='ebl-shell-v7-rc142';
+const CACHE_NAME='ebl-shell-v8-rc143';
 const SHELL=["/","/index.html","/manifest.webmanifest","/assets/ebl_logo.png","/ebl.css","/ebl-feedback.js","/ebl-core.js","/ebl-profile.js","/ebl-actions.js","/ebl-commands.js","/ebl-appearance.js","/ebl-franchise.js","/ebl-creator.js","/ebl-gamecast.js","/ebl-app-shell.js"];
 
 
