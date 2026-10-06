@@ -15,7 +15,7 @@
 <meta property="og:url" content="https://elite-baseball.com/">
 <meta property="og:image" content="https://elite-baseball.com/assets/ebl_logo.png">
 <link rel="icon" href="/favicon.ico">
-<link rel="stylesheet" href="/ebl.css?v=rc136">
+<link rel="stylesheet" href="/ebl.css?v=rc139">
 <!-- EBL SYSTEM: FEEDBACK & ACTION DIALOGS -->
 <!-- EBL FRONTEND: externalized product modules -->
 <script id="ebl-feedback-system" src="/ebl-feedback.js"></script>
@@ -37,7 +37,7 @@
 
 <main>
 <section id="home" class="page active">
-<div id="loginCard" class="card loginShell"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><div class="loginHero"><span class="newsMeta">WELCOME BACK</span><h2>Log in to Elite Baseball League <span class="betaSiteBadge">BETA</span></h2><p class="muted">Continue your player career, contracts, stats, awards, messages, and league history.</p><div id="genesisPromoLogin" class="offer eblPromoBox"><span class="newsMeta">GENESIS EARLY ACCOUNT BONUS</span><b class="eblBlockTight">First 100 verified accounts get EBL Supporter benefits free through Season 1.</b><span class="muted">Create your account, verify your email, and claim an early spot while they remain. No payment is required for the Genesis bonus.</span></div></div><div class="loginPanel"><h3>Login</h3><label class="label" for="lu">USERNAME</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><label class="label" for="lp">PASSWORD</label><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn loginPrimary" data-ebl-command="login">LOGIN</button><div class="loginCreate"><span>New to EBL?</span><a class="btn" href="/create-account">CREATE ACCOUNT</a></div></div><details class="loginRecovery"><summary>Password Recovery</summary><div class="grid eblSpaceTopSm"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" data-ebl-command="requestReset">Email Reset Link</button></div><div id="recMsg" class="muted"></div></details><div id="loginMsg" class="muted"></div></div>
+<div id="loginCard" class="card loginShell"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><div class="loginHero"><span class="newsMeta">WELCOME BACK</span><h2>Log in to Elite Baseball League <span class="betaSiteBadge">BETA</span></h2><p class="muted">Continue your player career, contracts, stats, awards, messages, and league history.</p><div id="genesisPromoLogin" class="offer eblPromoBox"><span class="newsMeta">GENESIS EARLY ACCOUNT BONUS</span><b class="eblBlockTight">First 100 verified accounts get EBL Supporter benefits free through Season 1.</b><span class="muted">Create your account, verify your email, and claim an early spot while they remain. No payment is required for the Genesis bonus.</span></div><div class="offer eblPromoBox"><span class="newsMeta">COACH APPLICATIONS OPEN</span><b class="eblBlockTight">Want to run an EBL franchise?</b><span class="muted">Genesis is recruiting human coaches now. Create an account, verify your email, then open the COACH tab to apply for a franchise.</span></div></div><div class="loginPanel"><h3>Login</h3><label class="label" for="lu">USERNAME</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><label class="label" for="lp">PASSWORD</label><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn loginPrimary" data-ebl-command="login">LOGIN</button><div class="loginCreate"><span>New to EBL?</span><a class="btn" href="/create-account">CREATE ACCOUNT</a></div></div><details class="loginRecovery"><summary>Password Recovery</summary><div class="grid eblSpaceTopSm"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" data-ebl-command="requestReset">Email Reset Link</button></div><div id="recMsg" class="muted"></div></details><div id="loginMsg" class="muted"></div></div>
 <div id="dashboard" class="hidden">
 <div id="ticker" class="ticker"><div id="tickerTrack" class="tickerTrack"></div></div>
 <div id="betaStatusCard" class="card betaStatusCard"></div>
@@ -133,7 +133,7 @@
 
     <div class="offer eblSpaceBottomMd">
       <h2 class="eblHeadingFlush">Coach Applications</h2>
-      <p class="muted"><b>Player-only beta:</b> new human coaching applications are paused. Existing approved coach accounts remain available for internal testing.</p>
+      <p class="muted"><b>Coach recruiting is open:</b> new human coaching applications can be submitted from the COACH tab. Review applicants here, approve the coaches you want, then assign each approved coach to one available franchise.</p>
       <button class="btn" data-ebl-command="loadCoachApplications">Refresh Coach Applications</button>
       <div id="coachApplicationsOut" class="eblSpaceTopSm"></div>
     </div>
@@ -259,7 +259,7 @@ function teamPalette(team){
   return palette;
 }
 </script>
-<script src="/ebl-core.js"></script>
+<script src="/ebl-core.js?v=rc139"></script>
 <script>
 // EBL Public Profile Routing
 (function(){
@@ -2427,7 +2427,7 @@ window.EBL_TEAM_HUMAN_AVATAR={
 </script>
 
 <!-- EBL SYSTEM: MEMBER & PLAYER PROFILES -->
-<script id="eblMemberProfileController" src="/ebl-profile.js"></script>
+<script id="eblMemberProfileController" src="/ebl-profile.js?v=rc139"></script>
 <!-- EBL PLAYER LAB  feature-only thumbnails + readable accessory crops -->
 
 <script id="eblPlayerLabNeutralPreview">
