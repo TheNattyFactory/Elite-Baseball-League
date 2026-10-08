@@ -2067,3 +2067,250 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 @media(max-width:720px){.gcPitchLegend147{gap:9px;overflow-x:auto}.gcDueUp147{grid-template-columns:1fr 1fr}.gcLiveBox147{display:block}.gcLiveBoxTeam147:first-of-type{border-right:0}.gcBroadcastBoard147 .gcInfoStage146{grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr auto}.gcBroadcastBoard147 .gcInfoZoneWrap146{grid-row:1/4}.gcPitcherCard147{grid-template-columns:46px 1fr}.gcPitcherPortrait147{width:46px;height:50px}}
 @media(max-width:480px){.gcBroadcastBoard147 .gcInfoPitchStrip146{padding-bottom:27px}.gcPitchLegend147{font-size:7px}.gcDueUp147{gap:6px}.gcDueUp147>div{padding:6px 7px}.gcBroadcastBoard147 .gcInfoStage146{grid-template-columns:1fr;grid-template-rows:auto auto auto auto}.gcBroadcastBoard147 .gcInfoZoneWrap146{grid-row:auto}.gcPitcherCard147{grid-template-columns:44px minmax(0,1fr);padding:7px 8px}.gcPitcherPortrait147{width:44px;height:48px}.gcLiveBoxScroll147 table{min-width:100%;font-size:9px}.gcBoxName147{max-width:135px}}
 
+
+
+/* EBL GAMECAST RC149 — player card/final clarity consolidated from the RC148 inline patch */
+/* RC148 — player-card polish + final state clarity. Information-first, no new animation layer. */
+.gcAtBatPlayerCard145{grid-template-columns:108px minmax(0,1fr);gap:12px;padding:10px;background:linear-gradient(135deg,#0d2944,#071725)}
+.gcAtBatPortrait145{width:108px;height:116px;border-radius:11px}.gcAtBatPlayerCopy145 strong{font-size:18px}.gcAtBatToday145{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:0;background:transparent}.gcAtBatToday145>b{display:none}.gcAtBatStat148{padding:5px 3px;border:1px solid #29465f;border-radius:7px;background:#081a2b;text-align:center}.gcAtBatStat148 b,.gcAtBatStat148 span{display:block}.gcAtBatStat148 b{font-size:11px;color:#fff}.gcAtBatStat148 span{margin-top:1px;font-size:6px;color:#8498aa;font-weight:900;letter-spacing:.07em}
+.gcFinalCard148{display:grid;grid-template-columns:auto minmax(0,1fr);gap:11px;align-items:center;padding:12px 13px;background:linear-gradient(135deg,#102c47,#071725)}.gcFinalMark148 .teamMark{width:54px;height:54px;font-size:14px}.gcFinalCard148 span,.gcFinalCard148 strong,.gcFinalCard148 small{display:block}.gcFinalCard148 span{font-size:8px;color:#58c98b;font-weight:950;letter-spacing:.11em}.gcFinalCard148 strong{font-size:18px;margin-top:2px}.gcFinalCard148 small{font-size:10px;color:#9fb1c1;margin-top:3px}
+.gcInfoCurrent146.gcScoringNow148{border-left-color:#58c98b!important;background:rgba(7,35,31,.94)!important}.gcInfoCurrent146.gcScoringNow148 .gcSimpleKicker{color:#78dda2}
+@media(max-width:720px){.gcAtBatPlayerCard145{grid-template-columns:82px minmax(0,1fr);gap:9px;padding:8px}.gcAtBatPortrait145{width:82px;height:90px}.gcAtBatToday145{grid-template-columns:repeat(3,1fr);gap:4px}.gcAtBatStat148{padding:4px 2px}}
+@media(max-width:480px){.gcAtBatPlayerCard145{grid-template-columns:70px minmax(0,1fr)}.gcAtBatPortrait145{width:70px;height:78px}.gcAtBatPlayerCopy145 strong{font-size:15px}.gcAtBatPlayerCopy145 small{font-size:8px}.gcAtBatToday145 .gcAtBatStat148:nth-child(n+4){display:none}.gcFinalMark148 .teamMark{width:46px;height:46px}}
+.gcLiveLine146[data-final="1"]{box-shadow:inset 0 3px 0 #58c98b}.gcLiveLine146[data-final="1"]:before{content:"FINAL";display:block;padding:6px 9px;border-bottom:1px solid #24425a;color:#58c98b;font-size:8px;font-weight:950;letter-spacing:.11em}
+
+/* ============================================================
+   EBL RC150 — League-wide visual refinement (2026-10-08)
+   Presentation only: no game logic, avatar geometry, or data changes.
+   ============================================================ */
+:root {
+  --rc150-border:rgba(138,168,196,.27);
+  --rc150-border-strong:rgba(160,191,217,.43);
+  --rc150-ink:#f5f8fc;
+  --rc150-muted:#adbece;
+  --rc150-red:#dd333b;
+  --rc150-card:rgba(7,23,39,.96);
+  --rc150-focus:rgba(113,170,224,.42);
+}
+body {
+  color:var(--rc150-ink);
+  background:radial-gradient(ellipse 70% 32% at 50% -8%,rgba(27,72,111,.54),transparent 90%),
+    radial-gradient(ellipse 40% 24% at 100% 6%,rgba(143,23,36,.10),transparent 95%),
+    linear-gradient(180deg,#081829 0%,#050f1c 40%,#030b14 100%);
+}
+header {
+  border-bottom:2px solid rgba(221,51,59,.86);
+  box-shadow:0 9px 30px rgba(0,0,0,.38);
+}
+.brand {letter-spacing:.085em;line-height:1.18}
+.season {color:#b5c8d8}
+#accountTag {border-color:var(--rc150-border);background:rgba(4,18,30,.83)}
+nav#mainNav {
+  border-bottom:1px solid var(--rc150-border);
+  background:rgba(5,18,32,.96);
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+nav#mainNav::-webkit-scrollbar{display:none}
+nav#mainNav .navbtn {
+  min-height:41px;
+  font-size:11px;
+  font-weight:850;
+  letter-spacing:.065em;
+  border:1px solid transparent;
+  background:transparent;
+  box-shadow:none;
+  color:#b6c6d6;
+  white-space:nowrap;
+  transition:background .16s ease,border-color .16s ease,color .16s ease;
+}
+nav#mainNav .navbtn:hover {background:#15314b;color:#fff;border-color:#2a4d6a;transform:none}
+nav#mainNav .navbtn.active {
+  color:#fff;
+  background:linear-gradient(180deg,#1a3d5c,#102b45);
+  border-color:#426583;
+  box-shadow:inset 0 -3px 0 var(--rc150-red),0 4px 12px #0003;
+}
+nav#mainNav .navbtn.active:after{display:none}
+main {max-width:1280px;padding-top:18px}
+.card {
+  border:1px solid var(--rc150-border);
+  border-radius:16px;
+  background:linear-gradient(155deg,rgba(13,38,62,.96),var(--rc150-card) 72%);
+  box-shadow:0 10px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.035);
+}
+.card .card {background:linear-gradient(160deg,rgba(12,33,54,.88),rgba(5,19,34,.92))}
+.card h1,.card h2 {text-wrap:balance}
+.card h1 {letter-spacing:.006em}
+.card>h2:first-child,.card>h1:first-child {color:#f8fbff}
+.muted {color:var(--rc150-muted)}
+.btn,.subtab {min-height:40px;border-color:var(--rc150-border-strong)}
+.btn {font-weight:780;letter-spacing:.018em}
+.btn:hover {border-color:#aabed0}
+.btn:focus-visible,.subtab:focus-visible,.navbtn:focus-visible,
+button:focus-visible,a:focus-visible,input:focus-visible,
+textarea:focus-visible,select:focus-visible,summary:focus-visible {
+  outline:2px solid #85b9e9;
+  outline-offset:3px;
+}
+input:not([type="checkbox"]):not([type="radio"]),textarea,select {
+  border-color:#39566f;
+  background:#061728;
+  color:#f5f8fc;
+  min-height:40px;
+}
+input::placeholder,textarea::placeholder{color:#93a5b7}
+input:focus,textarea:focus,select:focus {box-shadow:0 0 0 3px var(--rc150-focus)}
+/* Public entry is a sports landing page, not a support-store promo. */
+#loginCard.loginShell {
+  border-color:#31516c;
+  background:radial-gradient(ellipse at 50% 0%,rgba(27,76,117,.42),transparent 57%),
+    linear-gradient(155deg,#0b2540,#061829 78%);
+  box-shadow:0 20px 56px #0007,inset 0 1px 0 rgba(255,255,255,.05);
+}
+#loginCard .heroLogo {filter:drop-shadow(0 9px 24px #000b)}
+#loginCard .loginHero h2 {font-weight:900;letter-spacing:-.02em;line-height:1.12}
+#loginCard .loginHero p {line-height:1.6}
+#loginCard .loginPanel {
+  border-color:#31526d;
+  background:rgba(3,17,30,.67);
+  box-shadow:inset 0 1px 0 #ffffff0d;
+}
+#loginCard .loginPanel .label {color:#b6c7d7;font-weight:800;letter-spacing:.09em}
+#loginCard .loginPrimary {
+  min-height:46px;
+  background:linear-gradient(180deg,#bd2a36,#841b27);
+  border-color:#c43c48;
+  color:white;
+  font-size:15px;
+  font-weight:900;
+  letter-spacing:.045em;
+  box-shadow:0 7px 18px rgba(95,6,18,.26),inset 0 1px 0 #ffffff18;
+}
+#loginCard .loginPrimary:hover {background:linear-gradient(180deg,#d33a46,#95202a)}
+#loginCard .eblPromoBox {
+  border-color:#34536d;
+  border-left:3px solid var(--rc150-red);
+  border-radius:12px;
+  background:rgba(3,18,32,.60);
+}
+#loginCard .loginRecovery {border-color:var(--rc150-border-strong)}
+#loginCard .loginCreate .btn {display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+/* Editorial treatment across league headlines and dashboard sections. */
+#home #dashboard>.card,#home #homePlayer,#home #homeTeam,#home #nextGame {min-width:0}
+#home #homePlayer,#home #homeTeam {border-top-width:3px}
+#home #homePlayer {border-top-color:#c42f39}
+#home #homeTeam {border-top-color:#cbd6e0}
+#home #dashboard>.card h2 {letter-spacing:-.01em}
+#home .ticker {border-left:4px solid var(--rc150-red);border-color:#355671;border-left-color:var(--rc150-red)}
+#home .tick {font-variant-numeric:tabular-nums}
+#home .homeAvatarBranded,#home .playerHQIdentityPortrait {
+  background:radial-gradient(ellipse at 50% 32%,#244a69 0%,#0e263f 56%,#071624 100%);
+}
+#home .homePlayerBackdropLogo{filter:drop-shadow(0 12px 20px #0008) saturate(.86)}
+.newsStory {padding:18px 9px;border-bottom-color:rgba(135,163,188,.22)}
+.newsStory:hover {background:rgba(37,76,108,.13)}
+.newsHeadline {font-weight:900;line-height:1.2;letter-spacing:-.02em}
+.newsMeta {color:#eb6571;letter-spacing:.12em}
+.newsBody {line-height:1.59;color:#bac9d7}
+.newsBadge {color:#e4ebf2}
+.communityLink,.recordCard,.contractCard,.seriesCard,.taskCard {
+  border-color:var(--rc150-border);
+}
+/* Player portraits and franchise identities should read as deliberate artwork. */
+.eblPlayerArt svg {display:block;max-width:100%}
+.playerPortrait,.eblIdentityPortrait,.eblPlayerArt:not(.eblPlayerArt--xs) {
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 6px 18px rgba(0,0,0,.24);
+}
+.eblPlayerArt--xs,.eblPlayerArt--sm {flex-shrink:0}
+.teamMark {filter:drop-shadow(0 2px 5px rgba(0,0,0,.34))}
+/* Stats should feel like baseball's information architecture, not a raw spreadsheet. */
+.statBox {
+  border:1px solid var(--rc150-border);
+  border-radius:12px;
+  background:linear-gradient(180deg,#17334d,#0b2035);
+}
+.statBox b {color:#f9fbfd;font-variant-numeric:tabular-nums;font-weight:900}
+.tablewrap {
+  border:1px solid rgba(112,151,184,.23);
+  background:#071827;
+  border-radius:12px;
+  overflow-x:auto;
+}
+table {font-variant-numeric:tabular-nums}
+table th {color:#b6c9d9;letter-spacing:.075em;background:#0d2940}
+table tr:nth-child(even) td {background:rgba(26,52,78,.12)}
+table tr:hover td {background:rgba(52,99,133,.18)}
+.subtabs {padding-bottom:3px}
+.subtab {color:#c8d6e2}
+.subtab.active {color:#fff;border-color:#b53440;box-shadow:inset 0 -3px 0 var(--rc150-red)}
+/* Creator: emphasize choice and preview without touching the canonical SVG. */
+.creatorSteps {gap:8px}
+.creatorStep {padding:12px 9px;color:#b2c1cf;border-color:var(--rc150-border)}
+.creatorStep.active {border-color:#b63440;background:#183951;color:#fff}
+#creatorStage .creatorStudioCard.selected,
+#creatorStage .preset.selected,
+#creatorStage [aria-pressed="true"].creatorStudioCard {
+  border-color:#e2545d;
+  box-shadow:0 0 0 1px rgba(226,84,93,.54),0 9px 20px rgba(0,0,0,.25);
+}
+#creatorStage .avatar3dPreview {border-color:#496985;box-shadow:inset 0 -18px 48px #02081266,0 9px 26px #0005}
+/* Gamecast broadcast visual hierarchy. */
+.gcShowcaseLaunch {
+  border:1px solid #3c5b76;
+  border-left:4px solid #d03942;
+  background:linear-gradient(120deg,#133451,#071b2e 80%);
+  box-shadow:0 12px 28px rgba(0,0,0,.28);
+}
+.gcShowcaseLaunch h3 {font-weight:900}
+.gcScoreboard,.gcScorebarGameday {
+  box-shadow:inset 0 1px 0 #ffffff14,0 9px 22px rgba(0,0,0,.27);
+}
+.gcScore {font-variant-numeric:tabular-nums}
+.gcArchiveGame {border-color:#39566e;background:linear-gradient(160deg,#0c283f,#071827)}
+.gcArchiveGame:hover {border-color:#6386a4;background:#112f49}
+.chatbox {border-color:#39536b}
+.chatmsg {line-height:1.5}
+/* Mobile touch comfort and horizontal-scroll containment. */
+@media(max-width:800px){
+  main {padding:13px 11px 32px}
+  .card{border-radius:14px;padding:14px}
+  .two,.three,.gcgrid,.coachDash{gap:10px}
+  header {flex-direction:row;align-items:center;flex-wrap:wrap;gap:8px}
+  header .brandWrap {flex:1 1 220px;min-width:0}
+  #accountTag {flex:0 1 auto}
+  nav#mainNav .navbtn {min-height:43px;padding:9px 12px}
+  .tablewrap {max-width:100%}
+  #creatorStage .creatorStudioRight {position:static}
+  .gcShowcaseLaunch {padding:15px}
+  .gcShowcaseBtn {min-height:44px}
+}
+@media(max-width:520px){
+  header{padding:10px 12px;gap:6px}
+  header .brandWrap{flex:1 1 calc(100% - 10px)}
+  header .brand{font-size:13px;letter-spacing:.065em}
+  header .season{font-size:9px}
+  header .siteLogo{width:62px;height:44px}
+  #accountTag{margin-left:0;max-width:100%;min-width:0}
+  nav#mainNav {gap:3px;padding:6px 8px}
+  nav#mainNav .navbtn{padding:9px 11px;font-size:11px}
+  main{padding:12px 9px 26px}
+  #loginCard.loginShell{padding:15px}
+  #loginCard .loginHero h2{font-size:clamp(21px,6vw,26px)}
+  #loginCard .loginPanel{padding:14px}
+  #loginCard .loginCreate .btn{min-height:44px}
+  .statGrid {gap:6px}
+  .statBox {padding:9px 6px}
+  .newsStory {padding:15px 3px}
+  .newsHeadline {font-size:18px}
+  .creatorStep {min-width:0;flex:1 1 calc(50% - 8px);padding:11px 7px;font-size:11px}
+  .subtabs {flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:thin}
+  .subtab {white-space:nowrap;flex-shrink:0}
+  .chatinput{min-width:0}
+  .chatinput input{min-width:0}
+  .chatinput .btn{flex-shrink:0}
+  .gcArchiveGame{padding:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  nav#mainNav .navbtn,.newsStory,.gcArchiveGame {transition:none}
+}

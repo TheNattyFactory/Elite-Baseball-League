@@ -1,7 +1,7 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Elite Baseball League — Genesis</title>
-<meta name="description" content="Create your ballplayer, earn a contract, develop across seasons, and build a legacy in the Elite Baseball League.">
+<meta name="description" content="Create your ballplayer, earn your contract, and compete across seasons in the Elite Baseball League.">
 <meta name="theme-color" content="#071426">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
@@ -10,12 +10,12 @@
 <meta name="apple-mobile-web-app-title" content="EBL">
 <link rel="apple-touch-icon" href="/assets/ebl_logo.png">
 <meta property="og:title" content="Elite Baseball League">
-<meta property="og:description" content="Make your player. Earn your spot. Build your legacy.">
+<meta property="og:description" content="Make your player. Earn your spot. Make your mark.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://elite-baseball.com/">
 <meta property="og:image" content="https://elite-baseball.com/assets/ebl_logo.png">
 <link rel="icon" href="/favicon.ico">
-<link rel="stylesheet" href="/ebl.css?v=rc147">
+<link rel="stylesheet" href="/ebl.css?v=rc150">
 <!-- EBL SYSTEM: FEEDBACK & ACTION DIALOGS -->
 <!-- EBL FRONTEND: externalized product modules -->
 <script id="ebl-feedback-system" src="/ebl-feedback.js"></script>
@@ -24,7 +24,7 @@
 <body>
 <header><div class="brandWrap"><img class="siteLogo" src="/assets/ebl_logo.png" alt="EBL logo"><div class="brandText"><div class="brand">ELITE BASEBALL LEAGUE</div><div class="season"><span class="betaSiteBadge">BETA</span> GENESIS • BUILD YOUR PLAYER • PROGRESS MAY RESET</div></div></div><div id="accountTag" class="muted">Not signed in</div></header>
 <nav id="mainNav">
-<button class="navbtn active" data-page="home">HOME</button><button class="navbtn" data-page="news">NEWS</button><button class="navbtn" data-page="community">COMMUNITY</button><button class="navbtn" data-page="support">SUPPORT</button><button class="navbtn authOnly hidden" data-page="messages">MESSAGES</button><button class="navbtn authOnly hidden" data-page="player">PLAYER</button><button class="navbtn authOnly hidden" data-page="team">TEAM</button><button id="coachNav" class="navbtn authOnly hidden" data-page="coach">COACH</button><button class="navbtn" data-page="league">LEAGUE</button><button class="navbtn authOnly hidden" data-page="analytics">ANALYTICS</button><button class="navbtn" data-page="awards">AWARDS</button><button class="navbtn" data-page="gamecast">GAMECAST</button><button class="navbtn" data-page="rules">RULES</button><button id="adminNav" class="navbtn hidden" data-page="admin">ADMIN</button>
+<button class="navbtn active" data-page="home">HOME</button><button class="navbtn" data-page="news">NEWS</button><button class="navbtn" data-page="community">COMMUNITY</button><button class="navbtn authOnly hidden" data-page="messages">MESSAGES</button><button class="navbtn authOnly hidden" data-page="player">PLAYER</button><button class="navbtn authOnly hidden" data-page="team">TEAM</button><button id="coachNav" class="navbtn authOnly hidden" data-page="coach">COACH</button><button class="navbtn" data-page="league">LEAGUE</button><button class="navbtn authOnly hidden" data-page="analytics">ANALYTICS</button><button class="navbtn" data-page="awards">AWARDS</button><button class="navbtn" data-page="gamecast">GAMECAST</button><button class="navbtn" data-page="rules">RULES</button><button id="adminNav" class="navbtn hidden" data-page="admin">ADMIN</button>
 </nav>
 <button id="eblInstallApp" class="btn hidden" type="button" aria-label="Install Elite Baseball League app">📲 INSTALL EBL</button>
 <div id="eblInstallHelp" class="hidden" role="dialog" aria-modal="true" aria-labelledby="eblInstallHelpTitle">
@@ -37,7 +37,7 @@
 
 <main>
 <section id="home" class="page active">
-<div id="loginCard" class="card loginShell"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><div class="loginHero"><span class="newsMeta">WELCOME BACK</span><h2>Log in to Elite Baseball League <span class="betaSiteBadge">BETA</span></h2><p class="muted">Continue your player career, contracts, stats, awards, messages, and league history.</p><div id="genesisPromoLogin" class="offer eblPromoBox"><span class="newsMeta">GENESIS EARLY ACCOUNT BONUS</span><b class="eblBlockTight">First 100 verified accounts get EBL Supporter benefits free through Season 1.</b><span class="muted">Create your account, verify your email, and claim an early spot while they remain. No payment is required for the Genesis bonus.</span></div><div class="offer eblPromoBox"><span class="newsMeta">COACH APPLICATIONS OPEN</span><b class="eblBlockTight">Want to run an EBL franchise?</b><span class="muted">Genesis is recruiting human coaches now. Create an account, verify your email, then open the COACH tab to apply for a franchise.</span></div></div><div class="loginPanel"><h3>Login</h3><label class="label" for="lu">USERNAME</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><label class="label" for="lp">PASSWORD</label><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn loginPrimary" data-ebl-command="login">LOGIN</button><div class="loginCreate"><span>New to EBL?</span><a class="btn" href="/create-account">CREATE ACCOUNT</a></div></div><details class="loginRecovery"><summary>Password Recovery</summary><div class="grid eblSpaceTopSm"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" data-ebl-command="requestReset">Email Reset Link</button></div><div id="recMsg" class="muted"></div></details><div id="loginMsg" class="muted"></div></div>
+<div id="loginCard" class="card loginShell"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><div class="loginHero"><span class="newsMeta">WELCOME BACK</span><h2>Log in to Elite Baseball League <span class="betaSiteBadge">BETA</span></h2><p class="muted">Continue your player career, contracts, stats, awards, messages, and league history.</p><div class="offer eblPromoBox"><span class="newsMeta">COACH APPLICATIONS OPEN</span><b class="eblBlockTight">Want to run an EBL franchise?</b><span class="muted">Genesis is recruiting human coaches now. Create an account, verify your email, then open the COACH tab to apply for a franchise.</span></div></div><div class="loginPanel"><h3>Login</h3><label class="label" for="lu">USERNAME</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><label class="label" for="lp">PASSWORD</label><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn loginPrimary" data-ebl-command="login">LOGIN</button><div class="loginCreate"><span>New to EBL?</span><a class="btn" href="/create-account">CREATE ACCOUNT</a></div></div><details class="loginRecovery"><summary>Password Recovery</summary><div class="grid eblSpaceTopSm"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" data-ebl-command="requestReset">Email Reset Link</button></div><div id="recMsg" class="muted"></div></details><div id="loginMsg" class="muted"></div></div>
 <div id="dashboard" class="hidden">
 <div id="ticker" class="ticker"><div id="tickerTrack" class="tickerTrack"></div></div>
 <div id="betaStatusCard" class="card betaStatusCard"></div>
@@ -56,13 +56,13 @@
 <div id="creatorStage"></div>
 </div></section>
 
-<section id="team" class="page"><div id="teamPage" class="card"><h1>⚾ Team Clubhouse</h1><p class="muted">Loading your team...</p></div></section>
+<section id="team" class="page"><div id="teamPage" class="card"><h1>Team Clubhouse</h1><p class="muted">Loading your team...</p></div></section>
 
-<section id="coach" class="page"><div class="card"><h1>⚾ Franchise Operations</h1><p class="muted">Manage contracts, batting order, field alignment, rotation, bullpen roles, and defensive tactics.</p><div id="coachHub"></div></div></section>
-<section id="league" class="page"><div class="card"><h1>⚾ League</h1><div class="subtabs"><button class="subtab active" data-ebl-action="league-pane" data-pane="standingsPane">STANDINGS</button><button class="subtab" data-ebl-action="league-pane" data-pane="schedulePane">SCHEDULE</button><button class="subtab" data-ebl-action="league-pane" data-pane="playoffsPane" data-load-playoffs="1">PLAYOFFS</button></div><div id="standingsPane" class="subpane active"></div><div id="schedulePane" class="subpane"></div><div id="playoffsPane" class="subpane"><p class="muted">Playoff bracket loads here when the postseason field is set.</p></div></div></section>
+<section id="coach" class="page"><div class="card"><h1>Franchise Operations</h1><p class="muted">Manage contracts, batting order, field alignment, rotation, bullpen roles, and defensive tactics.</p><div id="coachHub"></div></div></section>
+<section id="league" class="page"><div class="card"><h1>League Standings &amp; Schedule</h1><div class="subtabs"><button class="subtab active" data-ebl-action="league-pane" data-pane="standingsPane">STANDINGS</button><button class="subtab" data-ebl-action="league-pane" data-pane="schedulePane">SCHEDULE</button><button class="subtab" data-ebl-action="league-pane" data-pane="playoffsPane" data-load-playoffs="1">PLAYOFFS</button></div><div id="standingsPane" class="subpane active"></div><div id="schedulePane" class="subpane"></div><div id="playoffsPane" class="subpane"><p class="muted">Playoff bracket loads here when the postseason field is set.</p></div></div></section>
 
 
-<section id="analytics" class="page"><div class="card"><h1>⚾ EBL Analytics</h1><div class="subtabs"><button class="subtab active" data-ebl-action="analytics-pane" data-pane="aLeague">LEAGUE</button><button class="subtab" data-ebl-action="analytics-pane" data-pane="aBat">BATTING</button><button class="subtab" data-ebl-action="analytics-pane" data-pane="aPitch">PITCHING</button></div><div id="aLeague" class="subpane active"></div><div id="aBat" class="subpane"></div><div id="aPitch" class="subpane"></div></div></section>
+<section id="analytics" class="page"><div class="card"><h1>EBL Analytics</h1><div class="subtabs"><button class="subtab active" data-ebl-action="analytics-pane" data-pane="aLeague">LEAGUE</button><button class="subtab" data-ebl-action="analytics-pane" data-pane="aBat">BATTING</button><button class="subtab" data-ebl-action="analytics-pane" data-pane="aPitch">PITCHING</button></div><div id="aLeague" class="subpane active"></div><div id="aBat" class="subpane"></div><div id="aPitch" class="subpane"></div></div></section>
 
 
 <section id="awards" class="page"><div class="card"><h1>Award Races</h1><p class="muted">Genesis races update as the season develops. Statistical titles are earned on the field; major awards use performance-based rankings.</p><div class="subtabs"><button class="subtab active" data-ebl-action="award-pane" data-pane="mvpPane">MVP</button><button class="subtab" data-ebl-action="award-pane" data-pane="batTitle">BATTING TITLE</button><button class="subtab" data-ebl-action="award-pane" data-pane="pitchTitle">PITCHING</button><button class="subtab" data-ebl-action="award-pane" data-pane="sbTitle">STOLEN BASES</button><button class="subtab" data-ebl-action="award-pane" data-pane="allStarPane">ALL-STAR</button><button class="subtab" data-ebl-action="award-pane" data-pane="fieldTitle">FIELDING</button></div><div id="mvpPane" class="subpane active"></div><div id="batTitle" class="subpane"></div><div id="pitchTitle" class="subpane"></div><div id="sbTitle" class="subpane"></div><div id="allStarPane" class="subpane"></div><div id="fieldTitle" class="subpane"></div></div></section>
@@ -3264,7 +3264,7 @@ window.EBL_LIVE_SCREENSHOT_POLISH={
 <!-- EBL GAMECAST Gameday visual replay upgrade -->
 
 <!-- EBL SYSTEM: GAMECAST -->
-<script id="eblGamecastGameday" src="/ebl-gamecast.js?v=rc147"></script>
+<script id="eblGamecastGameday" src="/ebl-gamecast.js?v=rc149"></script>
 <style id="eblGamecastRC145PlayerCardBoxStyle">
 .gcSimpleMatchup{display:block!important;padding:0!important;overflow:hidden}
 .gcAtBatEmpty145{display:flex;justify-content:space-between;gap:12px;padding:11px 13px;align-items:center}.gcAtBatEmpty145 b,.gcAtBatEmpty145 span{display:block}.gcAtBatEmpty145 span{font-size:11px;color:var(--mut)}
@@ -3301,8 +3301,8 @@ window.EBL_LIVE_SCREENSHOT_POLISH={
  window.EBL_GAMECAST_INLINE_BUILD='RC145_PLAYER_CARD_COMPLETE_BOX';
 })();
 </script>
-
-
 <!-- EBL SYSTEM: INSTALLABLE APP SHELL -->
-<script id="eblPWA" src="/ebl-app-shell.js"></script>\n
+<script id="eblPWA" src="/ebl-app-shell.js"></script>
+
+<!-- EBL GAMECAST RC149 — information board hardened; RC148 presentation consolidated into external assets -->
 </body></html>
