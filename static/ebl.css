@@ -2314,3 +2314,399 @@ table tr:hover td {background:rgba(52,99,133,.18)}
 @media(prefers-reduced-motion:reduce){
   nav#mainNav .navbtn,.newsStory,.gcArchiveGame {transition:none}
 }
+
+
+/* ===========================================================
+   EBL RC151 — Original Ballpark & Broadcast Graphics (2026-10-08)
+   Pure presentation: all player SVGs, team marks and gameplay remain canonical.
+   The stadium file is original artwork and never substitutes franchise logos.
+   =========================================================== */
+:root { --rc151-plate:#e5edf5; --rc151-turf:#2a7355; --rc151-rail:#466981; }
+/* League brand atmosphere. These are static assets, not blocking artwork. */
+#loginCard.loginShell {position:relative;isolation:isolate;overflow:hidden;}
+#loginCard.loginShell::before{
+  content:"";position:absolute;inset:0 0 auto;height:390px;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(5,22,39,.22),rgba(6,24,41,.59) 65%,#092139 100%),
+    url("/assets/ebl_ballpark_151.svg") center 43%/cover no-repeat;
+  opacity:.82;
+}
+#loginCard.loginShell > * {position:relative;z-index:1}
+#loginCard .heroLogo {width:min(67%,300px);margin:7px auto 14px;filter:drop-shadow(0 9px 28px #000d)}
+#loginCard .redline {background:linear-gradient(90deg,transparent 0%,rgba(228,64,75,.9) 50%,transparent 100%);height:2px}
+#loginCard .loginHero {position:relative}
+#loginCard .loginHero .newsMeta {text-shadow:0 2px 8px #000e}
+#loginCard .loginPanel {backdrop-filter:blur(5px)}
+/* Newsroom becomes a graphic-first broadcast masthead. */
+#news .eblNewsBanner151 {
+  position:relative;isolation:isolate;min-height:178px;overflow:hidden;
+  margin:-1px -1px 18px;padding:28px clamp(17px,4vw,35px);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  border:1px solid #395c78;border-bottom:3px solid #b92c38;border-radius:14px;
+  background:linear-gradient(90deg,rgba(3,13,26,.94) 0%,rgba(4,23,42,.86) 42%,rgba(4,22,39,.40) 100%),
+    url("/assets/ebl_ballpark_151.svg") center 45%/cover no-repeat;
+  box-shadow:inset 0 1px #ffffff19,0 9px 24px #0005;
+}
+#news .eblNewsBanner151::after {content:"";pointer-events:none;position:absolute;inset:0;background:repeating-linear-gradient(116deg,transparent 0 50px,#ffffff03 51px 52px);z-index:-1}
+#news .eblNewsBanner151 > * {position:relative;z-index:1}
+#news .eblNewsBanner151 h1 {font-size:clamp(29px,4.4vw,48px);line-height:1.08;letter-spacing:-.035em;text-shadow:0 3px 16px #0009;margin:5px 0 8px}
+#news .eblNewsBanner151 p {max-width:550px;margin:0;color:#d3e0eb;font-size:14px;line-height:1.55}
+#news .eblNewsBanner151 .newsMeta {letter-spacing:.18em;color:#ff7982}
+/* Broadcast showcase: layered stadium visual while preserving the CTA. */
+#gamecast .gcShowcaseLaunch {position:relative;isolation:isolate;overflow:hidden;background:#071b2d}
+#gamecast .gcShowcaseLaunch::before {
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(7,24,42,.97) 0%,rgba(7,24,42,.93) 36%,rgba(7,25,43,.49) 100%),
+    url("/assets/ebl_ballpark_151.svg") 61% 64%/cover no-repeat;
+  opacity:.92;
+}
+#gamecast .gcShowcaseLaunch > * {position:relative;z-index:1}
+#gamecast .gcShowcaseLaunch h3 {font-size:clamp(17px,2vw,23px);line-height:1.16;text-shadow:0 2px 12px #000b}
+#gamecast .gcShowcaseLaunch .gcShowcaseBtn {background:linear-gradient(180deg,#b92b37,#861b27);border-color:#ec6871;box-shadow:0 6px 20px #0007;min-height:46px}
+/* GameCast broadcast controls and scoreboard graphics: clean data above scenery. */
+.gcScorebarGameday,.gcScoreboard {position:relative;overflow:hidden;background:linear-gradient(160deg,#112f4a,#071827 72%)}
+.gcScorebarGameday::before,.gcScoreboard::before {
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(120deg,transparent 0 36px,#ffffff04 37px 38px),
+    linear-gradient(90deg,#bd3036 0 16%,transparent 16% 84%,#b7cedc 84% 100%) left top/100% 3px no-repeat;
+}
+.gcScorebarGameday > *,.gcScoreboard > * {position:relative;z-index:1}
+.gcClubScoreGameday,.gcScore {font-variant-numeric:tabular-nums;text-shadow:0 2px 12px #0009}
+.gcClubGameday .teamMark,.gcTeam .teamMark {box-shadow:0 5px 14px #0007,inset 0 0 0 2px #ffffff28}
+.gcInfoPanelHead146 {background:linear-gradient(90deg,#123450,#081b2c 85%);border-bottom-color:#3c5c76}
+.gcInfoPanelHead146 strong {color:#e8f1f9}
+.gcInfoStageBackdrop146 {background:linear-gradient(180deg,rgba(7,27,47,.9),rgba(4,18,32,.79) 47%,rgba(6,38,29,.76) 100%),url("/assets/ebl_ballpark_151.svg") center 56%/cover no-repeat}
+.gcInfoResult146 {box-shadow:inset 0 1px #ffffff0b,0 5px 16px #0003}
+.gcInfoMiniDiamond146,.gcSimpleDiamond {box-shadow:0 0 0 5px #0f3b2d55,0 5px 13px #0005}
+.gcAtBatPlayerCard145 {border-left:3px solid #ba2c3b}
+.gcAtBatPortrait145 {box-shadow:0 6px 16px #0007,inset 0 0 0 1px #a8c4d92b}
+/* Franchise presentation keeps team-defined colors but gets coherent TV framing. */
+.eblClubHero {isolation:isolate;box-shadow:0 12px 32px #0006,inset 0 1px #ffffff22}
+.eblClubHero::before {content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(90deg,#08121f30,#08121f08),url("/assets/ebl_ballpark_151.svg") center 53%/cover no-repeat;opacity:.17}
+.eblClubHero_logo {flex-shrink:0;filter:drop-shadow(0 10px 18px #0009)}
+.eblClubHero_logo img {display:block}
+/* Canonical player portraits: add lighting to the container only. */
+.homeAvatarBranded,.playerPortraitTeamBrandGameDay,.playerPortraitTeamBrandLegacy,.playerHQIdentityPortrait {border-color:#557b97;box-shadow:inset 0 1px #ffffff19,0 8px 23px #0006}
+.homeAvatarBranded::before,.playerPortraitTeamBrandGameDay::before {content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(115deg,transparent 25%,#ffffff0b 38%,transparent 58%)}
+.homeAvatarBranded > .eblPlayerArt,.playerPortraitTeamBrandGameDay > .eblPlayerArt {position:relative;z-index:1}
+#creatorStage .creatorStudioLeft,#creatorStage .creatorStudioRight {box-shadow:0 13px 30px #0005,inset 0 1px #ffffff0d}
+#creatorStage .avatar3dPreview {background:radial-gradient(ellipse at 50% 24%,#32658a55,transparent 64%),linear-gradient(165deg,#112f4b,#071521 80%)}
+#creatorStage .creatorStudioCard {transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+@media(hover:hover) {#creatorStage .creatorStudioCard:hover {transform:translateY(-2px);border-color:#80a1bc}}
+#creatorStage .creatorStudioCard.selected {transform:none}
+/* Section and stat treatments read as a baseball data broadcast. */
+.division h3 {font-weight:950;letter-spacing:.02em;background:linear-gradient(90deg,rgba(32,68,95,.35),transparent 76%);border-left-color:#d33a45;padding:9px 10px}
+#home #dashboard > .card:first-of-type {box-shadow:0 11px 25px #0004}
+#home #homePlayer,#home #homeTeam {background:linear-gradient(145deg,rgba(19,50,76,.98),rgba(5,20,34,.98) 74%)}
+#home .statBox b,.statBox b {font-variant-numeric:tabular-nums}
+@media(max-width:760px){
+  #news .eblNewsBanner151 {min-height:150px;padding:22px 18px}
+  #gamecast .gcShowcaseLaunch::before {background-position:70% 45%;opacity:.65}
+  .gcInfoStageBackdrop146 {background-position:55% 60%}
+  .eblClubHero_logo img {width:88px;height:88px}
+}
+@media(max-width:520px){
+  #loginCard.loginShell::before {height:300px;background-position:54% 40%;opacity:.72}
+  #loginCard .heroLogo {width:min(70%,260px)}
+  #news .eblNewsBanner151 {margin:0 0 16px;min-height:160px;background-position:65% 50%}
+  #news .eblNewsBanner151 h1 {font-size:32px}
+  #gamecast .gcShowcaseLaunch h3 {font-size:19px}
+  .gcScorebarGameday::before,.gcScoreboard::before {background-size:100% 2px}
+}
+@media(prefers-reduced-motion:reduce){#creatorStage .creatorStudioCard{transition:none}}
+
+/* ===============================================================
+   EBL RC152 — Clubhouses, Rookie Cards & League Broadcast Graphics
+   All additions are presentational. Franchise colors and canonical
+   SVG player appearance are provided by the existing game runtime.
+   =============================================================== */
+:root{--ebl-152-edge:rgba(138,175,205,.30);--ebl-152-ice:#ecf3fa;--ebl-152-red:#d43644}
+/* Make the user's two most important home cards feel like a paired TV desk. */
+#home #homePlayer,#home #homeTeam{
+ position:relative;isolation:isolate;overflow:hidden;
+ border:1px solid #3d627f;border-top:3px solid #ce3642;
+ box-shadow:inset 0 1px rgba(255,255,255,.11),0 16px 36px rgba(0,0,0,.27);
+ background:linear-gradient(150deg,#15344e 0%,#0b2137 49%,#071624 100%);
+}
+#home #homeTeam{border-top-color:#c1d3df}
+#home #homePlayer::before,#home #homeTeam::before{
+ content:"";pointer-events:none;position:absolute;inset:0;z-index:0;
+ background:url('/assets/ebl_diamond_152.svg') 115% 52%/auto 130% no-repeat;
+ opacity:.16;
+}
+#home #homePlayer>* ,#home #homeTeam>*{position:relative;z-index:1}
+#home #homePlayer h2,#home #homeTeam h2{letter-spacing:-.025em}
+#home #homePlayer .homeAvatarBranded,#home #homePlayer .playerHQIdentityPortrait{
+ border:2px solid #91b0c5;box-shadow:0 0 0 4px rgba(4,20,35,.8),0 13px 27px #0009;
+}
+#home #homeTeam .teamMark{filter:drop-shadow(0 5px 8px #0009)}
+/* Clubhouse: editorial team identity carries team-owned colors, not a global override. */
+.eblClubHero{border:1px solid rgba(231,241,246,.32);border-bottom:4px solid rgba(246,250,255,.72);min-height:184px;padding:clamp(16px,3vw,28px);}
+.eblClubHero::before{
+ background:linear-gradient(100deg,rgba(4,16,27,.64) 0%,rgba(4,16,27,.31) 58%,rgba(4,16,27,.14) 100%),
+ url('/assets/ebl_ballpark_151.svg') center 47%/cover no-repeat;
+ opacity:.5;
+}
+.eblClubHero::after{
+ content:"";position:absolute;inset:0 0 0 auto;width:45%;height:auto;border-radius:0;
+ background:url('/assets/ebl_diamond_152.svg') center/cover no-repeat;opacity:.26;pointer-events:none;
+}
+.eblClubHero_top{gap:clamp(12px,2.5vw,23px);text-shadow:0 2px 12px #0009}
+.eblClubHero_logo{width:clamp(87px,11vw,140px);min-width:87px;min-height:100px;display:grid;place-items:center;padding:7px;
+ border:1px solid #ffffff44;border-radius:18px;background:rgba(5,18,29,.35);box-shadow:inset 0 1px #fff3,0 10px 21px #0006;backdrop-filter:blur(5px)}
+.eblClubHero_logo img{max-width:100%;max-height:122px;object-fit:contain}
+.eblClubHero .newsMeta{display:inline-block;color:#f3f7fb;text-shadow:0 2px 8px #000a;letter-spacing:.12em}
+.eblClubHero h1{color:#fff;line-height:1.03;font-size:clamp(24px,3.8vw,40px);text-shadow:0 3px 10px #000b}
+.eblClubRecord152{font-size:clamp(30px,4.2vw,44px);line-height:1.08;font-weight:950;letter-spacing:-.05em;color:white;font-variant-numeric:tabular-nums}
+.eblClubMeta152{font-size:12px;letter-spacing:.075em;font-weight:700;color:#f4f7f9;text-shadow:0 2px 8px #0009}
+.eblClubMetrics152{margin:0 0 14px;grid-template-columns:repeat(4,minmax(0,1fr))}
+.eblClubMetrics152 .statBox{position:relative;overflow:hidden;background:linear-gradient(157deg,#12344e,#061b2d);padding:13px 9px;border:1px solid #3a6079;border-radius:12px;text-align:left;}
+.eblClubMetrics152 .statBox::after{content:"";position:absolute;right:-16px;top:-23px;width:65px;height:65px;border:1px solid #d9ebf81e;transform:rotate(45deg);pointer-events:none}
+.eblClubMetrics152 .statBox b{display:block;font-size:clamp(20px,2.2vw,28px);line-height:1.15;font-weight:950;color:#f6f9fc;margin-top:5px}
+.eblClubMetrics152 .label{font-size:10px;letter-spacing:.1em;font-weight:850}
+.eblClubGrid .card{border-color:#2c4d67;background:linear-gradient(150deg,#0f283e,#081a2a 80%)}
+.eblClubGrid .card h2{letter-spacing:-.025em;margin-top:3px}
+.eblClubGrid .card .newsMeta{font-size:10px;letter-spacing:.13em}
+.eblClubRow{align-items:baseline;line-height:1.35;flex-wrap:wrap}
+.eblClubRow b{font-variant-numeric:tabular-nums;text-align:right}
+.eblFranchiseEra{background:#071b2e;border-color:#385873}
+/* Honor existing avatar source of truth: style *containers* only. */
+#playerMain{position:relative;isolation:isolate;overflow:hidden;border-top:3px solid #c63844}
+#playerMain::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+ background:linear-gradient(90deg,transparent 48%,rgba(12,37,54,.28)),url('/assets/ebl_diamond_152.svg') right -105px top 0/450px auto no-repeat;opacity:.24}
+#playerMain>*{position:relative;z-index:1}
+.playerHQIdentityPortrait{box-shadow:0 0 0 3px #071b2e,0 0 0 4px #6b91aa,0 10px 25px #0007;border-radius:14px 14px 20px 20px}
+.playerPortraitTeamBrandGameDay,.playerPortraitTeamBrandLegacy{box-shadow:0 0 0 1px #5f869e,0 9px 23px #0008}
+/* Rookie card: collectible finish using geometry behind, not over the player art. */
+#creatorStage .rookieCard{position:relative;isolation:isolate;border:1px solid #8eaec2;
+ background:linear-gradient(150deg,#133d60 0%,#0b2237 50%,#061723 100%);
+ box-shadow:0 0 0 4px #071624,0 0 0 5px #486e86,0 22px 57px #0009}
+#creatorStage .rookieCard::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+ background:url('/assets/ebl_diamond_152.svg') center/cover no-repeat;opacity:.095}
+#creatorStage .rookieCard>*{position:relative;z-index:1}
+#creatorStage .rookieTop{background:linear-gradient(90deg,#133d5c,#081d30 90%);border-bottom:3px solid #d33946;color:#e6f0f8;font-size:11px}
+#creatorStage .rookiePortrait{position:relative;isolation:isolate;border:1px solid #7797aa;
+ background:radial-gradient(ellipse at 50% 24%,#335e7e 0%,#0d2a43 52%,#061523 95%);box-shadow:inset 0 -40px 48px #04121ba0}
+#creatorStage .rookiePortrait::before{content:"";pointer-events:none;position:absolute;inset:0;z-index:0;
+ background:url('/assets/ebl_diamond_152.svg') center/160% auto no-repeat;opacity:.18}
+#creatorStage .rookiePortrait>.eblPlayerArt{position:relative!important;z-index:1}
+#creatorStage .rookieName{color:#fff;letter-spacing:-.045em;text-shadow:0 3px 10px #0007}
+#creatorStage .rookieFact{background:linear-gradient(170deg,#153650,#071d30);border-color:#3e637c}
+#creatorStage .rookieFact b{font-variant-numeric:tabular-nums}
+#creatorStage .rookieBuild span{border-color:#66849c;background:#132c42;color:#ecf4f9;font-weight:750}
+/* Awards and standings: consistent broadcast framing and rank hierarchy. */
+#awards>.card,#league>.card{position:relative;isolation:isolate;overflow:hidden;border-top:3px solid #c73844}
+#awards>.card::before,#league>.card::before{content:"";position:absolute;inset:0 0 auto auto;width:min(48%,390px);height:175px;
+ background:url('/assets/ebl_diamond_152.svg') right center/cover no-repeat;opacity:.12;z-index:0;pointer-events:none}
+#awards>.card>*,#league>.card>*{position:relative;z-index:1}
+#awards h1,#league h1{font-size:clamp(23px,3vw,35px);letter-spacing:-.035em}
+#awards .awardRaceStandingRow{position:relative;overflow:hidden;border:1px solid rgba(119,160,190,.30);
+ background:linear-gradient(135deg,rgba(17,52,76,.90),rgba(7,24,40,.79));
+ box-shadow:inset 0 1px #ffffff0c,0 5px 14px #0003;}
+#awards .awardRaceStandingRow::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(#ec6877,#8a2734)}
+#awards .awardRaceStandingRow:first-child{border-color:#7896ad}
+#awards .awardRaceRankBadge{color:#e4edf6;font-variant-numeric:tabular-nums}
+#awards .awardRacePos{border-color:#678ba6;color:#e2eef6;background:#16364d}
+#awards .awardRacePortrait{box-shadow:0 0 0 2px #071828,0 0 0 3px #476d83}
+.standingsTable tbody tr:hover{background:rgba(35,84,117,.32)}
+.standingsTable td{font-variant-numeric:tabular-nums}
+.standingsTable .teamMark{filter:drop-shadow(0 3px 4px #0006)}
+/* Lightweight scoreboard treatments without changing live score or event data. */
+.gcScorebarGameday,.gcScoreboard{border-bottom:3px solid #c43845;
+ box-shadow:inset 0 1px #ffffff11,0 8px 19px #0004}
+.gcScorebarGameday .gcClubScoreGameday,.gcScoreboard .gcScore{font-weight:950;letter-spacing:-.055em;color:#fff;text-shadow:0 4px 10px #0008}
+.gcInfoPanelHead146{border-top:2px solid rgba(200,218,230,.45)}
+/* Safe sizes and focus indicators on compact views. */
+@media(max-width:760px){
+ .eblClubMetrics152{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .eblClubHero::after{width:63%;opacity:.16}
+ .eblClubHero_logo{width:90px;min-width:90px;min-height:90px}
+ .eblClubHero_logo img{max-height:84px}
+ #creatorStage .rookieCard{box-shadow:0 12px 32px #0007}
+ #creatorStage .rookieBody{gap:12px;padding:14px}
+}
+@media(max-width:440px){
+ .eblClubHero_top{gap:11px;align-items:center}
+ .eblClubHero{padding:14px}
+ .eblClubHero_logo{width:80px;min-width:80px;min-height:80px;padding:5px;border-radius:12px}
+ .eblClubHero_logo img{max-height:72px}
+ .eblClubMeta152{font-size:10px}
+ .eblClubMetrics152 .statBox{padding:10px}
+ #creatorStage .rookieTop{letter-spacing:.06em;font-size:10px;padding:11px 12px}
+ #creatorStage .rookieBody{padding:12px}
+ #creatorStage .rookiePortrait{min-height:300px}
+ #playerMain::before{background-size:320px auto}
+}
+@media(prefers-reduced-motion:reduce){#awards .awardRaceStandingRow{transition:none}}
+
+/* ============================================================
+   RC153 — PLAYER PROFILES + GAMECAST BROADCAST GRAPHICS
+   Graphics-only extension. Saved avatars, uploaded team art and
+   every gameplay/statistic source remain completely unchanged.
+   ============================================================ */
+:root{--rc153-slate:#9dbbd0;--rc153-ice:#e5f2fa;--rc153-rule:#40627b}
+/* League-default identity is silver; user-selected accent colors still take precedence. */
+#profileContent{--profile-accent:#d9e0e8}
+/* Public profile: give real account photo and saved avatar a genuine card frame. */
+#profileModal{border:1px solid #466984;box-shadow:0 28px 95px #000d,0 0 0 4px #0a1d31;}
+#profileModal .memberProfileHero{isolation:isolate;min-height:222px;gap:clamp(12px,2.6vw,25px);border-bottom:3px solid var(--profile-accent,#bfcfda)}
+#profileModal .memberProfileHero::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background:url('/assets/ebl_player_card_153.svg') right center/cover no-repeat;opacity:.86}
+#profileModal .memberProfileHero>*{position:relative;z-index:1}
+#profileModal .memberProfilePhoto{width:clamp(112px,14vw,160px);height:clamp(112px,14vw,160px);border-radius:19px;border:2px solid color-mix(in srgb,var(--profile-accent,#c2d9ea) 76%,#f1f6fa);box-shadow:0 0 0 5px #061522,0 0 0 6px #91b6ca66,0 17px 30px #000a}
+#profileModal .memberProfileName{color:#fff;letter-spacing:-.047em;text-shadow:0 3px 20px #0009}
+#profileModal .memberProfileHandle{font-size:11px;letter-spacing:.17em;text-shadow:0 1px 7px #0008}
+#profileModal .memberProfileBio{color:#d6e6f2;font-size:13px;line-height:1.58;max-width:650px}
+#profileModal .memberProfileMotto{color:#fff;font-weight:550;text-shadow:0 1px 8px #000b}
+#profileModal .memberProfileActions .btn{min-height:38px;border-radius:8px;background:rgba(5,21,36,.75);border-color:#64849b}
+#profileModal .memberProfileStats{gap:8px;padding:14px 16px;background:linear-gradient(180deg,#0b2337,#071827)}
+#profileModal .memberProfileStats .statBox{border:1px solid #3f627a;border-top:3px solid var(--profile-accent,#d5e6f2);border-radius:10px;text-align:left;padding:10px 12px;background:linear-gradient(155deg,#13354c,#081e30);box-shadow:inset 0 1px #ffffff0a}
+#profileModal .memberProfileStats .statBox b{display:block;font-size:clamp(19px,2.2vw,26px);font-variant-numeric:tabular-nums;letter-spacing:-.04em;color:#fff}
+#profileModal .memberProfileStats .label{letter-spacing:.08em;font-size:10px;font-weight:850}
+#profileModal .profilePlayerCompact{position:relative;isolation:isolate;border:1px solid #46647a;border-left:4px solid var(--profile-accent,#cfdee8);background:linear-gradient(116deg,#14344c,#091d2e 84%);box-shadow:0 8px 24px #0005;transition:border-color .2s,transform .2s}
+#profileModal .profilePlayerCompact::after{content:"";z-index:0;position:absolute;inset:0 0 0 auto;width:47%;pointer-events:none;background:url('/assets/ebl_player_card_153.svg') right center/cover no-repeat;opacity:.27}
+#profileModal .profilePlayerCompact>*{position:relative;z-index:1}
+#profileModal .profilePlayerPortrait{box-shadow:0 0 0 2px #0b2237,0 0 0 3px #7195ab,0 8px 16px #0009;border-color:#7798ac}
+#profileModal .profilePlayerName{color:#f3f8fc;font-size:clamp(16px,2vw,21px);letter-spacing:-.025em}
+#profileModal .profilePlayerMeta{color:#bbcedb}
+#profileModal .profileCareerStat{font-variant-numeric:tabular-nums}
+#profileModal .profileAccolade{background:linear-gradient(125deg,#143147,#0a1d2f);border-color:#54748b;border-left-color:var(--profile-accent,#d4e3ee);box-shadow:inset 0 1px #ffffff0d}
+#profileModal .profileAccolade b{color:#f0f5f9}
+#profileModal .legacyBadge,#profileModal .champBanner{border-color:#557890;background:linear-gradient(130deg,#14354b,#071929);font-size:12px;box-shadow:inset 0 1px #ffffff0b}
+/* Player HQ: an actual sports-card header, with existing stats always above decoration. */
+#playerMain{border:1px solid #4b6a82;border-top:4px solid #cf3a47;background:linear-gradient(155deg,#0c2740,#061727 70%);box-shadow:0 16px 35px #0005;}
+#playerMain::before{opacity:.28;background:linear-gradient(90deg,rgba(5,21,37,.06),rgba(5,21,37,.14)),url('/assets/ebl_player_card_153.svg') right center/auto 100% no-repeat}
+#playerMain .playerHQIdentityPortrait{border:2px solid #aec7d8;border-radius:13px;box-shadow:0 0 0 4px #071b2e,0 0 0 5px #62839a,0 12px 23px #0009;background:radial-gradient(circle at 50% 23%,#2d5774,#0b2439 70%)}
+#playerMain .statBox{border-color:#4d6c83;background:linear-gradient(160deg,#13344b,#0a1c2e);box-shadow:inset 0 1px #ffffff0d}
+#playerMain .statBox b{color:#f2f7fb;font-variant-numeric:tabular-nums}
+#playerMain .statTabs .btn.active,#playerMain .subtab.active{border-bottom:3px solid #cf3745}
+#playerMain .playerXpQuickCard{border-color:#678398;border-left:4px solid #d3e1ed;background:linear-gradient(115deg,#163a53,#081b2c)}
+#playerMain .playerXpQuickCard h3{letter-spacing:-.02em}
+/* GameCast Center: clean league TV header, no claim that archived games are live. */
+#gamecast>.card{position:relative;overflow:hidden;border-top:4px solid #c73442;background:linear-gradient(145deg,#0b263e,#071825 68%)}
+#gamecast>.card::before{content:"";position:absolute;inset:0 0 auto auto;width:60%;height:220px;opacity:.17;background:url('/assets/ebl_gamecast_stadium_153.svg') right center/cover no-repeat;pointer-events:none}
+#gamecast>.card>*{position:relative;z-index:1}
+.eblBroadcastHead153{display:flex;align-items:center;justify-content:space-between;gap:clamp(8px,3vw,32px);padding:5px 3px 20px;border-bottom:1px solid #385b73;margin-bottom:12px}
+.eblBroadcastHead153 .newsMeta{font-size:10px;letter-spacing:.15em;color:#e1a4af}
+.eblBroadcastHead153 h1{font-size:clamp(28px,3.8vw,42px);font-weight:950;letter-spacing:-.055em;line-height:1.03;margin:7px 0}
+.eblBroadcastHead153 p{margin:0;font-size:13px;max-width:640px;line-height:1.5}
+.eblBroadcastIcon153{width:118px;min-width:118px;height:118px;border:1px solid #7493a9;border-radius:19px;background:linear-gradient(155deg,#1c425d,#0b2136 78%);box-shadow:inset 0 0 0 4px #0b2135,0 10px 30px #0008;position:relative;display:grid;align-content:center;justify-items:center;gap:2px;overflow:hidden;transform:rotate(2deg)}
+.eblBroadcastIcon153::before{content:"";position:absolute;inset:8px;border:1px solid #678aa4;border-radius:14px;opacity:.58}
+.eblBroadcastDiamond153{width:54px;height:54px;border:2px solid #a9c2d0;transform:rotate(45deg);opacity:.25;position:absolute;top:28px;left:32px}
+.eblBroadcastIcon153 b{z-index:1;color:#f4f9fb;letter-spacing:.02em;font-size:27px;font-weight:1000;text-shadow:0 2px 8px #000c}
+.eblBroadcastIcon153 small{z-index:1;color:#e5acb7;font-size:9px;font-weight:950;letter-spacing:.16em}
+#gamecast .gcShowcaseLaunch{background:linear-gradient(115deg,rgba(12,38,61,.94),rgba(7,23,37,.98)),url('/assets/ebl_gamecast_stadium_153.svg') center 45%/cover no-repeat;border:1px solid #557992;border-left:4px solid #d33c48;box-shadow:0 13px 30px #0007}
+#gamecast .gcShowcaseLaunch h3{font-size:clamp(18px,2.2vw,23px);letter-spacing:-.02em}
+#gamecast .gcShowcaseBtn{box-shadow:0 4px 0 #4f101c,0 12px 18px #0007;font-weight:900;letter-spacing:.035em}
+#gamecastList .game{background:linear-gradient(110deg,rgba(21,52,75,.72),rgba(8,24,39,.83));border:1px solid #35556c;border-radius:10px;padding:11px 13px;margin-bottom:7px;transition:border-color .18s,background .18s}
+#gamecastList .game:hover{border-color:#99bbd0;background:#15354d}
+/* In-game scoreboard and field: graphic skin only, no event logic or coordinate changes. */
+.gcScorebarGameday,.gcScoreboard{border:1px solid #476780;border-top:3px solid #ca3a49;border-bottom:3px solid #a4becd;background:linear-gradient(155deg,#173850,#071522 79%);box-shadow:0 9px 24px #0008,inset 0 1px #ffffff11}
+.gcScorebarGameday::before,.gcScoreboard::before{background:repeating-linear-gradient(105deg,transparent 0 45px,#ffffff04 46px 47px),url('/assets/ebl_player_card_153.svg') right center/cover no-repeat;opacity:.23}
+.gcClubScoreGameday,.gcScoreboard .gcScore{font-size:clamp(26px,3vw,38px);font-weight:1000;letter-spacing:-.055em;line-height:1;color:#f5f9fd;text-shadow:0 2px 14px #000a;font-variant-numeric:tabular-nums}
+.gcScorebarGameday .gcStateLineGameday,.gcScorebarGameday .gcCountLineGameday{font-variant-numeric:tabular-nums}
+.gcVisualStageGameday{background:linear-gradient(180deg,rgba(4,13,24,.32),rgba(4,20,32,.08) 37%,rgba(4,20,23,.28) 68%,rgba(9,30,26,.25)),url('/assets/ebl_gamecast_stadium_153.svg') center 44%/cover no-repeat;}
+.gcVisualStageGameday:before{background:radial-gradient(ellipse at 50% 28%,rgba(141,194,222,.17),transparent 37%),linear-gradient(180deg,rgba(1,8,17,.1),rgba(2,9,15,.26));}
+.gcPanelGameday,.gcInfoPanel146,.gcInfoStage146,.gcLiveLine146{border-color:#42647c;box-shadow:inset 0 1px #ffffff09}
+.gcInfoPanelHead146{border-bottom:2px solid #345c76;background:linear-gradient(90deg,#183c55,#081b2c 88%)}
+.gcPitchRowGameday.active,.gcPitchRowGameday:hover{border-color:#8badc1}
+.gcDayTabsGameday{border-bottom:1px solid #43637b}
+.gcDayTabGameday.active{border-bottom:3px solid #d64652;color:#fff}
+.gcInfoStageBackdrop146{background:linear-gradient(180deg,rgba(7,24,41,.78),rgba(4,21,35,.65)),url('/assets/ebl_gamecast_stadium_153.svg') center 43%/cover no-repeat}
+.gcLatestFeedGameday,.gcLineup,.gcSummaryCardGameday{box-shadow:0 8px 19px #0004}
+/* Accessibility: preserve reduced-motion settings, avoid microtext and small tap targets. */
+@media(hover:hover){#profileModal .profilePlayerCompact:hover{border-color:#91b3c7;transform:translateY(-1px)}}
+@media(max-width:800px){#profileModal .memberProfileHero{grid-template-columns:120px minmax(0,1fr);align-items:start;padding:17px}#profileModal .memberProfileHero .memberProfileActions{grid-column:1/-1;justify-content:flex-start}#profileModal .memberProfileStats{grid-template-columns:repeat(2,minmax(0,1fr))}#profileModal .memberProfilePhoto{width:114px;height:114px}.eblBroadcastIcon153{width:90px;min-width:90px;height:90px}.eblBroadcastDiamond153{top:18px;left:17px}.eblBroadcastIcon153 b{font-size:22px}}
+@media(max-width:520px){#profileModal .memberProfileHero{grid-template-columns:92px minmax(0,1fr);gap:12px;padding:13px}#profileModal .memberProfilePhoto{width:90px;height:90px;border-radius:13px}#profileModal .memberProfileName{font-size:clamp(21px,6.5vw,28px)}#profileModal .memberProfileHandle{font-size:9px}#profileModal .memberProfileBio{font-size:12px}#profileModal .memberProfileStats{gap:6px;padding:8px}#profileModal .memberProfileStats .statBox{padding:9px}#profileModal .profilePlayerCompact::after{opacity:.13}.eblBroadcastHead153{gap:8px}.eblBroadcastHead153 h1{font-size:28px}.eblBroadcastHead153 p{font-size:12px}.eblBroadcastIcon153{width:64px;min-width:64px;height:64px;border-radius:11px}.eblBroadcastIcon153:before{inset:5px;border-radius:7px}.eblBroadcastIcon153 b{font-size:17px}.eblBroadcastIcon153 small{font-size:6px}.eblBroadcastDiamond153{width:34px;height:34px;top:14px;left:14px}#gamecast>.card{padding:11px}.gcVisualStageGameday{background-position:center 44%}.gcScorebarGameday .gcClubScoreGameday{font-size:25px}}
+@media(prefers-reduced-motion:reduce){#profileModal .profilePlayerCompact,#gamecastList .game{transition:none}}
+
+
+/* ===============================================
+   EBL RC154 — AWARDS + HALL OF FAME GRAPHICS
+   Decorative-only art, existing award data, no fabricated inductees.
+   =============================================== */
+#awards>.eblAwardsShell154{padding:clamp(12px,2.2vw,22px);background:linear-gradient(155deg,#0b263d,#061522 75%);border-top:3px solid #cf3b4c}
+#awards .eblAwardsHero154{isolation:isolate;position:relative;min-height:260px;padding:clamp(21px,4vw,42px);border:1px solid #50738a;border-radius:16px;display:flex;align-items:center;justify-content:space-between;gap:20px;overflow:hidden;background:linear-gradient(90deg,rgba(5,18,31,.80),rgba(5,18,31,.05)),url('/assets/ebl_awards_hall_154.svg') right center/cover no-repeat;box-shadow:inset 0 1px #ffffff20,0 13px 26px #0005}
+#awards .eblAwardsHero154::before{content:"";pointer-events:none;position:absolute;z-index:0;inset:0;background:linear-gradient(90deg,#0413219e 0%,#04132165 48%,transparent 85%)}
+#awards .eblAwardsHeroCopy154{position:relative;z-index:1;max-width:660px;min-width:0}
+#awards .eblAwardsKicker154{display:block;color:#c6e0ed;font-size:10px;font-weight:950;letter-spacing:.2em;line-height:1.5;text-shadow:0 2px 8px #000}
+#awards .eblAwardsHero154 h1{font-size:clamp(38px,5.1vw,64px);letter-spacing:-.06em;line-height:1.04;margin:13px 0 10px;color:#f5fafd;text-shadow:0 4px 19px #000a}
+#awards .eblAwardsHeroPeriod154{color:#e44958}
+#awards .eblAwardsHero154 p{max-width:500px;font-size:clamp(13px,1.5vw,16px);line-height:1.55;color:#d1e4f0;text-shadow:0 3px 11px #0009}
+#awards .eblAwardsHeroFoot154{margin-top:25px;display:flex;align-items:center;gap:9px;color:#b9d1e2;font-size:10px;letter-spacing:.13em;font-weight:900}
+#awards .eblAwardsDot154{width:8px;height:8px;border-radius:50%;background:#ce4655;box-shadow:0 0 0 4px #cc37442c}
+#awards .eblAwardsHeroSeal154{position:relative;z-index:1;flex:0 0 92px;width:92px;height:92px;display:grid;place-content:center;text-align:center;gap:4px;border:1px solid #b5d0e1;border-radius:50%;background:#0920368f;box-shadow:inset 0 0 0 6px #142e43,0 9px 20px #0008;backdrop-filter:blur(4px)}
+#awards .eblAwardsHeroSeal154 span{font-weight:1000;font-size:29px;letter-spacing:-.045em;line-height:1;color:#eef7fc}
+#awards .eblAwardsHeroSeal154 small{font-size:9px;letter-spacing:.18em;font-weight:950;color:#ec9ea9}
+#awards .eblAwardsRibbon154{display:flex;justify-content:space-between;align-items:center;margin:13px 0;padding:10px 22px;background:linear-gradient(90deg,#09243b,#183c54 50%,#09243b);border:1px solid #3d637b;border-radius:9px;gap:12px;color:#d4e9f5;font-size:10px;font-weight:950;letter-spacing:.15em}
+#awards .eblAwardsRibbon154 span{display:inline-flex;align-items:center;gap:10px}#awards .eblAwardsRibbon154 span:not(:last-child)::after{content:"✦";color:#db5162;margin-left:clamp(4px,3vw,32px)}
+#awards .eblAwardsIntro154{font-size:13px;line-height:1.5;margin:12px 2px 16px}
+#awards .eblAwardsTabs154{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid #476880;padding:0 2px 11px;margin:0 0 16px}
+#awards .eblAwardsTabs154 .subtab{background:#0d2b43;border:1px solid #406078;border-radius:8px;padding:10px 12px;min-height:43px;color:#c5d7e4;font-size:11px;font-weight:900;letter-spacing:.045em;transition:background .15s,border-color .15s}
+#awards .eblAwardsTabs154 .subtab.active{color:white;background:#173c56;border-color:#d34959;box-shadow:inset 0 -3px #d34959}
+#awards .eblAwardsTabs154 .subtab:focus-visible{outline:2px solid #d8edf9;outline-offset:2px}
+#awards .awardRaceStandingRow{border-color:#41677d;border-radius:13px;background:linear-gradient(110deg,rgba(21,56,78,.9),rgba(7,25,42,.83));box-shadow:0 9px 21px #0003;min-height:81px}
+#awards .awardRaceStandingRow:nth-of-type(1){background:linear-gradient(100deg,rgba(33,73,97,.94),rgba(9,28,44,.87));border-color:#94b4c6}
+#awards .awardRaceStandingRow .awardRaceTrophyMark{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid #648aa3;border-radius:7px;background:#112d42;font-size:0}
+#awards .awardRaceStandingRow .awardRaceTrophyMark::before{content:"";display:block;width:22px;height:22px;background:url('/assets/ebl_trophy_154.svg') center/contain no-repeat}
+#awards .subpane>.gold:first-child{display:inline-block;padding:9px 12px;margin:0 0 12px;border:1px solid #40687f;border-left:3px solid #c93b4b;border-radius:7px;background:#0c2b41;color:#e9f3fa;font-size:12px;font-weight:850}
+#awards .awardRaceRankBadge{font-size:16px}
+#awards .eblArchiveHead154{display:flex;justify-content:space-between;align-items:end;gap:14px;padding:14px 0 18px;border-bottom:1px solid #385a70;margin-bottom:16px}
+#awards .eblArchiveHead154 h2{font-size:clamp(25px,3.5vw,36px);margin:7px 0 4px;letter-spacing:-.04em}
+#awards .eblArchiveHead154 p{font-size:12px;margin:0}
+#awards .eblArchiveCount154{flex:0 0 auto;padding:8px 10px;background:#17374c;border:1px solid #628399;border-radius:5px;letter-spacing:.06em;font-size:10px;color:#e0ebf4;font-weight:900}
+#awards .eblArchiveGrid154{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#awards .eblArchiveRecord154{display:grid;grid-template-columns:100px minmax(0,1fr);gap:13px;min-height:148px;border:1px solid #466980;border-radius:13px;overflow:hidden;background:linear-gradient(120deg,#153b55,#091e30);box-shadow:0 8px 18px #0004}
+#awards .eblArchiveAwardGraphic154{display:grid;place-items:center;position:relative;min-height:146px;background:radial-gradient(ellipse at center,#274b64,#071b2e 85%);border-right:1px solid #45687f}
+#awards .eblArchiveAwardGraphic154::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(35deg,transparent 0 22px,#ffffff07 23px 24px)}
+#awards .eblArchiveAwardGraphic154 img{width:80px;height:100px;object-fit:contain;filter:drop-shadow(0 8px 8px #0008)}
+#awards .eblArchiveAwardBody154{padding:13px 12px 12px 0;min-width:0;display:grid;align-content:center;gap:5px}
+#awards .eblArchiveAwardSeason154{font-size:10px;letter-spacing:.13em;font-weight:950;color:#de929e}
+#awards .eblArchiveAwardBody154 h3{font-size:clamp(15px,1.8vw,20px);line-height:1.15;color:#f0f6fc;margin:0;letter-spacing:-.02em;overflow-wrap:anywhere}
+#awards .eblArchivePlayer154{font-size:14px;font-weight:900;color:white;overflow-wrap:anywhere}
+#awards .eblArchiveTeam154{font-size:12px;color:#c4d7e5;overflow-wrap:anywhere}
+#awards .eblArchiveAwardBody154 small{font-size:10px;color:#a9c2d1}
+#awards .eblArchiveEmpty154{display:flex;align-items:center;gap:20px;background:linear-gradient(125deg,#13334c,#081b2c);border:1px solid #43677d;border-radius:14px;padding:22px;min-height:180px}
+#awards .eblArchiveEmpty154 img{width:92px;height:106px;object-fit:contain;filter:drop-shadow(0 8px 8px #0009)}
+#awards .eblArchiveEmpty154 h2{font-size:clamp(22px,3vw,32px);margin:6px 0}
+#awards .eblArchiveEmpty154 p{font-size:13px;line-height:1.5;margin:0}
+#awards .eblHallStage154{position:relative;isolation:isolate;overflow:hidden;min-height:520px;border-radius:16px;border:1px solid #648397;background:linear-gradient(180deg,#07152226,#061320bd),url('/assets/ebl_hof_wall_154.svg') center/cover no-repeat;display:grid;place-items:center;box-shadow:inset 0 0 0 5px #091a2b,0 15px 26px #0006}
+#awards .eblHallStage154::before{position:absolute;inset:0;content:"";pointer-events:none;z-index:0;background:radial-gradient(ellipse at 50% 41%,rgba(9,30,46,.22),rgba(4,13,22,.94) 89%)}
+#awards .eblHallInterior154{position:relative;z-index:1;text-align:center;max-width:540px;padding:38px 20px;color:white}
+#awards .eblHallTrophy154{display:block;width:clamp(95px,17vw,160px);height:clamp(113px,20vw,180px);margin:26px auto 7px;filter:drop-shadow(0 10px 15px #0008)}
+#awards .eblHallStage154 h2{font-size:clamp(29px,5vw,50px);font-weight:950;line-height:1.1;letter-spacing:-.052em;color:#f0f7fc;text-shadow:0 5px 13px #000;margin:0}
+#awards .eblHallDivider154{width:138px;height:3px;border-radius:4px;margin:22px auto;background:linear-gradient(90deg,transparent,#d74b59,transparent)}
+#awards .eblHallStage154 p{font-size:clamp(13px,2vw,16px);line-height:1.65;color:#c7deea;margin:0 0 26px;text-shadow:0 2px 6px #000}
+#awards .eblHallStageSign154{display:inline-flex;align-items:center;min-height:33px;padding:8px 13px;border:1px solid #7396a9;border-radius:5px;background:#10283fd6;color:#c4d9e6;letter-spacing:.13em;font-size:10px;font-weight:950}
+.eblTitleRibbon154{display:flex;align-items:center;gap:14px;margin:0 0 13px;padding:10px 16px;border:1px solid #5f8095;border-left:4px solid #c93646;border-radius:11px;background:linear-gradient(100deg,#153951,#081b2c);box-shadow:0 7px 18px #0005;color:#fff}
+.eblTitleRibbon154 img{width:45px;height:50px;object-fit:contain;filter:drop-shadow(0 3px 5px #0009)}
+.eblTitleRibbon154 div:nth-child(2){display:grid;gap:2px;min-width:0}
+.eblTitleRibbon154 span{font-size:9px;letter-spacing:.13em;font-weight:950;color:#b3cfde}
+.eblTitleRibbon154 b{font-size:clamp(15px,2.3vw,20px);letter-spacing:-.01em;color:#f1f7fa}
+.eblTitleRibbon154 .eblTitleRibbonMark154{margin-left:auto;font-size:27px;color:#e6eefa;text-shadow:0 3px 8px #0008}
+@media(max-width:740px){#awards .eblArchiveGrid154{grid-template-columns:minmax(0,1fr)}#awards .eblAwardsHeroSeal154{display:none}}
+@media(max-width:520px){#awards>.eblAwardsShell154{padding:10px}#awards .eblAwardsHero154{padding:22px 17px;min-height:242px;background-position:64% center}#awards .eblAwardsHero154::before{background:linear-gradient(90deg,#041321e0,#0413219a 70%,#04132166)}#awards .eblAwardsRibbon154{padding:9px 10px;gap:5px;font-size:8px;letter-spacing:.07em}#awards .eblAwardsRibbon154 span{gap:4px}#awards .eblAwardsRibbon154 span:not(:last-child)::after{margin-left:2px}#awards .eblAwardsTabs154{gap:5px}#awards .eblAwardsTabs154 .subtab{padding:10px 8px;font-size:10px}#awards .eblArchiveRecord154{grid-template-columns:84px minmax(0,1fr);gap:11px}#awards .eblArchiveAwardGraphic154 img{width:66px;height:88px}#awards .eblArchiveAwardBody154{padding:10px 7px 10px 0}#awards .eblHallStage154{min-height:460px}#awards .eblArchiveHead154{align-items:start;flex-direction:column}#awards .eblArchiveEmpty154{padding:15px;gap:12px}#awards .eblArchiveEmpty154 img{width:62px;height:83px}.eblTitleRibbon154{padding:10px;gap:10px}}
+@media(prefers-reduced-motion:reduce){#awards .eblAwardsTabs154 .subtab{transition:none}}
+
+/* RC154 All-Star output: preserve results of the real EBL awards API. */
+#awards .eblAllStarMasthead154{position:relative;overflow:hidden;min-height:145px;border:1px solid #597b92;border-radius:14px;padding:23px;background:linear-gradient(90deg,#0b233aeb,#092133df),url('/assets/ebl_awards_hall_154.svg') right center/cover no-repeat;margin-bottom:14px}
+#awards .eblAllStarMasthead154 h2{font-size:clamp(24px,3.5vw,35px);line-height:1.1;letter-spacing:-.04em;margin:6px 0}
+#awards .eblAllStarMasthead154 p{font-size:13px;line-height:1.5;max-width:550px}
+#awards .eblAllStarWaiting154{margin:20px 0 9px;padding:8px 11px;display:inline-block;background:#15344b;border:1px solid #54768d;border-radius:6px;color:#e1f0f8;font-size:10px;font-weight:950;letter-spacing:.11em}
+#awards .eblAllStarScore154{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;border:1px solid #66889b;background:linear-gradient(145deg,#12364e,#061726);border-radius:12px;padding:18px;margin-bottom:11px;box-shadow:0 8px 18px #0006}
+#awards .eblAllStarScore154>div:not(.eblAllStarDivider154){display:grid;gap:6px;justify-items:center}
+#awards .eblAllStarScore154 span{font-size:10px;letter-spacing:.14em;font-weight:950;color:#c1d9e7}
+#awards .eblAllStarScore154 b{font-size:clamp(28px,5vw,48px);font-variant-numeric:tabular-nums;line-height:1;font-weight:1000;color:#fff}
+#awards .eblAllStarDivider154{font-size:13px;color:#d2e4ef;letter-spacing:.1em;font-weight:950}
+#awards .eblAllStarFacts154{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+#awards .eblAllStarFacts154>div{background:#0e2a40;border:1px solid #44677d;border-radius:9px;padding:11px;display:grid;gap:5px}
+#awards .eblAllStarFacts154 span{color:#a8c6d8;font-size:10px;font-weight:900;letter-spacing:.09em}
+#awards .eblAllStarFacts154 b{font-size:16px;font-variant-numeric:tabular-nums;color:#f0f6fa}
+#awards .eblAllStarTeams154{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:15px}
+#awards .eblAllStarTeam154{background:linear-gradient(140deg,#10344d,#071b2e);border:1px solid #466a80;border-radius:12px;padding:14px;min-width:0}
+#awards .eblAllStarTeamTitle154{display:flex;align-items:center;gap:9px;padding-bottom:9px;border-bottom:1px solid #466a80;margin-bottom:12px}
+#awards .eblAllStarTeamTitle154 h3{margin:0;font-size:17px;letter-spacing:-.015em}
+#awards .eblAllStarMiniDiamond154{width:18px;height:18px;background:#d23c4d;transform:rotate(45deg);border:3px solid #e2eefa;flex:0 0 18px;box-shadow:0 3px 9px #0006}
+#awards .eblAllStarPlayerList154{display:grid;gap:8px}
+#awards .eblAllStarPlayer154{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;background:#071b2b;border:1px solid #35566e;border-radius:8px;font-size:12px}
+#awards .eblAllStarPlayer154 b{min-width:0;overflow-wrap:anywhere}
+#awards .eblAllStarPlayer154 span{min-width:0}
+@media(max-width:620px){#awards .eblAllStarTeams154{grid-template-columns:1fr}#awards .eblAllStarScore154{padding:12px 8px;gap:3px}#awards .eblAllStarScore154 span{font-size:8px}#awards .eblAllStarFacts154 b{font-size:14px}}
