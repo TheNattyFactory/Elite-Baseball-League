@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" fill="none" aria-hidden="true">
+<defs>
+  <linearGradient id="outfield" x1="610" y1="90" x2="610" y2="760" gradientUnits="userSpaceOnUse"><stop stop-color="#244B63" stop-opacity=".16"/><stop offset="1" stop-color="#0C2539" stop-opacity=".05"/></linearGradient>
+  <linearGradient id="infield" x1="450" y1="265" x2="770" y2="655"><stop stop-color="#88B0B8" stop-opacity=".18"/><stop offset="1" stop-color="#9CC2CE" stop-opacity=".06"/></linearGradient>
+  <linearGradient id="glow" x1="100" y1="400" x2="1100" y2="400"><stop stop-color="#CE3347" stop-opacity=".05"/><stop offset=".5" stop-color="#E8F3FF" stop-opacity=".35"/><stop offset="1" stop-color="#CE3347" stop-opacity=".05"/></linearGradient>
+</defs>
+<!-- Field lines and diamond: decorative league artwork, not a live play diagram. -->
+<path d="M106 570Q125 115 600 95Q1075 115 1094 570" stroke="#D9E7F0" stroke-opacity=".16" stroke-width="3"/>
+<path d="M164 556Q178 156 600 145Q1022 156 1036 556" stroke="#D9E7F0" stroke-opacity=".08" stroke-width="2"/>
+<path d="M600 710L1092 260" stroke="#D9E7F0" stroke-opacity=".19" stroke-width="2"/>
+<path d="M600 710L108 260" stroke="#D9E7F0" stroke-opacity=".19" stroke-width="2"/>
+<path d="M600 688L370 456L600 224L830 456Z" fill="url(#infield)" stroke="#C7DCE7" stroke-opacity=".32" stroke-width="3"/>
+<path d="M600 593L463 456L600 319L737 456Z" fill="#0A2A3F" fill-opacity=".26" stroke="#A9CFD9" stroke-opacity=".17" stroke-width="2"/>
+<circle cx="600" cy="458" r="23" stroke="#E8F3FA" stroke-opacity=".28" stroke-width="2"/>
+<circle cx="600" cy="458" r="4" fill="#E4EDF5" fill-opacity=".35"/>
+<path d="M600 663L616 678L615 690L585 690L584 678Z" fill="#E6F3F7" fill-opacity=".73"/>
+<rect x="808" y="446" width="29" height="29" rx="2" transform="rotate(45 808 446)" fill="#E6F3F7" fill-opacity=".80"/>
+<rect x="590" y="215" width="29" height="29" rx="2" transform="rotate(45 590 215)" fill="#E6F3F7" fill-opacity=".80"/>
+<rect x="359" y="446" width="29" height="29" rx="2" transform="rotate(45 359 446)" fill="#E6F3F7" fill-opacity=".80"/>
+<path d="M307 365Q600 158 893 365" stroke="url(#glow)" stroke-width="5" stroke-linecap="round" stroke-dasharray="3 17"/>
+<path d="M265 410Q600 125 935 410" stroke="#CC3B4B" stroke-opacity=".46" stroke-width="2" stroke-dasharray="18 14"/>
+<circle cx="600" cy="453" r="315" stroke="#FFFFFF" stroke-opacity=".035" stroke-width="1"/>
+<path d="M260 715H940" stroke="#D6E7F0" stroke-opacity=".11" stroke-width="2"/>
+<path d="M390 739H810" stroke="#D6E7F0" stroke-opacity=".075" stroke-width="2"/>
+<!-- Restraint in the edges leaves center space for live player content. -->
+<path d="M30 35H158M30 35V162M1042 35H1170V162M30 638V765H158M1042 765H1170V638" stroke="#C6DDE8" stroke-opacity=".22" stroke-width="3"/>
+<path d="M30 35H99M30 35V104M1101 35H1170V104M30 695V765H99M1101 765H1170V695" stroke="#D73A4D" stroke-opacity=".61" stroke-width="4"/>
+</svg>

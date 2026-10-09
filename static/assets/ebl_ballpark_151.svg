@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 720" role="img" aria-labelledby="title desc" preserveAspectRatio="xMidYMid slice">
+  <title id="title">Elite Baseball League ballpark atmosphere</title>
+  <desc id="desc">Original stylized night baseball stadium with grandstands, light towers, a field and the home plate diamond.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#0b2f51"/><stop offset=".44" stop-color="#09253d"/><stop offset="1" stop-color="#04121f"/></linearGradient>
+    <radialGradient id="halo" cx="50%" cy="32%" r="60%"><stop stop-color="#337ca2" stop-opacity=".45"/><stop offset=".72" stop-color="#153850" stop-opacity=".10"/><stop offset="1" stop-color="#061522" stop-opacity="0"/></radialGradient>
+    <linearGradient id="field" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#1a6351"/><stop offset=".58" stop-color="#17553e"/><stop offset="1" stop-color="#082c25"/></linearGradient>
+    <linearGradient id="earth" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#956d50"/><stop offset="1" stop-color="#593f32"/></linearGradient>
+    <radialGradient id="light"><stop stop-color="#f7ffff" stop-opacity=".73"/><stop offset=".18" stop-color="#d8f0ff" stop-opacity=".3"/><stop offset="1" stop-color="#8bbfe5" stop-opacity="0"/></radialGradient>
+    <pattern id="stands" width="17" height="8" patternUnits="userSpaceOnUse"><rect width="17" height="8" fill="#10293c"/><path d="M0 7.5H17M9 0V7.5" stroke="#21415a" stroke-width=".8"/><circle cx="4" cy="3" r=".6" fill="#839dae" opacity=".36"/></pattern>
+    <pattern id="turf" width="138" height="138" patternUnits="userSpaceOnUse" patternTransform="rotate(24)"><rect width="138" height="138" fill="#114936"/><rect width="69" height="138" fill="#1a5a42"/><path d="M0 0V138" stroke="#296a4e" stroke-width="2" opacity=".65"/></pattern>
+    <filter id="glow"><feGaussianBlur stdDeviation="12"/></filter>
+  </defs>
+  <rect width="1600" height="720" fill="url(#sky)"/>
+  <rect width="1600" height="720" fill="url(#halo)"/>
+  <path d="M0 294 C230 246 455 281 638 248 S1040 220 1220 262 S1480 266 1600 236 V442 H0Z" fill="#071a2c" opacity=".94"/>
+  <path d="M0 335 C240 260 510 303 708 268 S1210 258 1600 305 V455 H0Z" fill="url(#stands)" stroke="#42657c" stroke-opacity=".55" stroke-width="2"/>
+  <path d="M0 368 C292 326 520 350 792 330 S1251 312 1600 367" fill="none" stroke="#d1dde5" stroke-opacity=".42" stroke-width="4"/>
+  <path d="M0 403 C300 355 590 392 800 372 S1262 359 1600 414 V491 H0Z" fill="#081d2e" stroke="#355875" stroke-width="2"/>
+  <path d="M0 421 C341 384 549 410 809 389 S1246 389 1600 432" fill="none" stroke="#bb303d" stroke-opacity=".55" stroke-width="5"/>
+  <g stroke="#7792a7" stroke-opacity=".48" stroke-width="3" fill="none">
+    <path d="M145 80V373 M132 80L158 373 M158 80L132 373 M127 143H162 M129 208H158 M132 279H158"/>
+    <path d="M1443 72V371 M1430 72L1456 371 M1456 72L1430 371 M1426 148H1462 M1428 215H1460 M1430 285H1457"/>
+  </g>
+  <g fill="#e8f5fc" opacity=".86"><rect x="94" y="67" width="102" height="15" rx="3"/><rect x="1391" y="58" width="106" height="15" rx="3"/></g>
+  <g fill="#eefaff" opacity=".86"><circle cx="107" cy="74" r="4"/><circle cx="125" cy="74" r="4"/><circle cx="143" cy="74" r="4"/><circle cx="161" cy="74" r="4"/><circle cx="179" cy="74" r="4"/><circle cx="1405" cy="65" r="4"/><circle cx="1424" cy="65" r="4"/><circle cx="1443" cy="65" r="4"/><circle cx="1462" cy="65" r="4"/><circle cx="1481" cy="65" r="4"/></g>
+  <ellipse cx="146" cy="75" rx="205" ry="155" fill="url(#light)"/><ellipse cx="1443" cy="67" rx="238" ry="170" fill="url(#light)"/>
+  <path d="M0 475 C336 417 569 431 799 431 C1046 431 1320 427 1600 488 V720 H0Z" fill="url(#field)"/>
+  <path d="M0 475 C336 417 569 431 799 431 C1046 431 1320 427 1600 488 V720 H0Z" fill="url(#turf)" opacity=".53"/>
+  <path d="M454 720 L805 437 L1150 720" fill="none" stroke="#e9e4d7" stroke-opacity=".5" stroke-width="3.2"/>
+  <path d="M626 720 L806 521 L986 720" fill="url(#earth)" opacity=".71"/>
+  <path d="M701 720 L809 600 L915 720" fill="url(#field)" opacity=".88"/>
+  <path d="M801 529 L810 519 L820 529 L810 539Z" fill="#f2efe6" opacity=".88"/>
+  <path d="M800 603 L812 591 L824 603 L812 616Z" fill="#f1efe5" opacity=".78"/>
+  <path d="M717 693 L732 677 L748 693 L732 708Z M887 693 L903 677 L918 693 L903 708Z" fill="#f1efe5" opacity=".75"/>
+  <circle cx="810" cy="632" r="18" fill="#936d4f" opacity=".65"/>
+  <path d="M797 687H823L821 695L810 704L800 695Z" fill="#f8f3e9"/>
+  <path d="M0 703Q800 678 1600 704" stroke="#5b8c70" stroke-opacity=".36" stroke-width="2" fill="none"/>
+  <g opacity=".4" fill="#a9c8da"><circle cx="358" cy="138" r="1.5"/><circle cx="520" cy="198" r="1"/><circle cx="1014" cy="121" r="1.3"/><circle cx="1181" cy="174" r="1.3"/><circle cx="1293" cy="111" r="1.1"/></g>
+  <path d="M0 0H1600" stroke="#e43943" stroke-opacity=".75" stroke-width="6"/>
+</svg>
