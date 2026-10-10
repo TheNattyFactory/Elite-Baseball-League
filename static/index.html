@@ -15,7 +15,7 @@
 <meta property="og:url" content="https://elite-baseball.com/">
 <meta property="og:image" content="https://elite-baseball.com/assets/ebl_logo.png">
 <link rel="icon" href="/favicon.ico">
-<link rel="stylesheet" href="/ebl.css?v=rc154">
+<link rel="stylesheet" href="/ebl.css?v=rc161">
 <!-- EBL SYSTEM: FEEDBACK & ACTION DIALOGS -->
 <!-- EBL FRONTEND: externalized product modules -->
 <script id="ebl-feedback-system" src="/ebl-feedback.js"></script>
@@ -37,7 +37,7 @@
 
 <main>
 <section id="home" class="page active">
-<div id="loginCard" class="card loginShell"><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><div class="loginHero"><span class="newsMeta">WELCOME BACK</span><h2>Log in to Elite Baseball League <span class="betaSiteBadge">BETA</span></h2><p class="muted">Continue your player career, contracts, stats, awards, messages, and league history.</p><div class="offer eblPromoBox"><span class="newsMeta">COACH APPLICATIONS OPEN</span><b class="eblBlockTight">Want to run an EBL franchise?</b><span class="muted">Genesis is recruiting human coaches now. Create an account, verify your email, then open the COACH tab to apply for a franchise.</span></div></div><div class="loginPanel"><h3>Login</h3><label class="label" for="lu">USERNAME</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><label class="label" for="lp">PASSWORD</label><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn loginPrimary" data-ebl-command="login">LOGIN</button><div class="loginCreate"><span>New to EBL?</span><a class="btn" href="/create-account">CREATE ACCOUNT</a></div></div><details class="loginRecovery"><summary>Password Recovery</summary><div class="grid eblSpaceTopSm"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" data-ebl-command="requestReset">Email Reset Link</button></div><div id="recMsg" class="muted"></div></details><div id="loginMsg" class="muted"></div></div>
+<div id="loginCard" class="card loginShell"><section class="eblRecruit158" aria-label="Join the Elite Baseball League"><div class="eblRecruitCopy158"><span class="eblRecruitEyebrow158">ELITE BASEBALL LEAGUE / GENESIS BETA</span><h1>YOUR NAME.<br><em>YOUR GAME.</em></h1><p>Build a ballplayer who looks like you. Earn a contract. Grow through the seasons. Make every at-bat part of your story.</p><div class="eblRecruitActions158"><a class="btn eblRecruitStart158" href="/create-account">CREATE YOUR PLAYER <span aria-hidden="true">↗</span></a><button class="btn eblRecruitExplore158" type="button" data-ebl-action="go-page" data-page="league">EXPLORE THE LEAGUE</button></div><div class="eblRecruitFacts158"><span>PLAYER CAREERS</span><span>30-TEAM VISION</span><span>CONTRACTS & AWARDS</span></div></div><div class="eblRecruitArt158"><div id="eblRecruitAvatar158" class="eblRecruitAvatar158" aria-label="Illustrative example of an EBL-customized ballplayer"></div><span class="eblRecruitArtCaption158">ILLUSTRATIVE PLAYER CUSTOMIZATION</span></div></section><img class="heroLogo" src="/assets/ebl_logo.png" alt="Elite Baseball League"><hr class="redline"><div class="loginHero"><span class="newsMeta">WELCOME BACK</span><h2>Log in to Elite Baseball League <span class="betaSiteBadge">BETA</span></h2><p class="muted">Continue your player career, contracts, stats, awards, messages, and league history.</p><div class="offer eblPromoBox"><span class="newsMeta">COACH APPLICATIONS OPEN</span><b class="eblBlockTight">Want to run an EBL franchise?</b><span class="muted">Genesis is recruiting human coaches now. Create an account, verify your email, then open the COACH tab to apply for a franchise.</span></div></div><div class="loginPanel"><h3>Login</h3><label class="label" for="lu">USERNAME</label><input id="lu" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="username" aria-label="Username"><label class="label" for="lp">PASSWORD</label><input id="lp" name="current-password" type="password" autocomplete="current-password" placeholder="password" aria-label="Password"><label class="rememberMeRow"><input id="rememberMe" type="checkbox"> <span>Keep me signed in for 30 days</span></label><button class="btn loginPrimary" data-ebl-command="login">LOGIN</button><div class="loginCreate"><span>New to EBL?</span><a class="btn" href="/create-account">CREATE ACCOUNT</a></div></div><details class="loginRecovery"><summary>Password Recovery</summary><div class="grid eblSpaceTopSm"><input id="resetEmail" name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="your verified email" aria-label="Verified email for password reset"><button class="btn" data-ebl-command="requestReset">Email Reset Link</button></div><div id="recMsg" class="muted"></div></details><div id="loginMsg" class="muted"></div></div>
 <div id="dashboard" class="hidden">
 <div id="ticker" class="ticker"><div id="tickerTrack" class="tickerTrack"></div></div>
 <div id="betaStatusCard" class="card betaStatusCard"></div>
@@ -51,15 +51,20 @@
 
 <section id="news" class="page"><div class="card"><div class="eblNewsBanner151"><span class="newsMeta">EBL SPORTS NETWORK • NEWSROOM</span><h1>EBL NEWSROOM</h1><p>The stories, results, rivalries, and moments shaping the Elite Baseball League.</p></div><div class="subtabs"><button class="subtab active" data-ebl-action="news-filter" data-filter="ALL">ALL</button><button class="subtab" data-ebl-action="news-filter" data-filter="GAME">GAMES</button><button class="subtab" data-ebl-action="news-filter" data-filter="MANAGER">DUGOUT</button><button class="subtab" data-ebl-action="news-filter" data-filter="TRANSACTION">TRANSACTIONS</button><button class="subtab" data-ebl-action="news-filter" data-filter="MILESTONE">MILESTONES</button><button class="subtab" data-ebl-action="news-filter" data-filter="RIVALRY">RIVALRIES</button><button class="subtab" data-ebl-action="news-filter" data-filter="RECORD">RECORDS</button></div><div id="newsFeed"></div></div></section>
 <section id="community" class="page"><div class="card"><h1>EBL COMMUNITY</h1><p class="muted">The history the league creates together — on the field, in the clubhouse, and across EBL media.</p><div class="baseballDivider"></div><h2>Optional Community Channels</h2><p class="muted">Everything required to play EBL is on this site. Discord and Instagram are optional extras with no effect on XP, contracts, eligibility, or gameplay.</p><div class="communityConnect"><a class="communityLink" href="https://discord.gg/7EdEfcKPR" target="_blank" rel="noopener noreferrer"><span class="communityIcon">💬</span><b>Join the EBL Discord</b><small>The live clubhouse for league discussion, game-day reactions, announcements, teams, and community events.</small></a><a class="communityLink" href="https://www.instagram.com/elite_baseball_league/" target="_blank" rel="noopener noreferrer"><span class="communityIcon">📸</span><b>Follow @Elite_Baseball_League</b><small>EBL highlights, standings, award races, player spotlights, league news, and championship moments.</small></a></div><div class="two"><div class="card"><h2>Friends & Requests</h2><div id="friendsPanel"><p class="muted">Loading friends...</p></div></div><div class="card"><h2>Rivalry Board</h2><div id="rivalryBoard"></div></div></div><div class="card"><h2>EBL Record Book</h2><div id="recordBook"></div></div></div></section><section id="support" class="page"><div class="card supportHero"><span class="newsMeta">KEEP THE LEAGUE GROWING</span><h1>SUPPORT EBL</h1><p class="supportLead">Every account can run one active EBL career for free. Supporter adds two additional career slots plus profile and legacy presentation options. It never changes ratings, XP, contracts, roster priority, or simulation results.</p><div id="supportEntitlementCard" class="supportTierGrid"><div class="supportTierCard"><span class="newsMeta">FREE</span><h2>1 Active Player</h2><p class="muted">One active player career with contracts, XP, awards, playoffs, records, and career history.</p></div><div class="supportTierCard featured"><span class="newsMeta">EBL SUPPORTER</span><h2>3 Active Careers + Profile Options</h2><div class="gold eblSupportPrice">$5/month or $54/year • 10% off yearly</div><p class="muted">Three active careers, profile customization, player-card frames, banners, and a featured Trophy Case selection.</p></div></div><div id="supportActions" class="supportActions"><span class="muted">Loading support options…</span></div><div class="supportPromise"><b>Support never changes competitive outcomes.</b><span>No XP boosts, attribute boosts, salary advantages, roster priority, awards, training bonuses, or simulation benefits. Supporter perks change identity and presentation, not baseball outcomes.</span></div><div class="supportGrid"><div class="supportUse"><span class="supportIcon">👤</span><b>More Career Stories</b><small>Free accounts: 1 active career. Supporters: up to 3 active careers.</small></div><div class="supportUse"><span class="supportIcon">🎨</span><b>Profile Studio</b><small>Profile photo, display name, bio, motto, featured player, themes, accent colors, premium banners and player-card frames.</small></div><div class="supportUse"><span class="supportIcon">🏆</span><b>Trophy Spotlight</b><small>Choose an earned award or EBL Championship to feature prominently on your public profile.</small></div><div class="supportUse"><span class="supportIcon">🌟</span><b>Founding Supporter</b><small>Real-money supporters who join during Genesis/Beta earn a permanent Founding Supporter marker. Stripe test purchases do not grant it.</small></div><div class="supportUse"><span class="supportIcon">🏅</span><b>Supporter Identity</b><small>Supporter recognition follows the account across every career without changing any player's ratings or opportunities.</small></div><div class="supportUse"><span class="supportIcon">⚾</span><b>Same Competitive Rules</b><small>Every player earns XP, contracts, awards and progression independently through the same baseball systems.</small></div></div><p class="supportFine">Retired careers remain in account history and free their active-player slot for a future player. Supporter is a recurring subscription: $5 monthly or $54 yearly (10% below twelve monthly payments). It renews automatically until canceled. Active Supporters can use Stripe's Manage Billing link to update payment details or cancel future renewal. Support is not a charitable donation and should not be represented as tax-deductible.</p></div></section><section id="messages" class="page"><div class="card"><h1>PRIVATE MESSAGES</h1><p class="muted">Talk directly with coaches, teammates, and other EBL members.</p><div class="two"><div class="card"><h2>Contacts</h2><div id="dmContacts"></div></div><div class="card"><h2 id="dmTitle">Conversation</h2><div id="dmThread" class="chatbox"></div><div class="chatinput"><input id="dmMsg" maxlength="500" placeholder="Write a private message..."><button class="btn" data-ebl-command="sendDM">Send</button></div></div></div></div></section><section id="player" class="page"><div id="playerMain" class="card"></div>
-<div id="createCard" class="card hidden"><h2>Create Your EBL Player</h2>
-<div class="creatorSteps"><div id="cs1" class="creatorStep active">1 • BASIC INFO</div><div id="cs2" class="creatorStep">2 • APPEARANCE</div><div id="cs3" class="creatorStep">3 • ATTRIBUTES</div><div id="cs4" class="creatorStep">4 • REVIEW</div></div>
-<div id="creatorStage"></div>
+<div id="createCard" class="card eblCreatorShell157 hidden">
+<div class="eblCreatorHero157"><div class="eblCreatorHeroCopy157"><span class="eblStudioLabel157">ELITE BASEBALL LEAGUE / PLAYER DEVELOPMENT</span><h2>BUILT FOR<br><em>THE BIGS.</em></h2><p>Your ballplayer. Your identity. Your road to the show. Build your rookie and take the field.</p><div class="eblCreatorHeroRibbon157"><span>01 / CREATE</span><span>02 / CUSTOMIZE</span><span>03 / COMPETE</span></div></div><div class="eblCreatorHeroMark157" aria-hidden="true"><span>EBL</span><small>PLAYER LAB</small></div></div>
+<div class="creatorSteps eblCreatorSteps157" aria-label="Player creation progress"><div id="cs1" class="creatorStep active">01 • IDENTITY</div><div id="cs2" class="creatorStep">02 • APPEARANCE</div><div id="cs3" class="creatorStep">03 • ATTRIBUTES</div><div id="cs4" class="creatorStep">04 • ROOKIE CARD</div></div>
+<div id="creatorStage" class="eblCreatorStage157"></div>
 </div></section>
 
 <section id="team" class="page"><div id="teamPage" class="card"><h1>Team Clubhouse</h1><p class="muted">Loading your team...</p></div></section>
 
-<section id="coach" class="page"><div class="card"><h1>Franchise Operations</h1><p class="muted">Manage contracts, batting order, field alignment, rotation, bullpen roles, and defensive tactics.</p><div id="coachHub"></div></div></section>
-<section id="league" class="page"><div class="card"><h1>League Standings &amp; Schedule</h1><div class="subtabs"><button class="subtab active" data-ebl-action="league-pane" data-pane="standingsPane">STANDINGS</button><button class="subtab" data-ebl-action="league-pane" data-pane="schedulePane">SCHEDULE</button><button class="subtab" data-ebl-action="league-pane" data-pane="playoffsPane" data-load-playoffs="1">PLAYOFFS</button></div><div id="standingsPane" class="subpane active"></div><div id="schedulePane" class="subpane"></div><div id="playoffsPane" class="subpane"><p class="muted">Playoff bracket loads here when the postseason field is set.</p></div></div></section>
+<section id="coach" class="page"><div class="card eblCoachShell157"><div class="eblCoachHero157"><div class="eblCoachHeroCopy157"><span class="eblStudioLabel157">ELITE BASEBALL LEAGUE / DUGOUT OPERATIONS</span><h1>THE MANAGER'S<br><em>DESK.</em></h1><p>Build the roster. Set the order. Call the shots. Every decision shapes your ballclub.</p><div class="eblCoachHeroSub157">FRANCHISE MANAGEMENT • LINEUPS • PLAYER DEVELOPMENT</div></div><div class="eblCoachHeroBadge157" aria-hidden="true"><b>EBL</b><span>FIELD<br>GENERAL</span></div></div><div class="eblCoachDeskRail157"><span>CLUBHOUSE</span><span>GAME DAY</span><span>BASEBALL OPERATIONS</span><span>PLAYER DEVELOPMENT</span></div><div id="coachHub"></div></div></section>
+<section id="league" class="page"><div class="card eblLeagueShell156">
+<div class="eblLeagueHero156"><div class="eblLeagueHeroText156"><span class="eblLeagueKicker156">ELITE BASEBALL LEAGUE / COMPETITION DESK</span><h1>LEAGUE <em>CENTRAL</em></h1><p>Every division. Every matchup. One race for the EBL Championship.</p><div class="eblLeagueSeason156" id="eblLeagueSeason156">GENESIS • WAITING FOR LEAGUE DATA</div></div><div class="eblLeagueRoundel156" aria-hidden="true"><span>EBL</span><strong>LEAGUE<br>OFFICE</strong></div></div>
+<div class="eblLeagueVitals156" id="eblLeagueVitals156" aria-label="League status"><span class="eblLeagueVital156"><small>CURRENT SEASON</small><b>—</b></span><span class="eblLeagueVital156"><small>CLUBS</small><b>—</b></span><span class="eblLeagueVital156"><small>COMPLETED GAMES</small><b>—</b></span><span class="eblLeagueVital156"><small>LEAGUE PHASE</small><b>LOADING</b></span></div>
+<div class="subtabs eblLeagueTabs156" aria-label="League sections"><button class="subtab active" data-ebl-action="league-pane" data-pane="standingsPane">STANDINGS</button><button class="subtab" data-ebl-action="league-pane" data-pane="schedulePane">SCHEDULE</button><button class="subtab" data-ebl-action="league-pane" data-pane="playoffsPane" data-load-playoffs="1">PLAYOFFS</button></div>
+<div id="standingsPane" class="subpane active"></div><div id="schedulePane" class="subpane"></div><div id="playoffsPane" class="subpane"><p class="muted">Playoff bracket loads here when the postseason field is set.</p></div></div></section>
 
 
 <section id="analytics" class="page"><div class="card"><h1>EBL Analytics</h1><div class="subtabs"><button class="subtab active" data-ebl-action="analytics-pane" data-pane="aLeague">LEAGUE</button><button class="subtab" data-ebl-action="analytics-pane" data-pane="aBat">BATTING</button><button class="subtab" data-ebl-action="analytics-pane" data-pane="aPitch">PITCHING</button></div><div id="aLeague" class="subpane active"></div><div id="aBat" class="subpane"></div><div id="aPitch" class="subpane"></div></div></section>
@@ -267,7 +272,7 @@ function teamPalette(team){
   return palette;
 }
 </script>
-<script src="/ebl-core.js?v=rc139"></script>
+<script src="/ebl-core.js?v=rc161"></script>
 <script>
 // EBL Public Profile Routing
 (function(){
@@ -3115,10 +3120,23 @@ window.EBL_LIVE_SCREENSHOT_POLISH={
 
 <!-- EBL UNIFIED APPEARANCE PIPELINE  one state, one public renderer -->
 
-<script id="eblUnifiedAppearance" src="/ebl-appearance.js"></script>
+<script id="eblUnifiedAppearance" src="/ebl-appearance.js?v=rc160"></script>
 
 
 <!-- EBL AVATAR DETAIL + SMOOTHING PASS current -->
+<script id="eblRecruitPreviewRC158">
+/* Marketing-only avatar preview sourced from the production canonical renderer.
+   No synthetic players, stats or league identities are persisted. */
+(function(){
+  function draw(){
+    const target=document.getElementById('eblRecruitAvatar158');
+    if(!target||typeof window.eblUnifiedAppearanceRenderer!=='function')return;
+    const example={name:'EBL Prospect',face_id:4,skin_color_id:4,hair_id:3,hair_color_id:2,facial_hair_id:4,eye_color_id:3,nose_id:3,eye_shape_id:2,mouth_id:4,ear_size_id:2,eye_black_id:2,eyewear_id:1,chain_id:1,sleeve_id:1,body_build_id:3,jersey_number:27,primary_pos:'CF',franchise_id:null,_eblCreatorPreview:true};
+    target.innerHTML=window.eblUnifiedAppearanceRenderer(example,'lg','portrait');
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',draw,{once:true}); else draw();
+})();
+</script>
 <!-- EBL RENDERER OWNERSHIP CONTRACT  no visual layer, only prevents runtime renderer replacement -->
 <script id="eblRendererOwnership">
 (function(){
@@ -3329,4 +3347,134 @@ window.EBL_LIVE_SCREENSHOT_POLISH={
 <script id="eblPWA" src="/ebl-app-shell.js"></script>
 
 <!-- EBL GAMECAST RC149 — information board hardened; RC148 presentation consolidated into external assets -->
+<script id="eblCareerChampionshipGraphicsRC155">
+/* RC155 adds presentation only. Existing EBL API, avatar, contract, XP and season data remain canonical. */
+(function(){
+  'use strict';
+  const esc = value => typeof escapeHtml === 'function' ? escapeHtml(String(value ?? '')) : String(value??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  const safeNumber = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const kindLabels = {DEBUT:'DEBUT',CONTRACT:'CONTRACT',AWARD:'AWARD',CHAMPIONSHIP:'CHAMPIONSHIP',RETIREMENT:'RETIREMENT'};
+  const kindMonograms = {DEBUT:'01',CONTRACT:'CN',AWARD:'★',CHAMPIONSHIP:'★',RETIREMENT:'R'};
+  window.careerTimelineHtml = function(c){
+    const rows=Array.isArray(c?.timeline) ? c.timeline : [];
+    if(!rows.length)return '<div class="eblCareerEmpty155"><span class="eblEmptyDiamond155" aria-hidden="true"></span><div><h4>Every great career begins somewhere.</h4><p>Official contracts, awards, championships, and career milestones will build here as they are recorded.</p></div></div>';
+    return '<div class="eblCareerJourney155" role="list" aria-label="Recorded EBL career milestones">'+rows.map((x,i)=>{
+      const kind=String(x?.kind||'').toUpperCase(),cls=['DEBUT','CONTRACT','AWARD','CHAMPIONSHIP','RETIREMENT'].includes(kind)?kind.toLowerCase():'other';
+      return `<article class="eblCareerStep155 eblCareerStep155--${cls}" role="listitem"><div class="eblCareerNode155" aria-hidden="true"><span>${kindMonograms[kind]||'◆'}</span></div><div class="eblCareerStepBody155"><div class="eblCareerStepMeta155"><span>CAREER RECORD ${String(i+1).padStart(2,'0')}</span><strong>${esc(kindLabels[kind]||'MILESTONE')}</strong></div><h4>${esc(x?.title||'Career milestone')}</h4>${x?.detail?`<p>${esc(x.detail)}</p>`:''}</div></article>`;
+    }).join('')+'</div>';
+  };
+  window.careerHistoryHtml = function(c,type){
+    const rows=[];
+    if(c?.current_season)rows.push({...c.current_season,current:true});
+    for(const h of (Array.isArray(c?.history)?c.history:[]))rows.push(h);
+    if(!rows.length)return '<div class="eblCareerEmpty155"><span class="eblEmptyDiamond155" aria-hidden="true"></span><div><h4>Your season archive begins here.</h4><p>Completed season-by-season records appear after EBL games are played.</p></div></div>';
+    return `<div class="eblSeasonGallery155">${rows.map(x=>`<article class="eblSeasonCard155 ${x.current?'eblSeasonCard155--current':''}"><div class="eblSeasonCardMeta155">SEASON ${esc(x.season??'—')}${x.current?'<span>IN PROGRESS</span>':' • FINAL'}</div><h4>${esc(x.team_name||'Free Agent')}</h4><p>${x.current?'CURRENT SEASON':'OFFICIAL SEASON RECORD'}</p><div class="eblSeasonLine155">${esc(typeof careerLine==='function'?careerLine(x,type):'')}</div></article>`).join('')}</div>`;
+  };
+  window.careerHonorsHtml = function(c){
+    const champs=Array.isArray(c?.championships)?c.championships:[];
+    const awards=(Array.isArray(c?.awards)?c.awards:[]).filter(x=>x?.award_code!=='ALL_STAR_SELECTION');
+    const stars=Math.max(0,safeNumber(c?.all_star_count));
+    const cards=[];
+    for(const x of champs)cards.push(`<article class="eblHonorCard155 eblHonorCard155--championship"><div class="eblHonorIcon155"><img alt="" loading="lazy" src="/assets/ebl_trophy_154.svg"></div><div class="eblHonorText155"><span>EBL CHAMPIONSHIP</span><b>Season ${esc(x.season??'—')} Champion</b><small>${esc(x.team_name||x.franchise_id||'Team')}</small></div></article>`);
+    if(stars)cards.push(`<article class="eblHonorCard155"><div class="eblHonorIcon155"><span aria-hidden="true">★</span></div><div class="eblHonorText155"><span>ALL-STAR HONORS</span><b>${stars}× EBL All-Star</b><small>Official selections recorded during this career</small></div></article>`);
+    for(const x of awards)cards.push(`<article class="eblHonorCard155"><div class="eblHonorIcon155"><img alt="" loading="lazy" src="/assets/ebl_trophy_154.svg"></div><div class="eblHonorText155"><span>SEASON ${esc(x.season??'—')} • ${esc(String(x.period||'').replaceAll('_',' '))}</span><b>${esc(x.award_name||'EBL Award')}</b><small>${x.team_name?esc(x.team_name)+' • ':''}+${safeNumber(x.xp_awarded).toFixed(0)} XP awarded</small></div></article>`);
+    if(!cards.length)return '<div class="eblCareerEmpty155"><span class="eblEmptyDiamond155" aria-hidden="true"></span><div><h4>Honors are earned here.</h4><p>No awards, All-Star selections, or championships recorded for this career yet.</p></div></div>';
+    return '<div class="eblHonorCabinet155" aria-label="Official EBL career honors">'+cards.join('')+'</div>';
+  };
+  const previous=window.renderPlayer;
+  if(typeof previous==='function' && !previous._eblCareer155){
+    const enhanced=function(...args){
+      const result=previous.apply(this,args);
+      try{
+        const p=typeof PLAYER==='object'?PLAYER:null,root=document.getElementById('playerCareer');
+        if(!p||!root||root.querySelector('.eblCareerHero155'))return result;
+        const c=p.career||{},team=String(p.team?.display_name||p.team?.name||'Free Agent'),titleCount=safeNumber(c.championship_count||0);
+        const playerArt=typeof eblPlayerArt==='function'?eblPlayerArt(p,'lg','portrait'):'';
+        root.insertAdjacentHTML('afterbegin',`<div class="eblCareerHero155"><div><span class="eblCareerEyebrow155">ELITE BASEBALL LEAGUE / OFFICIAL PLAYER RECORD</span><h2>${esc(p.name||'EBL Player')}</h2><p>${esc(team)} • ${esc(p.primary_pos||'PLAYER')} • ${p.active?'ACTIVE CAREER':'RETIRED PLAYER'}<br>Every season and honor is part of this player’s permanent record.</p><div class="eblCareerSummary155"><span><b>${safeNumber(c.seasons_completed)}</b> SEASONS</span><span><b>${safeNumber(c.award_count)}</b> AWARDS</span><span><b>${safeNumber(c.all_star_count)}</b> ALL-STARS</span><span><b>${titleCount}</b> TITLES</span></div></div><div class="eblCareerHeroArt155" aria-hidden="true">${playerArt}</div></div>`);
+      }catch(e){console.warn('RC155 career graphics enhancement skipped',e)}
+      return result;
+    };
+    enhanced._eblCareer155=true;
+    window.renderPlayer=enhanced;
+  }
+  window.EBL_CAREER_GRAPHICS_VERSION='RC155';
+})();
+</script>
+<script id="eblLeagueBroadcastRC156">
+/* League presentation-only enhancements: use canonical league, schedule and postseason results. */
+(function(){
+  'use strict';
+  const esc=v=>typeof escapeHtml==='function'?escapeHtml(String(v??'')):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const count=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,Math.trunc(n)):0;};
+  const league=()=>typeof LEAGUE!=='undefined'?LEAGUE:null;
+  const schedule=()=>typeof SCHEDULE!=='undefined'&&Array.isArray(SCHEDULE)?SCHEDULE:[];
+  const player=()=>typeof PLAYER!=='undefined'?PLAYER:null;
+  const safeName=id=>typeof teamName==='function'?esc(teamName(id)||id):esc(id||'Team');
+  const mark=id=>typeof teamMark==='function'?teamMark(id,true):'<span class="eblClubFallback156" aria-hidden="true">EBL</span>';
+  function updateLeagueVitals(){
+    const j=league(),target=document.getElementById('eblLeagueVitals156'),label=document.getElementById('eblLeagueSeason156');
+    if(!target||!j)return;
+    const teams=Array.isArray(j.teams)?j.teams:[],phase=String(j.phase||'REGULAR').toUpperCase();
+    const games=Math.floor(teams.reduce((sum,t)=>sum+count(t.wins)+count(t.losses),0)/2);
+    const pretty=phase==='REGULAR'?'REGULAR SEASON':phase==='PLAYOFFS'?'POSTSEASON':phase.replace(/_/g,' ');
+    if(label) label.textContent='SEASON '+count(j.season)+' • '+(count(j.day)===0?'PRESEASON':`DAY ${count(j.day)}`)+' • '+pretty;
+    const values=[['CURRENT SEASON',count(j.season)||'—'],['CLUBS',teams.length],['COMPLETED GAMES',games],['LEAGUE PHASE',pretty]];
+    target.innerHTML=values.map(([k,v])=>`<span class="eblLeagueVital156"><small>${esc(k)}</small><b>${esc(v)}</b></span>`).join('');
+  }
+  function leadersHtml(){
+    const j=league();if(!j)return '';
+    const divs=Array.isArray(j.divisions)?j.divisions:[];
+    const teams=Array.isArray(j.teams)?j.teams:[];
+    const games=teams.some(t=>count(t.wins)+count(t.losses)>0);
+    if(!divs.length)return '';
+    let content='';
+    if(!games){content='<p class="eblLeaguePending156">The division race begins when the first official results are recorded.</p>';}
+    else {content='<div class="eblDivisionLeaders156">'+divs.map(d=>{
+      const rows=teams.filter(t=>String(t.division)===String(d)).slice().sort((a,b)=>count(b.wins)-count(a.wins)||(count(b.runs_for)-count(b.runs_against))-(count(a.runs_for)-count(a.runs_against)));
+      const t=rows[0]; if(!t)return '';
+      const g=count(t.wins)+count(t.losses),pct=g?(count(t.wins)/g).toFixed(3).replace(/^0/,''):'.000';
+      return `<div class="eblDivisionLeader156"><span class="eblDivisionLeaderLabel156">${esc(d)} / CURRENT LEADER</span><div class="eblDivisionLeaderBody156">${mark(t.id)}<span><b>${esc(t.display_name||t.name||t.id)}</b><small>${count(t.wins)}–${count(t.losses)} • ${pct} PCT</small></span></div></div>`;
+    }).join('')+'</div>';}
+    return `<section class="eblDivisionPulse156" aria-label="Division race"><div class="eblLeagueSectionLabel156"><span>DIVISION WATCH</span><small>${games?'CURRENT LEADERS • NOT FINAL SEEDING':'AWAITING OPENING DAY'}</small></div>${content}</section>`;
+  }
+  function updateStandings(){
+    const pane=document.getElementById('standingsPane');if(!pane)return;
+    if(!pane.querySelector('.eblDivisionPulse156'))pane.insertAdjacentHTML('afterbegin',leadersHtml());
+    updateLeagueVitals();
+  }
+  function spotlightHtml(){
+    const j=league(),games=schedule(),current=count(j?.day);const fid=player()?.franchise_id;
+    const upcoming=games.filter(g=>count(g.league_day)>=Math.max(1,current) && !['FINAL','CANCELLED'].includes(String(g.status||'').toUpperCase())).slice().sort((a,b)=>count(a.league_day)-count(b.league_day));
+    const mine=fid?upcoming.filter(g=>String(g.away_id)===String(fid)||String(g.home_id)===String(fid)):[];
+    const rows=(mine.length?mine:upcoming).slice(0,2);
+    const body=rows.length?'<div class="eblMatchupGrid156">'+rows.map(g=>{
+      const away=g.away_id||g.away,home=g.home_id||g.home;
+      return `<article class="eblMatchupCard156"><div class="eblMatchupMeta156"><span>LEAGUE DAY ${count(g.league_day)}</span><span>${esc(String(g.status||'SCHEDULED').replaceAll('_',' '))}</span></div><div class="eblMatchupTeams156"><div class="eblMatchupClub156">${mark(away)}<b>${safeName(away)}</b></div><span class="eblMatchupVersus156">AT</span><div class="eblMatchupClub156">${mark(home)}<b>${safeName(home)}</b></div></div></article>`;
+    }).join('')+'</div>':'<div class="eblLeaguePending156">Upcoming matchups will be displayed when official league games are scheduled.</div>';
+    return `<section class="eblMatchupSpotlight156" aria-label="Upcoming matchups"><div class="eblLeagueSectionLabel156"><span>${mine.length?'YOUR NEXT MATCHUPS':'UPCOMING GAMES'}</span><small>OFFICIAL SCHEDULE</small></div>${body}</section>`;
+  }
+  function updateSchedule(){
+    const pane=document.getElementById('schedulePane');if(!pane)return;
+    if(!pane.querySelector('.eblMatchupSpotlight156'))pane.insertAdjacentHTML('afterbegin',spotlightHtml());
+    updateLeagueVitals();
+  }
+  function updatePlayoffs(){
+    const pane=document.getElementById('playoffsPane');if(!pane)return;
+    if(!pane.querySelector('.eblPostseasonHero156'))pane.insertAdjacentHTML('afterbegin',`<div class="eblPostseasonHero156"><span class="eblLeagueKicker156">ELITE BASEBALL LEAGUE / POSTSEASON</span><h2>THE ROAD TO THE TITLE.</h2><p>Every series advances the bracket. Only recorded postseason results determine the champions.</p></div>`);
+    updateLeagueVitals();
+  }
+  function after(name,decorate){
+    const base=window[name];if(typeof base!=='function'||base._eblBroadcast156)return;
+    const enhanced=function(...args){const result=base.apply(this,args);
+      if(result&&typeof result.then==='function')return result.then(v=>{try{decorate();}catch(e){console.warn('EBL broadcast decoration',e);}return v;});
+      try{decorate();}catch(e){console.warn('EBL broadcast decoration',e);}return result;
+    };enhanced._eblBroadcast156=true;window[name]=enhanced;
+  }
+  after('renderStandings',updateStandings);
+  after('renderSchedule',updateSchedule);
+  after('loadPlayoffs',updatePlayoffs);
+  document.addEventListener('DOMContentLoaded',()=>{updateLeagueVitals();if(document.getElementById('standingsPane')?.innerHTML)updateStandings();});
+  window.EBL_LEAGUE_BROADCAST_VERSION='RC156';
+})();
+</script>
 </body></html>

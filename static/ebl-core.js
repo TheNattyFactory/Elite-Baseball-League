@@ -778,8 +778,8 @@ async function openTeam(fid){
     const history=(j.history||[]).length
       ? `<div class="tablewrap"><table><tr><th>Season</th><th>W</th><th>L</th><th>RS</th><th>RA</th><th>Finish</th></tr>${j.history.map(h=>`<tr><td>${h.season}</td><td>${h.wins}</td><td>${h.losses}</td><td>${h.runs_for}</td><td>${h.runs_against}</td><td>${h.champion?'🏆 CHAMPION':escapeHtml(String(h.playoff_finish||'—'))}</td></tr>`).join('')}</table></div>`
       : '<p class="muted">Franchise season history will build here.</p>';
-    const hitterRows=hitters.length?hitters.map(p=>{const s=p.stats||{};return `<tr><td>${playerButton(p)}</td><td>${escapeHtml(String(p.primary_pos||''))}</td><td><b>${Number(p.overall||0)||'—'}</b></td><td>${avg(s)}</td><td>${s.HR||0}</td><td>${s.RBI||0}</td><td>${s.SB||0}</td><td>${p.username?`<button class="clickableName" data-ebl-action="open-user-profile" data-username="${jsq(p.username)}">@${escapeHtml(p.username)}</button>`:'CPU'}</td></tr>`}).join(''):'<tr><td colspan="8" class="muted">No position players.</td></tr>';
-    const pitcherRows=pitchers.length?pitchers.map(p=>{const s=p.stats||{};return `<tr><td>${playerButton(p)}</td><td>${escapeHtml(String(p.primary_pos||''))}</td><td><b>${Number(p.overall||0)||'—'}</b></td><td>${s.W||0}-${s.L||0}</td><td>${era(s)}</td><td>${ip(s)}</td><td>${s.SO||0}</td><td>${s.SV||0}</td></tr>`}).join(''):'<tr><td colspan="8" class="muted">No pitchers.</td></tr>';
+    const hitterRows=hitters.length?hitters.map(p=>{const s=p.stats||{};return `<tr><td><span class="eblRosterPortraitIdentity161">${eblPlayerPortraitTile161(p,'roster')}${playerButton(p)}</span></td><td>${escapeHtml(String(p.primary_pos||''))}</td><td><b>${Number(p.overall||0)||'—'}</b></td><td>${avg(s)}</td><td>${s.HR||0}</td><td>${s.RBI||0}</td><td>${s.SB||0}</td><td>${p.username?`<button class="clickableName" data-ebl-action="open-user-profile" data-username="${jsq(p.username)}">@${escapeHtml(p.username)}</button>`:'CPU'}</td></tr>`}).join(''):'<tr><td colspan="8" class="muted">No position players.</td></tr>';
+    const pitcherRows=pitchers.length?pitchers.map(p=>{const s=p.stats||{};return `<tr><td><span class="eblRosterPortraitIdentity161">${eblPlayerPortraitTile161(p,'roster')}${playerButton(p)}</span></td><td>${escapeHtml(String(p.primary_pos||''))}</td><td><b>${Number(p.overall||0)||'—'}</b></td><td>${s.W||0}-${s.L||0}</td><td>${era(s)}</td><td>${ip(s)}</td><td>${s.SO||0}</td><td>${s.SV||0}</td></tr>`}).join(''):'<tr><td colspan="8" class="muted">No pitchers.</td></tr>';
     document.getElementById('profileContent').innerHTML=`
       <div class="profileHero">
         <div class="profileLogo">${logo}</div>
@@ -824,6 +824,24 @@ function openPlayerCard(playerId){
   openPlayerCardLegacy(playerId);
 }
 
+/* RC161 — Shared EBL player portrait frame. One rendering source, many surfaces.
+   The frame ONLY presents the canonical appearance artwork; it never generates faces,
+   changes saved identities, or requires new player data. */
+function eblPlayerPortraitTile161(raw={},surface='roster'){
+  const allowed=['home','hq','profile','roster','gamecast','mini'];
+  const mode=allowed.includes(surface)?surface:'roster';
+  const p=(typeof eblResolveCanonicalPlayerIdentity==='function')
+    ?eblResolveCanonicalPlayerIdentity(raw||{}):(raw||{});
+  const number=Number(p.jersey_number??24);
+  const safeNumber=Number.isFinite(number)?Math.max(0,Math.min(999,Math.trunc(number))):24;
+  const title=escapeHtml(String(p.name||p.player_name||'EBL Player'));
+  const pos=escapeHtml(String(p.primary_pos||p.position||'PLAYER'));
+  const image=typeof eblPlayerArt==='function'
+    ?eblPlayerArt(p,mode==='home'||mode==='profile'?'lg':'sm','portrait')
+    :(typeof eblAvatarHtml==='function'?eblAvatarHtml(p,'mini'):'');
+  return `<span class="eblPlayerTile161 eblPlayerTile161--${mode}" role="img" aria-label="${title} player portrait"><span class="eblPlayerTileArt161">${image}</span><span class="eblPlayerTileMark161" aria-hidden="true"><b>EBL</b><span>#${safeNumber}</span></span></span>`;
+}
+
 function profilePlayerCard(p){
   const c=p.career||{};
   const team=p.franchise_id?`<span class="legacyTeamRef">${teamMark(p.franchise_id,true)}<button class="clickableName" data-ebl-action="open-team" data-team="${jsq(p.franchise_id)}">${escapeHtml(String(p.team_name||p.franchise_id))}</button></span>`:'Free Agent';
@@ -835,7 +853,7 @@ function profilePlayerCard(p){
   const contractHistory=(c.contract_history||[]).map(x=>`<div class="recordCard"><b class="legacyTeamRef">${x.franchise_id?teamMark(x.franchise_id,true):''}${escapeHtml(String(x.team_name||x.franchise_id||'Team'))}</b><div class="muted">${Number(x.salary||0).toFixed(2)} XP/game • ${Number(x.years||0)} season${Number(x.years||0)===1?'':'s'}${Number(x.bonus||0)?` • ${Number(x.bonus).toFixed(2)} XP bonus`:''}</div></div>`).join('');
   return `<div class="profilePlayer">
     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-      ${typeof eblPlayerArt==='function'?eblPlayerArt(p,'lg','portrait'):eblAvatarHtml(p,'card')}
+      ${eblPlayerPortraitTile161(p,'profile')}
       <div style="flex:1;min-width:210px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h3 class="eblNoMargin">${escapeHtml(String(p.name||'Player'))} <span class="gold">${escapeHtml(String(p.primary_pos||''))}</span></h3><div class="muted">${team} • #${Number(p.jersey_number??0)} • Age ${Number(p.age||18)} • ${status}${p.hometown?` • From ${escapeHtml(p.hometown)}`:''}</div>${contractLine}</div><span class="legacyBadge">${p.type==='P'?'Pitcher':'Position Player'}</span></div>
       ${p.active?`<div class="recordCard eblSpaceTopXs"><span class="label">CURRENT SEASON</span><div>${escapeHtml(currentLine||'Season underway')}</div></div>`:''}</div>
     </div>
@@ -1157,7 +1175,7 @@ function renderPlayer(){
     // Player HQ identity = player portrait. Team logos stay attached to team references only.
     const hqIdentityPlayer=(typeof eblResolveCanonicalPlayerIdentity==='function'?eblResolveCanonicalPlayerIdentity(p):p);
     const profileAvatar=(typeof eblPlayerArt==='function')
-        ? `<div class="playerHQIdentityPortrait">${eblPlayerArt(hqIdentityPlayer,'sm','portrait')}</div>`
+        ? eblPlayerPortraitTile161(hqIdentityPlayer,'hq')
         : playerPortraitMarkup(hqIdentityPlayer);
 
 
@@ -2607,7 +2625,7 @@ function renderHome(){
   }else onboardingCard.classList.add('hidden');
  }
  if(!PLAYER){homePlayer.innerHTML='<h2>Create Your Player</h2><p class="muted">Your Genesis career starts with 50 XP and a blank history.</p>';homeTeam.innerHTML='<h2>No Team Yet</h2><p class="muted">Create a player, enter the CPU market, and sign your first EBL contract.</p>';nextGame.innerHTML='<h2>Next Game</h2><p class="muted">Your schedule appears after signing.</p>';return}
- let p=PLAYER,t=p.team;const renewalAction=(p.offers||[]).find(o=>String(o.offer_type||'').toUpperCase()==='RENEWAL'),veteranAction=p.veteran_extension?.required;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap homeAvatarBranded">${p.franchise_id?`<div class="homePlayerTeamBackdrop">${teamLogoImg(p.franchise_id,'secondary','homePlayerBackdropLogo')}</div>`:''}${typeof eblPlayerArt==='function'?eblPlayerArt(p,'lg','portrait'):eblAvatarHtml(p,'card')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" data-ebl-action="open-user-profile" data-username="${jsq(ME.username)}">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos}${p.hometown?` • ${escapeHtml(p.hometown)}`:''} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost eblSpaceTopXs" data-ebl-action="go-page" data-page="player">Open Player HQ</button></div></div>${veteranAction?`<div class="taskCard eblSpaceTopM"><b>🏅 Veteran career decision</b><div class="red">Spend ${Number(p.veteran_extension?.cost||0).toFixed(0)} XP to secure career Season ${Number(p.veteran_extension?.next_career_season||0)} before offseason rollover.</div><button class="btn eblSpaceTopTiny" data-ebl-action="open-player-career">Review Career Decision</button></div>`:''}${renewalAction?`<div class="taskCard eblSpaceTopM"><b>📄 Renewal decision waiting</b><div class="muted">${Number(renewalAction.salary||0).toFixed(2)} XP/game • ${Number(renewalAction.years||0)} season(s)</div><button class="btn eblSpaceTopTiny" data-ebl-action="open-player-contracts">Review Contract</button></div>`:''}${homePlayerCycleHtml()}`;
+ let p=PLAYER,t=p.team;const renewalAction=(p.offers||[]).find(o=>String(o.offer_type||'').toUpperCase()==='RENEWAL'),veteranAction=p.veteran_extension?.required;homePlayer.innerHTML=`<div class="identity"><div class="homeAvatarWrap homeAvatarBranded">${p.franchise_id?`<div class="homePlayerTeamBackdrop">${teamLogoImg(p.franchise_id,'secondary','homePlayerBackdropLogo')}</div>`:''}${eblPlayerPortraitTile161(p,'home')}</div><div><span class="muted">MY PLAYERS • ${ACTIVE_PLAYERS.length}/${PLAYER_LIMIT} SLOTS</span><h2>${ME?.username?`<button class="clickableName" data-ebl-action="open-user-profile" data-username="${jsq(ME.username)}">${escapeHtml(p.name)}</button>`:escapeHtml(p.name)}</h2><div>#${Number(p.jersey_number??24)} • ${p.primary_pos}${p.hometown?` • ${escapeHtml(p.hometown)}`:''} • OVR ${p.overall||'—'} • ${(+p.xp_wallet)>0?`${(+p.xp_wallet).toFixed(3)} XP available`:'No XP available'}</div><button class="btn ghost eblSpaceTopXs" data-ebl-action="go-page" data-page="player">Open Player HQ</button></div></div>${veteranAction?`<div class="taskCard eblSpaceTopM"><b>🏅 Veteran career decision</b><div class="red">Spend ${Number(p.veteran_extension?.cost||0).toFixed(0)} XP to secure career Season ${Number(p.veteran_extension?.next_career_season||0)} before offseason rollover.</div><button class="btn eblSpaceTopTiny" data-ebl-action="open-player-career">Review Career Decision</button></div>`:''}${renewalAction?`<div class="taskCard eblSpaceTopM"><b>📄 Renewal decision waiting</b><div class="muted">${Number(renewalAction.salary||0).toFixed(2)} XP/game • ${Number(renewalAction.years||0)} season(s)</div><button class="btn eblSpaceTopTiny" data-ebl-action="open-player-contracts">Review Contract</button></div>`:''}${homePlayerCycleHtml()}`;
  homeTeam.innerHTML=t?`<div class="identity">${teamMark(p.franchise_id)}<div><span class="muted">MY TEAM</span><h2><button class="clickableName" data-ebl-action="open-team" data-team="${p.franchise_id}">${t.name}</button></h2><div class="big">${t.wins}-${t.losses}</div><div class="gold">${t.division} Division</div></div></div>`:`<span class="muted">MY TEAM</span><h2>Free Agent</h2><p>Request CPU contract offers to begin your EBL career.</p><button class="btn" data-ebl-action="open-market">REQUEST CONTRACT OFFERS</button><button class="btn ghost" data-ebl-action="open-player-contracts">OPEN CONTRACT HQ</button>`;
  let ng=p.franchise_id?SCHEDULE.find(g=>g.status==='SCHEDULED'&&(g.away_id===p.franchise_id||g.home_id===p.franchise_id)&&g.league_day>=(LEAGUE?.day||0)):null;
  nextGame.innerHTML=ng?`<span class="muted">NEXT GAME • DAY ${ng.league_day}</span><div class="homeNextMatchup"><span>${teamMark(ng.away_id,true)}<button class="teamLink" data-ebl-action="open-team" data-team="${jsq(ng.away_id)}">${teamName(ng.away_id)}</button></span><b>@</b><span>${teamMark(ng.home_id,true)}<button class="teamLink" data-ebl-action="open-team" data-team="${jsq(ng.home_id)}">${teamName(ng.home_id)}</button></span></div><p>${ng.away_id===p.franchise_id?'Road game':'Home game'}</p><button class="btn ghost" data-ebl-action="go-page" data-page="schedule">VIEW SCHEDULE</button>`:`<h2>Next Game</h2><p class="muted">${p.franchise_id?'Your next scheduled game will appear here.':'Accept a contract and your first EBL game will appear here automatically.'}</p>${!p.franchise_id?`<div class="launchPath"><span>1. Request offers</span><span>2. Choose a team</span><span>3. Play ball</span></div>`:''}`;
@@ -4592,8 +4610,8 @@ function gamecastPlayerById(pid){
 }
 function gamecastMatchupCard(p,label){
  if(!p)return `<div class="card eblTextCenter"><span class="muted">${label}</span><div>Waiting for matchup…</div></div>`;
- const portrait=playerPortraitMarkup(p,String(label||'').toLowerCase().includes('pitch')?'pitching':'batting');
- return `<div class="card" style="padding:10px;text-align:center;min-width:0"><span class="newsMeta">${label}</span><div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px">${portrait}<div><b style="font-size:18px">#${Number(p.jersey_number??24)} ${escapeHtml(p.name||'Player')}</b><div class="muted">${escapeHtml(p.primary_pos||'')}</div></div></div></div>`;
+ const portrait=eblPlayerPortraitTile161(p,'gamecast');
+ return `<div class="card eblGamecastPlayer161"><span class="newsMeta">${escapeHtml(label||'MATCHUP')}</span><div class="eblGamecastPlayerInner161">${portrait}<div class="eblGamecastPlayerCopy161"><b>#${Number(p.jersey_number??24)} ${escapeHtml(p.name||'Player')}</b><small>${escapeHtml(p.primary_pos||'')}</small></div></div></div>`;
 }
 let GC_STATE={score:[0,0],inning:1,half:'TOP',balls:0,strikes:0,outs:0,runner:null,base:0};
 function gcTeamInfo(fid){const t=(LEAGUE?.teams||[]).find(x=>x.id===fid)||{};return {name:t.display_name||t.name||fid,mark:teamMark(fid,true)}}
