@@ -76,8 +76,8 @@ MAX_TEAM_LOGO_DATA_URL_CHARS=7_100_000
 MAX_PROFILE_PHOTO_DATA_URL_CHARS=900_000
 BETA_MODE=str(os.environ.get("EBL_BETA_MODE","1")).strip().lower() not in ("0","false","off","no")
 try:
-    GENESIS_PLAYER_TARGET=max(1,int(os.environ.get("EBL_GENESIS_PLAYER_TARGET","150") or 150))
+    GENESIS_PLAYER_TARGET=max(1,int(os.environ.get("EBL_GENESIS_PLAYER_TARGET","30") or 30))
 except (TypeError,ValueError):
-    GENESIS_PLAYER_TARGET=150
+    GENESIS_PLAYER_TARGET=30
 COACH_APPLICATIONS_OPEN=str(os.environ.get("EBL_COACH_APPLICATIONS_OPEN","1")).strip().lower() in ("1","true","on","yes")
 AGE_REQUIREMENT=13
