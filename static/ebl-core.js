@@ -2360,7 +2360,7 @@ async function loadLeague(){
  }
  if(PLAYER)renderPlayer();
 }
-const GENESIS_PLAYER_TARGET=150;
+const GENESIS_PLAYER_TARGET=30;
 function renderBetaStatus(){
  const box=document.getElementById('betaStatusCard');if(!box||!LEAGUE)return;
  const season=Number(LEAGUE.season||1),day=Number(LEAGUE.day||0),phase=String(LEAGUE.phase||'REGULAR').toUpperCase();
