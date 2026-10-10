@@ -2836,9 +2836,15 @@ window.EBL_TEAM_HUMAN_AVATAR={
    if(!primary&&!secondary)return html;
    const patch=`<g data-ebl-jersey-patches="v47">${primary?`<image href="${esc(String(primary))}" xlink:href="${esc(String(primary))}" x="54" y="286" width="18" height="18" preserveAspectRatio="xMidYMid meet" transform="rotate(-7 63 295)"/>`:''}${secondary?`<image href="${esc(String(secondary))}" xlink:href="${esc(String(secondary))}" x="228" y="286" width="18" height="18" preserveAspectRatio="xMidYMid meet" transform="rotate(7 237 295)"/>`:''}</g>`;
    let out=String(html||'');
-   const marker='';
-   if(out.includes(marker))return out.replace(marker,patch+marker);
-   return out.replace('<!-- layered baseball collar -->',patch+'<!-- layered baseball collar -->');
+   // Jersey patch <image> elements must stay inside <svg>. An empty marker
+   // prepended them outside the portrait and displayed two empty boxes on mobile.
+   if(out.includes('data-ebl-jersey-patches='))return out;
+   const collarPath='<path data-ebl-collar="v54"';
+   if(out.includes(collarPath))return out.replace(collarPath,patch+collarPath);
+   const collarComment='<!-- layered baseball collar -->';
+   if(out.includes(collarComment))return out.replace(collarComment,patch+collarComment);
+   if(out.includes('</svg>'))return out.replace('</svg>',patch+'</svg>');
+   return out;
  }
  function jerseyWordmark(html,p){
    const spec=typeof window.eblUniformSpec==='function'?window.eblUniformSpec(p||{}):null;
